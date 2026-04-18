@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-orange: #FF6B2B;
+  --brand-navy: #0f1a2e;
+  --brand-blue: #185FA5;
+  --brand-blue-dark: #042C53;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: 'Syne', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-orange text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity;
+  }
+  .btn-secondary {
+    @apply bg-brand-blue text-white font-semibold px-6 py-3 rounded-xl hover:bg-brand-blue-dark transition-colors;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-brand-blue font-medium px-6 py-3 rounded-xl border-2 border-brand-blue hover:bg-blue-50 transition-colors;
+  }
+  .card {
+    @apply bg-white border border-gray-100 rounded-2xl;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 text-sm font-sans outline-none focus:border-brand-blue focus:ring-2 focus:ring-blue-100 transition-all;
+  }
+  .label {
+    @apply block text-xs font-semibold text-gray-500 mb-1.5;
+  }
+}

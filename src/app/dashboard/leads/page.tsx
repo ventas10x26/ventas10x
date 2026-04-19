@@ -1,33 +1,49 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { LeadsTable } from '@/components/dashboard/LeadsTable'
-import type { Lead } from '@/types/database'
+import type { Profile, Lead } from '@/types/database'
 
 export default async function LeadsPage() {
   const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const { data: leads } = await supabase
-    .from('leads')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const [profileRes, leadsRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase
+      .from('leads')
+      .select('*')
+      .eq('vendedor_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const profile = profileRes.data as Profile | null
+  const leads = (leadsRes.data as Lead[] | null) ?? []
+
+  const nombre = profile
+    ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'Usuario'
+    : user.email?.split('@')[0] || 'Usuario'
+
+  const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Gestiona los prospectos de tu negocio.
-        </p>
-      </header>
+    <DashboardLayout user={{
+      email: user.email!,
+      name: nombre,
+      initials,
+      avatarUrl: user.user_metadata?.avatar_url
+    }}>
+      <div className="px-6 py-8 md:px-10">
+        <header className="mb-8">
+          <h1 className="text-3xl font-semibold text-brand-navy">Leads</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Gestiona los prospectos de tu negocio.
+          </p>
+        </header>
 
-      <LeadsTable initialLeads={(leads as Lead[]) ?? []} userId={user.id} />
-    </div>
+        <LeadsTable initialLeads={leads} userId={user.id} />
+      </div>
+    </DashboardLayout>
   )
 }

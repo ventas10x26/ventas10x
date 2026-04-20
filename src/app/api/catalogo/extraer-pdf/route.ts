@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { anthropic, CLAUDE_MODEL } from '@/lib/anthropic'
 
+export const maxDuration = 60
+export const runtime = 'nodejs'
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '15mb',
+    },
+  },
+}
+
 type ProductoExtraido = {
   nombre: string
   precio: string | null

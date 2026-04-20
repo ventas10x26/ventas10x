@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import * as XLSX from 'xlsx'
 import type { Producto } from '@/app/dashboard/catalogo/page'
 
 type ProductoExtraido = {
-  id: string // ID local temporal hasta guardar
+  id: string
   nombre: string
   precio: string | null
   descripcion: string
@@ -27,37 +28,37 @@ export function CatalogoClient({ productosIniciales }: Props) {
   const [extraidos, setExtraidos] = useState<ProductoExtraido[]>([])
   const [productos, setProductos] = useState<Producto[]>(productosIniciales)
   const [textoInput, setTextoInput] = useState('')
+  const [archivoNombre, setArchivoNombre] = useState<string | null>(null)
 
-  const extraerProductos = async () => {
-    if (tipoActivo !== 'texto') {
-      setError('Imagen, PDF y Excel/CSV llegan pronto. Por ahora prueba con texto.')
-      return
-    }
+  // Llamada al endpoint de extracción
+  const extraerConIA = async (contenido: string) => {
+    const res = await fetch('/api/catalogo/extraer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: 'texto', contenido }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Error al procesar')
 
+    return data.productos.map(
+      (p: { nombre: string; precio: string | null; descripcion: string }, i: number) => ({
+        id: `extraido-${Date.now()}-${i}`,
+        nombre: p.nombre,
+        precio: p.precio,
+        descripcion: p.descripcion,
+      })
+    ) as ProductoExtraido[]
+  }
+
+  // Extracción desde textarea
+  const extraerDesdeTexto = async () => {
     setProcesando(true)
     setError(null)
     setExtraidos([])
-
     try {
-      const res = await fetch('/api/catalogo/extraer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tipo: 'texto', contenido: textoInput }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al procesar')
-
-      const productosConId: ProductoExtraido[] = data.productos.map(
-        (p: { nombre: string; precio: string | null; descripcion: string }, i: number) => ({
-          id: `extraido-${Date.now()}-${i}`,
-          nombre: p.nombre,
-          precio: p.precio,
-          descripcion: p.descripcion,
-        })
-      )
-
-      setExtraidos(productosConId)
-      if (productosConId.length === 0) {
+      const productos = await extraerConIA(textoInput)
+      setExtraidos(productos)
+      if (productos.length === 0) {
         setError('La IA no encontró productos en el texto. Intenta con una lista más clara.')
       }
     } catch (e) {
@@ -67,10 +68,55 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
+  // Extracción desde archivo Excel/CSV
+  const handleArchivoExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+
+    setProcesando(true)
+    setError(null)
+    setExtraidos([])
+    setArchivoNombre(archivo.name)
+
+    try {
+      // Leer archivo como buffer
+      const buffer = await archivo.arrayBuffer()
+      const workbook = XLSX.read(buffer, { type: 'array' })
+
+      // Tomar la primera hoja
+      const primeraHoja = workbook.SheetNames[0]
+      if (!primeraHoja) {
+        throw new Error('El archivo no tiene hojas legibles')
+      }
+      const worksheet = workbook.Sheets[primeraHoja]
+
+      // Convertir a CSV (más fácil que JSON para la IA)
+      const csv = XLSX.utils.sheet_to_csv(worksheet, { blankrows: false })
+
+      if (!csv.trim()) {
+        throw new Error('El archivo parece estar vacío')
+      }
+
+      // Limitar a 15KB (~ primeras filas) para no exceder tokens de Claude
+      const contenidoLimitado = csv.substring(0, 15000)
+
+      const productos = await extraerConIA(contenidoLimitado)
+      setExtraidos(productos)
+
+      if (productos.length === 0) {
+        setError('La IA no encontró productos en el archivo. Verifica que tenga nombres y precios.')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al leer el archivo')
+    } finally {
+      setProcesando(false)
+      e.target.value = '' // reset input para poder volver a subir el mismo archivo
+    }
+  }
+
   const guardarExtraidos = async () => {
     setGuardando(true)
     setError(null)
-
     try {
       const res = await fetch('/api/catalogo/productos', {
         method: 'POST',
@@ -86,12 +132,10 @@ export function CatalogoClient({ productosIniciales }: Props) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al guardar')
 
-      // Actualizar lista local con los productos reales devueltos por Supabase
       setProductos((prev) => [...data.productos, ...prev])
       setExtraidos([])
       setTextoInput('')
-
-      // Refrescar datos del server para mantener consistencia
+      setArchivoNombre(null)
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar')
@@ -100,7 +144,10 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
-  const descartarExtraidos = () => setExtraidos([])
+  const descartarExtraidos = () => {
+    setExtraidos([])
+    setArchivoNombre(null)
+  }
 
   const editarExtraido = (id: string, campo: keyof ProductoExtraido, valor: string) => {
     setExtraidos((prev) => prev.map((p) => (p.id === id ? { ...p, [campo]: valor } : p)))
@@ -135,18 +182,17 @@ export function CatalogoClient({ productosIniciales }: Props) {
         </p>
       </header>
 
-      {/* Card de upload */}
       <section className="card p-6 mb-8">
-        <div className="flex gap-1 mb-6 border-b border-gray-100">
+        <div className="flex gap-1 mb-6 border-b border-gray-100 flex-wrap">
           {([
             { id: 'texto', label: 'Texto', icon: '✍️' },
+            { id: 'excel', label: 'Excel / CSV', icon: '📊' },
             { id: 'imagen', label: 'Imagen', icon: '📷' },
             { id: 'pdf', label: 'PDF', icon: '📄' },
-            { id: 'excel', label: 'Excel / CSV', icon: '📊' },
           ] as const).map((t) => (
             <button
               key={t.id}
-              onClick={() => { setTipoActivo(t.id); setError(null) }}
+              onClick={() => { setTipoActivo(t.id); setError(null); setArchivoNombre(null) }}
               className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tipoActivo === t.id
                   ? 'border-brand-orange text-brand-navy'
@@ -159,7 +205,8 @@ export function CatalogoClient({ productosIniciales }: Props) {
           ))}
         </div>
 
-        {tipoActivo === 'texto' ? (
+        {/* Tab: Texto */}
+        {tipoActivo === 'texto' && (
           <div>
             <label className="label">Pega tu lista de productos aquí</label>
             <textarea
@@ -169,7 +216,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
               className="input font-mono text-sm"
               placeholder={`Ej:
 Sofá moderno - $2.450.000 - Tapizado gris, 3 puestos
-Mesa de centro nórdica - $680.000 - Madera roble 120x60cm
+Mesa de centro nórdica - $680.000 - Madera roble
 ...`}
             />
             <div className="mt-4 flex items-center justify-between">
@@ -177,7 +224,7 @@ Mesa de centro nórdica - $680.000 - Madera roble 120x60cm
                 {textoInput.length > 0 && `${textoInput.length} caracteres`}
               </p>
               <button
-                onClick={extraerProductos}
+                onClick={extraerDesdeTexto}
                 disabled={procesando || !textoInput.trim()}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -185,16 +232,56 @@ Mesa de centro nórdica - $680.000 - Madera roble 120x60cm
               </button>
             </div>
           </div>
-        ) : (
-          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">
-              {tipoActivo === 'imagen' && '🖼️'}
-              {tipoActivo === 'pdf' && '📄'}
-              {tipoActivo === 'excel' && '📊'}
+        )}
+
+        {/* Tab: Excel / CSV */}
+        {tipoActivo === 'excel' && (
+          <div>
+            <label className="label">Sube tu archivo Excel o CSV</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleArchivoExcel}
+                disabled={procesando}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+              />
+              <div className="border-2 border-dashed border-gray-200 hover:border-brand-orange rounded-2xl p-10 text-center transition-colors cursor-pointer">
+                <div className="text-4xl mb-3">📊</div>
+                <p className="text-sm font-medium text-brand-navy">
+                  {archivoNombre
+                    ? `📎 ${archivoNombre}`
+                    : 'Haz clic o arrastra tu archivo aquí'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  XLSX, XLS, CSV · hasta 5MB
+                </p>
+              </div>
             </div>
+            <p className="text-xs text-gray-500 mt-3">
+              💡 La IA leerá el archivo e identificará automáticamente qué columna es nombre, precio y descripción.
+            </p>
+          </div>
+        )}
+
+        {/* Tab: Imagen */}
+        {tipoActivo === 'imagen' && (
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center">
+            <div className="text-4xl mb-3">🖼️</div>
             <p className="text-sm font-medium text-brand-navy">Próximamente</p>
             <p className="text-xs text-gray-500 mt-1">
-              Por ahora usa la pestaña "Texto". Las otras llegan en la próxima actualización.
+              Subir fotos de catálogos llega en la siguiente actualización.
+            </p>
+          </div>
+        )}
+
+        {/* Tab: PDF */}
+        {tipoActivo === 'pdf' && (
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center">
+            <div className="text-4xl mb-3">📄</div>
+            <p className="text-sm font-medium text-brand-navy">Próximamente</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Subir catálogos en PDF llega en la siguiente actualización.
             </p>
           </div>
         )}
@@ -225,23 +312,13 @@ Mesa de centro nórdica - $680.000 - Madera roble 120x60cm
               <h2 className="text-lg font-semibold text-brand-navy">
                 ✨ {extraidos.length} {extraidos.length === 1 ? 'producto detectado' : 'productos detectados'}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Revisa y edita antes de guardar.
-              </p>
+              <p className="text-sm text-gray-500 mt-1">Revisa y edita antes de guardar.</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={descartarExtraidos}
-                disabled={guardando}
-                className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50"
-              >
+              <button onClick={descartarExtraidos} disabled={guardando} className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50">
                 Descartar
               </button>
-              <button
-                onClick={guardarExtraidos}
-                disabled={guardando}
-                className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50"
-              >
+              <button onClick={guardarExtraidos} disabled={guardando} className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50">
                 {guardando ? 'Guardando…' : 'Guardar todos'}
               </button>
             </div>
@@ -274,10 +351,7 @@ Mesa de centro nórdica - $680.000 - Madera roble 120x60cm
                       placeholder="Sin precio"
                       className="w-36 px-2 py-1 text-sm font-semibold text-brand-orange text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-blue focus:outline-none"
                     />
-                    <button
-                      onClick={() => eliminarExtraido(p.id)}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
+                    <button onClick={() => eliminarExtraido(p.id)} className="text-xs text-red-500 hover:text-red-700">
                       Eliminar
                     </button>
                   </div>

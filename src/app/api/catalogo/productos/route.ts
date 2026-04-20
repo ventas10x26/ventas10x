@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       .eq('vendedor_id', user.id)
       .order('orden', { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle<{ orden: number }>()
 
     const ordenInicial = (maxOrdenRow?.orden ?? -1) + 1
 
@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
       orden: ordenInicial + i,
     }))
 
-    const { data, error } = await supabase
-      .from('productos')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('productos') as any)
       .insert(filas)
       .select('*')
 

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     // Descargar el PDF desde Supabase Storage
     const { data: archivoBlob, error: downloadError } = await supabase.storage
-      .from('catalogo-uploads')
+      .from('catalogos')
       .download(rutaArchivo)
 
     if (downloadError || !archivoBlob) {

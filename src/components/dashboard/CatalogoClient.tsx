@@ -29,8 +29,9 @@ export function CatalogoClient({ productosIniciales }: Props) {
   const [productos, setProductos] = useState<Producto[]>(productosIniciales)
   const [textoInput, setTextoInput] = useState('')
   const [archivoNombre, setArchivoNombre] = useState<string | null>(null)
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null)
 
-  // Llamada al endpoint de extracción
+  // Llamada al endpoint de extracción por texto
   const extraerConIA = async (contenido: string) => {
     const res = await fetch('/api/catalogo/extraer', {
       method: 'POST',
@@ -39,16 +40,30 @@ export function CatalogoClient({ productosIniciales }: Props) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Error al procesar')
-
-    return data.productos.map(
-      (p: { nombre: string; precio: string | null; descripcion: string }, i: number) => ({
-        id: `extraido-${Date.now()}-${i}`,
-        nombre: p.nombre,
-        precio: p.precio,
-        descripcion: p.descripcion,
-      })
-    ) as ProductoExtraido[]
+    return normalizarProductos(data.productos)
   }
+
+  // Llamada al endpoint de extracción por imagen
+  const extraerImagenConIA = async (imagenBase64: string, tipoMedia: string) => {
+    const res = await fetch('/api/catalogo/extraer-imagen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagenBase64, tipoMedia }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Error al procesar')
+    return normalizarProductos(data.productos)
+  }
+
+  const normalizarProductos = (
+    productos: { nombre: string; precio: string | null; descripcion: string }[]
+  ): ProductoExtraido[] =>
+    productos.map((p, i) => ({
+      id: `extraido-${Date.now()}-${i}`,
+      nombre: p.nombre,
+      precio: p.precio,
+      descripcion: p.descripcion,
+    }))
 
   // Extracción desde textarea
   const extraerDesdeTexto = async () => {
@@ -79,38 +94,84 @@ export function CatalogoClient({ productosIniciales }: Props) {
     setArchivoNombre(archivo.name)
 
     try {
-      // Leer archivo como buffer
       const buffer = await archivo.arrayBuffer()
       const workbook = XLSX.read(buffer, { type: 'array' })
-
-      // Tomar la primera hoja
       const primeraHoja = workbook.SheetNames[0]
-      if (!primeraHoja) {
-        throw new Error('El archivo no tiene hojas legibles')
-      }
+      if (!primeraHoja) throw new Error('El archivo no tiene hojas legibles')
+
       const worksheet = workbook.Sheets[primeraHoja]
-
-      // Convertir a CSV (más fácil que JSON para la IA)
       const csv = XLSX.utils.sheet_to_csv(worksheet, { blankrows: false })
+      if (!csv.trim()) throw new Error('El archivo parece estar vacío')
 
-      if (!csv.trim()) {
-        throw new Error('El archivo parece estar vacío')
-      }
-
-      // Limitar a 15KB (~ primeras filas) para no exceder tokens de Claude
       const contenidoLimitado = csv.substring(0, 15000)
-
       const productos = await extraerConIA(contenidoLimitado)
       setExtraidos(productos)
 
       if (productos.length === 0) {
-        setError('La IA no encontró productos en el archivo. Verifica que tenga nombres y precios.')
+        setError('La IA no encontró productos en el archivo.')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al leer el archivo')
     } finally {
       setProcesando(false)
-      e.target.value = '' // reset input para poder volver a subir el mismo archivo
+      e.target.value = ''
+    }
+  }
+
+  // Extracción desde imagen
+  const handleArchivoImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+
+    // Validación previa en cliente
+    if (archivo.size > 5 * 1024 * 1024) {
+      setError('La imagen es muy grande. Máximo 5MB.')
+      e.target.value = ''
+      return
+    }
+
+    const tiposValidos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    if (!tiposValidos.includes(archivo.type)) {
+      setError('Formato no soportado. Usa JPG, PNG, WEBP o GIF.')
+      e.target.value = ''
+      return
+    }
+
+    setProcesando(true)
+    setError(null)
+    setExtraidos([])
+    setArchivoNombre(archivo.name)
+
+    try {
+      // Convertir a base64 y crear preview
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // result viene como "data:image/jpeg;base64,XXXX" — solo queremos la parte después de la coma
+          const [header, data] = result.split(',')
+          if (!data) {
+            reject(new Error('No se pudo leer el archivo'))
+            return
+          }
+          setImagenPreview(result) // preview completo (con el data:image/...)
+          resolve(data)
+        }
+        reader.onerror = () => reject(new Error('Error al leer el archivo'))
+        reader.readAsDataURL(archivo)
+      })
+
+      const productos = await extraerImagenConIA(base64, archivo.type)
+      setExtraidos(productos)
+
+      if (productos.length === 0) {
+        setError('La IA no identificó productos en la imagen. Intenta con una foto más clara.')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al procesar la imagen')
+    } finally {
+      setProcesando(false)
+      e.target.value = ''
     }
   }
 
@@ -136,6 +197,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
       setExtraidos([])
       setTextoInput('')
       setArchivoNombre(null)
+      setImagenPreview(null)
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar')
@@ -147,6 +209,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
   const descartarExtraidos = () => {
     setExtraidos([])
     setArchivoNombre(null)
+    setImagenPreview(null)
   }
 
   const editarExtraido = (id: string, campo: keyof ProductoExtraido, valor: string) => {
@@ -192,7 +255,12 @@ export function CatalogoClient({ productosIniciales }: Props) {
           ] as const).map((t) => (
             <button
               key={t.id}
-              onClick={() => { setTipoActivo(t.id); setError(null); setArchivoNombre(null) }}
+              onClick={() => {
+                setTipoActivo(t.id)
+                setError(null)
+                setArchivoNombre(null)
+                setImagenPreview(null)
+              }}
               className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tipoActivo === t.id
                   ? 'border-brand-orange text-brand-navy'
@@ -249,13 +317,9 @@ Mesa de centro nórdica - $680.000 - Madera roble
               <div className="border-2 border-dashed border-gray-200 hover:border-brand-orange rounded-2xl p-10 text-center transition-colors cursor-pointer">
                 <div className="text-4xl mb-3">📊</div>
                 <p className="text-sm font-medium text-brand-navy">
-                  {archivoNombre
-                    ? `📎 ${archivoNombre}`
-                    : 'Haz clic o arrastra tu archivo aquí'}
+                  {archivoNombre ? `📎 ${archivoNombre}` : 'Haz clic o arrastra tu archivo aquí'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  XLSX, XLS, CSV · hasta 5MB
-                </p>
+                <p className="text-xs text-gray-500 mt-1">XLSX, XLS, CSV · hasta 5MB</p>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-3">
@@ -266,11 +330,41 @@ Mesa de centro nórdica - $680.000 - Madera roble
 
         {/* Tab: Imagen */}
         {tipoActivo === 'imagen' && (
-          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">🖼️</div>
-            <p className="text-sm font-medium text-brand-navy">Próximamente</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Subir fotos de catálogos llega en la siguiente actualización.
+          <div>
+            <label className="label">Sube una foto de tu catálogo</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleArchivoImagen}
+                disabled={procesando}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+              />
+              {imagenPreview ? (
+                <div className="border-2 border-brand-orange rounded-2xl p-4 text-center">
+                  <img
+                    src={imagenPreview}
+                    alt="Preview"
+                    className="max-h-64 mx-auto rounded-xl mb-3"
+                  />
+                  <p className="text-sm text-gray-500">
+                    📎 {archivoNombre} · Click para cambiar imagen
+                  </p>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-200 hover:border-brand-orange rounded-2xl p-10 text-center transition-colors cursor-pointer">
+                  <div className="text-4xl mb-3">🖼️</div>
+                  <p className="text-sm font-medium text-brand-navy">
+                    Haz clic o arrastra una foto aquí
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    JPG, PNG, WEBP, GIF · hasta 5MB
+                  </p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              💡 Funciona bien con fotos de WhatsApp, catálogos escaneados, o capturas de pantalla.
             </p>
           </div>
         )}
@@ -299,7 +393,7 @@ Mesa de centro nórdica - $680.000 - Madera roble
             <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-brand-orange animate-spin"></div>
             <div>
               <p className="font-semibold text-brand-navy">La IA está leyendo tu catálogo…</p>
-              <p className="text-sm text-gray-500">Esto suele tardar entre 3 y 15 segundos.</p>
+              <p className="text-sm text-gray-500">Esto suele tardar entre 5 y 20 segundos.</p>
             </div>
           </div>
         </section>
@@ -315,10 +409,18 @@ Mesa de centro nórdica - $680.000 - Madera roble
               <p className="text-sm text-gray-500 mt-1">Revisa y edita antes de guardar.</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={descartarExtraidos} disabled={guardando} className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50">
+              <button
+                onClick={descartarExtraidos}
+                disabled={guardando}
+                className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50"
+              >
                 Descartar
               </button>
-              <button onClick={guardarExtraidos} disabled={guardando} className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50">
+              <button
+                onClick={guardarExtraidos}
+                disabled={guardando}
+                className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50"
+              >
                 {guardando ? 'Guardando…' : 'Guardar todos'}
               </button>
             </div>
@@ -351,7 +453,10 @@ Mesa de centro nórdica - $680.000 - Madera roble
                       placeholder="Sin precio"
                       className="w-36 px-2 py-1 text-sm font-semibold text-brand-orange text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-blue focus:outline-none"
                     />
-                    <button onClick={() => eliminarExtraido(p.id)} className="text-xs text-red-500 hover:text-red-700">
+                    <button
+                      onClick={() => eliminarExtraido(p.id)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
                       Eliminar
                     </button>
                   </div>

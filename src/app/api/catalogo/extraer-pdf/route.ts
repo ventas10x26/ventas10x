@@ -2,22 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { anthropic, CLAUDE_MODEL } from '@/lib/anthropic'
 
-export const maxDuration = 60
-export const runtime = 'nodejs'
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '15mb',
-    },
-  },
-}
-
 type ProductoExtraido = {
   nombre: string
   precio: string | null
   descripcion: string
 }
+
+export const maxDuration = 60
 
 const PROMPT_SISTEMA = `Eres un experto en analizar catálogos comerciales en PDF. Tu tarea es leer el documento y extraer cada producto que aparezca.
 
@@ -52,17 +43,42 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { pdfBase64 } = body as { pdfBase64: string }
+    const { rutaArchivo } = body as { rutaArchivo: string }
 
-    if (!pdfBase64 || typeof pdfBase64 !== 'string') {
+    if (!rutaArchivo || typeof rutaArchivo !== 'string') {
       return NextResponse.json(
-        { error: 'Falta el PDF en base64' },
+        { error: 'Falta la ruta del archivo' },
         { status: 400 }
       )
     }
 
-    // Validación del tamaño (10MB de PDF ~= 14MB de base64)
-    if (pdfBase64.length > 14_000_000) {
+    // Validar que la ruta pertenece al usuario (seguridad extra, aunque RLS ya la aplica)
+    if (!rutaArchivo.startsWith(`${user.id}/`)) {
+      return NextResponse.json(
+        { error: 'Ruta de archivo no válida' },
+        { status: 403 }
+      )
+    }
+
+    // Descargar el PDF desde Supabase Storage
+    const { data: archivoBlob, error: downloadError } = await supabase.storage
+      .from('catalogo-uploads')
+      .download(rutaArchivo)
+
+    if (downloadError || !archivoBlob) {
+      console.error('[api/catalogo/extraer-pdf] Error al descargar:', downloadError)
+      return NextResponse.json(
+        { error: 'No se pudo descargar el PDF desde Storage' },
+        { status: 500 }
+      )
+    }
+
+    // Convertir a base64 para mandar a Claude
+    const buffer = await archivoBlob.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+
+    // Validar tamaño
+    if (base64.length > 14_000_000) {
       return NextResponse.json(
         { error: 'El PDF es muy grande. Máximo 10MB.' },
         { status: 400 }
@@ -71,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 8000, // PDFs pueden tener muchos productos
+      max_tokens: 8000,
       system: PROMPT_SISTEMA,
       messages: [
         {
@@ -82,7 +98,7 @@ export async function POST(req: NextRequest) {
               source: {
                 type: 'base64',
                 media_type: 'application/pdf',
-                data: pdfBase64,
+                data: base64,
               },
             },
             {

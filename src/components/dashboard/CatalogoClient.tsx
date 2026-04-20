@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
+import { createClient } from '@/lib/supabase/client'
 import type { Producto } from '@/app/dashboard/catalogo/page'
 
 type ProductoExtraido = {
@@ -22,6 +23,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
   const router = useRouter()
   const [tipoActivo, setTipoActivo] = useState<TipoUpload>('texto')
   const [procesando, setProcesando] = useState(false)
+  const [estadoPdf, setEstadoPdf] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,11 +65,11 @@ export function CatalogoClient({ productosIniciales }: Props) {
     return normalizarProductos(data.productos)
   }
 
-  const extraerPDFConIA = async (pdfBase64: string) => {
+  const extraerPDFConIA = async (rutaArchivo: string) => {
     const res = await fetch('/api/catalogo/extraer-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pdfBase64 }),
+      body: JSON.stringify({ rutaArchivo }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Error al procesar')
@@ -181,7 +183,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
-  // Extracción desde PDF
+  // Extracción desde PDF (vía Supabase Storage)
   const handleArchivoPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0]
     if (!archivo) return
@@ -204,24 +206,37 @@ export function CatalogoClient({ productosIniciales }: Props) {
     setArchivoNombre(archivo.name)
 
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          const [, data] = result.split(',')
-          if (!data) {
-            reject(new Error('No se pudo leer el PDF'))
-            return
-          }
-          resolve(data)
-        }
-        reader.onerror = () => reject(new Error('Error al leer el archivo'))
-        reader.readAsDataURL(archivo)
-      })
+      // Paso 1: obtener userId actual
+      setEstadoPdf('Verificando sesión…')
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sesión expirada. Recarga la página.')
 
-      const productos = await extraerPDFConIA(base64)
+      // Paso 2: subir a Supabase Storage
+      setEstadoPdf('Subiendo PDF a la nube…')
+      const rutaArchivo = `${user.id}/${Date.now()}-${archivo.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('catalogos')
+        .upload(rutaArchivo, archivo, {
+          contentType: 'application/pdf',
+          upsert: false,
+        })
+
+      if (uploadError) {
+        throw new Error(`Error al subir: ${uploadError.message}`)
+      }
+
+      // Paso 3: llamar al endpoint con la ruta del archivo
+      setEstadoPdf('La IA está leyendo el catálogo…')
+      const productos = await extraerPDFConIA(rutaArchivo)
+
+      // Paso 4: limpiar el archivo de Storage (ya no lo necesitamos)
+      await supabase.storage.from('catalogos').remove([rutaArchivo])
+
       setExtraidos(productos)
-
       if (productos.length === 0) {
         setError('La IA no identificó productos en el PDF.')
       }
@@ -229,6 +244,7 @@ export function CatalogoClient({ productosIniciales }: Props) {
       setError(err instanceof Error ? err.message : 'Error al procesar el PDF')
     } finally {
       setProcesando(false)
+      setEstadoPdf(null)
       e.target.value = ''
     }
   }
@@ -331,7 +347,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
           ))}
         </div>
 
-        {/* Tab: Texto */}
         {tipoActivo === 'texto' && (
           <div>
             <label className="label">Pega tu lista de productos aquí</label>
@@ -360,7 +375,6 @@ Mesa de centro nórdica - $680.000 - Madera roble
           </div>
         )}
 
-        {/* Tab: Excel / CSV */}
         {tipoActivo === 'excel' && (
           <div>
             <label className="label">Sube tu archivo Excel o CSV</label>
@@ -386,7 +400,6 @@ Mesa de centro nórdica - $680.000 - Madera roble
           </div>
         )}
 
-        {/* Tab: Imagen */}
         {tipoActivo === 'imagen' && (
           <div>
             <label className="label">Sube una foto de tu catálogo</label>
@@ -405,19 +418,13 @@ Mesa de centro nórdica - $680.000 - Madera roble
                     alt="Preview"
                     className="max-h-64 mx-auto rounded-xl mb-3"
                   />
-                  <p className="text-sm text-gray-500">
-                    📎 {archivoNombre} · Click para cambiar imagen
-                  </p>
+                  <p className="text-sm text-gray-500">📎 {archivoNombre} · Click para cambiar imagen</p>
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-gray-200 hover:border-brand-orange rounded-2xl p-10 text-center transition-colors cursor-pointer">
                   <div className="text-4xl mb-3">🖼️</div>
-                  <p className="text-sm font-medium text-brand-navy">
-                    Haz clic o arrastra una foto aquí
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    JPG, PNG, WEBP, GIF · hasta 5MB
-                  </p>
+                  <p className="text-sm font-medium text-brand-navy">Haz clic o arrastra una foto aquí</p>
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, WEBP, GIF · hasta 5MB</p>
                 </div>
               )}
             </div>
@@ -427,7 +434,6 @@ Mesa de centro nórdica - $680.000 - Madera roble
           </div>
         )}
 
-        {/* Tab: PDF */}
         {tipoActivo === 'pdf' && (
           <div>
             <label className="label">Sube tu catálogo en PDF</label>
@@ -465,7 +471,9 @@ Mesa de centro nórdica - $680.000 - Madera roble
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-brand-orange animate-spin"></div>
             <div>
-              <p className="font-semibold text-brand-navy">La IA está leyendo tu catálogo…</p>
+              <p className="font-semibold text-brand-navy">
+                {estadoPdf || 'La IA está leyendo tu catálogo…'}
+              </p>
               <p className="text-sm text-gray-500">
                 {tipoActivo === 'pdf'
                   ? 'Los PDFs pueden tardar hasta 60 segundos.'
@@ -486,18 +494,10 @@ Mesa de centro nórdica - $680.000 - Madera roble
               <p className="text-sm text-gray-500 mt-1">Revisa y edita antes de guardar.</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={descartarExtraidos}
-                disabled={guardando}
-                className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50"
-              >
+              <button onClick={descartarExtraidos} disabled={guardando} className="btn-ghost !py-2 !px-4 !text-sm disabled:opacity-50">
                 Descartar
               </button>
-              <button
-                onClick={guardarExtraidos}
-                disabled={guardando}
-                className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50"
-              >
+              <button onClick={guardarExtraidos} disabled={guardando} className="btn-primary !py-2 !px-4 !text-sm disabled:opacity-50">
                 {guardando ? 'Guardando…' : 'Guardar todos'}
               </button>
             </div>
@@ -530,10 +530,7 @@ Mesa de centro nórdica - $680.000 - Madera roble
                       placeholder="Sin precio"
                       className="w-36 px-2 py-1 text-sm font-semibold text-brand-orange text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-blue focus:outline-none"
                     />
-                    <button
-                      onClick={() => eliminarExtraido(p.id)}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
+                    <button onClick={() => eliminarExtraido(p.id)} className="text-xs text-red-500 hover:text-red-700">
                       Eliminar
                     </button>
                   </div>
@@ -566,9 +563,7 @@ Mesa de centro nórdica - $680.000 - Madera roble
                 <h3 className="font-semibold text-brand-navy line-clamp-1">{p.nombre}</h3>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.descripcion || '—'}</p>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-brand-orange">
-                    {p.precio || 'Sin precio'}
-                  </span>
+                  <span className="text-lg font-bold text-brand-orange">{p.precio || 'Sin precio'}</span>
                   <button
                     onClick={() => eliminarProducto(p.id)}
                     disabled={eliminandoId === p.id}

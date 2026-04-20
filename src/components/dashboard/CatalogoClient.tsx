@@ -31,7 +31,16 @@ export function CatalogoClient({ productosIniciales }: Props) {
   const [archivoNombre, setArchivoNombre] = useState<string | null>(null)
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
 
-  // Llamada al endpoint de extracción por texto
+  const normalizarProductos = (
+    productos: { nombre: string; precio: string | null; descripcion: string }[]
+  ): ProductoExtraido[] =>
+    productos.map((p, i) => ({
+      id: `extraido-${Date.now()}-${i}`,
+      nombre: p.nombre,
+      precio: p.precio,
+      descripcion: p.descripcion,
+    }))
+
   const extraerConIA = async (contenido: string) => {
     const res = await fetch('/api/catalogo/extraer', {
       method: 'POST',
@@ -43,7 +52,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     return normalizarProductos(data.productos)
   }
 
-  // Llamada al endpoint de extracción por imagen
   const extraerImagenConIA = async (imagenBase64: string, tipoMedia: string) => {
     const res = await fetch('/api/catalogo/extraer-imagen', {
       method: 'POST',
@@ -55,15 +63,16 @@ export function CatalogoClient({ productosIniciales }: Props) {
     return normalizarProductos(data.productos)
   }
 
-  const normalizarProductos = (
-    productos: { nombre: string; precio: string | null; descripcion: string }[]
-  ): ProductoExtraido[] =>
-    productos.map((p, i) => ({
-      id: `extraido-${Date.now()}-${i}`,
-      nombre: p.nombre,
-      precio: p.precio,
-      descripcion: p.descripcion,
-    }))
+  const extraerPDFConIA = async (pdfBase64: string) => {
+    const res = await fetch('/api/catalogo/extraer-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdfBase64 }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Error al procesar')
+    return normalizarProductos(data.productos)
+  }
 
   // Extracción desde textarea
   const extraerDesdeTexto = async () => {
@@ -123,7 +132,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     const archivo = e.target.files?.[0]
     if (!archivo) return
 
-    // Validación previa en cliente
     if (archivo.size > 5 * 1024 * 1024) {
       setError('La imagen es muy grande. Máximo 5MB.')
       e.target.value = ''
@@ -143,18 +151,16 @@ export function CatalogoClient({ productosIniciales }: Props) {
     setArchivoNombre(archivo.name)
 
     try {
-      // Convertir a base64 y crear preview
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => {
           const result = reader.result as string
-          // result viene como "data:image/jpeg;base64,XXXX" — solo queremos la parte después de la coma
-          const [header, data] = result.split(',')
+          const [, data] = result.split(',')
           if (!data) {
             reject(new Error('No se pudo leer el archivo'))
             return
           }
-          setImagenPreview(result) // preview completo (con el data:image/...)
+          setImagenPreview(result)
           resolve(data)
         }
         reader.onerror = () => reject(new Error('Error al leer el archivo'))
@@ -169,6 +175,58 @@ export function CatalogoClient({ productosIniciales }: Props) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al procesar la imagen')
+    } finally {
+      setProcesando(false)
+      e.target.value = ''
+    }
+  }
+
+  // Extracción desde PDF
+  const handleArchivoPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0]
+    if (!archivo) return
+
+    if (archivo.size > 10 * 1024 * 1024) {
+      setError('El PDF es muy grande. Máximo 10MB.')
+      e.target.value = ''
+      return
+    }
+
+    if (archivo.type !== 'application/pdf') {
+      setError('Solo se aceptan archivos PDF.')
+      e.target.value = ''
+      return
+    }
+
+    setProcesando(true)
+    setError(null)
+    setExtraidos([])
+    setArchivoNombre(archivo.name)
+
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          const [, data] = result.split(',')
+          if (!data) {
+            reject(new Error('No se pudo leer el PDF'))
+            return
+          }
+          resolve(data)
+        }
+        reader.onerror = () => reject(new Error('Error al leer el archivo'))
+        reader.readAsDataURL(archivo)
+      })
+
+      const productos = await extraerPDFConIA(base64)
+      setExtraidos(productos)
+
+      if (productos.length === 0) {
+        setError('La IA no identificó productos en el PDF.')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al procesar el PDF')
     } finally {
       setProcesando(false)
       e.target.value = ''
@@ -371,11 +429,26 @@ Mesa de centro nórdica - $680.000 - Madera roble
 
         {/* Tab: PDF */}
         {tipoActivo === 'pdf' && (
-          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">📄</div>
-            <p className="text-sm font-medium text-brand-navy">Próximamente</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Subir catálogos en PDF llega en la siguiente actualización.
+          <div>
+            <label className="label">Sube tu catálogo en PDF</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={handleArchivoPDF}
+                disabled={procesando}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+              />
+              <div className="border-2 border-dashed border-gray-200 hover:border-brand-orange rounded-2xl p-10 text-center transition-colors cursor-pointer">
+                <div className="text-4xl mb-3">📄</div>
+                <p className="text-sm font-medium text-brand-navy">
+                  {archivoNombre ? `📎 ${archivoNombre}` : 'Haz clic o arrastra tu PDF aquí'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">PDF · hasta 10MB · máximo 100 páginas</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              💡 La IA leerá todas las páginas y extraerá cada producto. Puede tardar más que los otros formatos (20-60 segundos).
             </p>
           </div>
         )}
@@ -393,7 +466,11 @@ Mesa de centro nórdica - $680.000 - Madera roble
             <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-brand-orange animate-spin"></div>
             <div>
               <p className="font-semibold text-brand-navy">La IA está leyendo tu catálogo…</p>
-              <p className="text-sm text-gray-500">Esto suele tardar entre 5 y 20 segundos.</p>
+              <p className="text-sm text-gray-500">
+                {tipoActivo === 'pdf'
+                  ? 'Los PDFs pueden tardar hasta 60 segundos.'
+                  : 'Esto suele tardar entre 5 y 20 segundos.'}
+              </p>
             </div>
           </div>
         </section>

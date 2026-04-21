@@ -4,6 +4,9 @@ import { LandingPage } from '@/components/landing/LandingPage'
 import type { Metadata } from 'next'
 import type { Profile, LandingConfig, Producto } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = {
   params: Promise<{ slug: string }>
 }

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { LandingPage } from '@/components/landing/LandingPage'
 import type { Metadata } from 'next'
 import type { Profile, LandingConfig, Producto } from '@/types/database'
+import ChatBotWidget from '@/components/landing/ChatBotWidget'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -52,11 +53,20 @@ export default async function VendedorLandingPage({ params }: Props) {
   const productos = (productosRes.data || []) as Producto[]
 
   return (
-    <LandingPage
-      profile={profile}
-      config={config}
-      productos={productos}
-      slug={slug}
-    />
+    <>
+      <LandingPage
+        profile={profile}
+        config={config}
+        productos={productos}
+        slug={slug}
+      />
+  
+      <ChatBotWidget
+        slug={slug}
+        nombreAsesor={`${profile?.nombre ?? ''} ${profile?.apellido ?? ''}`.trim()}
+        colorAcento={config?.color_acento ?? '#FF6B2B'}
+        industria={profile?.industria ?? 'default'}
+      />
+    </>
   )
 }

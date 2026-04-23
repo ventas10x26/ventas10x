@@ -188,7 +188,7 @@ export default function ChatBotWidget({
                   background: m.role === 'user' ? colorAcento : '#ffffff',
                   color:      m.role === 'user' ? '#fff' : '#222',
                   fontSize: 13, lineHeight: 1.55,
-                  border: m.role === 'bot' ? '1px solid rgba(0,0,0,0.07)' : 'none',
+                  border: m.role === 'assistant' ? '1px solid rgba(0,0,0,0.07)' : 'none',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                 }}>
                   {m.text}

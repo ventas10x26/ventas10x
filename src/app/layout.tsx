@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
-import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -18,8 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={jakarta.variable}>
-      <body style={{ fontFamily: "var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)" }}>
-        <GoogleAnalytics />
+      <body style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", margin: 0 }}>
         {children}
       </body>
     </html>

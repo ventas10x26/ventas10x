@@ -1,171 +1,238 @@
 import Link from 'next/link'
+import BotIASection from '@/components/landing/BotIASection'
+
+const DARK = '#0f1c2e'
+const SOFT = '#f4f6f9'
 
 export default function HomePage() {
   return (
-    <div style={{ fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)", background:'#0a1628', minHeight:'100vh', color:'#fff' }}>
+    <div style={{ fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)", background:DARK, minHeight:'100vh', color:'#fff' }}>
 
-      {/* NAV */}
-      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1.25rem 2rem', borderBottom:'1px solid rgba(255,255,255,.07)', position:'sticky', top:0, zIndex:50, background:'rgba(10,22,40,.95)', backdropFilter:'blur(12px)' }}>
+      {/* NAV — dark sticky */}
+      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1.1rem 2rem', borderBottom:'1px solid rgba(255,255,255,.07)', position:'sticky', top:0, zIndex:50, background:'rgba(15,28,46,.97)', backdropFilter:'blur(14px)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          <svg width="36" height="36" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/><circle cx="41" cy="11" r="5" fill="rgba(255,255,255,0.2)"/><path d="M38.5 13.5L43.5 8.5M43.5 8.5H40M43.5 8.5V12" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          <span style={{ fontWeight:800, fontSize:'20px', letterSpacing:'-.02em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
+          <svg width="34" height="34" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
+          <span style={{ fontWeight:800, fontSize:'19px', letterSpacing:'-.02em' }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
         </div>
-        <div style={{ display:'flex', gap:'2rem', alignItems:'center' }}>
-          <a href="#como-funciona" style={{ fontSize:'14px', color:'rgba(255,255,255,.5)', textDecoration:'none' }}>Cómo funciona</a>
-          <a href="#precios" style={{ fontSize:'14px', color:'rgba(255,255,255,.5)', textDecoration:'none' }}>Precios</a>
-          <Link href="/auth/login" style={{ fontSize:'14px', color:'rgba(255,255,255,.7)', textDecoration:'none', fontWeight:500 }}>Ingresar</Link>
-          <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'8px 20px', borderRadius:'10px', fontSize:'14px', fontWeight:700, textDecoration:'none' }}>
-            Empezar gratis →
+        <div style={{ display:'flex', gap:'1.75rem', alignItems:'center' }}>
+          {['#como-funciona:Cómo funciona','#bot-ia:Bot IA','#sectores:Sectores','#precios:Precios'].map(item => {
+            const [href, label] = item.split(':')
+            return <a key={href} href={href} style={{ fontSize:'14px', color:'rgba(255,255,255,.72)', textDecoration:'none', fontWeight:500 }}>{label}</a>
+          })}
+          <Link href="/auth/login" style={{ fontSize:'14px', color:'rgba(255,255,255,.72)', textDecoration:'none', fontWeight:500 }}>Ingresar</Link>
+          <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'9px 22px', borderRadius:'10px', fontSize:'14px', fontWeight:700, textDecoration:'none' }}>
+            Probar gratis →
           </Link>
         </div>
       </nav>
 
-      {/* HERO */}
-      <div style={{ maxWidth:'900px', margin:'0 auto', padding:'7rem 2rem 5rem', textAlign:'center' }}>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(255,107,43,.1)', border:'1px solid rgba(255,107,43,.25)', borderRadius:'20px', padding:'6px 16px', marginBottom:'2rem', fontSize:'13px', color:'#FF8C42', fontWeight:600 }}>
-          ⚡ 14 días gratis · Sin tarjeta de crédito · Configuración en 48h
-        </div>
-        <h1 style={{ fontSize:'clamp(40px,7vw,80px)', fontWeight:900, fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)", lineHeight:1.02, letterSpacing:'-.04em', marginBottom:'1.5rem' }}>
-          Tu proceso de ventas,<br/><span style={{ color:'#FF6B2B' }}>automatizado.</span> Por fin.
-        </h1>
-        <p style={{ fontSize:'18px', color:'rgba(255,255,255,.5)', lineHeight:1.75, maxWidth:'560px', margin:'0 auto 2.5rem' }}>
-          Landing page personalizada, catálogo IA, WhatsApp automático y pipeline visual. El sistema de ventas que los vendedores de Latam necesitaban.
-        </p>
-        <div style={{ display:'flex', gap:'12px', justifyContent:'center', flexWrap:'wrap', marginBottom:'3rem' }}>
-          <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'16px 36px', borderRadius:'14px', fontSize:'16px', fontWeight:700, textDecoration:'none' }}>
-            Crear cuenta gratis →
-          </Link>
-          <a href="#como-funciona" style={{ background:'rgba(255,255,255,.07)', color:'#fff', padding:'16px 36px', borderRadius:'14px', fontSize:'16px', fontWeight:500, textDecoration:'none', border:'1px solid rgba(255,255,255,.1)' }}>
-            Ver demo ↓
-          </a>
-        </div>
-        {/* Social proof */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'12px', fontSize:'13px', color:'rgba(255,255,255,.35)' }}>
-          <div style={{ display:'flex' }}>
-            {['#FF6B2B','#185FA5','#1D9E75','#EF9F27'].map((c,i) => (
-              <div key={i} style={{ width:28, height:28, borderRadius:'50%', background:c, border:'2px solid #0a1628', marginLeft: i > 0 ? -8 : 0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700 }}>
-                {['R','J','C','M'][i]}
-              </div>
-            ))}
+      {/* ── DARK: HERO ── */}
+      <div style={{ background:DARK, padding:'7rem 2rem 5rem' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto' }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(255,107,43,.12)', border:'1px solid rgba(255,107,43,.3)', borderRadius:'20px', padding:'6px 16px', marginBottom:'2rem', fontSize:'13px', color:'#FF8C42', fontWeight:600 }}>
+            ⚡ 14 días gratis · Sin tarjeta · Configuración en 48h
           </div>
-          +200 vendedores activos en Latam
+          <h1 style={{ fontSize:'clamp(36px,5.5vw,68px)', fontWeight:800, lineHeight:1.02, letterSpacing:'-.05em', marginBottom:'1.5rem' }}>
+            Prospecta con estrategia.<br/><span style={{ color:'#FF6B2B' }}>Vende con ventaja.</span>
+          </h1>
+          <p style={{ fontSize:'clamp(17px,1.8vw,22px)', color:'rgba(255,255,255,.6)', fontWeight:400, maxWidth:'540px', lineHeight:1.8, marginBottom:'2.5rem' }}>
+            Para asesores, equipos y empresas que quieren más cierres con menos fricción. La IA prospeta, tú decides.
+          </p>
+          <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap', marginBottom:'1.5rem' }}>
+            <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'16px 38px', borderRadius:'14px', fontSize:'17px', fontWeight:700, textDecoration:'none', display:'inline-block' }}>
+              Crear cuenta gratis →
+            </Link>
+            <a href="#como-funciona" style={{ background:'rgba(255,255,255,.07)', color:'#fff', padding:'16px 38px', borderRadius:'14px', fontSize:'17px', fontWeight:600, textDecoration:'none', display:'inline-block', border:'1px solid rgba(255,255,255,.12)' }}>
+              Ver cómo funciona ↓
+            </a>
+          </div>
+          <p style={{ fontSize:'13px', color:'rgba(255,255,255,.5)' }}>+200 vendedores activos · Sin tarjeta de crédito · Cancela cuando quieras</p>
         </div>
       </div>
 
-      {/* STATS */}
-      <div style={{ maxWidth:'900px', margin:'0 auto', padding:'0 2rem 5rem', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'16px' }}>
-        {[
-          { n:'68%', l:'menos leads perdidos', c:'#FF6B2B' },
-          { n:'3.4x', l:'más cierres en 90 días', c:'#fff' },
-          { n:'48h', l:'setup completo', c:'#fff' },
-          { n:'30s', l:'respuesta automática al lead', c:'#1D9E75' },
-        ].map((s,i) => (
-          <div key={i} style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'16px', padding:'1.5rem', textAlign:'center' }}>
-            <div style={{ fontSize:'40px', fontWeight:900, color:s.c, letterSpacing:'-.03em', marginBottom:'4px' }}>{s.n}</div>
-            <div style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', lineHeight:1.4 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* CÓMO FUNCIONA */}
-      <div id="como-funciona" style={{ maxWidth:'900px', margin:'0 auto', padding:'5rem 2rem' }}>
-        <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
-          <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF6B2B', marginBottom:'.75rem' }}>Cómo funciona</div>
-          <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Configura en 3 pasos.<br/>Vende desde el día 1.</h2>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'20px' }}>
-          {[
-            { n:'01', t:'Crea tu landing', d:'Personaliza tu página con foto, productos y colores. La IA extrae tus productos de un PDF automáticamente.', icon:'◈' },
-            { n:'02', t:'Comparte el enlace', d:'Pública tu URL en redes sociales, WhatsApp o Meta Ads. Los leads llenan el formulario y tú recibes la alerta.', icon:'🔗' },
-            { n:'03', t:'El sistema trabaja solo', d:'El lead recibe un SMS en 30 segundos. Tú recibes un WhatsApp. El lead entra automáticamente a tu pipeline.', icon:'⚡' },
-          ].map((s,i) => (
-            <div key={i} style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'20px', padding:'2rem', position:'relative', overflow:'hidden' }}>
-              <div style={{ fontSize:'64px', fontWeight:900, color:'rgba(255,107,43,.1)', position:'absolute', top:'-10px', right:'16px', lineHeight:1, letterSpacing:'-.04em' }}>{s.n}</div>
-              <div style={{ fontSize:'28px', marginBottom:'1rem' }}>{s.icon}</div>
-              <div style={{ fontWeight:700, fontSize:'17px', marginBottom:'.625rem' }}>{s.t}</div>
-              <div style={{ fontSize:'14px', color:'rgba(255,255,255,.45)', lineHeight:1.7 }}>{s.d}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* FEATURES */}
-      <div style={{ background:'rgba(255,255,255,.02)', borderTop:'1px solid rgba(255,255,255,.06)', borderBottom:'1px solid rgba(255,255,255,.06)', padding:'5rem 2rem' }}>
-        <div style={{ maxWidth:'900px', margin:'0 auto' }}>
-          <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
-            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF6B2B', marginBottom:'.75rem' }}>Funciones</div>
-            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Todo lo que necesitas.<br/>Nada que no necesitas.</h2>
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'16px' }}>
-            {[
-              { icon:'◈', t:'Landing personalizada', d:'Tu página con foto, productos, colores de marca y formulario de leads. Lista en minutos.', badge:'Incluido' },
-              { icon:'✦', t:'Catálogo IA', d:'Sube tu PDF o imagen y la IA extrae nombres, precios y descripciones automáticamente.', badge:'IA' },
-              { icon:'💬', t:'WhatsApp + SMS automático', d:'El lead recibe un SMS al instante. Tú recibes una notificación en WhatsApp.', badge:'Automático' },
-              { icon:'⊟', t:'Pipeline Kanban', d:'Arrastra prospectos entre etapas. Nuevo → Contactado → Interesado → Cerrado.', badge:'Visual' },
-              { icon:'📊', t:'Dashboard de métricas', d:'Leads recibidos, leads cerrados y días de trial en tiempo real.', badge:'Tiempo real' },
-              { icon:'🔒', t:'Control de acceso por plan', d:'Cada vendedor ve solo sus datos. Tú ves todo desde el panel de admin.', badge:'Seguro' },
-            ].map((f,i) => (
-              <div key={i} style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'16px', padding:'1.5rem' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1rem' }}>
-                  <div style={{ width:'40px', height:'40px', borderRadius:'10px', background:'rgba(255,107,43,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>{f.icon}</div>
-                  <span style={{ fontSize:'10px', fontWeight:700, padding:'3px 8px', borderRadius:'20px', background:'rgba(255,107,43,.15)', color:'#FF8C42' }}>{f.badge}</span>
+      {/* ── TICKER: INDUSTRIAS (dark) ── */}
+      <div style={{ background:'rgba(255,255,255,.03)', borderTop:'1px solid rgba(255,255,255,.07)', borderBottom:'1px solid rgba(255,255,255,.07)', overflow:'hidden', padding:'1.1rem 0' }}>
+        <div style={{ display:'flex', gap:'0', animation:'ticker 28s linear infinite', width:'max-content' }}>
+          {[...Array(2)].map((_, rep) => (
+            <div key={rep} style={{ display:'flex', gap:'0' }}>
+              {[
+                { icon:'🚗', label:'Automotriz' },
+                { icon:'🏠', label:'Inmobiliaria' },
+                { icon:'👗', label:'Retail' },
+                { icon:'🍔', label:'Alimentos' },
+                { icon:'💊', label:'Salud' },
+                { icon:'🛠️', label:'Servicios' },
+                { icon:'💻', label:'Tecnología' },
+                { icon:'🎓', label:'Educación' },
+                { icon:'🏋️', label:'Fitness' },
+                { icon:'✈️', label:'Turismo' },
+              ].map(s => (
+                <div key={s.label + rep} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'0 2rem', borderRight:'1px solid rgba(255,255,255,.07)', whiteSpace:'nowrap' }}>
+                  <span style={{ fontSize:'18px' }}>{s.icon}</span>
+                  <span style={{ fontSize:'14px', fontWeight:600, color:'rgba(255,255,255,.72)' }}>{s.label}</span>
                 </div>
-                <div style={{ fontWeight:700, fontSize:'15px', marginBottom:'.5rem' }}>{f.t}</div>
-                <div style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', lineHeight:1.65 }}>{f.d}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── SOFT: STATS + CÓMO FUNCIONA ── */}
+      <div style={{ background:SOFT, color:'#111827' }}>
+
+        {/* Stats */}
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'4rem 2rem 0', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'2rem', textAlign:'center' }}>
+          {[
+            { n:'10x', label:'más respuestas con bot IA' },
+            { n:'48h', label:'configuración completa' },
+            { n:'+200', label:'vendedores en Latam' },
+            { n:'$0', label:'tarjeta para empezar' },
+          ].map(s => (
+            <div key={s.n} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'16px', padding:'1.75rem', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+              <div style={{ fontSize:'clamp(32px,4vw,48px)', fontWeight:900, color:'#FF6B2B', letterSpacing:'-.03em' }}>{s.n}</div>
+              <div style={{ fontSize:'14px', color:'#6b7280', marginTop:'6px', fontWeight:500 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cómo funciona */}
+        <div id="como-funciona" style={{ maxWidth:'1100px', margin:'0 auto', padding:'5rem 2rem' }}>
+          <div style={{ marginBottom:'3rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Cómo funciona</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#111827' }}>De cero a ventas en 3 pasos</h2>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:'2rem' }}>
+            {[
+              { n:'01', title:'Crea tu catálogo IA', desc:'Sube texto, imagen, Excel, PDF o CSV. La IA genera tu catálogo profesional en segundos.' },
+              { n:'02', title:'Activa tu Bot IA', desc:'Configura tu bot por industria. Responde prospectos en WhatsApp 24/7 y cierra más.' },
+              { n:'03', title:'Gestiona tu pipeline', desc:'Visualiza cada oportunidad, sigue cada lead y automatiza los seguimientos.' },
+            ].map(s => (
+              <div key={s.n} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'2rem', boxShadow:'0 1px 6px rgba(0,0,0,.05)' }}>
+                <div style={{ fontSize:'38px', fontWeight:900, color:'rgba(255,107,43,.25)', marginBottom:'1rem', letterSpacing:'-.04em' }}>{s.n}</div>
+                <h3 style={{ fontSize:'19px', fontWeight:800, marginBottom:'.75rem', letterSpacing:'-.02em', color:'#111827' }}>{s.title}</h3>
+                <p style={{ fontSize:'17px', color:'#6b7280', lineHeight:1.7 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop:'3rem' }}>
+            <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'15px 36px', borderRadius:'12px', fontSize:'16px', fontWeight:700, textDecoration:'none', display:'inline-block' }}>
+              Empieza gratis en 2 minutos →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── DARK: BOT IA ── */}
+      <BotIASection />
+
+      {/* ── SOFT: CATÁLOGO IA ── */}
+      <div id="catalogo-ia" style={{ background:SOFT, color:'#111827' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem', alignItems:'center' }}>
+          <div>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Catálogo IA</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#111827', marginBottom:'1.25rem' }}>Sube lo que tengas.<br/>La IA hace el resto.</h2>
+            <p style={{ fontSize:'20px', color:'#4b5563', lineHeight:1.6, marginBottom:'2rem', fontWeight:400 }}>
+              Texto, foto, Excel, CSV o PDF. Ventas10x convierte cualquier formato en tu catálogo digital profesional en segundos.
+            </p>
+            <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'14px 30px', borderRadius:'12px', fontSize:'15px', fontWeight:700, textDecoration:'none', display:'inline-block' }}>
+              Ver mi catálogo en acción →
+            </Link>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
+            {[
+              { icon:'📄', format:'PDF', desc:'Listas de precios y fichas técnicas' },
+              { icon:'📊', format:'Excel / CSV', desc:'Tu base de datos de productos' },
+              { icon:'🖼️', format:'Imagen', desc:'Foto y la IA extrae la info' },
+              { icon:'✍️', format:'Texto libre', desc:'Escribe o pega la descripción' },
+            ].map(f => (
+              <div key={f.format} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'16px', padding:'1.25rem', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+                <div style={{ fontSize:'28px', marginBottom:'.5rem' }}>{f.icon}</div>
+                <div style={{ fontSize:'14px', fontWeight:700, marginBottom:'.25rem', color:'#111827' }}>{f.format}</div>
+                <div style={{ fontSize:'12px', color:'#4b5563', lineHeight:1.5 }}>{f.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* SECTORES */}
-      <div style={{ maxWidth:'900px', margin:'0 auto', padding:'5rem 2rem' }}>
-        <div style={{ textAlign:'center', marginBottom:'3rem' }}>
-          <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF6B2B', marginBottom:'.75rem' }}>Sectores</div>
-          <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Hecho para vendedores<br/>de cualquier industria</h2>
+      {/* ── DARK: SECTORES animados ── */}
+      <div id="sectores" style={{ background:DARK, borderTop:'1px solid rgba(255,255,255,.07)', borderBottom:'1px solid rgba(255,255,255,.07)', overflow:'hidden' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem 3rem' }}>
+          <div style={{ marginBottom:'3.5rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Sectores</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#fff' }}>Hecho para tu industria</h2>
+            <p style={{ fontSize:'20px', color:'rgba(255,255,255,.72)', marginTop:'.75rem', maxWidth:'560px', lineHeight:1.7, fontWeight:400 }}>
+              El bot IA se entrena con el lenguaje y las variables de cada sector.
+            </p>
+          </div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:'12px' }}>
-          {[
-            { icon:'🚗', t:'Automotriz' },
-            { icon:'🏠', t:'Inmobiliaria' },
-            { icon:'🛡️', t:'Seguros' },
-            { icon:'💻', t:'Tecnología' },
-            { icon:'🏥', t:'Salud' },
-            { icon:'📦', t:'Distribución' },
-            { icon:'🎓', t:'Educación' },
-            { icon:'🏗️', t:'Construcción' },
-          ].map((s,i) => (
-            <div key={i} style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'12px', padding:'1.25rem', textAlign:'center' }}>
-              <div style={{ fontSize:'28px', marginBottom:'.5rem' }}>{s.icon}</div>
-              <div style={{ fontSize:'13px', fontWeight:600, color:'rgba(255,255,255,.7)' }}>{s.t}</div>
-            </div>
-          ))}
+
+        {/* Fila 1 — izquierda */}
+        <div style={{ overflow:'hidden', marginBottom:'1.25rem', paddingLeft:'2rem' }}>
+          <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresLeft 35s linear infinite', width:'max-content' }}>
+            {[...Array(3)].map((_, rep) =>
+              [
+                { icon:'🚗', sector:'Automotriz', desc:'Concesionarios, talleres, flotas' },
+                { icon:'🏠', sector:'Inmobiliaria', desc:'Proyectos, arriendos, usados' },
+                { icon:'👗', sector:'Retail', desc:'Ropa, calzado, accesorios' },
+                { icon:'🍔', sector:'Alimentos', desc:'Restaurantes, dark kitchens' },
+                { icon:'💊', sector:'Salud', desc:'Clínicas, farmacias, bienestar' },
+              ].map(s => (
+                <div key={`${s.sector}-${rep}`} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'1.75rem', minWidth:'230px', boxShadow:'0 1px 6px rgba(0,0,0,.05)', flexShrink:0 }}>
+                  <div style={{ fontSize:'34px', marginBottom:'1rem' }}>{s.icon}</div>
+                  <div style={{ fontSize:'18px', fontWeight:800, marginBottom:'.5rem', color:'#111827' }}>{s.sector}</div>
+                  <div style={{ fontSize:'16px', color:'#4b5563', lineHeight:1.6, fontWeight:400 }}>{s.desc}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Fila 2 — derecha */}
+        <div style={{ overflow:'hidden', paddingLeft:'2rem', marginBottom:'5rem' }}>
+          <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresRight 35s linear infinite', width:'max-content' }}>
+            {[...Array(3)].map((_, rep) =>
+              [
+                { icon:'🛠️', sector:'Servicios', desc:'Construcción, consultoría, IT' },
+                { icon:'💻', sector:'Tecnología', desc:'SaaS, apps, agencias digitales' },
+                { icon:'🎓', sector:'Educación', desc:'Cursos, academias, coachings' },
+                { icon:'🏋️', sector:'Fitness', desc:'Gimnasios, entrenadores, wellness' },
+                { icon:'✈️', sector:'Turismo', desc:'Agencias, hoteles, tours' },
+              ].map(s => (
+                <div key={`${s.sector}-${rep}`} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'1.75rem', minWidth:'230px', boxShadow:'0 1px 6px rgba(0,0,0,.05)', flexShrink:0 }}>
+                  <div style={{ fontSize:'34px', marginBottom:'1rem' }}>{s.icon}</div>
+                  <div style={{ fontSize:'18px', fontWeight:800, marginBottom:'.5rem', color:'#111827' }}>{s.sector}</div>
+                  <div style={{ fontSize:'16px', color:'#4b5563', lineHeight:1.6, fontWeight:400 }}>{s.desc}</div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {/* TESTIMONIOS */}
-      <div style={{ background:'rgba(255,255,255,.02)', borderTop:'1px solid rgba(255,255,255,.06)', borderBottom:'1px solid rgba(255,255,255,.06)', padding:'5rem 2rem' }}>
-        <div style={{ maxWidth:'900px', margin:'0 auto' }}>
-          <div style={{ textAlign:'center', marginBottom:'3rem' }}>
-            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF6B2B', marginBottom:'.75rem' }}>Testimonios</div>
-            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Lo que dicen los vendedores</h2>
+      {/* ── SOFT: TESTIMONIOS ── */}
+      <div style={{ background:SOFT, color:'#111827' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem' }}>
+          <div style={{ marginBottom:'3rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Testimonios</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#111827' }}>Lo que dicen nuestros vendedores</h2>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'16px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:'1.5rem' }}>
             {[
-              { q:'Antes perdía el 70% de mis leads porque no respondía a tiempo. Ahora el sistema les escribe en 30 segundos y yo solo cierro.', n:'Carlos M.', r:'Vendedor automotriz · Medellín', c:'#FF6B2B' },
-              { q:'Subí mi catálogo de seguros en PDF y en 2 minutos ya tenía todos mis productos en mi landing. Increíble lo de la IA.', n:'Sandra P.', r:'Asesora de seguros · Bogotá', c:'#185FA5' },
-              { q:'El pipeline Kanban me cambió la vida. Ahora sé exactamente en qué etapa está cada prospecto y cuándo seguirle.', n:'Andrés V.', r:'Asesor inmobiliario · Cali', c:'#1D9E75' },
-            ].map((t,i) => (
-              <div key={i} style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'16px', padding:'1.75rem' }}>
-                <div style={{ fontSize:'28px', color:t.c, marginBottom:'1rem', lineHeight:1 }}>"</div>
-                <p style={{ fontSize:'14px', color:'rgba(255,255,255,.7)', lineHeight:1.75, marginBottom:'1.25rem', fontStyle:'italic' }}>{t.q}</p>
+              { name:'Carlos M.', role:'Concesionario Toyota · Bogotá', text:'El bot IA triplicó mis respuestas en WhatsApp. Antes perdía leads por no contestar rápido. Ahora el bot los atiende y yo solo cierro.' },
+              { name:'Ana S.', role:'Inmobiliaria · Medellín', text:'Subí mi Excel de propiedades y en 10 minutos tenía el catálogo listo. Nunca pensé que fuera tan fácil actualizar precios.' },
+              { name:'Miguel R.', role:'Tienda de ropa · Lima', text:'El pipeline visual me cambió la vida. Sé exactamente en qué etapa está cada cliente y cuándo hacer el seguimiento.' },
+            ].map(t => (
+              <div key={t.name} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'2rem', boxShadow:'0 1px 4px rgba(0,0,0,.05)' }}>
+                <div style={{ fontSize:'28px', color:'#FF6B2B', marginBottom:'1rem', fontWeight:900, lineHeight:1 }}>"</div>
+                <p style={{ fontSize:'20px', color:'#374151', lineHeight:1.7, fontWeight:400, marginBottom:'1.5rem' }}>{t.text}</p>
                 <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                  <div style={{ width:36, height:36, borderRadius:'50%', background:t.c, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:700 }}>
-                    {t.n[0]}
+                  <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#FF6B2B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:800, color:'#fff', flexShrink:0 }}>
+                    {t.name[0]}
                   </div>
                   <div>
-                    <div style={{ fontSize:'13px', fontWeight:700 }}>{t.n}</div>
-                    <div style={{ fontSize:'11px', color:'rgba(255,255,255,.35)' }}>{t.r}</div>
+                    <div style={{ fontSize:'16px', fontWeight:700, color:'#111827' }}>{t.name}</div>
+                    <div style={{ fontSize:'14px', color:'#4b5563' }}>{t.role}</div>
                   </div>
                 </div>
               </div>
@@ -174,90 +241,123 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* PRECIOS */}
-      <div id="precios" style={{ maxWidth:'1000px', margin:'0 auto', padding:'5rem 2rem' }}>
-        <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
-          <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'#FF6B2B', marginBottom:'.75rem' }}>Precios</div>
-          <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Sin contratos. Sin sorpresas.<br/>Cancela cuando quieras.</h2>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:'16px', alignItems:'start' }}>
-          {[
-            { n:'Gratuito', p:'$0', per:'/mes', d:'Para empezar', features:['Landing page activa','Hasta 10 leads','Sin catálogo IA'], cta:'Empezar gratis', featured:false, href:'/auth/register' },
-            { n:'Core', p:'$119.900', per:'/mes COP', d:'Para el vendedor individual', features:['Leads ilimitados','Catálogo IA','WhatsApp automático','Soporte prioritario'], cta:'Activar Core', featured:false, href:'/auth/register' },
-            { n:'Pro', p:'$279.900', per:'/mes COP', d:'Para escalar tus ventas', features:['Todo Core incluido','CRM + Pipeline visual','Automatización 7 touchpoints','Reporte semanal automático','Integración Meta Ads'], cta:'Activar Pro', featured:true, href:'/auth/register' },
-            { n:'Teams', p:'$599.900', per:'/mes COP', d:'Para equipos de ventas', features:['Todo Pro incluido','Hasta 10 vendedores','Dashboard gerencial','Gestor de cuenta dedicado','White label disponible'], cta:'Contactar', featured:false, href:'/auth/register' },
-          ].map((p,i) => (
-            <div key={i} style={{ background: p.featured ? 'rgba(255,107,43,.1)' : 'rgba(255,255,255,.04)', border: p.featured ? '2px solid #FF6B2B' : '1px solid rgba(255,255,255,.07)', borderRadius:'20px', padding:'1.75rem', position:'relative' }}>
-              {p.featured && <div style={{ position:'absolute', top:'-12px', left:'50%', transform:'translateX(-50%)', background:'#FF6B2B', color:'#fff', fontSize:'10px', fontWeight:700, padding:'3px 14px', borderRadius:'20px', whiteSpace:'nowrap' }}>Más popular</div>}
-              <div style={{ fontSize:'12px', fontWeight:700, color:'rgba(255,255,255,.4)', letterSpacing:'.08em', textTransform:'uppercase', marginBottom:'.5rem' }}>{p.n}</div>
-              <div style={{ fontSize:'32px', fontWeight:900, letterSpacing:'-.03em', color: p.featured ? '#FF6B2B' : '#fff', lineHeight:1 }}>{p.p}</div>
-              <div style={{ fontSize:'12px', color:'rgba(255,255,255,.35)', marginBottom:'.5rem' }}>{p.per}</div>
-              <div style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', marginBottom:'1.25rem' }}>{p.d}</div>
-              <div style={{ borderTop:'1px solid rgba(255,255,255,.07)', paddingTop:'1rem', marginBottom:'1.25rem' }}>
-                {p.features.map((f,j) => (
-                  <div key={j} style={{ display:'flex', alignItems:'flex-start', gap:'8px', fontSize:'13px', color:'rgba(255,255,255,.65)', padding:'4px 0' }}>
-                    <span style={{ color:'#1D9E75', flexShrink:0, marginTop:'1px' }}>✓</span>{f}
-                  </div>
-                ))}
-              </div>
-              <Link href={p.href} style={{ display:'block', textAlign:'center', padding:'11px', borderRadius:'10px', background: p.featured ? '#FF6B2B' : 'rgba(255,255,255,.07)', color:'#fff', fontSize:'13px', fontWeight:700, textDecoration:'none', border: p.featured ? 'none' : '1px solid rgba(255,255,255,.15)' }}>
-                {p.cta}
-              </Link>
-            </div>
-          ))}
-        </div>
-        <p style={{ textAlign:'center', fontSize:'13px', color:'rgba(255,255,255,.3)', marginTop:'1.5rem' }}>
-          Todos los planes incluyen 14 días de prueba gratuita · Garantía de devolución 30 días
-        </p>
-      </div>
-
-      {/* FAQ */}
-      <div style={{ maxWidth:'700px', margin:'0 auto', padding:'0 2rem 5rem' }}>
-        <div style={{ textAlign:'center', marginBottom:'3rem' }}>
-          <h2 style={{ fontSize:'clamp(24px,3vw,36px)', fontWeight:900, letterSpacing:'-.03em', fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',sans-serif)" }}>Preguntas frecuentes</h2>
-        </div>
-        {[
-          { q:'¿Qué pasa cuando termina el trial?', a:'Tu cuenta pasa automáticamente al plan Gratuito — landing activa con hasta 10 leads. Para leads ilimitados y catálogo IA, elige un plan de pago.' },
-          { q:'¿Funciona para cualquier sector?', a:'Sí. Ventas10x está diseñado para vendedores B2C y B2B de cualquier industria — carros, seguros, inmuebles, tecnología, salud y más.' },
-          { q:'¿Necesito saber programar?', a:'No. La configuración es 100% visual. En 48 horas tienes tu landing activa, catálogo cargado y automatización funcionando.' },
-          { q:'¿Puedo cancelar cuando quiera?', a:'Sí. Sin contrato de permanencia. Cancela desde tu dashboard con 1 clic. Te devolvemos los días no utilizados si cancelaste un plan anual.' },
-          { q:'¿Los leads son míos?', a:'Completamente tuyos. Si cambias de plataforma o cancelas, te llevas todos tus datos. Nunca vendemos ni compartimos tu información.' },
-        ].map((f,i) => (
-          <div key={i} style={{ borderBottom:'1px solid rgba(255,255,255,.07)', padding:'1.25rem 0' }}>
-            <div style={{ fontWeight:600, fontSize:'15px', color:'#fff', marginBottom:'.5rem' }}>{f.q}</div>
-            <div style={{ fontSize:'14px', color:'rgba(255,255,255,.45)', lineHeight:1.7 }}>{f.a}</div>
+      {/* ── DARK: PRECIOS ── */}
+      <div id="precios" style={{ background:DARK }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem' }}>
+          <div style={{ marginBottom:'3.5rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Precios</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em' }}>Simple. Sin sorpresas.</h2>
+            <p style={{ fontSize:'20px', color:'rgba(255,255,255,.6)', marginTop:'.75rem', fontWeight:400 }}>Empieza gratis 14 días. Sin tarjeta de crédito.</p>
           </div>
-        ))}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1.5rem' }}>
+            {[
+              { plan:'Starter', price:'$49', period:'/mes', desc:'Para asesores independientes que quieren empezar.', features:['Catálogo IA (hasta 50 productos)','Bot IA básico por WhatsApp','Pipeline visual','1 usuario'], cta:'Probar 14 días gratis', highlight:false },
+              { plan:'Pro', price:'$99', period:'/mes', desc:'Para equipos que quieren escalar sus ventas.', features:['Catálogo IA ilimitado','Bot IA avanzado por industria','Pipeline + automatizaciones','Hasta 5 usuarios','Soporte prioritario'], cta:'Probar 14 días gratis', highlight:true },
+              { plan:'Enterprise', price:'Cotiza', period:'', desc:'Para empresas con necesidades personalizadas.', features:['Todo lo de Pro','Usuarios ilimitados','Integraciones custom','Gestor de cuenta dedicado','SLA garantizado'], cta:'Hablar con ventas', highlight:false },
+            ].map(p => (
+              <div key={p.plan} style={{ background: p.highlight ? 'rgba(255,107,43,.1)' : 'rgba(255,255,255,.04)', border: p.highlight ? '1px solid rgba(255,107,43,.45)' : '1px solid rgba(255,255,255,.08)', borderRadius:'20px', padding:'2rem', position:'relative' }}>
+                {p.highlight && <div style={{ position:'absolute', top:'-13px', left:'50%', transform:'translateX(-50%)', background:'#FF6B2B', color:'#fff', fontSize:'11px', fontWeight:700, padding:'4px 16px', borderRadius:'20px', letterSpacing:'.06em', whiteSpace:'nowrap' }}>MÁS POPULAR</div>}
+                <div style={{ fontSize:'17px', fontWeight:800, marginBottom:'.5rem' }}>{p.plan}</div>
+                <div style={{ marginBottom:'1rem', display:'flex', alignItems:'baseline', gap:'4px' }}>
+                  <span style={{ fontSize:'42px', fontWeight:900, letterSpacing:'-.03em' }}>{p.price}</span>
+                  <span style={{ fontSize:'14px', color:'rgba(255,255,255,.5)' }}>{p.period}</span>
+                </div>
+                <p style={{ fontSize:'20px', color:'rgba(255,255,255,.72)', marginBottom:'1.5rem', lineHeight:1.7, fontWeight:400 }}>{p.desc}</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'.7rem', marginBottom:'2rem' }}>
+                  {p.features.map(f => (
+                    <div key={f} style={{ display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                      <span style={{ color:'#FF6B2B', flexShrink:0, fontWeight:700 }}>✓</span>
+                      <span style={{ fontSize:'16px', color:'rgba(255,255,255,.72)' }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link href="/auth/register" style={{ display:'block', textAlign:'center', background: p.highlight ? '#FF6B2B' : 'rgba(255,255,255,.08)', color:'#fff', padding:'13px', borderRadius:'12px', fontSize:'14px', fontWeight:700, textDecoration:'none' }}>
+                  {p.cta} →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* CTA FINAL */}
-      <div style={{ maxWidth:'700px', margin:'0 auto', padding:'0 2rem 7rem', textAlign:'center' }}>
-        <div style={{ background:'linear-gradient(135deg,rgba(255,107,43,.15),rgba(24,95,165,.15))', border:'1px solid rgba(255,107,43,.2)', borderRadius:'24px', padding:'3.5rem 2rem' }}>
-          <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:900, letterSpacing:'-.03em', marginBottom:'1rem' }}>
-            ¿Listo para multiplicar tus ventas?
-          </h2>
-          <p style={{ color:'rgba(255,255,255,.45)', fontSize:'15px', marginBottom:'2rem', lineHeight:1.7 }}>
-            Únete a los vendedores de Latam que ya automatizan su prospección. 14 días gratis, sin tarjeta de crédito.
-          </p>
-          <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'16px 48px', borderRadius:'14px', fontSize:'17px', fontWeight:700, textDecoration:'none', display:'inline-block' }}>
-            Comenzar 14 días gratis →
-          </Link>
-          <p style={{ fontSize:'12px', color:'rgba(255,255,255,.25)', marginTop:'1rem' }}>Sin tarjeta · Configuración en 48h · Cancela cuando quieras</p>
+      {/* ── SOFT: FAQ ── */}
+      <div style={{ background:SOFT, color:'#111827' }}>
+        <div style={{ maxWidth:'800px', margin:'0 auto', padding:'6rem 2rem' }}>
+          <div style={{ marginBottom:'3rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>FAQ</div>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#111827' }}>Preguntas frecuentes</h2>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
+            {[
+              { q:'¿Necesito tarjeta de crédito para empezar?', a:'No. Los 14 días de prueba son completamente gratis y sin tarjeta. Solo te pedimos un email.' },
+              { q:'¿Cuánto tarda la configuración?', a:'Prometemos configuración en 48 horas. La mayoría de los usuarios están activos en menos de 24h.' },
+              { q:'¿Funciona con mi WhatsApp actual?', a:'Sí. Nos integramos con WhatsApp Business API. Te guiamos en el proceso de conexión paso a paso.' },
+              { q:'¿Puedo cancelar cuando quiera?', a:'Absolutamente. Sin penalizaciones ni contratos mínimos. Cancelas con un clic desde tu cuenta.' },
+              { q:'¿En qué países está disponible?', a:'Operamos en toda Latam: Colombia, México, Perú, Chile, Argentina y más.' },
+            ].map((f, i) => (
+              <details key={i} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'14px', padding:'1.25rem 1.5rem', boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
+                <summary style={{ fontSize:'18px', fontWeight:700, cursor:'pointer', listStyle:'none', display:'flex', justifyContent:'space-between', alignItems:'center', color:'#111827' }}>
+                  {f.q} <span style={{ color:'#4b5563', fontSize:'20px', fontWeight:400 }}>+</span>
+                </summary>
+                <p style={{ fontSize:'20px', color:'#4b5563', marginTop:'1rem', lineHeight:1.7, fontWeight:400 }}>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── DARK: CTA FINAL ── */}
+      <div style={{ background:DARK, borderTop:'1px solid rgba(255,255,255,.07)', padding:'7rem 2rem' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', display:'grid', gridTemplateColumns:'1fr auto', gap:'4rem', alignItems:'center' }}>
+          <div>
+            <h2 style={{ fontSize:'clamp(32px,5vw,56px)', fontWeight:800, letterSpacing:'-.04em', marginBottom:'1.25rem', lineHeight:1.05 }}>
+              Empieza hoy.<br/><span style={{ color:'#FF6B2B' }}>14 días completamente gratis.</span>
+            </h2>
+            <p style={{ color:'rgba(255,255,255,.72)', fontSize:'16px', lineHeight:1.7, maxWidth:'480px' }}>
+              Sin tarjeta de crédito. Sin compromisos. Configúrate en 48h y empieza a prospectar con IA desde el primer día.
+            </p>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:'1rem', alignItems:'flex-start', flexShrink:0 }}>
+            <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'18px 44px', borderRadius:'14px', fontSize:'18px', fontWeight:700, textDecoration:'none', display:'inline-block', whiteSpace:'nowrap' }}>
+              Crear cuenta gratis →
+            </Link>
+            <Link href="/auth/login" style={{ color:'rgba(255,255,255,.6)', fontSize:'14px', textDecoration:'none', fontWeight:500, textAlign:'center', display:'block' }}>
+              Ya tengo cuenta → Ingresar
+            </Link>
+            <p style={{ fontSize:'12px', color:'rgba(255,255,255,.4)', margin:0 }}>Sin tarjeta · 48h setup · Cancela cuando quieras</p>
+          </div>
         </div>
       </div>
 
       {/* FOOTER */}
-      <div style={{ borderTop:'1px solid rgba(255,255,255,.07)', padding:'2rem', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem', maxWidth:'1100px', margin:'0 auto' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-          <svg width="24" height="24" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
-          <span style={{ fontSize:'14px', fontWeight:700, color:'rgba(255,255,255,.5)' }}>Ventas10x © 2026</span>
-        </div>
-        <div style={{ display:'flex', gap:'1.5rem' }}>
-          {['Privacidad','Términos','Contacto'].map(l => (
-            <a key={l} href="#" style={{ fontSize:'13px', color:'rgba(255,255,255,.3)', textDecoration:'none' }}>{l}</a>
-          ))}
+      <div style={{ background:'#080e1a', borderTop:'1px solid rgba(255,255,255,.06)', padding:'2.5rem 2rem', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem', maxWidth:'100%' }}>
+        <div style={{ maxWidth:'1100px', width:'100%', margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <svg width="22" height="22" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
+            <span style={{ fontSize:'14px', fontWeight:700, color:'rgba(255,255,255,.5)' }}>Ventas10x © 2026</span>
+          </div>
+          <div style={{ display:'flex', gap:'2rem' }}>
+            {['Privacidad','Términos','Contacto'].map(l => (
+              <a key={l} href="#" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>{l}</a>
+            ))}
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes sectoresLeft {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.33%); }
+        }
+        @keyframes sectoresRight {
+          0% { transform: translateX(-33.33%); }
+          100% { transform: translateX(0); }
+        }
+      `}</style>
 
     </div>
   )

@@ -12,6 +12,7 @@ export interface Database {
           whatsapp: string | null
           slug: string | null
           avatar_url: string | null
+          industria: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at'>

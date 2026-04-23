@@ -15,10 +15,11 @@ interface Props {
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
 
 const QUICK_ACTIONS = [
-  { href: '/dashboard/catalogo', icon: '✦', title: 'Subir catálogo', desc: 'IA extrae tus productos' },
-  { href: '/dashboard/leads', icon: '◎', title: 'Ver mis leads', desc: 'Todos tus prospectos' },
-  { href: '/dashboard/landing-editor', icon: '◈', title: 'Editar landing', desc: 'Personaliza tu página' },
-  { href: '/dashboard/pipeline', icon: '⊟', title: 'Pipeline', desc: 'Gestiona tus etapas' },
+  { href: '/dashboard/catalogo', icon: '✦', title: 'Subir catálogo', desc: 'IA extrae tus productos', color: 'blue' },
+  { href: '/dashboard/leads', icon: '◎', title: 'Ver mis leads', desc: 'Todos tus prospectos', color: 'blue' },
+  { href: '/dashboard/bot/nuevo', icon: '🤖', title: 'Crear Bot IA', desc: 'Configura tu asistente', color: 'orange' },
+  { href: '/dashboard/landing-editor', icon: '◈', title: 'Editar landing', desc: 'Personaliza tu página', color: 'blue' },
+  { href: '/dashboard/pipeline', icon: '⊟', title: 'Pipeline', desc: 'Gestiona tus etapas', color: 'blue' },
 ]
 
 export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) {
@@ -68,6 +69,22 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) 
         ))}
       </div>
 
+      {/* Bot IA banner CTA */}
+      <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
+        style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a0d06 100%)', border: '1px solid rgba(255,107,43,.25)' }}>
+        <div>
+          <div className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">🤖 Bot IA</div>
+          <div className="text-white font-bold text-lg mb-1">Crea tu asistente de ventas personalizado</div>
+          <div className="text-sm" style={{ color: 'rgba(255,255,255,.6)' }}>Prospecta en WhatsApp 24/7 — configúralo en menos de 5 minutos.</div>
+        </div>
+        <button
+          onClick={() => router.push('/dashboard/bot/nuevo')}
+          className="flex-shrink-0 px-6 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
+          style={{ background: '#FF6B2B' }}>
+          Crear mi bot →
+        </button>
+      </div>
+
       {/* URL landing */}
       {slug && (
         <>
@@ -91,14 +108,22 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) 
 
       {/* Acciones rápidas */}
       <div className="text-sm font-semibold text-gray-800 mb-3">Acciones rápidas</div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {QUICK_ACTIONS.map(a => (
           <button
             key={a.href}
             onClick={() => router.push(a.href)}
-            className="card p-4 text-left hover:border-blue-200 hover:shadow-sm transition-all group"
+            className={`card p-4 text-left transition-all group ${
+              a.color === 'orange'
+                ? 'hover:border-orange-200 hover:shadow-sm'
+                : 'hover:border-blue-200 hover:shadow-sm'
+            }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mb-3 text-blue-600 group-hover:bg-blue-100 transition-colors">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 transition-colors text-sm ${
+              a.color === 'orange'
+                ? 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'
+                : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'
+            }`}>
               {a.icon}
             </div>
             <div className="text-sm font-semibold text-gray-800 mb-0.5">{a.title}</div>

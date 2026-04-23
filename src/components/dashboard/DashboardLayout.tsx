@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/leads', label: 'Mis leads', icon: '◎' },
   { href: '/dashboard/pipeline', label: 'Pipeline', icon: '⊟' },
   { href: '/dashboard/catalogo', label: 'Catálogo IA', icon: '✦' },
+  { href: '/dashboard/bot', label: 'Bot IA', icon: '🤖' },
   { href: '/dashboard/landing-editor', label: 'Mi landing', icon: '◈' },
   { href: '/dashboard/perfil', label: 'Mi perfil', icon: '◉' },
 ]
@@ -38,7 +39,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
         <nav className="flex-1 p-4 space-y-1">
           {NAV_ITEMS.map(item => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
               <Link
                 key={item.href}
@@ -92,7 +93,6 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar mobile */}
         <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-30">
           <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
             <svg width="20" height="20" fill="none" viewBox="0 0 20 20">

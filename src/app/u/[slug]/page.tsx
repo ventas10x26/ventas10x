@@ -41,7 +41,11 @@ export default async function VendedorLandingPage({ params }: Props) {
     .eq('slug', slug)
     .single()
 
-  const profile = profileData as Pick<Profile, 'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url'> | null
+  const profile = profileData as Pick<
+    Profile,
+    'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url'
+  > | null
+
   if (!profile) notFound()
 
   const [configRes, productosRes] = await Promise.all([
@@ -52,6 +56,11 @@ export default async function VendedorLandingPage({ params }: Props) {
   const config = configRes.data as LandingConfig | null
   const productos = (productosRes.data || []) as Producto[]
 
+  const nombreAsesor = [profile.nombre, profile.apellido]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+
   return (
     <>
       <LandingPage
@@ -60,12 +69,11 @@ export default async function VendedorLandingPage({ params }: Props) {
         productos={productos}
         slug={slug}
       />
-  
+
       <ChatBotWidget
         slug={slug}
-        nombreAsesor={`${profile?.nombre ?? ''} ${profile?.apellido ?? ''}`.trim()}
+        nombreAsesor={nombreAsesor}
         colorAcento={config?.color_acento ?? '#FF6B2B'}
-        industria={profile?.industria ?? 'default'}
       />
     </>
   )

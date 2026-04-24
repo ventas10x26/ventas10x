@@ -130,12 +130,12 @@ export default function ChatBotWidget({
         body: JSON.stringify({
           bot_id: null,
           vendedor_id: null,
+          slug,
           nombre: leadForm.nombre,
           whatsapp: leadForm.whatsapp,
           producto: leadForm.interes,
           fuente: 'bot_landing',
           etapa: 'nuevo',
-          slug,
         }),
       })
       setFormSent(true)

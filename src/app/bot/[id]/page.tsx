@@ -7,15 +7,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-interface Props {
-  params: { id: string }
-}
+export default async function BotPublicPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 
-export default async function BotPublicPage({ params }: Props) {
   const { data: bot, error } = await supabase
     .from('bots')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('activo', true)
     .single()
 

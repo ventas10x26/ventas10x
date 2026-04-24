@@ -2,7 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 import { PlanBadge } from '@/components/ui/PlanBadge'
+import Link from 'next/link'
 import type { Suscripcion } from '@/types/database'
+
+interface Bot {
+  id: string
+  nombre: string
+  industria: string
+  activo: boolean
+}
 
 interface Props {
   nombre: string
@@ -10,9 +18,16 @@ interface Props {
   sus: Suscripcion | null
   totalLeads: number
   userId: string
+  bots: Bot[]
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
+
+const INDUSTRIA_ICONS: Record<string, string> = {
+  Automotriz: '🚗', Inmobiliaria: '🏠', Retail: '👗', Alimentos: '🍔',
+  Salud: '💊', Servicios: '🛠️', Tecnología: '💻', Educación: '🎓',
+  Fitness: '🏋️', Turismo: '✈️',
+}
 
 const QUICK_ACTIONS = [
   { href: '/dashboard/catalogo', icon: '✦', title: 'Subir catálogo', desc: 'IA extrae tus productos', color: 'blue' },
@@ -22,7 +37,7 @@ const QUICK_ACTIONS = [
   { href: '/dashboard/pipeline', icon: '⊟', title: 'Pipeline', desc: 'Gestiona tus etapas', color: 'blue' },
 ]
 
-export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) {
+export function DashboardHome({ nombre, slug, sus, totalLeads, userId, bots }: Props) {
   const router = useRouter()
   const landingUrl = `${BASE_URL}/u/${slug}`
   const diasRestantes = sus?.trial_ends_at
@@ -36,6 +51,7 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) 
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
+
       {/* Welcome card */}
       <div className="rounded-3xl p-6 mb-6" style={{ background: '#0f1a2e' }}>
         <h1 className="text-2xl font-display font-bold text-white mb-1">
@@ -69,21 +85,65 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId }: Props) 
         ))}
       </div>
 
-      {/* Bot IA banner CTA */}
-      <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
-        style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a0d06 100%)', border: '1px solid rgba(255,107,43,.25)' }}>
-        <div>
-          <div className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">🤖 Bot IA</div>
-          <div className="text-white font-bold text-lg mb-1">Crea tu asistente de ventas personalizado</div>
-          <div className="text-sm" style={{ color: 'rgba(255,255,255,.6)' }}>Prospecta en WhatsApp 24/7 — configúralo en menos de 5 minutos.</div>
+      {/* Bots activos o CTA para crear */}
+      {bots.length > 0 ? (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold text-gray-800">🤖 Mis Bots IA</div>
+            <Link href="/dashboard/bot" className="text-xs font-semibold text-orange-500 hover:text-orange-600">
+              Ver todos →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {bots.slice(0, 2).map(bot => (
+              <div key={bot.id} className="card p-4 flex items-center gap-3">
+                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: bot.activo ? 'linear-gradient(135deg,#FF6B2B,#ff9a5c)' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+                  {INDUSTRIA_ICONS[bot.industria] || '🤖'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-gray-800 truncate">{bot.nombre}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: bot.activo ? '#f0fdf4' : '#f9fafb', color: bot.activo ? '#16a34a' : '#9ca3af', border: `1px solid ${bot.activo ? '#86efac' : '#e5e7eb'}` }}>
+                      {bot.activo ? '● Activo' : '○ Inactivo'}
+                    </span>
+                    <span className="text-xs text-gray-400">{bot.industria}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(`${BASE_URL}/bot/${bot.id}`).then(() => alert('¡Link copiado!'))}
+                    className="text-xs font-semibold px-2 py-1.5 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                    🔗
+                  </button>
+                  <Link href={`/dashboard/bot/${bot.id}/editar`} className="text-xs font-semibold px-2 py-1.5 bg-orange-50 text-orange-500 rounded-lg hover:bg-orange-100 transition-colors">
+                    ✏️
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+          {bots.length > 2 && (
+            <Link href="/dashboard/bot" className="block text-center text-xs text-gray-400 mt-2 hover:text-gray-600">
+              +{bots.length - 2} bots más →
+            </Link>
+          )}
         </div>
-        <button
-          onClick={() => router.push('/dashboard/bot/nuevo')}
-          className="flex-shrink-0 px-6 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-          style={{ background: '#FF6B2B' }}>
-          Crear mi bot →
-        </button>
-      </div>
+      ) : (
+        <div className="rounded-2xl p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
+          style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a0d06 100%)', border: '1px solid rgba(255,107,43,.25)' }}>
+          <div>
+            <div className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-1">🤖 Bot IA</div>
+            <div className="text-white font-bold text-lg mb-1">Crea tu asistente de ventas personalizado</div>
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,.6)' }}>Prospecta en WhatsApp 24/7 — configúralo en menos de 5 minutos.</div>
+          </div>
+          <button
+            onClick={() => router.push('/dashboard/bot/nuevo')}
+            className="flex-shrink-0 px-6 py-3 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
+            style={{ background: '#FF6B2B' }}>
+            Crear mi bot →
+          </button>
+        </div>
+      )}
 
       {/* URL landing */}
       {slug && (

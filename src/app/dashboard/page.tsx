@@ -9,10 +9,11 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const [profileRes, susRes, leadsRes] = await Promise.all([
+  const [profileRes, susRes, leadsRes, botsRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('suscripciones').select('*').eq('vendedor_id', user.id).single(),
     supabase.from('leads').select('id').eq('vendedor_id', user.id),
+    supabase.from('bots').select('id, nombre, industria, activo').eq('user_id', user.id).order('created_at', { ascending: false }),
   ])
 
   const profile = profileRes.data as Profile | null
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
         sus={sus}
         totalLeads={leadsRes.data?.length || 0}
         userId={user.id}
+        bots={botsRes.data || []}
       />
     </DashboardLayout>
   )

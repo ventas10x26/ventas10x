@@ -19,5 +19,5 @@ export default async function BotPublicPage({ params }: { params: Promise<{ id: 
 
   if (error || !bot) notFound()
 
-  return <BotChat bot={bot} />
+  return <BotChat bot={{ ...bot, vendedor_id: bot.user_id }} />
 }

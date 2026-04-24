@@ -12,6 +12,7 @@ interface Bot {
   productos: string
   faqs: string
   whatsapp: string
+  vendedor_id?: string
 }
 
 interface Props {
@@ -24,43 +25,96 @@ const INDUSTRIA_ICONS: Record<string, string> = {
   Fitness: '🏋️', Turismo: '✈️',
 }
 
+type Message = 
+  | { who: 'user' | 'bot'; text: string; type?: 'text' }
+  | { who: 'bot'; type: 'lead-form' }
+
 export function BotChat({ bot }: Props) {
-  const [messages, setMessages] = useState<{ who: 'user' | 'bot'; text: string }[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [started, setStarted] = useState(false)
+  const [leadCaptured, setLeadCaptured] = useState(false)
+  const [leadForm, setLeadForm] = useState({ nombre: '', whatsapp: '', producto: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [leadSaved, setLeadSaved] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const msgCountRef = useRef(0)
 
   useEffect(() => {
-    // Mostrar mensaje de bienvenida al cargar
-    setTimeout(() => {
-      setStarted(true)
-    }, 600)
+    setTimeout(() => setStarted(true), 600)
   }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading, started])
 
+  const showLeadForm = () => {
+    if (!leadCaptured) {
+      setLeadCaptured(true)
+      setMessages(m => [...m, { who: 'bot', type: 'lead-form' }])
+    }
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return
     const userMsg = input.trim()
     setInput('')
-    setMessages(m => [...m, { who: 'user', text: userMsg }])
+    const newMessages = [...messages, { who: 'user' as const, text: userMsg }]
+    setMessages(newMessages)
     setLoading(true)
+    msgCountRef.current += 1
 
     try {
-      const res = await fetch('/api/bot-preview', {
+      const res = await fetch('/api/bot-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: bot, message: userMsg, history: messages }),
+        body: JSON.stringify({
+          config: bot,
+          message: userMsg,
+          history: messages.filter(m => m.type !== 'lead-form'),
+        }),
       })
       const data = await res.json()
       setMessages(m => [...m, { who: 'bot', text: data.reply }])
+
+      // Mostrar formulario si el bot detectó intención alta o después de 4 mensajes
+      if (data.showLeadForm || msgCountRef.current >= 4) {
+        setTimeout(showLeadForm, 800)
+      }
     } catch {
       setMessages(m => [...m, { who: 'bot', text: 'Hubo un error. Por favor intenta de nuevo.' }])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const submitLead = async () => {
+    if (!leadForm.nombre.trim() || !leadForm.whatsapp.trim()) return
+    setSubmitting(true)
+    try {
+      await fetch('/api/bot-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bot_id: bot.id,
+          vendedor_id: bot.vendedor_id,
+          nombre: leadForm.nombre,
+          whatsapp: leadForm.whatsapp,
+          producto: leadForm.producto,
+          fuente: 'bot_ia',
+          etapa: 'nuevo',
+        }),
+      })
+      setLeadSaved(true)
+      setMessages(m => [...m, {
+        who: 'bot',
+        text: `¡Perfecto ${leadForm.nombre.split(' ')[0]}! 🎉 Un asesor te contactará al ${leadForm.whatsapp} en menos de 30 minutos. ${bot.whatsapp ? `También puedes escribirnos directamente al WhatsApp.` : ''}`,
+      }])
+    } catch {
+      alert('Error al enviar. Intenta de nuevo.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -69,6 +123,14 @@ export function BotChat({ bot }: Props) {
       const num = bot.whatsapp.replace(/\D/g, '')
       window.open(`https://wa.me/${num}`, '_blank')
     }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '11px 14px', borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,.15)', fontSize: '14px',
+    fontFamily: 'inherit', outline: 'none',
+    background: 'rgba(255,255,255,.1)', color: '#fff',
+    boxSizing: 'border-box' as const,
   }
 
   return (
@@ -83,17 +145,12 @@ export function BotChat({ bot }: Props) {
       fontFamily: "var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)",
     }}>
 
-      {/* Card del chat */}
       <div style={{
-        width: '100%',
-        maxWidth: '480px',
-        background: '#fff',
-        borderRadius: '24px',
-        overflow: 'hidden',
+        width: '100%', maxWidth: '480px', background: '#fff',
+        borderRadius: '24px', overflow: 'hidden',
         boxShadow: '0 25px 60px rgba(0,0,0,.4)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'min(680px, 90vh)',
+        display: 'flex', flexDirection: 'column',
+        height: 'min(700px, 92vh)',
       }}>
 
         {/* Header */}
@@ -121,7 +178,6 @@ export function BotChat({ bot }: Props) {
         {/* Mensajes */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '12px', background: '#f9fafb' }}>
 
-          {/* Bienvenida animada */}
           {started && (
             <div style={{ display: 'flex', justifyContent: 'flex-start', animation: 'fadeIn .4s ease' }}>
               <div style={{ maxWidth: '82%', background: '#FF6B2B', borderRadius: '4px 18px 18px 18px', padding: '12px 16px', boxShadow: '0 2px 8px rgba(255,107,43,.25)' }}>
@@ -133,26 +189,75 @@ export function BotChat({ bot }: Props) {
             </div>
           )}
 
-          {/* Mensajes del chat */}
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: m.who === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeIn .3s ease' }}>
-              <div style={{
-                maxWidth: '82%',
-                background: m.who === 'bot' ? '#FF6B2B' : '#fff',
-                borderRadius: m.who === 'bot' ? '4px 18px 18px 18px' : '18px 4px 18px 18px',
-                padding: '12px 16px',
-                boxShadow: m.who === 'bot' ? '0 2px 8px rgba(255,107,43,.2)' : '0 1px 4px rgba(0,0,0,.08)',
-                border: m.who === 'user' ? '0.5px solid #e5e7eb' : 'none',
-              }}>
-                {m.who === 'bot' && (
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.7)', marginBottom: '4px', letterSpacing: '.07em', textTransform: 'uppercase' }}>{bot.nombre}</div>
-                )}
-                <div style={{ fontSize: '14px', color: m.who === 'bot' ? '#fff' : '#1f2937', lineHeight: 1.6 }}>{m.text}</div>
-              </div>
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            // Formulario de captura de lead
+            if (m.type === 'lead-form') {
+              return (
+                <div key={i} style={{ animation: 'fadeIn .4s ease' }}>
+                  {!leadSaved ? (
+                    <div style={{ background: '#0f1c2e', borderRadius: '16px', padding: '1.25rem', margin: '0 0 4px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#FF6B2B', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>CONTÁCTAME AHORA</div>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>¿Listo para tu cotización?</div>
+                      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.5 }}>Llena el formulario y te respondo en menos de 30 minutos.</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input
+                          style={inputStyle}
+                          placeholder="Tu nombre completo"
+                          value={leadForm.nombre}
+                          onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))}
+                        />
+                        <input
+                          style={inputStyle}
+                          placeholder="Tu WhatsApp (+57 300...)"
+                          value={leadForm.whatsapp}
+                          onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))}
+                        />
+                        <input
+                          style={inputStyle}
+                          placeholder="¿Qué producto o servicio te interesa? (opcional)"
+                          value={leadForm.producto}
+                          onChange={e => setLeadForm(f => ({ ...f, producto: e.target.value }))}
+                        />
+                        <button
+                          onClick={submitLead}
+                          disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()}
+                          style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', marginTop: '4px', opacity: submitting ? .7 : 1 }}>
+                          {submitting ? 'Enviando...' : 'Solicitar cotización →'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '14px', padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', marginBottom: '6px' }}>✅</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>¡Lead enviado al asesor!</div>
+                    </div>
+                  )}
+                </div>
+              )
+            }
 
-          {/* Typing indicator */}
+            // Mensajes normales
+            if (m.type === 'lead-form') return null
+            const msg = m as { who: 'user' | 'bot'; text: string }
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: msg.who === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeIn .3s ease' }}>
+                <div style={{
+                  maxWidth: '82%',
+                  background: msg.who === 'bot' ? '#FF6B2B' : '#fff',
+                  borderRadius: msg.who === 'bot' ? '4px 18px 18px 18px' : '18px 4px 18px 18px',
+                  padding: '12px 16px',
+                  boxShadow: msg.who === 'bot' ? '0 2px 8px rgba(255,107,43,.2)' : '0 1px 4px rgba(0,0,0,.08)',
+                  border: msg.who === 'user' ? '0.5px solid #e5e7eb' : 'none',
+                }}>
+                  {msg.who === 'bot' && (
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.7)', marginBottom: '4px', letterSpacing: '.07em', textTransform: 'uppercase' }}>{bot.nombre}</div>
+                  )}
+                  <div style={{ fontSize: '14px', color: msg.who === 'bot' ? '#fff' : '#1f2937', lineHeight: 1.6 }}>{msg.text}</div>
+                </div>
+              </div>
+            )
+          })}
+
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               <div style={{ background: '#FF6B2B', borderRadius: '4px 18px 18px 18px', padding: '14px 18px', display: 'flex', gap: '5px', alignItems: 'center', boxShadow: '0 2px 8px rgba(255,107,43,.2)' }}>
@@ -178,8 +283,7 @@ export function BotChat({ bot }: Props) {
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            style={{ width: '44px', height: '44px', borderRadius: '12px', background: input.trim() ? '#FF6B2B' : '#e5e7eb', border: 'none', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .2s' }}
-          >
+            style={{ width: '44px', height: '44px', borderRadius: '12px', background: input.trim() ? '#FF6B2B' : '#e5e7eb', border: 'none', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .2s' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke={input.trim() ? '#fff' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -187,7 +291,6 @@ export function BotChat({ bot }: Props) {
         </div>
       </div>
 
-      {/* Powered by */}
       <div style={{ marginTop: '1rem', fontSize: '12px', color: 'rgba(255,255,255,.3)', fontWeight: 500 }}>
         Powered by <span style={{ color: '#FF6B2B', fontWeight: 700 }}>Ventas10x</span>
       </div>

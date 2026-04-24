@@ -1,62 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { slug, form } = await req.json()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nombre, apellido, empresa, industria, whatsapp')
-      .eq('slug', slug).single()
+    const prompt = `Eres un experto en copywriting y marketing digital para vendedores independientes en Colombia.
 
-    const { data: productos } = await supabase
-      .from('productos').select('nombre, descripcion, precio')
-      .eq('vendedor_id', (await supabase.from('profiles').select('id').eq('slug', slug).single()).data?.id)
-      .limit(10)
+Genera contenido para una landing page de venta basado en esta información:
 
-    const nombreAsesor = profile ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') : 'el asesor'
-    const catalogo = productos?.map(p => `• ${p.nombre}${p.precio ? ` - ${p.precio}` : ''}`).join('\n') || 'Sin productos cargados'
+- Slug/vendedor: ${slug || 'no especificado'}
+- Industria/producto actual: ${form?.producto || 'no especificado'}
+- Título actual: ${form?.titulo || 'no especificado'}
+- Subtítulo actual: ${form?.subtitulo || 'no especificado'}
+- Color de marca: ${form?.color_acento || '#FF6B2B'}
 
-    const prompt = `Eres un experto en copywriting de ventas para Latinoamérica.
+Genera una propuesta MEJORADA con:
+1. Un título llamativo y orientado a beneficio (máximo 60 caracteres)
+2. Un subtítulo que complemente el título y refuerce la propuesta de valor (máximo 140 caracteres)
+3. Una descripción del producto clara, persuasiva y orientada al cliente (2-3 oraciones)
 
-Genera el contenido para la landing page de un vendedor con estos datos:
-- Asesor: ${nombreAsesor}
-- Empresa: ${profile?.empresa || 'No especificada'}
-- Industria: ${profile?.industria || 'General'}
-- Productos/servicios: ${catalogo}
-- Título actual: "${form.titulo || 'Sin título'}"
-- Subtítulo actual: "${form.subtitulo || 'Sin subtítulo'}"
-
-Genera contenido persuasivo, específico para la industria y orientado a conversión.
-
-Responde SOLO con un JSON válido sin backticks:
-{"titulo":"...","subtitulo":"...","producto":"..."}
-
-- titulo: máx 80 chars, impactante, con la propuesta de valor clara
-- subtitulo: máx 160 chars, genera urgencia o confianza, incluye beneficio concreto
-- producto: 1-3 palabras clave del producto principal`
+Responde SOLO con un JSON válido con este formato exacto, sin markdown, sin backticks, sin texto adicional:
+{"titulo": "...", "subtitulo": "...", "producto": "..."}`
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    const data = JSON.parse(clean)
+    const textBlock = response.content.find((b) => b.type === 'text')
+    const text = textBlock && textBlock.type === 'text' ? textBlock.text : ''
+
+    // Limpiar posibles backticks o markdown
+    const cleaned = text.replace(/```json|```/g, '').trim()
+
+    let data
+    try {
+      data = JSON.parse(cleaned)
+    } catch {
+      return NextResponse.json(
+        { error: 'Respuesta inválida del modelo', raw: text },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(data)
   } catch (error) {
     console.error('ia-generar error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      },
+      { status: 500 }
+    )
   }
 }

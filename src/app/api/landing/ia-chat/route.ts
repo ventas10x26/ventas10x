@@ -1,71 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
-export async function POST(req: NextRequest) {
+interface ChatMsg {
+  role: 'user' | 'ai'
+  text: string
+}
+
+export async function POST(req: Request) {
   try {
     const { slug, form, message, history } = await req.json()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('empresa, industria')
-      .eq('slug', slug).single()
+    const systemPrompt = `Eres un asistente experto en copywriting, marketing y landing pages para vendedores independientes en Colombia.
 
-    const system = `Eres un experto en copywriting y optimización de landing pages de ventas para Latinoamérica.
+Contexto de la landing del vendedor:
+- Slug: ${slug || 'no especificado'}
+- Título actual: ${form?.titulo || '(vacío)'}
+- Subtítulo actual: ${form?.subtitulo || '(vacío)'}
+- Descripción producto: ${form?.producto || '(vacío)'}
+- Color: ${form?.color_acento || '#FF6B2B'}
 
-Estás ayudando a un vendedor a mejorar su landing page.
+Reglas:
+- Responde en español, tono cercano y profesional.
+- Sé conciso (máximo 3-4 oraciones por respuesta).
+- Si el vendedor te pide cambiar título, subtítulo o descripción, devuelve la sugerencia en texto Y también en JSON al final del mensaje con este formato exacto:
+<JSON>{"titulo": "...", "subtitulo": "...", "producto": "..."}</JSON>
+- Solo incluye en el JSON los campos que efectivamente quieras cambiar.
+- Si no hay cambios de contenido, no incluyas el bloque <JSON>.`
 
-Datos actuales de la landing:
-- Industria: ${profile?.industria || 'General'}
-- Empresa: ${profile?.empresa || 'No especificada'}
-- Título: "${form.titulo || '(vacío)'}"
-- Subtítulo: "${form.subtitulo || '(vacío)'}"
-- Producto: "${form.producto || '(vacío)'}"
-
-Cuando el vendedor pida cambios en el contenido, responde con:
-1. Una explicación breve de los cambios
-2. Al FINAL, un JSON con los campos a actualizar (solo los que cambien):
-{"titulo":"...","subtitulo":"...","producto":"..."}
-
-Si el usuario hace preguntas generales, responde sin JSON.
-Respuestas concisas, máximo 3 párrafos. En español latinoamericano.`
-
+    // Construir historial para Claude
     const messages = [
-      ...history.map((m: { role: string; text: string }) => ({
-        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.text,
-      })),
+      ...(Array.isArray(history)
+        ? history.map((m: ChatMsg) => ({
+            role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.text,
+          }))
+        : []),
       { role: 'user' as const, content: message },
     ]
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      system,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
+      system: systemPrompt,
       messages,
     })
 
-    const rawReply = response.content[0].type === 'text' ? response.content[0].text : ''
-    let reply = rawReply
-    let cambios: Record<string, string> = {}
+    const textBlock = response.content.find((b) => b.type === 'text')
+    const fullReply = textBlock && textBlock.type === 'text' ? textBlock.text : ''
 
-    const jsonMatch = rawReply.match(/\{[^{}]*"titulo"[^{}]*\}|\{[^{}]*"subtitulo"[^{}]*\}|\{[^{}]*"producto"[^{}]*\}/)
-    if (jsonMatch) {
+    // Extraer JSON si viene incluido
+    let reply = fullReply
+    let titulo: string | undefined
+    let subtitulo: string | undefined
+    let producto: string | undefined
+
+    const match = fullReply.match(/<JSON>([\s\S]*?)<\/JSON>/)
+    if (match) {
       try {
-        cambios = JSON.parse(jsonMatch[0])
-        reply = rawReply.replace(jsonMatch[0], '').trim()
-      } catch { /* ignorar */ }
+        const parsed = JSON.parse(match[1].trim())
+        titulo = parsed.titulo
+        subtitulo = parsed.subtitulo
+        producto = parsed.producto
+        // Quitar el bloque JSON del mensaje visible
+        reply = fullReply.replace(/<JSON>[\s\S]*?<\/JSON>/, '').trim()
+      } catch {
+        // Si falla el parse, devolvemos el texto completo sin cambios
+      }
     }
 
-    return NextResponse.json({ reply, ...cambios })
+    return NextResponse.json({
+      reply,
+      titulo,
+      subtitulo,
+      producto,
+    })
   } catch (error) {
     console.error('ia-chat error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      },
+      { status: 500 }
+    )
   }
 }

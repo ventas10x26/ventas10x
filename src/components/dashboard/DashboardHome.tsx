@@ -96,26 +96,29 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId, bots }: P
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {bots.slice(0, 2).map(bot => (
-              <div key={bot.id} className="card p-4 flex items-center gap-3">
-                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: bot.activo ? 'linear-gradient(135deg,#FF6B2B,#ff9a5c)' : '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+              <div key={bot.id} style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a1a2e 100%)', border: '1px solid rgba(255,107,43,.2)', borderRadius: '16px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: bot.activo ? 'linear-gradient(135deg,#FF6B2B,#ff9a5c)' : 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
                   {INDUSTRIA_ICONS[bot.industria] || '🤖'}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-gray-800 truncate">{bot.nombre}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: bot.activo ? '#f0fdf4' : '#f9fafb', color: bot.activo ? '#16a34a' : '#9ca3af', border: `1px solid ${bot.activo ? '#86efac' : '#e5e7eb'}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginBottom: '4px', letterSpacing: '-.01em' }} className="truncate">{bot.nombre}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: bot.activo ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.08)', color: bot.activo ? '#4ade80' : 'rgba(255,255,255,.4)', border: `1px solid ${bot.activo ? 'rgba(74,222,128,.3)' : 'rgba(255,255,255,.1)'}` }}>
                       {bot.activo ? '● Activo' : '○ Inactivo'}
                     </span>
-                    <span className="text-xs text-gray-400">{bot.industria}</span>
+                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)' }}>{bot.industria}</span>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                   <button
                     onClick={() => navigator.clipboard.writeText(`${BASE_URL}/bot/${bot.id}`).then(() => alert('¡Link copiado!'))}
-                    className="text-xs font-semibold px-2 py-1.5 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+                    style={{ fontSize: '12px', fontWeight: 600, padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', cursor: 'pointer' }}>
                     🔗
                   </button>
-                  <Link href={`/dashboard/bot/${bot.id}/editar`} className="text-xs font-semibold px-2 py-1.5 bg-orange-50 text-orange-500 rounded-lg hover:bg-orange-100 transition-colors">
+                  <a href={`/bot/${bot.id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', fontWeight: 600, padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(74,222,128,.25)', background: 'rgba(74,222,128,.1)', color: '#4ade80', textDecoration: 'none' }}>
+                    👁️
+                  </a>
+                  <Link href={`/dashboard/bot/${bot.id}/editar`} style={{ fontSize: '12px', fontWeight: 600, padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,107,43,.25)', background: 'rgba(255,107,43,.1)', color: '#FF8C42', textDecoration: 'none' }}>
                     ✏️
                   </Link>
                 </div>

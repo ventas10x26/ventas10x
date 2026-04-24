@@ -19,15 +19,17 @@ interface Props {
   bot: Bot
 }
 
+type Message = {
+  who: 'user' | 'bot'
+  text?: string
+  type?: 'text' | 'lead-form'
+}
+
 const INDUSTRIA_ICONS: Record<string, string> = {
   Automotriz: '🚗', Inmobiliaria: '🏠', Retail: '👗', Alimentos: '🍔',
   Salud: '💊', Servicios: '🛠️', Tecnología: '💻', Educación: '🎓',
   Fitness: '🏋️', Turismo: '✈️',
 }
-
-type Message = 
-  | { who: 'user' | 'bot'; text: string; type?: 'text' }
-  | { who: 'bot'; type: 'lead-form' }
 
 export function BotChat({ bot }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -60,7 +62,7 @@ export function BotChat({ bot }: Props) {
     if (!input.trim() || loading) return
     const userMsg = input.trim()
     setInput('')
-    const newMessages = [...messages, { who: 'user' as const, text: userMsg }]
+    const newMessages: Message[] = [...messages, { who: 'user', text: userMsg, type: 'text' }]
     setMessages(newMessages)
     setLoading(true)
     msgCountRef.current += 1
@@ -76,14 +78,13 @@ export function BotChat({ bot }: Props) {
         }),
       })
       const data = await res.json()
-      setMessages(m => [...m, { who: 'bot', text: data.reply }])
+      setMessages(m => [...m, { who: 'bot', text: data.reply, type: 'text' }])
 
-      // Mostrar formulario si el bot detectó intención alta o después de 4 mensajes
       if (data.showLeadForm || msgCountRef.current >= 4) {
         setTimeout(showLeadForm, 800)
       }
     } catch {
-      setMessages(m => [...m, { who: 'bot', text: 'Hubo un error. Por favor intenta de nuevo.' }])
+      setMessages(m => [...m, { who: 'bot', text: 'Hubo un error. Por favor intenta de nuevo.', type: 'text' }])
     } finally {
       setLoading(false)
     }
@@ -109,7 +110,8 @@ export function BotChat({ bot }: Props) {
       setLeadSaved(true)
       setMessages(m => [...m, {
         who: 'bot',
-        text: `¡Perfecto ${leadForm.nombre.split(' ')[0]}! 🎉 Un asesor te contactará al ${leadForm.whatsapp} en menos de 30 minutos. ${bot.whatsapp ? `También puedes escribirnos directamente al WhatsApp.` : ''}`,
+        text: `¡Perfecto ${leadForm.nombre.split(' ')[0]}! 🎉 Un asesor te contactará al ${leadForm.whatsapp} en menos de 30 minutos.${bot.whatsapp ? ' También puedes escribirnos directamente al WhatsApp.' : ''}`,
+        type: 'text',
       }])
     } catch {
       alert('Error al enviar. Intenta de nuevo.')
@@ -135,12 +137,9 @@ export function BotChat({ bot }: Props) {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0f1c2e',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
+      minHeight: '100vh', background: '#0f1c2e',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
       padding: '1rem',
       fontFamily: "var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)",
     }}>
@@ -190,38 +189,19 @@ export function BotChat({ bot }: Props) {
           )}
 
           {messages.map((m, i) => {
-            // Formulario de captura de lead
             if (m.type === 'lead-form') {
               return (
                 <div key={i} style={{ animation: 'fadeIn .4s ease' }}>
                   {!leadSaved ? (
-                    <div style={{ background: '#0f1c2e', borderRadius: '16px', padding: '1.25rem', margin: '0 0 4px' }}>
+                    <div style={{ background: '#0f1c2e', borderRadius: '16px', padding: '1.25rem' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#FF6B2B', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>CONTÁCTAME AHORA</div>
                       <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>¿Listo para tu cotización?</div>
                       <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.5 }}>Llena el formulario y te respondo en menos de 30 minutos.</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <input
-                          style={inputStyle}
-                          placeholder="Tu nombre completo"
-                          value={leadForm.nombre}
-                          onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))}
-                        />
-                        <input
-                          style={inputStyle}
-                          placeholder="Tu WhatsApp (+57 300...)"
-                          value={leadForm.whatsapp}
-                          onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))}
-                        />
-                        <input
-                          style={inputStyle}
-                          placeholder="¿Qué producto o servicio te interesa? (opcional)"
-                          value={leadForm.producto}
-                          onChange={e => setLeadForm(f => ({ ...f, producto: e.target.value }))}
-                        />
-                        <button
-                          onClick={submitLead}
-                          disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()}
-                          style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', marginTop: '4px', opacity: submitting ? .7 : 1 }}>
+                        <input style={inputStyle} placeholder="Tu nombre completo" value={leadForm.nombre} onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))} />
+                        <input style={inputStyle} placeholder="Tu WhatsApp (+57 300...)" value={leadForm.whatsapp} onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))} />
+                        <input style={inputStyle} placeholder="¿Qué producto te interesa? (opcional)" value={leadForm.producto} onChange={e => setLeadForm(f => ({ ...f, producto: e.target.value }))} />
+                        <button onClick={submitLead} disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()} style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', marginTop: '4px', opacity: submitting ? .7 : 1 }}>
                           {submitting ? 'Enviando...' : 'Solicitar cotización →'}
                         </button>
                       </div>
@@ -236,23 +216,20 @@ export function BotChat({ bot }: Props) {
               )
             }
 
-           // Mensajes normales
-if ('type' in m && m.type === 'lead-form') return null
-            const msg = m as { who: 'user' | 'bot'; text: string }
             return (
-              <div key={i} style={{ display: 'flex', justifyContent: msg.who === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeIn .3s ease' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: m.who === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeIn .3s ease' }}>
                 <div style={{
                   maxWidth: '82%',
-                  background: msg.who === 'bot' ? '#FF6B2B' : '#fff',
-                  borderRadius: msg.who === 'bot' ? '4px 18px 18px 18px' : '18px 4px 18px 18px',
+                  background: m.who === 'bot' ? '#FF6B2B' : '#fff',
+                  borderRadius: m.who === 'bot' ? '4px 18px 18px 18px' : '18px 4px 18px 18px',
                   padding: '12px 16px',
-                  boxShadow: msg.who === 'bot' ? '0 2px 8px rgba(255,107,43,.2)' : '0 1px 4px rgba(0,0,0,.08)',
-                  border: msg.who === 'user' ? '0.5px solid #e5e7eb' : 'none',
+                  boxShadow: m.who === 'bot' ? '0 2px 8px rgba(255,107,43,.2)' : '0 1px 4px rgba(0,0,0,.08)',
+                  border: m.who === 'user' ? '0.5px solid #e5e7eb' : 'none',
                 }}>
-                  {msg.who === 'bot' && (
+                  {m.who === 'bot' && (
                     <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.7)', marginBottom: '4px', letterSpacing: '.07em', textTransform: 'uppercase' }}>{bot.nombre}</div>
                   )}
-                  <div style={{ fontSize: '14px', color: msg.who === 'bot' ? '#fff' : '#1f2937', lineHeight: 1.6 }}>{msg.text}</div>
+                  <div style={{ fontSize: '14px', color: m.who === 'bot' ? '#fff' : '#1f2937', lineHeight: 1.6 }}>{m.text}</div>
                 </div>
               </div>
             )

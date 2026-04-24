@@ -104,8 +104,9 @@ export default function ChatBotWidget({
         timestamp: new Date(),
       }])
 
-      // Mostrar formulario si el bot detectó interés o creó lead
-      if (data.accion === 'crear_lead' || data.accion === 'agendar_cita') {
+      // Mostrar formulario si el bot detectó interés, creó lead, o después de 4 mensajes
+      const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
+      if (data.accion === 'crear_lead' || data.accion === 'agendar_cita' || userMsgCount >= 4) {
         setTimeout(mostrarFormulario, 600)
       }
     } catch {

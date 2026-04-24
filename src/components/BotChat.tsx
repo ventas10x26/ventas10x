@@ -91,10 +91,12 @@ export function BotChat({ bot }: Props) {
   }
 
   const submitLead = async () => {
+    console.log('submitLead llamado', leadForm)
     if (!leadForm.nombre.trim() || !leadForm.whatsapp.trim()) return
     setSubmitting(true)
     try {
-      await fetch('/api/bot-lead', {
+      console.log('enviando a /api/bot-lead...')
+      const res = await fetch('/api/bot-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,6 +109,8 @@ export function BotChat({ bot }: Props) {
           etapa: 'nuevo',
         }),
       })
+      const data = await res.json()
+      console.log('bot-lead response:', data)
       setLeadSaved(true)
       setMessages(m => [...m, {
         who: 'bot',

@@ -34,7 +34,7 @@ export default function ChatBotWidget({
   colorAcento = '#FF6B2B',
   industria = 'default',
 }: ChatBotWidgetProps) {
-  const [abierto, setAbierto]           = useState(false)
+  const [abierto, setAbierto]           = useState(true)
   const [mensajes, setMensajes]         = useState<Mensaje[]>([])
   const [input, setInput]               = useState('')
   const [cargando, setCargando]         = useState(false)

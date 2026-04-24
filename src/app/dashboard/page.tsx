@@ -16,12 +16,14 @@ export default async function DashboardPage() {
   ])
 
   const profile = profileRes.data as Profile | null
-  const sus = susRes.data as Suscripcion | null
 
+  // Redirigir al onboarding si no tiene empresa configurada
+  if (!profile?.empresa) redirect('/onboarding')
+
+  const sus = susRes.data as Suscripcion | null
   const nombre = profile
     ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'Usuario'
     : user.email?.split('@')[0] || 'Usuario'
-
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (

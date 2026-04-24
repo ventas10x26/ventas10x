@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { SeccionesEditor } from './SeccionesEditor'
 
 type ConfigForm = {
   titulo: string
@@ -150,7 +151,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     setAplicandoMejoras(true)
     setMensaje(null)
 
-    // Guardar snapshot ANTES de aplicar cambios
     setSnapshotPrevio({
       titulo: form.titulo || '',
       subtitulo: form.subtitulo || '',
@@ -216,12 +216,10 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
 
       setChatMsgs(m => [...m, { role: 'ai', text: data.reply }])
 
-      // Cambios de texto
       if (data.titulo) actualizar('titulo', data.titulo)
       if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
       if (data.producto) actualizar('producto', data.producto)
 
-      // Búsqueda de imágenes
       if (data.buscarImagen) {
         setTipoImagenActiva(data.buscarImagen.tipo)
         await buscarImagenes(
@@ -352,9 +350,10 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         <a href={"/u/" + slug} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 !px-4 !text-sm">Abrir en nueva pestaña</a>
       </header>
 
-      {/* ── Panel IA ── */}
+      {/* ═══════════════════════════════════════════════ */}
+      {/* ── Panel IA (asistente) ── */}
+      {/* ═══════════════════════════════════════════════ */}
       <div style={{ background: 'linear-gradient(135deg,#0f1c2e 0%,#1a1a2e 100%)', border: '1px solid rgba(255,107,43,.25)', borderRadius: '20px', marginBottom: '1.5rem', overflow: 'hidden' }}>
-        {/* Header del panel */}
         <button
           onClick={() => setIaOpen(o => !o)}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
@@ -371,7 +370,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
 
         {iaOpen && (
           <div style={{ padding: '0 1.5rem 1.5rem' }}>
-            {/* Tabs */}
             <div style={{ display: 'flex', gap: '6px', marginBottom: '1.25rem', background: 'rgba(255,255,255,.05)', borderRadius: '12px', padding: '4px' }}>
               {([
                 { key: 'generar', label: '⚡ Generar' },
@@ -437,7 +435,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                   <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '14px', padding: '1.25rem' }}>
                     <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.85)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analisis}</div>
 
-                    {/* ── Botón Aplicar Mejoras / Deshacer ── */}
                     <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                       {!snapshotPrevio ? (
                         <button
@@ -516,7 +513,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                     </div>
                   ))}
 
-                  {/* Grid de imágenes encontradas en Unsplash */}
                   {imagenesEncontradas.length > 0 && tipoImagenActiva && (
                     <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '12px' }}>
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)', marginBottom: '8px' }}>
@@ -562,7 +558,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                   )}
                 </div>
 
-                {/* Selector de tipo + Input */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)' }}>Si subes imagen, será:</span>
                   {(['hero', 'logo', 'galeria'] as const).map(t => (
@@ -582,7 +577,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {/* Input hidden de archivo */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -593,7 +587,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                       if (file) subirArchivoChat(file, tipoSubida)
                     }}
                   />
-                  {/* Botón adjuntar */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={subiendoImagen || iaLoading}
@@ -629,6 +622,16 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         )}
       </div>
 
+      {/* ═══════════════════════════════════════════════ */}
+      {/* ── Editor de secciones dinámicas ── */}
+      {/* ═══════════════════════════════════════════════ */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <SeccionesEditor form={form} analisisPrevio={analisis} />
+      </div>
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/* ── Grid principal: Form + Preview ── */}
+      {/* ═══════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <section className="card p-6 space-y-4">

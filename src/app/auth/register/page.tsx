@@ -22,13 +22,13 @@ export default function RegisterPage() {
       options: { data: { full_name: nombre } }
     })
     if (error) { setError(error.message); setLoading(false) }
-    else { router.push('/dashboard'); router.refresh() }
+    else { router.push('/onboarding'); router.refresh() }
   }
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` }
     })
   }
 

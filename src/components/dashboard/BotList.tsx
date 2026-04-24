@@ -136,6 +136,9 @@ export function BotList({ bots: initialBots, userId }: Props) {
                 <button onClick={() => copyLink(bot)} style={{ fontSize: '13px', fontWeight: 600, padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer' }}>
                   {copied === bot.id ? '✅ Copiado' : '🔗 Copiar link'}
                 </button>
+                <a href={`/bot/${bot.id}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', fontWeight: 600, padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#f0fdf4', color: '#16a34a', textDecoration: 'none' }}>
+                  👁️ Ver bot
+                </a>
                 <button
                   onClick={() => toggleActivo(bot)}
                   disabled={toggling === bot.id}

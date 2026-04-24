@@ -152,16 +152,16 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId, bots }: P
       {slug && (
         <>
           <div className="text-sm font-semibold text-gray-800 mb-3">Tu URL de landing personalizada</div>
-          <div className="card p-4 mb-6 flex items-center gap-3 flex-wrap">
-            <div className="flex-1">
-              <div className="text-xs text-gray-400 mb-1">Comparte este enlace con tus prospectos</div>
-              <div className="text-sm font-medium text-blue-600 break-all">{landingUrl}</div>
+          <div className="mb-6 flex items-center gap-3 flex-wrap" style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a1a2e 100%)', border: '1px solid rgba(29,78,216,.25)', borderRadius: '16px', padding: '1rem 1.25rem' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.4)', marginBottom: '4px' }}>Comparte este enlace con tus prospectos</div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#93c5fd', wordBreak: 'break-all' }}>{landingUrl}</div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={copyUrl} className="text-xs font-semibold px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button onClick={copyUrl} style={{ fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', cursor: 'pointer' }}>
                 Copiar
               </button>
-              <a href={landingUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
+              <a href={landingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(29,78,216,.35)', background: 'rgba(29,78,216,.15)', color: '#93c5fd', textDecoration: 'none' }}>
                 Ver landing →
               </a>
             </div>

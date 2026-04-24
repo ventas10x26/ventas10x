@@ -22,7 +22,16 @@ export default function RegisterPage() {
       options: { data: { full_name: nombre } }
     })
     if (error) { setError(error.message); setLoading(false) }
-    else { router.push('/onboarding'); router.refresh() }
+    else {
+      // Enviar email de bienvenida
+      fetch('/api/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, email }),
+      }).catch(() => {}) // fire and forget
+      router.push('/onboarding')
+      router.refresh()
+    }
   }
 
   const handleGoogle = async () => {

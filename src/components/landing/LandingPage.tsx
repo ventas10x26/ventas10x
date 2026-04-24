@@ -1,7 +1,9 @@
+// Ruta destino: src/components/landing/LandingPage.tsx
 'use client'
 
 import { useState } from 'react'
 import type { Profile, LandingConfig, Producto } from '@/types/database'
+import { ProductoCard } from './ProductoCard'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -57,7 +59,6 @@ export function LandingPage({ profile, config, productos, slug }: Props) {
       return
     }
 
-    // Notificar al vendedor y enviar SMS al lead
     fetch(`${SUPABASE_URL}/functions/v1/notificar-lead`, {
       method: 'POST',
       headers: {
@@ -116,24 +117,23 @@ export function LandingPage({ profile, config, productos, slug }: Props) {
         </a>
       </div>
 
-      {/* Productos */}
+      {/* Productos con galería */}
       {productos.length > 0 && (
         <div className="py-16 px-6 bg-gray-50 border-b border-gray-100">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-display font-bold text-gray-900 text-center mb-2">Productos disponibles</h2>
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl font-display font-bold text-gray-900 text-center mb-2">
+              Productos disponibles
+            </h2>
             <p className="text-gray-500 text-center mb-8 text-sm">
               Estos son los {producto.toLowerCase()} que puedes cotizar conmigo hoy.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {productos.map(p => (
-                <div key={p.id} className="bg-white border border-gray-100 rounded-2xl p-5"
-                  style={{ borderTop: `3px solid ${acento}` }}>
-                  <div className="font-semibold text-gray-900 mb-1">{p.nombre}</div>
-                  {p.descripcion && <div className="text-sm text-gray-500 mb-2">{p.descripcion}</div>}
-                  <div className="font-bold text-lg" style={{ color: acento }}>
-                    {p.precio || 'Consultar precio'}
-                  </div>
-                </div>
+                <ProductoCard
+                  key={p.id}
+                  producto={p}
+                  colorAcento={acento}
+                />
               ))}
             </div>
           </div>
@@ -167,14 +167,17 @@ export function LandingPage({ profile, config, productos, slug }: Props) {
                 onChange={e => setNombre(e.target.value)} required
                 className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
                 style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+
               <input type="tel" placeholder="Tu WhatsApp (+57 300...)" value={whatsapp}
                 onChange={e => setWhatsapp(e.target.value)} required
                 className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
                 style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+
               <input type="text" placeholder={`¿Qué ${producto.toLowerCase()} necesitas? (opcional)`}
                 value={interes} onChange={e => setInteres(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
                 style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+
               {error && <div className="text-red-400 text-sm">{error}</div>}
               <button type="submit" disabled={loading}
                 className="w-full py-4 rounded-2xl text-white font-bold text-base transition-opacity hover:opacity-90 disabled:opacity-50"

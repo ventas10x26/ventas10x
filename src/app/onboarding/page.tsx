@@ -55,7 +55,7 @@ export default function OnboardingPage() {
         empresa: profile.empresa,
         industria: profile.industria,
         whatsapp: profile.whatsapp,
-      }).eq('id', user.id)
+      } as Record<string, string>).eq('id', user.id)
 
       setStep(2)
     } finally {

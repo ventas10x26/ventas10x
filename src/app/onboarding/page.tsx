@@ -51,11 +51,12 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      await supabase.from('profiles').update({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('profiles') as any).update({
         empresa: profile.empresa,
         industria: profile.industria,
         whatsapp: profile.whatsapp,
-      } as Record<string, string>).eq('id', user.id)
+      }).eq('id', user.id)
 
       setStep(2)
     } finally {

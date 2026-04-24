@@ -1,3 +1,5 @@
+// Ruta destino: src/types/database.ts
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
@@ -48,6 +50,10 @@ export interface Database {
           whatsapp: string | null
           mensaje_wa: string | null
           updated_at: string
+          // ── Campos de imágenes agregados por el sistema de IA ──
+          imagen_hero: string | null
+          imagen_logo: string | null
+          imagenes_galeria: string[] | null
         }
         Insert: Omit<Database['public']['Tables']['landing_config']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['landing_config']['Insert']>

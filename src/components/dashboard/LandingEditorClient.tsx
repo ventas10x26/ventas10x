@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 type ConfigForm = {
@@ -8,6 +8,9 @@ type ConfigForm = {
   subtitulo: string
   producto: string
   color_acento: string
+  imagen_hero?: string
+  imagen_logo?: string
+  imagenes_galeria?: string[]
 }
 
 type Props = {
@@ -16,6 +19,17 @@ type Props = {
 }
 
 type ChatMsg = { role: 'user' | 'ai'; text: string }
+
+type ImagenUnsplash = {
+  id: string
+  url: string
+  thumb: string
+  alt: string
+  autor: string
+  autorUrl: string
+}
+
+type TipoImagen = 'hero' | 'logo' | 'galeria'
 
 const COLORES_SUGERIDOS = [
   { nombre: 'Naranja', hex: '#FF6B2B' },
@@ -41,13 +55,28 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
   const [chatInput, setChatInput] = useState('')
   const [iaOpen, setIaOpen] = useState(true)
 
+  // Aplicar mejoras + deshacer
+  const [aplicandoMejoras, setAplicandoMejoras] = useState(false)
+  const [snapshotPrevio, setSnapshotPrevio] = useState<{
+    titulo: string
+    subtitulo: string
+    producto: string
+  } | null>(null)
+
+  // Imágenes desde el chat
+  const [imagenesEncontradas, setImagenesEncontradas] = useState<ImagenUnsplash[]>([])
+  const [tipoImagenActiva, setTipoImagenActiva] = useState<TipoImagen | null>(null)
+  const [subiendoImagen, setSubiendoImagen] = useState(false)
+  const [tipoSubida, setTipoSubida] = useState<TipoImagen>('hero')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const hayCambios =
     form.titulo !== configInicial.titulo ||
     form.subtitulo !== configInicial.subtitulo ||
     form.producto !== configInicial.producto ||
     form.color_acento !== configInicial.color_acento
 
-  const actualizar = (campo: keyof ConfigForm, valor: string) => {
+  const actualizar = <K extends keyof ConfigForm>(campo: K, valor: ConfigForm[K]) => {
     setForm(prev => ({ ...prev, [campo]: valor }))
     setMensaje(null)
   }
@@ -64,6 +93,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al guardar')
       setMensaje({ tipo: 'ok', texto: 'Cambios guardados.' })
+      setSnapshotPrevio(null)
       setTimeout(() => setPreviewKey(k => k + 1), 300)
       router.refresh()
     } catch (e) {
@@ -98,6 +128,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
   const analizarLanding = async () => {
     setIaLoading(true)
     setAnalisis('')
+    setSnapshotPrevio(null)
     try {
       const res = await fetch('/api/landing/ia-analizar', {
         method: 'POST',
@@ -113,6 +144,59 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
+  // ── IA: Aplicar mejoras sugeridas por el análisis ──
+  const aplicarMejoras = async () => {
+    if (!analisis || aplicandoMejoras) return
+    setAplicandoMejoras(true)
+    setMensaje(null)
+
+    // Guardar snapshot ANTES de aplicar cambios
+    setSnapshotPrevio({
+      titulo: form.titulo || '',
+      subtitulo: form.subtitulo || '',
+      producto: form.producto || '',
+    })
+
+    try {
+      const res = await fetch('/api/landing/ia-aplicar-mejoras', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, form, analisis }),
+      })
+      const data = await res.json()
+
+      if (data.error) {
+        setMensaje({ tipo: 'error', texto: data.error })
+        setSnapshotPrevio(null)
+        return
+      }
+
+      if (data.titulo) actualizar('titulo', data.titulo)
+      if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
+      if (data.producto) actualizar('producto', data.producto)
+
+      setMensaje({
+        tipo: 'ok',
+        texto: 'Mejoras aplicadas. Revisa el preview y guarda si te gustan.',
+      })
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'Error al aplicar mejoras' })
+      setSnapshotPrevio(null)
+    } finally {
+      setAplicandoMejoras(false)
+    }
+  }
+
+  // ── IA: Deshacer últimas mejoras ──
+  const deshacerMejoras = () => {
+    if (!snapshotPrevio) return
+    actualizar('titulo', snapshotPrevio.titulo)
+    actualizar('subtitulo', snapshotPrevio.subtitulo)
+    actualizar('producto', snapshotPrevio.producto)
+    setSnapshotPrevio(null)
+    setMensaje({ tipo: 'ok', texto: 'Cambios revertidos.' })
+  }
+
   // ── IA: Chat ──
   const enviarChat = async () => {
     if (!chatInput.trim() || iaLoading) return
@@ -120,6 +204,8 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     setChatInput('')
     setChatMsgs(m => [...m, { role: 'user', text: userMsg }])
     setIaLoading(true)
+    setImagenesEncontradas([])
+
     try {
       const res = await fetch('/api/landing/ia-chat', {
         method: 'POST',
@@ -127,15 +213,121 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         body: JSON.stringify({ slug, form, message: userMsg, history: chatMsgs }),
       })
       const data = await res.json()
+
       setChatMsgs(m => [...m, { role: 'ai', text: data.reply }])
-      // Si la IA sugiere cambios, aplicarlos
+
+      // Cambios de texto
       if (data.titulo) actualizar('titulo', data.titulo)
       if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
       if (data.producto) actualizar('producto', data.producto)
+
+      // Búsqueda de imágenes
+      if (data.buscarImagen) {
+        setTipoImagenActiva(data.buscarImagen.tipo)
+        await buscarImagenes(
+          data.buscarImagen.query,
+          data.buscarImagen.orientation
+        )
+      }
     } catch {
       setChatMsgs(m => [...m, { role: 'ai', text: 'Error al conectar. Intenta de nuevo.' }])
     } finally {
       setIaLoading(false)
+    }
+  }
+
+  // ── Buscar imágenes en Unsplash ──
+  const buscarImagenes = async (query: string, orientation = 'landscape') => {
+    try {
+      const res = await fetch('/api/landing/ia-buscar-imagenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, orientation, perPage: 6 }),
+      })
+      const data = await res.json()
+      if (data.imagenes) {
+        setImagenesEncontradas(data.imagenes)
+      }
+    } catch (e) {
+      console.error('Error buscando imágenes:', e)
+    }
+  }
+
+  // ── Usar imagen de Unsplash ──
+  const usarImagenUnsplash = async (url: string, tipo: TipoImagen) => {
+    setSubiendoImagen(true)
+    try {
+      const res = await fetch('/api/landing/upload-imagen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, url }),
+      })
+      const data = await res.json()
+
+      if (data.ok) {
+        if (tipo === 'hero') actualizar('imagen_hero', data.url)
+        if (tipo === 'logo') actualizar('imagen_logo', data.url)
+        if (tipo === 'galeria') actualizar('imagenes_galeria', data.galeria)
+
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `✅ Imagen aplicada como ${tipo}. Se guardó automáticamente. Refresca el preview para verla.`
+        }])
+        setImagenesEncontradas([])
+        setTipoImagenActiva(null)
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else {
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error al aplicar imagen'}` }])
+      }
+    } catch {
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al aplicar imagen' }])
+    } finally {
+      setSubiendoImagen(false)
+    }
+  }
+
+  // ── Subir archivo desde el chat ──
+  const subirArchivoChat = async (file: File, tipo: TipoImagen) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ La imagen supera 5MB' }])
+      return
+    }
+
+    setSubiendoImagen(true)
+    setChatMsgs(m => [...m, {
+      role: 'user',
+      text: `📎 Subiendo ${tipo}: ${file.name}`
+    }])
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('tipo', tipo)
+
+      const res = await fetch('/api/landing/upload-imagen', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (data.ok) {
+        if (tipo === 'hero') actualizar('imagen_hero', data.url)
+        if (tipo === 'logo') actualizar('imagen_logo', data.url)
+        if (tipo === 'galeria') actualizar('imagenes_galeria', data.galeria)
+
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `✅ Imagen subida y aplicada como ${tipo}. Se guardó automáticamente.`
+        }])
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else {
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error al subir'}` }])
+      }
+    } catch {
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al subir imagen' }])
+    } finally {
+      setSubiendoImagen(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -240,9 +432,62 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                     </>
                   ) : '🔍 Analizar mi landing'}
                 </button>
+
                 {analisis && (
                   <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '14px', padding: '1.25rem' }}>
                     <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.85)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analisis}</div>
+
+                    {/* ── Botón Aplicar Mejoras / Deshacer ── */}
+                    <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {!snapshotPrevio ? (
+                        <button
+                          onClick={aplicarMejoras}
+                          disabled={aplicandoMejoras}
+                          style={{
+                            background: 'linear-gradient(135deg, #FF6B2B 0%, #FF8C42 100%)',
+                            color: '#fff', border: 'none', borderRadius: '10px',
+                            padding: '11px 22px', fontSize: '13px', fontWeight: 700,
+                            cursor: aplicandoMejoras ? 'wait' : 'pointer',
+                            opacity: aplicandoMejoras ? .7 : 1,
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            boxShadow: '0 4px 12px rgba(255,107,43,.3)',
+                          }}>
+                          {aplicandoMejoras ? (
+                            <>
+                              <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                              Aplicando mejoras...
+                            </>
+                          ) : '✨ Aplicar mejoras a mi landing'}
+                        </button>
+                      ) : (
+                        <>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '8px 14px', background: 'rgba(34,197,94,.15)',
+                            border: '1px solid rgba(34,197,94,.4)', borderRadius: '10px',
+                            fontSize: '12px', color: '#86efac', fontWeight: 600,
+                          }}>
+                            ✅ Mejoras aplicadas
+                          </div>
+                          <button
+                            onClick={deshacerMejoras}
+                            style={{
+                              background: 'rgba(255,255,255,.1)', color: '#fff',
+                              border: '1px solid rgba(255,255,255,.2)', borderRadius: '10px',
+                              padding: '9px 16px', fontSize: '12px', fontWeight: 600,
+                              cursor: 'pointer',
+                            }}>
+                            ↩️ Deshacer
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {snapshotPrevio && (
+                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginTop: '8px' }}>
+                        Los cambios no se han guardado todavía. Revisa el preview y presiona &quot;Guardar cambios&quot; abajo si te gustan.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -251,11 +496,11 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
             {/* Tab: Chat */}
             {iaTab === 'chat' && (
               <div>
-                <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '14px', padding: '1rem', minHeight: '180px', maxHeight: '280px', overflowY: 'auto', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '14px', padding: '1rem', minHeight: '180px', maxHeight: '320px', overflowY: 'auto', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {chatMsgs.length === 0 && (
                     <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.35)', textAlign: 'center', marginTop: '2rem' }}>
                       Pregúntame cómo mejorar tu landing...<br/>
-                      <span style={{ fontSize: '12px' }}>ej. "Hazla más persuasiva" · "Cambia el título para automotriz" · "Agrega urgencia"</span>
+                      <span style={{ fontSize: '12px' }}>ej. &quot;Hazla más persuasiva&quot; · &quot;Busca una foto para el hero&quot; · &quot;Necesito un logo&quot;</span>
                     </div>
                   )}
                   {chatMsgs.map((m, i) => (
@@ -263,30 +508,117 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                       <div style={{
                         maxWidth: '85%', padding: '9px 13px', borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                         background: m.role === 'user' ? '#FF6B2B' : 'rgba(255,255,255,.1)',
-                        fontSize: '13px', color: '#fff', lineHeight: 1.55,
+                        fontSize: '13px', color: '#fff', lineHeight: 1.55, whiteSpace: 'pre-wrap',
                       }}>
                         {m.role === 'ai' && <div style={{ fontSize: '10px', fontWeight: 700, color: '#FF8C42', marginBottom: '3px', letterSpacing: '.06em' }}>IA</div>}
                         {m.text}
                       </div>
                     </div>
                   ))}
-                  {iaLoading && iaTab === 'chat' && (
+
+                  {/* Grid de imágenes encontradas en Unsplash */}
+                  {imagenesEncontradas.length > 0 && tipoImagenActiva && (
+                    <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)', marginBottom: '8px' }}>
+                        Selecciona una para usar como <strong style={{ color: '#FF8C42', textTransform: 'uppercase' }}>{tipoImagenActiva}</strong>:
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                        {imagenesEncontradas.map(img => (
+                          <button
+                            key={img.id}
+                            onClick={() => usarImagenUnsplash(img.url, tipoImagenActiva)}
+                            disabled={subiendoImagen}
+                            style={{
+                              position: 'relative', aspectRatio: '16/9', overflow: 'hidden',
+                              borderRadius: '8px', border: '1px solid rgba(255,255,255,.1)',
+                              background: '#222', cursor: subiendoImagen ? 'wait' : 'pointer',
+                              padding: 0, opacity: subiendoImagen ? .5 : 1,
+                            }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.thumb} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <div style={{
+                              position: 'absolute', bottom: 0, left: 0, right: 0,
+                              background: 'linear-gradient(to top, rgba(0,0,0,.8), transparent)',
+                              padding: '3px 6px', fontSize: '9px', color: 'rgba(255,255,255,.8)',
+                              textAlign: 'left',
+                            }}>
+                              📷 {img.autor}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => { setImagenesEncontradas([]); setTipoImagenActiva(null) }}
+                        style={{ marginTop: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: '11px', cursor: 'pointer', padding: 0 }}>
+                        Cancelar búsqueda
+                      </button>
+                    </div>
+                  )}
+
+                  {(iaLoading || subiendoImagen) && iaTab === 'chat' && (
                     <div style={{ display: 'flex', gap: '4px', padding: '10px 13px', background: 'rgba(255,255,255,.1)', borderRadius: '4px 14px 14px 14px', maxWidth: '60px' }}>
                       {[0,1,2].map(d => <span key={d} style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF6B2B', display: 'inline-block', animation: `bounce 1.2s ease ${d*.25}s infinite` }} />)}
                     </div>
                   )}
                 </div>
+
+                {/* Selector de tipo + Input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)' }}>Si subes imagen, será:</span>
+                  {(['hero', 'logo', 'galeria'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTipoSubida(t)}
+                      style={{
+                        padding: '3px 10px', borderRadius: '6px', border: 'none',
+                        fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                        background: tipoSubida === t ? '#FF6B2B' : 'rgba(255,255,255,.08)',
+                        color: tipoSubida === t ? '#fff' : 'rgba(255,255,255,.5)',
+                        textTransform: 'capitalize',
+                      }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* Input hidden de archivo */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) subirArchivoChat(file, tipoSubida)
+                    }}
+                  />
+                  {/* Botón adjuntar */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={subiendoImagen || iaLoading}
+                    title="Adjuntar imagen"
+                    style={{
+                      width: '40px', height: '40px', borderRadius: '10px',
+                      background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)',
+                      color: '#fff', fontSize: '16px', cursor: 'pointer',
+                      opacity: (subiendoImagen || iaLoading) ? .5 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    📎
+                  </button>
+
                   <input
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && enviarChat()}
-                    placeholder="ej. Hazla más persuasiva para automotriz..."
+                    placeholder="ej. Busca una imagen para el hero..."
+                    disabled={iaLoading || subiendoImagen}
                     style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.08)', color: '#fff', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
                   />
                   <button
                     onClick={enviarChat}
-                    disabled={iaLoading || !chatInput.trim()}
+                    disabled={iaLoading || subiendoImagen || !chatInput.trim()}
                     style={{ width: '40px', height: '40px', borderRadius: '10px', background: chatInput.trim() ? '#FF6B2B' : 'rgba(255,255,255,.1)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     ➤
                   </button>

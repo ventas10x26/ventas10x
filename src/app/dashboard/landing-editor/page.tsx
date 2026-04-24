@@ -1,3 +1,6 @@
+// Ruta destino: src/app/dashboard/landing-editor/page.tsx
+// Reemplaza el archivo actual para que pase los campos de imagen al cliente.
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
@@ -20,7 +23,6 @@ export default async function LandingEditorPage() {
   const nombre = profile
     ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'Usuario'
     : user.email?.split('@')[0] || 'Usuario'
-
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
   const slug = profile?.slug ?? ''
 
@@ -38,6 +40,9 @@ export default async function LandingEditorPage() {
           subtitulo: config?.subtitulo ?? '',
           producto: config?.producto ?? '',
           color_acento: config?.color_acento ?? '#FF6B2B',
+          imagen_hero: config?.imagen_hero ?? '',
+          imagen_logo: config?.imagen_logo ?? '',
+          imagenes_galeria: config?.imagenes_galeria ?? [],
         }}
       />
     </DashboardLayout>

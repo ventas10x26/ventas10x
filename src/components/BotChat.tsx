@@ -236,8 +236,8 @@ export function BotChat({ bot }: Props) {
               )
             }
 
-            // Mensajes normales
-            if (m.type === 'lead-form') return null
+           // Mensajes normales
+if ('type' in m && m.type === 'lead-form') return null
             const msg = m as { who: 'user' | 'bot'; text: string }
             return (
               <div key={i} style={{ display: 'flex', justifyContent: msg.who === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeIn .3s ease' }}>

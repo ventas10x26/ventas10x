@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { LandingPage } from '@/components/landing/LandingPage'
 import type { Metadata } from 'next'
@@ -8,13 +8,18 @@ import ChatBotWidget from '@/components/landing/ChatBotWidget'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 type Props = {
   params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createClient()
+
   const { data } = await supabase
     .from('profiles')
     .select('nombre, apellido, empresa')
@@ -33,7 +38,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VendedorLandingPage({ params }: Props) {
   const { slug } = await params
-  const supabase = await createClient()
 
   const { data: profileData } = await supabase
     .from('profiles')

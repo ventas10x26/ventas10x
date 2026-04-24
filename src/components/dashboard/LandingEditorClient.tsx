@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -14,6 +14,8 @@ type Props = {
   slug: string
   configInicial: ConfigForm
 }
+
+type ChatMsg = { role: 'user' | 'ai'; text: string }
 
 const COLORES_SUGERIDOS = [
   { nombre: 'Naranja', hex: '#FF6B2B' },
@@ -31,6 +33,14 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   const [previewKey, setPreviewKey] = useState(0)
 
+  // IA panel
+  const [iaTab, setIaTab] = useState<'generar' | 'analizar' | 'chat'>('generar')
+  const [iaLoading, setIaLoading] = useState(false)
+  const [analisis, setAnalisis] = useState('')
+  const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [iaOpen, setIaOpen] = useState(true)
+
   const hayCambios =
     form.titulo !== configInicial.titulo ||
     form.subtitulo !== configInicial.subtitulo ||
@@ -38,7 +48,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     form.color_acento !== configInicial.color_acento
 
   const actualizar = (campo: keyof ConfigForm, valor: string) => {
-    setForm((prev) => ({ ...prev, [campo]: valor }))
+    setForm(prev => ({ ...prev, [campo]: valor }))
     setMensaje(null)
   }
 
@@ -53,9 +63,8 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al guardar')
-
       setMensaje({ tipo: 'ok', texto: 'Cambios guardados.' })
-      setTimeout(() => setPreviewKey((k) => k + 1), 300)
+      setTimeout(() => setPreviewKey(k => k + 1), 300)
       router.refresh()
     } catch (e) {
       setMensaje({ tipo: 'error', texto: e instanceof Error ? e.message : 'Error al guardar' })
@@ -64,8 +73,70 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  const refrescarPreview = () => {
-    setPreviewKey((k) => k + 1)
+  // ── IA: Generar contenido completo ──
+  const generarContenido = async () => {
+    setIaLoading(true)
+    try {
+      const res = await fetch('/api/landing/ia-generar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, form }),
+      })
+      const data = await res.json()
+      if (data.titulo) actualizar('titulo', data.titulo)
+      if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
+      if (data.producto) actualizar('producto', data.producto)
+      setMensaje({ tipo: 'ok', texto: 'Contenido generado. Revisa y guarda si te gusta.' })
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'Error al generar contenido' })
+    } finally {
+      setIaLoading(false)
+    }
+  }
+
+  // ── IA: Analizar landing ──
+  const analizarLanding = async () => {
+    setIaLoading(true)
+    setAnalisis('')
+    try {
+      const res = await fetch('/api/landing/ia-analizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, form }),
+      })
+      const data = await res.json()
+      setAnalisis(data.analisis || '')
+    } catch {
+      setAnalisis('Error al analizar. Intenta de nuevo.')
+    } finally {
+      setIaLoading(false)
+    }
+  }
+
+  // ── IA: Chat ──
+  const enviarChat = async () => {
+    if (!chatInput.trim() || iaLoading) return
+    const userMsg = chatInput.trim()
+    setChatInput('')
+    setChatMsgs(m => [...m, { role: 'user', text: userMsg }])
+    setIaLoading(true)
+    try {
+      const res = await fetch('/api/landing/ia-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, form, message: userMsg, history: chatMsgs }),
+      })
+      const data = await res.json()
+      setChatMsgs(m => [...m, { role: 'ai', text: data.reply }])
+      // Si la IA sugiere cambios, aplicarlos
+      if (data.titulo) actualizar('titulo', data.titulo)
+      if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
+      if (data.producto) actualizar('producto', data.producto)
+    } catch {
+      setChatMsgs(m => [...m, { role: 'ai', text: 'Error al conectar. Intenta de nuevo.' }])
+    } finally {
+      setIaLoading(false)
+    }
   }
 
   if (!slug) {
@@ -88,6 +159,143 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         </div>
         <a href={"/u/" + slug} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 !px-4 !text-sm">Abrir en nueva pestaña</a>
       </header>
+
+      {/* ── Panel IA ── */}
+      <div style={{ background: 'linear-gradient(135deg,#0f1c2e 0%,#1a1a2e 100%)', border: '1px solid rgba(255,107,43,.25)', borderRadius: '20px', marginBottom: '1.5rem', overflow: 'hidden' }}>
+        {/* Header del panel */}
+        <button
+          onClick={() => setIaOpen(o => !o)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#FF6B2B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>✨</div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', letterSpacing: '-.01em' }}>Asistente IA de Landing</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.5)' }}>Genera, analiza y mejora tu página con IA</div>
+            </div>
+          </div>
+          <span style={{ color: 'rgba(255,255,255,.4)', fontSize: '18px' }}>{iaOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {iaOpen && (
+          <div style={{ padding: '0 1.5rem 1.5rem' }}>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '1.25rem', background: 'rgba(255,255,255,.05)', borderRadius: '12px', padding: '4px' }}>
+              {([
+                { key: 'generar', label: '⚡ Generar' },
+                { key: 'analizar', label: '🔍 Analizar' },
+                { key: 'chat', label: '💬 Chat IA' },
+              ] as const).map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setIaTab(t.key)}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                    fontSize: '13px', fontWeight: 700, transition: 'all .15s',
+                    background: iaTab === t.key ? '#FF6B2B' : 'transparent',
+                    color: iaTab === t.key ? '#fff' : 'rgba(255,255,255,.5)',
+                  }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab: Generar */}
+            {iaTab === 'generar' && (
+              <div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  La IA analizará tu industria, productos y perfil para generar un título, subtítulo y palabra clave optimizados para convertir prospectos.
+                </p>
+                <button
+                  onClick={generarContenido}
+                  disabled={iaLoading}
+                  style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: iaLoading ? .7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {iaLoading ? (
+                    <>
+                      <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                      Generando...
+                    </>
+                  ) : '✨ Generar contenido con IA'}
+                </button>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,.35)', marginTop: '.75rem' }}>
+                  El contenido generado se cargará en los campos de abajo. Revisa y guarda si te gusta.
+                </p>
+              </div>
+            )}
+
+            {/* Tab: Analizar */}
+            {iaTab === 'analizar' && (
+              <div>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  La IA revisará tu landing actual y te dará un diagnóstico con puntos fuertes y oportunidades de mejora.
+                </p>
+                <button
+                  onClick={analizarLanding}
+                  disabled={iaLoading}
+                  style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: iaLoading ? .7 : 1, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
+                  {iaLoading ? (
+                    <>
+                      <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                      Analizando...
+                    </>
+                  ) : '🔍 Analizar mi landing'}
+                </button>
+                {analisis && (
+                  <div style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '14px', padding: '1.25rem' }}>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.85)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{analisis}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Chat */}
+            {iaTab === 'chat' && (
+              <div>
+                <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '14px', padding: '1rem', minHeight: '180px', maxHeight: '280px', overflowY: 'auto', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {chatMsgs.length === 0 && (
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.35)', textAlign: 'center', marginTop: '2rem' }}>
+                      Pregúntame cómo mejorar tu landing...<br/>
+                      <span style={{ fontSize: '12px' }}>ej. "Hazla más persuasiva" · "Cambia el título para automotriz" · "Agrega urgencia"</span>
+                    </div>
+                  )}
+                  {chatMsgs.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                      <div style={{
+                        maxWidth: '85%', padding: '9px 13px', borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+                        background: m.role === 'user' ? '#FF6B2B' : 'rgba(255,255,255,.1)',
+                        fontSize: '13px', color: '#fff', lineHeight: 1.55,
+                      }}>
+                        {m.role === 'ai' && <div style={{ fontSize: '10px', fontWeight: 700, color: '#FF8C42', marginBottom: '3px', letterSpacing: '.06em' }}>IA</div>}
+                        {m.text}
+                      </div>
+                    </div>
+                  ))}
+                  {iaLoading && iaTab === 'chat' && (
+                    <div style={{ display: 'flex', gap: '4px', padding: '10px 13px', background: 'rgba(255,255,255,.1)', borderRadius: '4px 14px 14px 14px', maxWidth: '60px' }}>
+                      {[0,1,2].map(d => <span key={d} style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF6B2B', display: 'inline-block', animation: `bounce 1.2s ease ${d*.25}s infinite` }} />)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && enviarChat()}
+                    placeholder="ej. Hazla más persuasiva para automotriz..."
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.08)', color: '#fff', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
+                  />
+                  <button
+                    onClick={enviarChat}
+                    disabled={iaLoading || !chatInput.trim()}
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', background: chatInput.trim() ? '#FF6B2B' : 'rgba(255,255,255,.1)', border: 'none', cursor: 'pointer', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    ➤
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
@@ -127,7 +335,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
 
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              {mensaje && (<span className={"text-sm " + (mensaje.tipo === 'ok' ? 'text-green-600' : 'text-red-600')}>{mensaje.tipo === 'ok' ? 'OK' : 'Error'}: {mensaje.texto}</span>)}
+              {mensaje && (<span className={"text-sm " + (mensaje.tipo === 'ok' ? 'text-green-600' : 'text-red-600')}>{mensaje.tipo === 'ok' ? '✅' : '❌'} {mensaje.texto}</span>)}
             </div>
             <div className="flex items-center gap-2">
               {hayCambios && (<span className="text-xs text-gray-500">Hay cambios sin guardar</span>)}
@@ -139,7 +347,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-brand-navy">Vista previa</h2>
-            <button onClick={refrescarPreview} className="text-xs text-brand-blue hover:text-brand-blue-dark font-medium">Refrescar</button>
+            <button onClick={() => setPreviewKey(k => k + 1)} className="text-xs text-brand-blue hover:text-brand-blue-dark font-medium">Refrescar</button>
           </div>
           <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-card">
             <div className="bg-gray-100 border-b border-gray-200 px-4 py-2 flex items-center gap-2">
@@ -155,6 +363,11 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
           <p className="text-xs text-gray-500 text-center">Guarda los cambios y el preview se actualiza.</p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+      `}</style>
     </div>
   )
 }

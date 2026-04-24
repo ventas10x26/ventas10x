@@ -1,3 +1,5 @@
+// Ruta destino: src/app/api/landing/ia-chat/route.ts
+
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -50,7 +52,8 @@ Reglas:
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')
-    const fullReply = textBlock && textBlock.type === 'text' ? textBlock.text : ''
+    const fullReply =
+      textBlock && textBlock.type === 'text' ? textBlock.text : ''
 
     // Extraer JSON si viene incluido
     let reply = fullReply

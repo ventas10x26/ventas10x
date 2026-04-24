@@ -1,3 +1,5 @@
+// Ruta destino: src/app/api/landing/ia-generar/route.ts
+
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 

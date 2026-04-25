@@ -1,4 +1,6 @@
 // Ruta destino: src/components/dashboard/DashboardLayout.tsx
+// Solo añadimos "Banco de imágenes" al submenú de Catálogo IA.
+
 'use client'
 
 import { useState } from 'react'
@@ -25,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: '✦',
     subitems: [
       { href: '/dashboard/productos', label: 'Productos', icon: '📦' },
+      { href: '/dashboard/banco-imagenes', label: 'Banco IA', icon: '🖼' },
     ],
   },
   { href: '/dashboard/bot', label: 'Bot IA', icon: '🤖' },
@@ -35,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
 interface DashboardLayoutProps {
   children: React.ReactNode
   user: { email: string; name: string; initials: string; avatarUrl?: string }
-  slug?: string  // ← NUEVO: para mostrar el banner en todas las páginas
+  slug?: string
 }
 
 export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) {
@@ -62,7 +65,6 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-brand-navy flex flex-col
         transform transition-transform duration-200
@@ -106,11 +108,7 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
                       className="p-2 ml-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
                       aria-label="Mostrar submenu"
                     >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
                         style={{
                           transform: submenuAbierto ? 'rotate(180deg)' : 'rotate(0)',
                           transition: 'transform .2s',
@@ -195,12 +193,10 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
         </div>
       </aside>
 
-      {/* Overlay mobile */}
       {mobileOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)}/>
       )}
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-40">
           <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100">
@@ -215,9 +211,7 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
         </header>
 
         <main className="flex-1 overflow-auto">
-          {/* ── Banner sticky con URL de la landing ── */}
           {slug && <LandingUrlBanner slug={slug} />}
-
           {children}
         </main>
       </div>

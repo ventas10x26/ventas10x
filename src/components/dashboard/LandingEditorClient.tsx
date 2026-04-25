@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { SeccionesEditor } from './SeccionesEditor'
 
 type ConfigForm = {
@@ -32,6 +33,21 @@ type ImagenUnsplash = {
 
 type TipoImagen = 'hero' | 'logo' | 'galeria'
 
+// Tipos para comandos de productos
+type ComandoProducto =
+  | { accion: 'crear'; nombre: string; precio?: string; descripcion?: string; buscar_imagen?: string }
+  | { accion: 'actualizar'; nombre_aproximado?: string; nuevo_nombre?: string; precio?: string; descripcion?: string }
+  | { accion: 'eliminar'; nombre_aproximado?: string }
+  | { accion: 'agregar_imagen'; nombre_aproximado?: string; rol: 'principal' | 'adicional'; query_imagen: string }
+
+type ImagenProducto = {
+  id: string
+  url: string
+  thumb: string
+  alt: string
+  autor: string
+}
+
 const COLORES_SUGERIDOS = [
   { nombre: 'Naranja', hex: '#FF6B2B' },
   { nombre: 'Azul', hex: '#185FA5' },
@@ -48,7 +64,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   const [previewKey, setPreviewKey] = useState(0)
 
-  // IA panel
   const [iaTab, setIaTab] = useState<'generar' | 'analizar' | 'chat'>('generar')
   const [iaLoading, setIaLoading] = useState(false)
   const [analisis, setAnalisis] = useState('')
@@ -56,20 +71,24 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
   const [chatInput, setChatInput] = useState('')
   const [iaOpen, setIaOpen] = useState(true)
 
-  // Aplicar mejoras + deshacer
   const [aplicandoMejoras, setAplicandoMejoras] = useState(false)
   const [snapshotPrevio, setSnapshotPrevio] = useState<{
-    titulo: string
-    subtitulo: string
-    producto: string
+    titulo: string; subtitulo: string; producto: string
   } | null>(null)
 
-  // Imágenes desde el chat
   const [imagenesEncontradas, setImagenesEncontradas] = useState<ImagenUnsplash[]>([])
   const [tipoImagenActiva, setTipoImagenActiva] = useState<TipoImagen | null>(null)
   const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [tipoSubida, setTipoSubida] = useState<TipoImagen>('hero')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── NUEVO: imágenes de productos pendientes de seleccionar ──
+  const [imagenesProducto, setImagenesProducto] = useState<{
+    productoId: string
+    productoNombre: string
+    rol: 'principal' | 'adicional'
+    imagenes: ImagenProducto[]
+  } | null>(null)
 
   const hayCambios =
     form.titulo !== configInicial.titulo ||
@@ -104,7 +123,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── IA: Generar contenido completo ──
   const generarContenido = async () => {
     setIaLoading(true)
     try {
@@ -125,7 +143,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── IA: Analizar landing ──
   const analizarLanding = async () => {
     setIaLoading(true)
     setAnalisis('')
@@ -145,18 +162,15 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── IA: Aplicar mejoras sugeridas por el análisis ──
   const aplicarMejoras = async () => {
     if (!analisis || aplicandoMejoras) return
     setAplicandoMejoras(true)
     setMensaje(null)
-
     setSnapshotPrevio({
       titulo: form.titulo || '',
       subtitulo: form.subtitulo || '',
       producto: form.producto || '',
     })
-
     try {
       const res = await fetch('/api/landing/ia-aplicar-mejoras', {
         method: 'POST',
@@ -164,21 +178,15 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         body: JSON.stringify({ slug, form, analisis }),
       })
       const data = await res.json()
-
       if (data.error) {
         setMensaje({ tipo: 'error', texto: data.error })
         setSnapshotPrevio(null)
         return
       }
-
       if (data.titulo) actualizar('titulo', data.titulo)
       if (data.subtitulo) actualizar('subtitulo', data.subtitulo)
       if (data.producto) actualizar('producto', data.producto)
-
-      setMensaje({
-        tipo: 'ok',
-        texto: 'Mejoras aplicadas. Revisa el preview y guarda si te gustan.',
-      })
+      setMensaje({ tipo: 'ok', texto: 'Mejoras aplicadas. Revisa el preview y guarda si te gustan.' })
     } catch {
       setMensaje({ tipo: 'error', texto: 'Error al aplicar mejoras' })
       setSnapshotPrevio(null)
@@ -187,7 +195,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── IA: Deshacer últimas mejoras ──
   const deshacerMejoras = () => {
     if (!snapshotPrevio) return
     actualizar('titulo', snapshotPrevio.titulo)
@@ -197,7 +204,93 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     setMensaje({ tipo: 'ok', texto: 'Cambios revertidos.' })
   }
 
-  // ── IA: Chat ──
+  // ── NUEVO: Ejecutar comando de producto ──
+  const ejecutarComandoProducto = async (cmd: ComandoProducto) => {
+    try {
+      const res = await fetch('/api/landing/ia-comandos-productos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cmd),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error en el comando'}` }])
+        return
+      }
+
+      // Mensaje según acción
+      if (data.accion === 'crear') {
+        let texto = `✅ Producto creado: **${data.producto.nombre}**`
+        if (data.imagenSugerida) {
+          // Aplicar imagen sugerida automáticamente
+          await fetch(`/api/productos/${data.producto.id}/imagen`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rol: 'principal', url: data.imagenSugerida.url }),
+          })
+          texto += `\n📷 Imagen aplicada (foto de ${data.imagenSugerida.autor} en Unsplash)`
+        }
+        setChatMsgs(m => [...m, { role: 'ai', text: texto }])
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else if (data.accion === 'actualizar') {
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `✅ Producto **${data.producto.nombre}** actualizado.`,
+        }])
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else if (data.accion === 'eliminar') {
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `✅ Producto **${data.nombre}** eliminado.`,
+        }])
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else if (data.accion === 'agregar_imagen') {
+        // Mostrar grid de imágenes para seleccionar
+        setImagenesProducto({
+          productoId: data.producto_id,
+          productoNombre: data.producto_nombre,
+          rol: data.rol,
+          imagenes: data.imagenes,
+        })
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `Aquí tienes opciones para **${data.producto_nombre}**. Selecciona una:`,
+        }])
+      }
+    } catch {
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al ejecutar el comando' }])
+    }
+  }
+
+  // ── Aplicar imagen seleccionada al producto ──
+  const aplicarImagenAProducto = async (url: string) => {
+    if (!imagenesProducto) return
+    setSubiendoImagen(true)
+    try {
+      const res = await fetch(`/api/productos/${imagenesProducto.productoId}/imagen`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rol: imagenesProducto.rol, url }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setChatMsgs(m => [...m, {
+          role: 'ai',
+          text: `✅ Imagen aplicada a **${imagenesProducto.productoNombre}** como ${imagenesProducto.rol}.`,
+        }])
+        setImagenesProducto(null)
+        setTimeout(() => setPreviewKey(k => k + 1), 500)
+      } else {
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error al aplicar'}` }])
+      }
+    } catch {
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al aplicar imagen' }])
+    } finally {
+      setSubiendoImagen(false)
+    }
+  }
+
   const enviarChat = async () => {
     if (!chatInput.trim() || iaLoading) return
     const userMsg = chatInput.trim()
@@ -222,10 +315,12 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
 
       if (data.buscarImagen) {
         setTipoImagenActiva(data.buscarImagen.tipo)
-        await buscarImagenes(
-          data.buscarImagen.query,
-          data.buscarImagen.orientation
-        )
+        await buscarImagenes(data.buscarImagen.query, data.buscarImagen.orientation)
+      }
+
+      // ── NUEVO: ejecutar comando de producto si vino ──
+      if (data.comandoProducto) {
+        await ejecutarComandoProducto(data.comandoProducto)
       }
     } catch {
       setChatMsgs(m => [...m, { role: 'ai', text: 'Error al conectar. Intenta de nuevo.' }])
@@ -234,7 +329,6 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── Buscar imágenes en Unsplash ──
   const buscarImagenes = async (query: string, orientation = 'landscape') => {
     try {
       const res = await fetch('/api/landing/ia-buscar-imagenes', {
@@ -243,15 +337,12 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         body: JSON.stringify({ query, orientation, perPage: 6 }),
       })
       const data = await res.json()
-      if (data.imagenes) {
-        setImagenesEncontradas(data.imagenes)
-      }
+      if (data.imagenes) setImagenesEncontradas(data.imagenes)
     } catch (e) {
       console.error('Error buscando imágenes:', e)
     }
   }
 
-  // ── Usar imagen de Unsplash ──
   const usarImagenUnsplash = async (url: string, tipo: TipoImagen) => {
     setSubiendoImagen(true)
     try {
@@ -261,21 +352,16 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         body: JSON.stringify({ tipo, url }),
       })
       const data = await res.json()
-
       if (data.ok) {
         if (tipo === 'hero') actualizar('imagen_hero', data.url)
         if (tipo === 'logo') actualizar('imagen_logo', data.url)
         if (tipo === 'galeria') actualizar('imagenes_galeria', data.galeria)
-
-        setChatMsgs(m => [...m, {
-          role: 'ai',
-          text: `✅ Imagen aplicada como ${tipo}. Se guardó automáticamente. Refresca el preview para verla.`
-        }])
+        setChatMsgs(m => [...m, { role: 'ai', text: `✅ Imagen aplicada como ${tipo}.` }])
         setImagenesEncontradas([])
         setTipoImagenActiva(null)
         setTimeout(() => setPreviewKey(k => k + 1), 500)
       } else {
-        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error al aplicar imagen'}` }])
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error'}` }])
       }
     } catch {
       setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al aplicar imagen' }])
@@ -284,45 +370,32 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
     }
   }
 
-  // ── Subir archivo desde el chat ──
   const subirArchivoChat = async (file: File, tipo: TipoImagen) => {
     if (file.size > 5 * 1024 * 1024) {
       setChatMsgs(m => [...m, { role: 'ai', text: '❌ La imagen supera 5MB' }])
       return
     }
-
     setSubiendoImagen(true)
-    setChatMsgs(m => [...m, {
-      role: 'user',
-      text: `📎 Subiendo ${tipo}: ${file.name}`
-    }])
-
+    setChatMsgs(m => [...m, { role: 'user', text: `📎 Subiendo ${tipo}: ${file.name}` }])
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('tipo', tipo)
-
       const res = await fetch('/api/landing/upload-imagen', {
-        method: 'POST',
-        body: formData,
+        method: 'POST', body: formData,
       })
       const data = await res.json()
-
       if (data.ok) {
         if (tipo === 'hero') actualizar('imagen_hero', data.url)
         if (tipo === 'logo') actualizar('imagen_logo', data.url)
         if (tipo === 'galeria') actualizar('imagenes_galeria', data.galeria)
-
-        setChatMsgs(m => [...m, {
-          role: 'ai',
-          text: `✅ Imagen subida y aplicada como ${tipo}. Se guardó automáticamente.`
-        }])
+        setChatMsgs(m => [...m, { role: 'ai', text: `✅ Imagen subida como ${tipo}.` }])
         setTimeout(() => setPreviewKey(k => k + 1), 500)
       } else {
-        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error al subir'}` }])
+        setChatMsgs(m => [...m, { role: 'ai', text: `❌ ${data.error || 'Error'}` }])
       }
     } catch {
-      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al subir imagen' }])
+      setChatMsgs(m => [...m, { role: 'ai', text: '❌ Error al subir' }])
     } finally {
       setSubiendoImagen(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -347,12 +420,20 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
           <h1 className="text-3xl font-semibold text-brand-navy">Mi landing</h1>
           <p className="mt-1 text-sm text-gray-500">URL: <a href={"/u/" + slug} target="_blank" rel="noopener noreferrer" className="font-mono text-brand-orange hover:underline">ventas10x.co/u/{slug}</a></p>
         </div>
-        <a href={"/u/" + slug} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 !px-4 !text-sm">Abrir en nueva pestaña</a>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/productos"
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center gap-2"
+          >
+            📦 Gestionar productos
+          </Link>
+          <a href={"/u/" + slug} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 !px-4 !text-sm">
+            Abrir en nueva pestaña
+          </a>
+        </div>
       </header>
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/* ── Panel IA (asistente) ── */}
-      {/* ═══════════════════════════════════════════════ */}
+      {/* Panel IA */}
       <div style={{ background: 'linear-gradient(135deg,#0f1c2e 0%,#1a1a2e 100%)', border: '1px solid rgba(255,107,43,.25)', borderRadius: '20px', marginBottom: '1.5rem', overflow: 'hidden' }}>
         <button
           onClick={() => setIaOpen(o => !o)}
@@ -390,11 +471,10 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
               ))}
             </div>
 
-            {/* Tab: Generar */}
             {iaTab === 'generar' && (
               <div>
                 <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.6 }}>
-                  La IA analizará tu industria, productos y perfil para generar un título, subtítulo y palabra clave optimizados para convertir prospectos.
+                  La IA analizará tu industria, productos y perfil para generar contenido optimizado.
                 </p>
                 <button
                   onClick={generarContenido}
@@ -407,28 +487,19 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                     </>
                   ) : '✨ Generar contenido con IA'}
                 </button>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,.35)', marginTop: '.75rem' }}>
-                  El contenido generado se cargará en los campos de abajo. Revisa y guarda si te gusta.
-                </p>
               </div>
             )}
 
-            {/* Tab: Analizar */}
             {iaTab === 'analizar' && (
               <div>
                 <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.6)', marginBottom: '1rem', lineHeight: 1.6 }}>
-                  La IA revisará tu landing actual y te dará un diagnóstico con puntos fuertes y oportunidades de mejora.
+                  La IA revisará tu landing y te dará un diagnóstico.
                 </p>
                 <button
                   onClick={analizarLanding}
                   disabled={iaLoading}
                   style={{ background: '#FF6B2B', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 28px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: iaLoading ? .7 : 1, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
-                  {iaLoading ? (
-                    <>
-                      <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                      Analizando...
-                    </>
-                  ) : '🔍 Analizar mi landing'}
+                  {iaLoading ? 'Analizando...' : '🔍 Analizar mi landing'}
                 </button>
 
                 {analisis && (
@@ -446,58 +517,36 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                             padding: '11px 22px', fontSize: '13px', fontWeight: 700,
                             cursor: aplicandoMejoras ? 'wait' : 'pointer',
                             opacity: aplicandoMejoras ? .7 : 1,
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            boxShadow: '0 4px 12px rgba(255,107,43,.3)',
                           }}>
-                          {aplicandoMejoras ? (
-                            <>
-                              <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                              Aplicando mejoras...
-                            </>
-                          ) : '✨ Aplicar mejoras a mi landing'}
+                          {aplicandoMejoras ? 'Aplicando...' : '✨ Aplicar mejoras'}
                         </button>
                       ) : (
                         <>
-                          <div style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '8px 14px', background: 'rgba(34,197,94,.15)',
-                            border: '1px solid rgba(34,197,94,.4)', borderRadius: '10px',
-                            fontSize: '12px', color: '#86efac', fontWeight: 600,
-                          }}>
+                          <div style={{ padding: '8px 14px', background: 'rgba(34,197,94,.15)', border: '1px solid rgba(34,197,94,.4)', borderRadius: '10px', fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
                             ✅ Mejoras aplicadas
                           </div>
                           <button
                             onClick={deshacerMejoras}
-                            style={{
-                              background: 'rgba(255,255,255,.1)', color: '#fff',
-                              border: '1px solid rgba(255,255,255,.2)', borderRadius: '10px',
-                              padding: '9px 16px', fontSize: '12px', fontWeight: 600,
-                              cursor: 'pointer',
-                            }}>
+                            style={{ background: 'rgba(255,255,255,.1)', color: '#fff', border: '1px solid rgba(255,255,255,.2)', borderRadius: '10px', padding: '9px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
                             ↩️ Deshacer
                           </button>
                         </>
                       )}
                     </div>
-
-                    {snapshotPrevio && (
-                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginTop: '8px' }}>
-                        Los cambios no se han guardado todavía. Revisa el preview y presiona &quot;Guardar cambios&quot; abajo si te gustan.
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Tab: Chat */}
             {iaTab === 'chat' && (
               <div>
-                <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '14px', padding: '1rem', minHeight: '180px', maxHeight: '320px', overflowY: 'auto', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '14px', padding: '1rem', minHeight: '180px', maxHeight: '380px', overflowY: 'auto', marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {chatMsgs.length === 0 && (
                     <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.35)', textAlign: 'center', marginTop: '2rem' }}>
                       Pregúntame cómo mejorar tu landing...<br/>
-                      <span style={{ fontSize: '12px' }}>ej. &quot;Hazla más persuasiva&quot; · &quot;Busca una foto para el hero&quot; · &quot;Necesito un logo&quot;</span>
+                      <span style={{ fontSize: '12px' }}>
+                        ej. &quot;Crea un producto de Kia a $85M&quot; · &quot;Agrega foto al Kia&quot; · &quot;Busca imagen para el hero&quot;
+                      </span>
                     </div>
                   )}
                   {chatMsgs.map((m, i) => (
@@ -513,6 +562,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                     </div>
                   ))}
 
+                  {/* Grid de imágenes para landing (hero/logo/galeria) */}
                   {imagenesEncontradas.length > 0 && tipoImagenActiva && (
                     <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: '12px' }}>
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)', marginBottom: '8px' }}>
@@ -524,34 +574,49 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                             key={img.id}
                             onClick={() => usarImagenUnsplash(img.url, tipoImagenActiva)}
                             disabled={subiendoImagen}
-                            style={{
-                              position: 'relative', aspectRatio: '16/9', overflow: 'hidden',
-                              borderRadius: '8px', border: '1px solid rgba(255,255,255,.1)',
-                              background: '#222', cursor: subiendoImagen ? 'wait' : 'pointer',
-                              padding: 0, opacity: subiendoImagen ? .5 : 1,
-                            }}>
+                            style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', borderRadius: '8px', border: '1px solid rgba(255,255,255,.1)', background: '#222', cursor: subiendoImagen ? 'wait' : 'pointer', padding: 0, opacity: subiendoImagen ? .5 : 1 }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={img.thumb} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            <div style={{
-                              position: 'absolute', bottom: 0, left: 0, right: 0,
-                              background: 'linear-gradient(to top, rgba(0,0,0,.8), transparent)',
-                              padding: '3px 6px', fontSize: '9px', color: 'rgba(255,255,255,.8)',
-                              textAlign: 'left',
-                            }}>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.8), transparent)', padding: '3px 6px', fontSize: '9px', color: 'rgba(255,255,255,.8)', textAlign: 'left' }}>
                               📷 {img.autor}
                             </div>
                           </button>
                         ))}
                       </div>
-                      <button
-                        onClick={() => { setImagenesEncontradas([]); setTipoImagenActiva(null) }}
-                        style={{ marginTop: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: '11px', cursor: 'pointer', padding: 0 }}>
-                        Cancelar búsqueda
+                      <button onClick={() => { setImagenesEncontradas([]); setTipoImagenActiva(null) }} style={{ marginTop: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: '11px', cursor: 'pointer', padding: 0 }}>
+                        Cancelar
                       </button>
                     </div>
                   )}
 
-                  {(iaLoading || subiendoImagen) && iaTab === 'chat' && (
+                  {/* NUEVO: Grid de imágenes para PRODUCTO */}
+                  {imagenesProducto && (
+                    <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,107,43,.08)', border: '1px solid rgba(255,107,43,.3)', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginBottom: '8px' }}>
+                        Imágenes para <strong style={{ color: '#FF8C42' }}>{imagenesProducto.productoNombre}</strong> ({imagenesProducto.rol}):
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                        {imagenesProducto.imagenes.map(img => (
+                          <button
+                            key={img.id}
+                            onClick={() => aplicarImagenAProducto(img.url)}
+                            disabled={subiendoImagen}
+                            style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', borderRadius: '8px', border: '1px solid rgba(255,107,43,.3)', background: '#222', cursor: subiendoImagen ? 'wait' : 'pointer', padding: 0, opacity: subiendoImagen ? .5 : 1 }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.thumb} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,.8), transparent)', padding: '3px 6px', fontSize: '9px', color: 'rgba(255,255,255,.8)', textAlign: 'left' }}>
+                              📷 {img.autor}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={() => setImagenesProducto(null)} style={{ marginTop: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,.5)', fontSize: '11px', cursor: 'pointer', padding: 0 }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+
+                  {(iaLoading || subiendoImagen) && (
                     <div style={{ display: 'flex', gap: '4px', padding: '10px 13px', background: 'rgba(255,255,255,.1)', borderRadius: '4px 14px 14px 14px', maxWidth: '60px' }}>
                       {[0,1,2].map(d => <span key={d} style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF6B2B', display: 'inline-block', animation: `bounce 1.2s ease ${d*.25}s infinite` }} />)}
                     </div>
@@ -579,25 +644,14 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => {
-                      const file = e.target.files?.[0]
-                      if (file) subirArchivoChat(file, tipoSubida)
-                    }}
+                    type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) subirArchivoChat(f, tipoSubida) }}
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={subiendoImagen || iaLoading}
                     title="Adjuntar imagen"
-                    style={{
-                      width: '40px', height: '40px', borderRadius: '10px',
-                      background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)',
-                      color: '#fff', fontSize: '16px', cursor: 'pointer',
-                      opacity: (subiendoImagen || iaLoading) ? .5 : 1,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', color: '#fff', fontSize: '16px', cursor: 'pointer', opacity: (subiendoImagen || iaLoading) ? .5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     📎
                   </button>
 
@@ -605,7 +659,7 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && enviarChat()}
-                    placeholder="ej. Busca una imagen para el hero..."
+                    placeholder="ej. Crea un producto de... · Agrega foto al... · Busca imagen para hero..."
                     disabled={iaLoading || subiendoImagen}
                     style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.08)', color: '#fff', fontSize: '13px', fontFamily: 'inherit', outline: 'none' }}
                   />
@@ -622,16 +676,12 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/* ── Editor de secciones dinámicas ── */}
-      {/* ═══════════════════════════════════════════════ */}
+      {/* Editor de secciones dinámicas */}
       <div style={{ marginBottom: '1.5rem' }}>
         <SeccionesEditor form={form} analisisPrevio={analisis} />
       </div>
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/* ── Grid principal: Form + Preview ── */}
-      {/* ═══════════════════════════════════════════════ */}
+      {/* Grid principal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <section className="card p-6 space-y-4">

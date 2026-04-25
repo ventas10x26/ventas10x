@@ -1,3 +1,7 @@
+// Ruta destino: src/components/dashboard/DashboardHome.tsx
+// Quitamos la sección "Tu URL de landing personalizada" porque ahora
+// está en el DashboardLayout como banner sticky global.
+
 'use client'
 
 import { useRouter } from 'next/navigation'
@@ -37,17 +41,11 @@ const QUICK_ACTIONS = [
   { href: '/dashboard/pipeline', icon: '⊟', title: 'Pipeline', desc: 'Gestiona tus etapas', color: 'blue' },
 ]
 
-export function DashboardHome({ nombre, slug, sus, totalLeads, userId, bots }: Props) {
+export function DashboardHome({ nombre, sus, totalLeads, bots }: Props) {
   const router = useRouter()
-  const landingUrl = `${BASE_URL}/u/${slug}`
   const diasRestantes = sus?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(sus.trial_ends_at).getTime() - Date.now()) / 86400000))
     : 0
-
-  const copyUrl = () => {
-    navigator.clipboard.writeText(landingUrl)
-    alert('¡Enlace copiado!')
-  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -148,26 +146,7 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, userId, bots }: P
         </div>
       )}
 
-      {/* URL landing */}
-      {slug && (
-        <>
-          <div className="text-sm font-semibold text-gray-800 mb-3">Tu URL de landing personalizada</div>
-          <div className="mb-6 flex items-center gap-3 flex-wrap" style={{ background: 'linear-gradient(135deg, #0f1c2e 0%, #1a1a2e 100%)', border: '1px solid rgba(29,78,216,.25)', borderRadius: '16px', padding: '1rem 1.25rem' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.4)', marginBottom: '4px' }}>Comparte este enlace con tus prospectos</div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#93c5fd', wordBreak: 'break-all' }}>{landingUrl}</div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-              <button onClick={copyUrl} style={{ fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', cursor: 'pointer' }}>
-                Copiar
-              </button>
-              <a href={landingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', fontWeight: 600, padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(29,78,216,.35)', background: 'rgba(29,78,216,.15)', color: '#93c5fd', textDecoration: 'none' }}>
-                Ver landing →
-              </a>
-            </div>
-          </div>
-        </>
-      )}
+      {/* (Sección de URL movida al DashboardLayout como banner sticky global) */}
 
       {/* Acciones rápidas */}
       <div className="text-sm font-semibold text-gray-800 mb-3">Acciones rápidas</div>

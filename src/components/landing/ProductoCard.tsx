@@ -10,13 +10,44 @@ type Props = {
   colorAcento: string
 }
 
+/**
+ * Renderiza una descripción respetando:
+ *  - saltos de línea (\n)
+ *  - **texto** convertido a <strong>
+ */
+function renderDescripcion(texto: string): React.ReactNode {
+  const lineas = texto.split('\n')
+
+  return lineas.map((linea, i) => {
+    // Procesar **bold**
+    const partes = linea.split(/(\*\*[^*]+\*\*)/g)
+    const renderedLinea = partes.map((parte, j) => {
+      if (parte.startsWith('**') && parte.endsWith('**')) {
+        return (
+          <strong key={j} style={{ fontWeight: 700, color: '#0f1c2e' }}>
+            {parte.slice(2, -2)}
+          </strong>
+        )
+      }
+      return <span key={j}>{parte}</span>
+    })
+
+    // Última línea: sin <br/> al final
+    return (
+      <span key={i}>
+        {renderedLinea}
+        {i < lineas.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
 export function ProductoCard({ producto, colorAcento }: Props) {
   const [lightboxAbierto, setLightboxAbierto] = useState(false)
   const [indiceInicial, setIndiceInicial] = useState(0)
 
   const adicionales = producto.imagenes_adicionales || []
   const totalImagenes = (producto.imagen_principal ? 1 : 0) + adicionales.length
-
   const todasLasImagenes = [
     ...(producto.imagen_principal ? [producto.imagen_principal] : []),
     ...adicionales,
@@ -53,8 +84,6 @@ export function ProductoCard({ producto, colorAcento }: Props) {
               alt={producto.nombre}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
-
-            {/* Badge si hay más imágenes */}
             {totalImagenes > 1 && (
               <div
                 className="absolute bottom-3 right-3 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm"
@@ -80,12 +109,22 @@ export function ProductoCard({ producto, colorAcento }: Props) {
 
         {/* Info */}
         <div className="p-5 flex-1 flex flex-col">
-          <div className="font-semibold text-gray-900 mb-1">{producto.nombre}</div>
+          <div className="font-semibold text-gray-900 mb-2 text-lg leading-snug">
+            {producto.nombre}
+          </div>
+
           {producto.descripcion && (
-            <div className="text-sm text-gray-500 mb-3 flex-1">
-              {producto.descripcion}
+            <div
+              className="text-sm text-gray-600 mb-3 flex-1"
+              style={{
+                whiteSpace: 'pre-wrap',  // respeta saltos y espacios
+                lineHeight: 1.65,
+              }}
+            >
+              {renderDescripcion(producto.descripcion)}
             </div>
           )}
+
           <div className="font-bold text-lg mt-auto" style={{ color: colorAcento }}>
             {producto.precio || 'Consultar precio'}
           </div>

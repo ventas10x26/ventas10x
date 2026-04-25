@@ -25,12 +25,15 @@ export default async function ProductosPage() {
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <DashboardLayout user={{
-      email: user.email!,
-      name: nombre,
-      initials,
-      avatarUrl: user.user_metadata?.avatar_url
-    }}>
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url
+      }}
+      slug={profile?.slug ?? ''}
+    >
       <ProductosManagerClient />
     </DashboardLayout>
   )

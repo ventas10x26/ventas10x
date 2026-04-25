@@ -1,3 +1,5 @@
+// Ruta destino: src/app/dashboard/leads/page.tsx
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
@@ -28,12 +30,15 @@ export default async function LeadsPage() {
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <DashboardLayout user={{
-      email: user.email!,
-      name: nombre,
-      initials,
-      avatarUrl: user.user_metadata?.avatar_url
-    }}>
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url
+      }}
+      slug={profile?.slug ?? ''}
+    >
       <div className="px-6 py-8 md:px-10">
         <header className="mb-8">
           <h1 className="text-3xl font-semibold text-brand-navy">Leads</h1>

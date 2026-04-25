@@ -1,5 +1,4 @@
 // Ruta destino: src/app/dashboard/landing-editor/page.tsx
-// Reemplaza el archivo actual para que pase los campos de imagen al cliente.
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -27,12 +26,15 @@ export default async function LandingEditorPage() {
   const slug = profile?.slug ?? ''
 
   return (
-    <DashboardLayout user={{
-      email: user.email!,
-      name: nombre,
-      initials,
-      avatarUrl: user.user_metadata?.avatar_url
-    }}>
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url
+      }}
+      slug={slug}
+    >
       <LandingEditorClient
         slug={slug}
         configInicial={{

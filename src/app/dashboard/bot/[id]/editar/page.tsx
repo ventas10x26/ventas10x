@@ -144,11 +144,13 @@ export default function EditarBotPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al guardar')
-      setSavedMsg('✅ Cambios guardados')
-      setTimeout(() => setSavedMsg(null), 3000)
+      setSavedMsg('✅ Cambios guardados, redirigiendo...')
+      // Redirigir después de 1 segundo para que se vea el mensaje
+      setTimeout(() => {
+        router.push('/dashboard/bot')
+      }, 1000)
     } catch (e) {
       setSavedMsg(`❌ ${e instanceof Error ? e.message : 'Error'}`)
-    } finally {
       setSaving(false)
     }
   }

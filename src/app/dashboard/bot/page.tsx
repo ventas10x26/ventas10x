@@ -1,3 +1,5 @@
+// Ruta destino: src/app/dashboard/bot/page.tsx
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
@@ -26,7 +28,10 @@ export default async function BotPage() {
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <DashboardLayout user={{ email: user.email!, name: nombre, initials, avatarUrl: user.user_metadata?.avatar_url }}>
+    <DashboardLayout
+      user={{ email: user.email!, name: nombre, initials, avatarUrl: user.user_metadata?.avatar_url }}
+      slug={profile?.slug ?? ''}
+    >
       <BotList bots={botsRes.data || []} userId={user.id} />
     </DashboardLayout>
   )

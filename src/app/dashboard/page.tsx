@@ -1,3 +1,5 @@
+// Ruta destino: src/app/dashboard/page.tsx
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
@@ -18,7 +20,6 @@ export default async function DashboardPage() {
 
   const profile = profileRes.data as Profile | null
 
-  // Redirigir al onboarding si no tiene empresa configurada
   if (!profile?.empresa) redirect('/onboarding')
 
   const sus = susRes.data as Suscripcion | null
@@ -28,12 +29,15 @@ export default async function DashboardPage() {
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <DashboardLayout user={{
-      email: user.email!,
-      name: nombre,
-      initials,
-      avatarUrl: user.user_metadata?.avatar_url
-    }}>
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url
+      }}
+      slug={profile?.slug ?? ''}
+    >
       <DashboardHome
         nombre={nombre}
         slug={profile?.slug || ''}

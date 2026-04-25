@@ -1,3 +1,5 @@
+// Ruta destino: src/app/dashboard/perfil/page.tsx
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
@@ -24,12 +26,15 @@ export default async function PerfilPage() {
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
   return (
-    <DashboardLayout user={{
-      email: user.email!,
-      name: nombre,
-      initials,
-      avatarUrl: user.user_metadata?.avatar_url
-    }}>
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url
+      }}
+      slug={profile?.slug ?? ''}
+    >
       <PerfilClient
         email={user.email!}
         avatarUrl={user.user_metadata?.avatar_url ?? null}

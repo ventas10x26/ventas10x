@@ -1,7 +1,11 @@
 // Ruta destino: src/components/dashboard/LandingUrlBanner.tsx
+// Se oculta automáticamente en /dashboard (la pagina Resumen) porque ahí
+// ya hay un card grande con la URL. Aparece en todas las demás páginas.
+
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
 
@@ -10,16 +14,19 @@ type Props = {
 }
 
 export function LandingUrlBanner({ slug }: Props) {
+  const pathname = usePathname()
   const [oculto, setOculto] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
-  // Persistir estado oculto/visible entre navegaciones
   useEffect(() => {
     const guardado = localStorage.getItem('landing-url-banner-oculto')
     if (guardado === 'true') setOculto(true)
   }, [])
 
   if (!slug) return null
+
+  // No mostrar en el Resumen (ya hay un card grande ahí)
+  if (pathname === '/dashboard') return null
 
   const landingUrl = `${BASE_URL}/u/${slug}`
 
@@ -39,11 +46,10 @@ export function LandingUrlBanner({ slug }: Props) {
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2000)
     } catch {
-      // fallback silencioso
+      // ignorar
     }
   }
 
-  // Versión minimizada: solo un pequeño botón flotante para volver a mostrar
   if (oculto) {
     return (
       <button

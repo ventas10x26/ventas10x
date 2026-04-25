@@ -1,4 +1,8 @@
 // Ruta destino: src/components/dashboard/ProductoEditorModal.tsx
+// Reemplaza el archivo. Cambios principales:
+// - Botón "✨ Buscar con IA" que refina el query y busca múltiples queries automáticamente
+// - Si el primero no devuelve resultados, prueba alternativas
+
 'use client'
 
 import { useState, useRef } from 'react'
@@ -22,12 +26,10 @@ type ImagenUnsplash = {
 const MAX_ADICIONALES = 5
 
 export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Props) {
-  // Datos básicos
   const [nombre, setNombre] = useState(producto?.nombre || '')
   const [precio, setPrecio] = useState(producto?.precio || '')
   const [descripcion, setDescripcion] = useState(producto?.descripcion || '')
 
-  // Imágenes (solo se muestran/editan en modo "editar" porque necesitamos ID del producto)
   const [imagenPrincipal, setImagenPrincipal] = useState(producto?.imagen_principal || '')
   const [imagenesAdicionales, setImagenesAdicionales] = useState<string[]>(
     producto?.imagenes_adicionales || []
@@ -37,19 +39,20 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
   const [error, setError] = useState<string | null>(null)
   const [subiendo, setSubiendo] = useState<'principal' | 'adicional' | null>(null)
 
-  // Búsqueda Unsplash
+  // Búsqueda Unsplash con IA
   const [mostrarUnsplash, setMostrarUnsplash] = useState(false)
   const [rolUnsplash, setRolUnsplash] = useState<'principal' | 'adicional'>('principal')
   const [queryUnsplash, setQueryUnsplash] = useState('')
   const [resultadosUnsplash, setResultadosUnsplash] = useState<ImagenUnsplash[]>([])
   const [buscandoUnsplash, setBuscandoUnsplash] = useState(false)
+  const [explicacionIA, setExplicacionIA] = useState<string | null>(null)
+  const [queryUsado, setQueryUsado] = useState<string | null>(null)
 
   const filePrincipalRef = useRef<HTMLInputElement>(null)
   const fileAdicionalRef = useRef<HTMLInputElement>(null)
 
   const productoId = producto?.id
 
-  // ── Guardar (crear o actualizar datos básicos) ──
   const guardar = async () => {
     if (!nombre.trim()) {
       setError('El nombre es obligatorio')
@@ -83,7 +86,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
     }
   }
 
-  // ── Subir archivo ──
   const subirArchivo = async (file: File, rol: 'principal' | 'adicional') => {
     if (!productoId) {
       setError('Guarda el producto primero antes de subir imágenes')
@@ -125,7 +127,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
     }
   }
 
-  // ── Eliminar imagen ──
   const eliminarImagen = async (url: string, rol: 'principal' | 'adicional') => {
     if (!productoId) return
     if (!confirm('¿Eliminar esta imagen?')) return
@@ -150,7 +151,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
     }
   }
 
-  // ── Buscar en Unsplash ──
   const abrirUnsplash = (rol: 'principal' | 'adicional') => {
     if (!productoId) {
       setError('Guarda el producto primero antes de buscar imágenes')
@@ -158,26 +158,72 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
     }
     setRolUnsplash(rol)
     setMostrarUnsplash(true)
-    // Pre-llenar query con el nombre del producto
     setQueryUnsplash(nombre)
     setResultadosUnsplash([])
+    setExplicacionIA(null)
+    setQueryUsado(null)
   }
 
-  const buscarUnsplash = async () => {
+  // ── BÚSQUEDA CON IA ──
+  // 1. Refina el query con Claude (traduce/genera alternativas)
+  // 2. Busca con el query refinado
+  // 3. Si no hay resultados, prueba alternativas automáticamente
+  const buscarConIA = async () => {
     if (!queryUnsplash.trim()) return
     setBuscandoUnsplash(true)
+    setExplicacionIA(null)
+    setQueryUsado(null)
+    setResultadosUnsplash([])
+
     try {
-      const res = await fetch('/api/landing/ia-buscar-imagenes', {
+      // Paso 1: Refinar query con Claude
+      const resRefinar = await fetch('/api/landing/ia-refinar-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: queryUnsplash.trim(),
-          orientation: 'landscape',
-          perPage: 9,
+          query: queryUnsplash,
+          contexto: descripcion ? `Producto: ${nombre}. ${descripcion}` : `Producto: ${nombre}`,
         }),
       })
-      const data = await res.json()
-      setResultadosUnsplash(data.imagenes || [])
+      const refinado = await resRefinar.json()
+
+      if (refinado.error || !refinado.principal) {
+        setError('Error al refinar búsqueda con IA')
+        return
+      }
+
+      setExplicacionIA(refinado.explicacion || null)
+
+      // Paso 2: Lista de queries a intentar (principal + alternativas)
+      const queriesAIntentar: string[] = [
+        refinado.principal,
+        ...(refinado.alternativas || []),
+      ]
+
+      // Paso 3: Probar queries hasta encontrar resultados
+      for (const q of queriesAIntentar) {
+        const resBuscar = await fetch('/api/landing/ia-buscar-imagenes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: q,
+            orientation: 'landscape',
+            perPage: 9,
+          }),
+        })
+        const dataBuscar = await resBuscar.json()
+
+        if (dataBuscar.imagenes && dataBuscar.imagenes.length > 0) {
+          setResultadosUnsplash(dataBuscar.imagenes)
+          setQueryUsado(q)
+          break
+        }
+      }
+
+      if (resultadosUnsplash.length === 0) {
+        // último estado, los useState no se actualizaron sincrónicamente, así que lo verificamos al final
+        setQueryUsado(queriesAIntentar[0])
+      }
     } catch {
       setError('Error al buscar imágenes')
     } finally {
@@ -211,7 +257,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
     }
   }
 
-  // ── Drag & drop file ──
   const onDropPrincipal = (e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
@@ -237,7 +282,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
           maxHeight: '92vh', overflowY: 'auto',
         }}
       >
-        {/* Header */}
         <div style={{
           padding: '1.25rem 1.5rem',
           borderBottom: '1px solid #e5e7eb',
@@ -262,7 +306,7 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
             </div>
           )}
 
-          {/* ─── Datos básicos ─── */}
+          {/* Datos básicos */}
           <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div>
               <label style={lbl}>Nombre del producto *</label>
@@ -299,7 +343,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
             </div>
           </div>
 
-          {/* ─── Imágenes (solo en modo editar) ─── */}
           {modo === 'editar' && productoId && (
             <>
               <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
@@ -363,16 +406,16 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
                       <button
                         onClick={() => abrirUnsplash('principal')}
                         disabled={subiendo === 'principal'}
-                        style={btnSecundario}
+                        style={btnIA}
                       >
-                        🔍 Buscar en Unsplash
+                        ✨ Buscar con IA
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* ─── Imágenes adicionales ─── */}
+              {/* Galería adicionales */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f1c2e' }}>
@@ -439,25 +482,20 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
                         disabled={subiendo === 'adicional'}
                         style={{
                           aspectRatio: '1/1', borderRadius: '8px',
-                          border: '2px dashed #d1d5db', background: '#f9fafb',
+                          border: '2px dashed #FF6B2B', background: '#fff7f3',
                           cursor: 'pointer',
                           display: 'flex', flexDirection: 'column',
                           alignItems: 'center', justifyContent: 'center',
-                          gap: '0.25rem', color: '#64748b', fontSize: '0.7rem',
+                          gap: '0.25rem', color: '#FF6B2B', fontSize: '0.7rem',
+                          fontWeight: 600,
                         }}
                       >
-                        <span style={{ fontSize: '1.25rem' }}>🔍</span>
-                        Unsplash
+                        <span style={{ fontSize: '1.25rem' }}>✨</span>
+                        Buscar IA
                       </button>
                     </>
                   )}
                 </div>
-
-                {imagenesAdicionales.length === 0 && (
-                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem' }}>
-                    Hasta {MAX_ADICIONALES} imágenes adicionales para mostrar tu producto desde diferentes ángulos.
-                  </p>
-                )}
               </div>
             </>
           )}
@@ -472,7 +510,6 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
             </div>
           )}
 
-          {/* Botones finales */}
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button onClick={onClose} disabled={guardando} style={{ ...btnSecundario, padding: '0.7rem 1.25rem' }}>
               Cancelar
@@ -488,7 +525,7 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
           </div>
         </div>
 
-        {/* ─── Modal de Unsplash ─── */}
+        {/* ─── Modal de Unsplash con búsqueda IA ─── */}
         {mostrarUnsplash && (
           <div
             onClick={() => setMostrarUnsplash(false)}
@@ -507,32 +544,64 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f1c2e' }}>
-                  Buscar en Unsplash · {rolUnsplash === 'principal' ? 'Imagen principal' : 'Galería'}
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f1c2e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ✨ Buscar imágenes con IA · {rolUnsplash === 'principal' ? 'Imagen principal' : 'Galería'}
                 </h3>
                 <button onClick={() => setMostrarUnsplash(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>×</button>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <input
                   value={queryUnsplash}
                   onChange={e => setQueryUnsplash(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && buscarUnsplash()}
-                  placeholder="ej. car, food, product..."
+                  onKeyDown={e => e.key === 'Enter' && buscarConIA()}
+                  placeholder="Describe lo que buscas (en español está bien)..."
                   style={{ ...inp, flex: 1 }}
+                  disabled={buscandoUnsplash}
                 />
                 <button
-                  onClick={buscarUnsplash}
+                  onClick={buscarConIA}
                   disabled={buscandoUnsplash || !queryUnsplash.trim()}
-                  className="btn-primary !text-sm"
-                  style={{ opacity: (buscandoUnsplash || !queryUnsplash.trim()) ? 0.6 : 1 }}
+                  style={{
+                    background: 'linear-gradient(135deg, #FF6B2B 0%, #FF8C42 100%)',
+                    color: '#fff', border: 'none', borderRadius: '10px',
+                    padding: '0 1.25rem', fontSize: '0.875rem', fontWeight: 700,
+                    cursor: (buscandoUnsplash || !queryUnsplash.trim()) ? 'not-allowed' : 'pointer',
+                    opacity: (buscandoUnsplash || !queryUnsplash.trim()) ? 0.6 : 1,
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  {buscandoUnsplash ? 'Buscando...' : 'Buscar'}
+                  {buscandoUnsplash ? (
+                    <>
+                      <span style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                      Buscando...
+                    </>
+                  ) : '✨ Buscar con IA'}
                 </button>
               </div>
+
               <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>
-                💡 Tip: usa términos en inglés para mejores resultados
+                💡 La IA traduce tu búsqueda y mejora los términos para encontrar las mejores imágenes
               </p>
+
+              {/* Explicación de la IA */}
+              {explicacionIA && (
+                <div style={{
+                  background: '#fff7ed', border: '1px solid #fed7aa',
+                  borderRadius: '10px', padding: '0.75rem 1rem',
+                  marginBottom: '1rem', fontSize: '0.8rem',
+                }}>
+                  <div style={{ color: '#9a3412', marginBottom: '4px' }}>
+                    <strong>✨ IA:</strong> {explicacionIA}
+                  </div>
+                  {queryUsado && (
+                    <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                      Buscando: <code style={{ background: '#fff', padding: '2px 6px', borderRadius: '4px', color: '#FF6B2B', fontWeight: 600 }}>{queryUsado}</code>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {resultadosUnsplash.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
@@ -563,15 +632,28 @@ export function ProductoEditorModal({ modo, producto, onClose, onGuardado }: Pro
                 </div>
               )}
 
-              {resultadosUnsplash.length === 0 && !buscandoUnsplash && queryUnsplash && (
+              {resultadosUnsplash.length === 0 && !buscandoUnsplash && queryUsado && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                  <div style={{ fontSize: '0.875rem' }}>
+                    No encontré imágenes. Intenta con otra búsqueda.
+                  </div>
+                </div>
+              )}
+
+              {resultadosUnsplash.length === 0 && !buscandoUnsplash && !queryUsado && (
                 <p style={{ textAlign: 'center', color: '#9ca3af', padding: '1.5rem', fontSize: '0.875rem' }}>
-                  Presiona Buscar para ver resultados
+                  Escribe lo que buscas y presiona &quot;Buscar con IA&quot;
                 </p>
               )}
             </div>
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }
@@ -591,4 +673,12 @@ const btnSecundario: React.CSSProperties = {
   padding: '0.55rem 1rem', background: '#f3f4f6', color: '#374151',
   border: '1px solid #e5e7eb', borderRadius: '8px',
   fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+}
+
+const btnIA: React.CSSProperties = {
+  padding: '0.55rem 1rem',
+  background: 'linear-gradient(135deg, #FF6B2B 0%, #FF8C42 100%)',
+  color: '#fff', border: 'none', borderRadius: '8px',
+  fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+  boxShadow: '0 2px 8px rgba(255,107,43,.25)',
 }

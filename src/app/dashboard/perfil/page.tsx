@@ -1,4 +1,6 @@
 // Ruta destino: src/app/dashboard/perfil/page.tsx
+// REEMPLAZA. Cambios:
+// - Pasa los campos callmebot_* desde el profile al PerfilClient
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -25,6 +27,11 @@ export default async function PerfilPage() {
 
   const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
 
+  // Lectura "tolerante" de los campos CallMeBot
+  // (en caso de que el tipo Profile aún no los tenga definidos)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = profile as any
+
   return (
     <DashboardLayout
       user={{
@@ -45,6 +52,11 @@ export default async function PerfilPage() {
           empresa: profile?.empresa ?? '',
           whatsapp: profile?.whatsapp ?? '',
           slug: profile?.slug ?? '',
+        }}
+        callmebotInicial={{
+          apikey: p?.callmebot_apikey ?? '',
+          telefono: p?.callmebot_telefono ?? '',
+          activa: p?.notif_whatsapp_activa ?? false,
         }}
       />
     </DashboardLayout>

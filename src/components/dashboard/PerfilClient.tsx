@@ -1,8 +1,14 @@
+// Ruta destino: src/components/dashboard/PerfilClient.tsx
+// REEMPLAZA. Cambios:
+// - Agrega el card NotificacionesWhatsAppCard al final
+// - Recibe la config inicial de CallMeBot vía props
+
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { NotificacionesWhatsAppCard } from './NotificacionesWhatsAppCard'
 
 type ProfileForm = {
   nombre: string
@@ -12,14 +18,27 @@ type ProfileForm = {
   slug: string
 }
 
+type CallMeBotConfig = {
+  apikey: string
+  telefono: string
+  activa: boolean
+}
+
 type Props = {
   email: string
   avatarUrl: string | null
   initials: string
   profileInicial: ProfileForm
+  callmebotInicial?: CallMeBotConfig
 }
 
-export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Props) {
+export function PerfilClient({
+  email,
+  avatarUrl,
+  initials,
+  profileInicial,
+  callmebotInicial,
+}: Props) {
   const router = useRouter()
   const [form, setForm] = useState<ProfileForm>(profileInicial)
   const [guardando, setGuardando] = useState(false)
@@ -64,7 +83,6 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
     window.location.href = '/'
   }
 
-  // Normalización del slug mientras se escribe
   const onSlugChange = (valor: string) => {
     const limpio = valor
       .toLowerCase()
@@ -83,15 +101,11 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
         </p>
       </header>
 
-      {/* Card de avatar + email */}
+      {/* Avatar + email */}
       <section className="card p-6 mb-6 flex items-center gap-4">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt="Avatar"
-            className="w-16 h-16 rounded-full object-cover"
-          />
+          <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
         ) : (
           <div className="w-16 h-16 rounded-full bg-brand-orange text-white flex items-center justify-center text-xl font-bold">
             {initials}
@@ -103,7 +117,7 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
         </div>
       </section>
 
-      {/* Formulario editable */}
+      {/* Datos personales */}
       <section className="card p-6 mb-6 space-y-4">
         <h2 className="text-lg font-semibold text-brand-navy mb-2">Datos personales</h2>
 
@@ -156,7 +170,7 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
         </div>
       </section>
 
-      {/* Card de URL pública */}
+      {/* URL pública */}
       <section className="card p-6 mb-6">
         <h2 className="text-lg font-semibold text-brand-navy mb-2">Tu URL pública</h2>
         <p className="text-sm text-gray-500 mb-4">
@@ -189,8 +203,8 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
         )}
       </section>
 
-      {/* Acciones */}
-      <section className="flex items-center justify-between flex-wrap gap-4">
+      {/* Acciones perfil */}
+      <section className="flex items-center justify-between flex-wrap gap-4 mb-6">
         <button
           onClick={cerrarSesion}
           className="text-sm font-medium text-gray-500 hover:text-red-500"
@@ -200,11 +214,7 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
 
         <div className="flex items-center gap-3">
           {mensaje && (
-            <span
-              className={`text-sm ${
-                mensaje.tipo === 'ok' ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
+            <span className={`text-sm ${mensaje.tipo === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
               {mensaje.tipo === 'ok' ? '✓' : '⚠️'} {mensaje.texto}
             </span>
           )}
@@ -217,6 +227,13 @@ export function PerfilClient({ email, avatarUrl, initials, profileInicial }: Pro
           </button>
         </div>
       </section>
+
+      {/* ─── NUEVA SECCIÓN: Notificaciones WhatsApp ─── */}
+      <NotificacionesWhatsAppCard
+        apiKeyInicial={callmebotInicial?.apikey ?? ''}
+        telefonoInicial={callmebotInicial?.telefono ?? ''}
+        activaInicial={callmebotInicial?.activa ?? false}
+      />
     </div>
   )
 }

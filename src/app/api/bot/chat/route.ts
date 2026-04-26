@@ -1,6 +1,7 @@
 // Ruta destino: src/app/api/bot/chat/route.ts
-// REEMPLAZA. Email ULTRA disruptivo con mensaje IA + plantillas rápidas.
-// Mantiene WhatsApp via CallMeBot por si lo activas más adelante (no rompe nada si no está configurado).
+// REEMPLAZA. Único cambio respecto a la versión anterior:
+// - Al crear el lead, ahora se guarda accion.interes en el campo "producto"
+// - Las notas se mantienen como referencia adicional
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -221,9 +222,11 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (!leadExistente && accion.whatsapp) {
+        // ── FIX: guardar el interés en producto + notas
+        const interes = (accion.interes ?? '').trim()
         const notas = accion.accion === 'agendar_cita'
-          ? `Cita solicitada: ${accion.fecha ?? 'a confirmar'}. Interés: ${accion.interes ?? ''}`
-          : `Capturado por Bot IA. Interés: ${accion.interes ?? ''}`
+          ? `Cita solicitada: ${accion.fecha ?? 'a confirmar'}. Capturado por Bot IA.`
+          : `Capturado por Bot IA.`
 
         const { data: nuevoLead } = await supabase
           .from('leads')
@@ -231,10 +234,11 @@ export async function POST(req: NextRequest) {
             vendedor_id: perfil.id,
             nombre:      accion.nombre ?? 'Visitante',
             whatsapp:    accion.whatsapp,
+            producto:    interes || null,         // ← AHORA SE GUARDA AQUÍ
             fuente:      'bot_landing',
             slug_origen: slug,
             etapa:       'nuevo',
-            notas,
+            notas,                                  // ← Notas separadas
           })
           .select('id')
           .single()
@@ -248,10 +252,9 @@ export async function POST(req: NextRequest) {
           }).eq('id', convId)
         }
 
-        // ── Notificaciones disruptivas ──
+        // ── Notificaciones ──
         const vendedorNombre = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
 
-        // 1. Generar mensajes IA personalizados (en paralelo con email/whatsapp)
         const mensajesPromise = generarMensajesParaLead({
           nombre: accion.nombre ?? 'Visitante',
           whatsapp: accion.whatsapp,
@@ -261,7 +264,6 @@ export async function POST(req: NextRequest) {
           industria: perfil.industria ?? undefined,
         })
 
-        // 2. Enviar email + whatsapp (no bloquean)
         ;(async () => {
           try {
             const mensajes = await mensajesPromise

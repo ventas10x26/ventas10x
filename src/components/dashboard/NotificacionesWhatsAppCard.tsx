@@ -158,7 +158,7 @@ export function NotificacionesWhatsAppCard({
                   fontSize: '0.85rem', color: '#0f1c2e',
                   display: 'inline-block',
                 }}>
-                  I allow callmebot to send me messages
+                  Autorizo a callmebot a enviarme mensajes
                 </div>
               </div>
 

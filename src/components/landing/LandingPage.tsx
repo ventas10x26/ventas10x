@@ -125,7 +125,7 @@ export function LandingPage({ profile, config, productos, slug }: Props) {
               Productos disponibles
             </h2>
             <p className="text-gray-500 text-center mb-8 text-sm">
-              Estos son los {producto.toLowerCase()} que puedes cotizar conmigo hoy.
+              {producto.toLowerCase()} que puedes cotizar conmigo hoy.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {productos.map(p => (

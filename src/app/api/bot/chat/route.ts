@@ -1,8 +1,14 @@
-// src/app/api/bot/chat/route.ts
+// Ruta destino: src/app/api/bot/chat/route.ts
+// REEMPLAZA. Cambios respecto al original:
+// - Agrega notificación por WhatsApp al vendedor cuando se crea un lead
+// - El query de cargarContexto incluye los campos de CallMeBot
+// - Después de crear el lead, dispara email Y WhatsApp en paralelo
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
+import { notificarLeadPorWhatsApp } from '@/lib/notificaciones-whatsapp'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +28,7 @@ interface BotRequestBody {
 async function cargarContexto(slug: string) {
   const { data: perfil } = await supabase
     .from('profiles')
-    .select('id, nombre, apellido, empresa, industria, whatsapp')
+    .select('id, nombre, apellido, empresa, industria, whatsapp, callmebot_apikey, callmebot_telefono, notif_whatsapp_activa')
     .eq('slug', slug)
     .single()
 
@@ -242,14 +248,15 @@ export async function POST(req: NextRequest) {
           }).eq('id', convId)
         }
 
-        // ── Enviar email de notificación al vendedor ──
-        try {
-          const { data: authUser } = await supabase.auth.admin.getUserById(perfil.id)
-          const vendedorEmail = authUser?.user?.email
+        // ── Notificaciones (email + WhatsApp en paralelo, no bloquean) ──
+        const vendedorNombre = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
+        const waNum = (accion.whatsapp ?? '').replace(/\D/g, '')
 
-          if (vendedorEmail) {
-            const vendedorNombre = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
-            const waNum = (accion.whatsapp ?? '').replace(/\D/g, '')
+        const promesaEmail = (async () => {
+          try {
+            const { data: authUser } = await supabase.auth.admin.getUserById(perfil.id)
+            const vendedorEmail = authUser?.user?.email
+            if (!vendedorEmail) return
 
             await resend.emails.send({
               from: 'Ventas10x <notificaciones@ventas10x.co>',
@@ -294,10 +301,30 @@ export async function POST(req: NextRequest) {
                 </div>
               `,
             })
+          } catch (emailError) {
+            console.error('[bot/chat] email error:', emailError)
           }
-        } catch (emailError) {
-          console.error('[bot/chat] email error:', emailError)
-        }
+        })()
+
+        const promesaWhatsApp = notificarLeadPorWhatsApp(
+          {
+            callmebot_apikey: perfil.callmebot_apikey,
+            callmebot_telefono: perfil.callmebot_telefono,
+            notif_whatsapp_activa: perfil.notif_whatsapp_activa,
+          },
+          {
+            nombre: accion.nombre || 'Visitante',
+            whatsapp: accion.whatsapp,
+            interes: accion.interes,
+            fuente: 'bot_landing',
+          },
+          vendedorNombre
+        )
+
+        // Ejecutar ambas en paralelo, no bloquean la respuesta del bot
+        Promise.all([promesaEmail, promesaWhatsApp]).catch(e =>
+          console.error('[bot/chat] notif error:', e)
+        )
       } else {
         leadId = leadExistente?.id ?? null
       }

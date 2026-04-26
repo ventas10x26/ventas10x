@@ -1,14 +1,14 @@
 // Ruta destino: src/app/api/bot/chat/route.ts
-// REEMPLAZA. Cambios respecto al original:
-// - Agrega notificación por WhatsApp al vendedor cuando se crea un lead
-// - El query de cargarContexto incluye los campos de CallMeBot
-// - Después de crear el lead, dispara email Y WhatsApp en paralelo
+// REEMPLAZA. Email ULTRA disruptivo con mensaje IA + plantillas rápidas.
+// Mantiene WhatsApp via CallMeBot por si lo activas más adelante (no rompe nada si no está configurado).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { notificarLeadPorWhatsApp } from '@/lib/notificaciones-whatsapp'
+import { generarMensajesParaLead } from '@/lib/lead-mensaje-ia'
+import { buildEmailLead } from '@/lib/lead-email-template'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,83 +248,73 @@ export async function POST(req: NextRequest) {
           }).eq('id', convId)
         }
 
-        // ── Notificaciones (email + WhatsApp en paralelo, no bloquean) ──
+        // ── Notificaciones disruptivas ──
         const vendedorNombre = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
-        const waNum = (accion.whatsapp ?? '').replace(/\D/g, '')
 
-        const promesaEmail = (async () => {
+        // 1. Generar mensajes IA personalizados (en paralelo con email/whatsapp)
+        const mensajesPromise = generarMensajesParaLead({
+          nombre: accion.nombre ?? 'Visitante',
+          whatsapp: accion.whatsapp,
+          interes: accion.interes,
+          vendedorNombre,
+          empresa: perfil.empresa ?? undefined,
+          industria: perfil.industria ?? undefined,
+        })
+
+        // 2. Enviar email + whatsapp (no bloquean)
+        ;(async () => {
           try {
-            const { data: authUser } = await supabase.auth.admin.getUserById(perfil.id)
-            const vendedorEmail = authUser?.user?.email
-            if (!vendedorEmail) return
+            const mensajes = await mensajesPromise
 
-            await resend.emails.send({
-              from: 'Ventas10x <notificaciones@ventas10x.co>',
-              to: vendedorEmail,
-              subject: `🔥 Nuevo lead desde tu landing: ${accion.nombre || 'Visitante'}`,
-              html: `
-                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f4f6f9;padding:2rem;">
-                  <div style="background:#0f1c2e;border-radius:16px;padding:2rem;margin-bottom:1.5rem;">
-                    <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 8px;">🔥 Nuevo lead desde tu bot</h1>
-                    <p style="color:rgba(255,255,255,.7);margin:0;">Hola ${vendedorNombre}, tienes un nuevo prospecto listo para contactar.</p>
-                  </div>
-                  <div style="background:#fff;border-radius:16px;padding:1.5rem;margin-bottom:1rem;border:0.5px solid #e5e7eb;">
-                    <h2 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 1rem;">Datos del lead</h2>
-                    <table style="width:100%;border-collapse:collapse;">
-                      <tr>
-                        <td style="padding:8px 0;color:#9ca3af;font-size:13px;width:120px;">👤 Nombre</td>
-                        <td style="color:#111827;font-size:14px;font-weight:600;">${accion.nombre || 'Visitante'}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#9ca3af;font-size:13px;">📱 WhatsApp</td>
-                        <td style="color:#111827;font-size:14px;font-weight:600;">${accion.whatsapp}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#9ca3af;font-size:13px;">🎯 Interés</td>
-                        <td style="color:#111827;font-size:14px;font-weight:600;">${accion.interes || '—'}</td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#9ca3af;font-size:13px;">📍 Fuente</td>
-                        <td style="color:#FF6B2B;font-size:14px;font-weight:700;">Bot Landing</td>
-                      </tr>
-                    </table>
-                  </div>
-                  <a href="https://wa.me/${waNum}" style="display:block;background:#25D366;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:15px;margin-bottom:1rem;">
-                    💬 Contactar por WhatsApp ahora →
-                  </a>
-                  <a href="https://ventas10x.co/dashboard/leads" style="display:block;background:#FF6B2B;color:#fff;text-decoration:none;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:15px;margin-bottom:1.5rem;">
-                    Ver en mi dashboard →
-                  </a>
-                  <p style="text-align:center;color:#9ca3af;font-size:12px;">
-                    Este email fue enviado por Ventas10x · <a href="https://ventas10x.co" style="color:#FF6B2B;">ventas10x.co</a>
-                  </p>
-                </div>
-              `,
-            })
-          } catch (emailError) {
-            console.error('[bot/chat] email error:', emailError)
+            // Email
+            try {
+              const { data: authUser } = await supabase.auth.admin.getUserById(perfil.id)
+              const vendedorEmail = authUser?.user?.email
+              if (vendedorEmail) {
+                const { subject, html } = buildEmailLead({
+                  vendedorNombre,
+                  leadNombre: accion.nombre ?? 'Visitante',
+                  leadWhatsApp: accion.whatsapp,
+                  leadInteres: accion.interes,
+                  fuente: 'bot_landing',
+                  mensajePrincipal: mensajes.mensajePrincipal,
+                  plantillas: mensajes.plantillas,
+                })
+
+                await resend.emails.send({
+                  from: 'Ventas10x <notificaciones@ventas10x.co>',
+                  to: vendedorEmail,
+                  subject,
+                  html,
+                })
+              }
+            } catch (e) {
+              console.error('[bot/chat] email error:', e)
+            }
+
+            // WhatsApp (CallMeBot, si está activo)
+            try {
+              await notificarLeadPorWhatsApp(
+                {
+                  callmebot_apikey: perfil.callmebot_apikey,
+                  callmebot_telefono: perfil.callmebot_telefono,
+                  notif_whatsapp_activa: perfil.notif_whatsapp_activa,
+                },
+                {
+                  nombre: accion.nombre ?? 'Visitante',
+                  whatsapp: accion.whatsapp,
+                  interes: accion.interes,
+                  fuente: 'bot_landing',
+                },
+                vendedorNombre
+              )
+            } catch (e) {
+              console.error('[bot/chat] wa error:', e)
+            }
+          } catch (e) {
+            console.error('[bot/chat] notif error:', e)
           }
         })()
-
-        const promesaWhatsApp = notificarLeadPorWhatsApp(
-          {
-            callmebot_apikey: perfil.callmebot_apikey,
-            callmebot_telefono: perfil.callmebot_telefono,
-            notif_whatsapp_activa: perfil.notif_whatsapp_activa,
-          },
-          {
-            nombre: accion.nombre || 'Visitante',
-            whatsapp: accion.whatsapp,
-            interes: accion.interes,
-            fuente: 'bot_landing',
-          },
-          vendedorNombre
-        )
-
-        // Ejecutar ambas en paralelo, no bloquean la respuesta del bot
-        Promise.all([promesaEmail, promesaWhatsApp]).catch(e =>
-          console.error('[bot/chat] notif error:', e)
-        )
       } else {
         leadId = leadExistente?.id ?? null
       }

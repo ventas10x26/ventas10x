@@ -1,5 +1,7 @@
 // Ruta destino: src/components/dashboard/DashboardLayout.tsx
-// Solo añadimos "Banco de imágenes" al submenú de Catálogo IA.
+// REEMPLAZA. Cambios:
+// - Agrega "Mi plan" como menú principal con submenú
+// - Inyecta SuscripcionBanner debajo del header
 
 'use client'
 
@@ -8,6 +10,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { LandingUrlBanner } from './LandingUrlBanner'
+import { SuscripcionBanner } from './SuscripcionBanner'
 
 type SubItem = { href: string; label: string; icon?: string }
 type NavItem = {
@@ -32,6 +35,15 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: '/dashboard/bot', label: 'Bot IA', icon: '🤖' },
   { href: '/dashboard/landing-editor', label: 'Mi landing', icon: '◈' },
+  {
+    href: '/dashboard/mi-suscripcion',
+    label: 'Mi plan',
+    icon: '💎',
+    subitems: [
+      { href: '/dashboard/mi-suscripcion', label: 'Mi suscripción', icon: '📋' },
+      { href: '/dashboard/planes', label: 'Cambiar plan', icon: '⚡' },
+    ],
+  },
   { href: '/dashboard/perfil', label: 'Mi perfil', icon: '◉' },
 ]
 
@@ -211,6 +223,10 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
         </header>
 
         <main className="flex-1 overflow-auto">
+          {/* Banner de trial / vencimiento */}
+          <SuscripcionBanner />
+
+          {/* Banner URL pública */}
           {slug && <LandingUrlBanner slug={slug} />}
           {children}
         </main>

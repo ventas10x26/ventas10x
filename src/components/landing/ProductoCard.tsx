@@ -1,21 +1,31 @@
 // Ruta destino: src/components/landing/ProductoCard.tsx
+// REEMPLAZA el archivo. La descripción ahora respeta saltos de línea (\n)
+// y soporta bold con **texto** que la IA puede agregar.
+
 'use client'
 
 import { useState } from 'react'
-import type { Producto } from '@/types/database'
 import { ProductoLightbox } from './ProductoLightbox'
 
-type Props = {
-  producto: Producto
+type ProductoCardProps = {
+  producto: {
+    id: string
+    nombre: string
+    precio: string | null
+    descripcion: string | null
+    imagen_principal: string | null
+    imagenes_adicionales: string[] | null
+  }
   colorAcento: string
 }
 
 /**
- * Renderiza una descripción respetando:
+ * Renderiza una descripción con:
  *  - saltos de línea (\n)
  *  - **texto** convertido a <strong>
  */
 function renderDescripcion(texto: string): React.ReactNode {
+  // Dividir por líneas
   const lineas = texto.split('\n')
 
   return lineas.map((linea, i) => {
@@ -42,100 +52,125 @@ function renderDescripcion(texto: string): React.ReactNode {
   })
 }
 
-export function ProductoCard({ producto, colorAcento }: Props) {
+export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
   const [lightboxAbierto, setLightboxAbierto] = useState(false)
-  const [indiceInicial, setIndiceInicial] = useState(0)
 
-  const adicionales = producto.imagenes_adicionales || []
-  const totalImagenes = (producto.imagen_principal ? 1 : 0) + adicionales.length
-  const todasLasImagenes = [
-    ...(producto.imagen_principal ? [producto.imagen_principal] : []),
-    ...adicionales,
-  ]
+  const totalImagenes =
+    (producto.imagen_principal ? 1 : 0) + (producto.imagenes_adicionales?.length || 0)
 
-  const abrirLightbox = (indice = 0) => {
-    if (todasLasImagenes.length === 0) return
-    setIndiceInicial(indice)
-    setLightboxAbierto(true)
-  }
+  // Construir array de imágenes para el lightbox
+  const imagenesParaLightbox: string[] = []
+  if (producto.imagen_principal) imagenesParaLightbox.push(producto.imagen_principal)
+  if (producto.imagenes_adicionales) imagenesParaLightbox.push(...producto.imagenes_adicionales)
 
   return (
     <>
       <div
-        className="bg-white border border-gray-100 rounded-2xl overflow-hidden flex flex-col"
-        style={{ borderTop: `3px solid ${colorAcento}` }}
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 1px 3px rgba(0,0,0,.05)',
+          transition: 'transform .2s, box-shadow .2s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-2px)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.08)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.05)'
+        }}
       >
         {/* Imagen principal */}
-        {producto.imagen_principal ? (
-          <button
-            onClick={() => abrirLightbox(0)}
-            className="relative block w-full overflow-hidden group"
-            style={{
-              aspectRatio: '4/3',
-              background: '#f3f4f6',
-              border: 'none',
-              padding: 0,
-              cursor: todasLasImagenes.length > 0 ? 'zoom-in' : 'default',
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div
+          onClick={() => totalImagenes > 0 && setLightboxAbierto(true)}
+          style={{
+            position: 'relative',
+            aspectRatio: '4/3',
+            background: '#f3f4f6',
+            cursor: totalImagenes > 0 ? 'pointer' : 'default',
+            overflow: 'hidden',
+          }}
+        >
+          {producto.imagen_principal ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={producto.imagen_principal}
               alt={producto.nombre}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'transform .3s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.04)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             />
-            {totalImagenes > 1 && (
-              <div
-                className="absolute bottom-3 right-3 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm"
-                style={{ background: 'rgba(0,0,0,.6)' }}
-              >
-                📷 {totalImagenes}
-              </div>
-            )}
-          </button>
-        ) : (
-          <div
-            className="w-full flex items-center justify-center"
-            style={{
-              aspectRatio: '4/3',
-              background: '#f3f4f6',
-              color: '#9ca3af',
-              fontSize: '2rem',
-            }}
-          >
-            📷
-          </div>
-        )}
+          ) : (
+            <div style={{
+              width: '100%', height: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#d1d5db', fontSize: '3rem',
+            }}>
+              📷
+            </div>
+          )}
+
+          {totalImagenes > 1 && (
+            <div style={{
+              position: 'absolute', bottom: '8px', right: '8px',
+              background: 'rgba(0,0,0,.6)', color: '#fff',
+              padding: '3px 9px', borderRadius: '999px',
+              fontSize: '0.7rem', fontWeight: 600,
+              backdropFilter: 'blur(4px)',
+            }}>
+              📷 {totalImagenes}
+            </div>
+          )}
+        </div>
 
         {/* Info */}
-        <div className="p-5 flex-1 flex flex-col">
-          <div className="font-semibold text-gray-900 mb-2 text-lg leading-snug">
+        <div style={{ padding: '1rem 1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{
+            fontSize: '1rem', fontWeight: 700, color: '#0f1c2e',
+            marginBottom: '6px', lineHeight: 1.3,
+          }}>
             {producto.nombre}
-          </div>
+          </h3>
 
           {producto.descripcion && (
-            <div
-              className="text-sm text-gray-600 mb-3 flex-1"
-              style={{
-                whiteSpace: 'pre-wrap',  // respeta saltos y espacios
-                lineHeight: 1.65,
-              }}
-            >
+            <div style={{
+              fontSize: '0.85rem',
+              color: '#64748b',
+              lineHeight: 1.6,
+              marginBottom: '12px',
+              flex: 1,
+              whiteSpace: 'pre-wrap',  // respeta espacios y saltos
+            }}>
               {renderDescripcion(producto.descripcion)}
             </div>
           )}
 
-          <div className="font-bold text-lg mt-auto" style={{ color: colorAcento }}>
-            {producto.precio || 'Consultar precio'}
-          </div>
+          {producto.precio && (
+            <div style={{
+              fontSize: '1.05rem', fontWeight: 800,
+              color: colorAcento, marginTop: 'auto',
+            }}>
+              Desde {producto.precio}
+            </div>
+          )}
         </div>
       </div>
 
-      {lightboxAbierto && (
+      {/* Lightbox */}
+      {lightboxAbierto && imagenesParaLightbox.length > 0 && (
         <ProductoLightbox
-          imagenes={todasLasImagenes}
-          indiceInicial={indiceInicial}
-          nombre={producto.nombre}
+          imagenes={imagenesParaLightbox}
+          producto={producto.nombre}
           onClose={() => setLightboxAbierto(false)}
         />
       )}

@@ -1,0 +1,57 @@
+// Ruta destino: src/app/dashboard/mi-suscripcion/page.tsx
+
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
+import { MiSuscripcionClient } from '@/components/dashboard/MiSuscripcionClient'
+import type { Profile } from '@/types/database'
+
+export default async function MiSuscripcionPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+  const profile = profileData as Profile | null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: suscripcion } = await (supabase.from('suscripciones') as any)
+    .select('*')
+    .eq('vendedor_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: pagos } = await (supabase.from('pagos') as any)
+    .select('*')
+    .eq('vendedor_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  const nombre = profile
+    ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'Usuario'
+    : user.email?.split('@')[0] || 'Usuario'
+  const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
+
+  return (
+    <DashboardLayout
+      user={{
+        email: user.email!,
+        name: nombre,
+        initials,
+        avatarUrl: user.user_metadata?.avatar_url,
+      }}
+      slug={profile?.slug ?? ''}
+    >
+      <MiSuscripcionClient
+        suscripcionInicial={suscripcion ?? null}
+        pagosIniciales={pagos ?? []}
+      />
+    </DashboardLayout>
+  )
+}

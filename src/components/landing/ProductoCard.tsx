@@ -1,6 +1,5 @@
 // Ruta destino: src/components/landing/ProductoCard.tsx
-// REEMPLAZA el archivo. La descripción ahora respeta saltos de línea (\n)
-// y soporta bold con **texto** que la IA puede agregar.
+// Fix: el prop pasado a ProductoLightbox debe llamarse "nombre", no "producto"
 
 'use client'
 
@@ -25,11 +24,9 @@ type ProductoCardProps = {
  *  - **texto** convertido a <strong>
  */
 function renderDescripcion(texto: string): React.ReactNode {
-  // Dividir por líneas
   const lineas = texto.split('\n')
 
   return lineas.map((linea, i) => {
-    // Procesar **bold**
     const partes = linea.split(/(\*\*[^*]+\*\*)/g)
     const renderedLinea = partes.map((parte, j) => {
       if (parte.startsWith('**') && parte.endsWith('**')) {
@@ -42,7 +39,6 @@ function renderDescripcion(texto: string): React.ReactNode {
       return <span key={j}>{parte}</span>
     })
 
-    // Última línea: sin <br/> al final
     return (
       <span key={i}>
         {renderedLinea}
@@ -58,7 +54,6 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
   const totalImagenes =
     (producto.imagen_principal ? 1 : 0) + (producto.imagenes_adicionales?.length || 0)
 
-  // Construir array de imágenes para el lightbox
   const imagenesParaLightbox: string[] = []
   if (producto.imagen_principal) imagenesParaLightbox.push(producto.imagen_principal)
   if (producto.imagenes_adicionales) imagenesParaLightbox.push(...producto.imagenes_adicionales)
@@ -149,7 +144,7 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
               lineHeight: 1.6,
               marginBottom: '12px',
               flex: 1,
-              whiteSpace: 'pre-wrap',  // respeta espacios y saltos
+              whiteSpace: 'pre-wrap',
             }}>
               {renderDescripcion(producto.descripcion)}
             </div>
@@ -166,11 +161,11 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
         </div>
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox — FIX: usar "nombre" no "producto" */}
       {lightboxAbierto && imagenesParaLightbox.length > 0 && (
         <ProductoLightbox
           imagenes={imagenesParaLightbox}
-          producto={producto.nombre}
+          nombre={producto.nombre}
           onClose={() => setLightboxAbierto(false)}
         />
       )}

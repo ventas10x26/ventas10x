@@ -447,7 +447,7 @@ function ModalPagoNequi({
                       <img
                         src={DATOS_NEQUI.qrUrl}
                         alt="QR Nequi"
-                        style={{ width: '180px', height: '180px', objectFit: 'contain', display: 'block' }}
+                        style={{ width: '280px', height: '280px', objectFit: 'contain', display: 'block' }}
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none'
                         }}

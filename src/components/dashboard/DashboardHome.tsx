@@ -1,6 +1,6 @@
 // Ruta destino: src/components/dashboard/DashboardHome.tsx
-// Devolvemos el card grande de "Tu URL de landing personalizada" en el Resumen.
-// El banner sticky del DashboardLayout sigue funcionando en las otras páginas.
+// REEMPLAZA. Cambio único:
+// - Línea 50-51: sus.trial_ends_at → sus.fecha_fin
 
 'use client'
 
@@ -47,8 +47,9 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, bots }: Props) {
   const [copiado, setCopiado] = useState(false)
 
   const landingUrl = `${BASE_URL}/u/${slug}`
-  const diasRestantes = sus?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(sus.trial_ends_at).getTime() - Date.now()) / 86400000))
+  // ─── CAMBIO: trial_ends_at → fecha_fin ───
+  const diasRestantes = sus?.fecha_fin
+    ? Math.max(0, Math.ceil((new Date(sus.fecha_fin).getTime() - Date.now()) / 86400000))
     : 0
 
   const copyUrl = async () => {
@@ -76,10 +77,10 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, bots }: Props) {
 
       {/* Plan banner */}
       <PlanBadge
-        plan={sus?.plan || 'gratuito'}
-        estado={sus?.estado || 'gratuito'}
+        plan={sus?.plan || 'trial'}
+        estado={sus?.estado || 'activa'}
         diasRestantes={diasRestantes}
-        onUpgrade={() => router.push('/precios')}
+        onUpgrade={() => router.push('/dashboard/planes')}
       />
 
       {/* Métricas */}
@@ -97,7 +98,7 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, bots }: Props) {
         ))}
       </div>
 
-      {/* URL de landing — DEVUELTO al Resumen como card grande */}
+      {/* URL de landing */}
       {slug && (
         <div className="mb-6">
           <div className="text-sm font-semibold text-gray-800 mb-3">🔗 Tu URL de landing personalizada</div>

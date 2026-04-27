@@ -1,5 +1,7 @@
 // Ruta destino: src/types/database.ts
-// Reemplaza el archivo actual
+// REEMPLAZA el archivo completo. Cambios:
+// - Suscripciones: nuevo schema (fecha_inicio, fecha_fin, sin wompi/period)
+// - Agrega tabla "pagos"
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -67,7 +69,6 @@ export interface Database {
           descripcion: string | null
           orden: number
           created_at: string
-          // ── Campos nuevos para galería de imágenes ──
           imagen_principal: string | null
           imagenes_adicionales: string[] | null
         }
@@ -78,19 +79,38 @@ export interface Database {
         Row: {
           id: string
           vendedor_id: string
-          plan: string
-          estado: string
-          periodo: string
-          monto: number
-          wompi_ref: string | null
-          trial_ends_at: string | null
-          current_period_start: string | null
-          current_period_end: string | null
+          plan: string                  // 'trial' | 'starter' | 'pro' | 'enterprise'
+          estado: string                // 'activa' | 'vencida' | 'cancelada' | 'pausada'
+          periodo: string               // 'mensual' | 'anual' | 'trial'
+          fecha_inicio: string
+          fecha_fin: string             // ← antes era trial_ends_at
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['suscripciones']['Row'], 'id' | 'created_at'>
+        Insert: Omit<Database['public']['Tables']['suscripciones']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['suscripciones']['Insert']>
+      }
+      pagos: {
+        Row: {
+          id: string
+          vendedor_id: string
+          suscripcion_id: string | null
+          plan: string
+          periodo: string
+          monto: number
+          comprobante_url: string | null
+          comprobante_storage_path: string | null
+          estado: string                // 'pendiente' | 'aprobado' | 'rechazado'
+          motivo_rechazo: string | null
+          notas_admin: string | null
+          notas_vendedor: string | null
+          aprobado_por: string | null
+          aprobado_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['pagos']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['pagos']['Insert']>
       }
       admins: {
         Row: { id: string; email: string; created_at: string }
@@ -106,3 +126,4 @@ export type Lead = Database['public']['Tables']['leads']['Row']
 export type LandingConfig = Database['public']['Tables']['landing_config']['Row']
 export type Producto = Database['public']['Tables']['productos']['Row']
 export type Suscripcion = Database['public']['Tables']['suscripciones']['Row']
+export type Pago = Database['public']['Tables']['pagos']['Row']

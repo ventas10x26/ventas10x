@@ -158,7 +158,7 @@ export function necesitaRenovar(sub: Suscripcion | null): boolean {
 
 /** Datos de Nequi para pago */
 export const DATOS_NEQUI = {
-  numero: '3014339418',           // ⚠️ CAMBIA por tu número real
+  numero: '3004339418',           // ⚠️ CAMBIA por tu número real
   titular: 'Ricardo Zambrano',     // ⚠️ CAMBIA por tu nombre real
   qrUrl: '/nequi-qr.png',          // ⚠️ Sube tu QR a public/nequi-qr.png
 }

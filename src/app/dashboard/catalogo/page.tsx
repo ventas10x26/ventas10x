@@ -1,4 +1,6 @@
 // Ruta destino: src/app/dashboard/catalogo/page.tsx
+// FIX: agregar imagen_principal e imagenes_adicionales al tipo Producto
+// para que TypeScript NO descarte estas columnas que sí vienen de la BD.
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -13,6 +15,9 @@ export type Producto = {
   descripcion: string | null
   orden: number
   created_at: string
+  // ─── FIX: agregar campos de imagen ───
+  imagen_principal: string | null
+  imagenes_adicionales: string[] | null
 }
 
 export default async function CatalogoPage() {

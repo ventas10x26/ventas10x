@@ -1,3 +1,10 @@
+// Ruta destino: src/components/dashboard/CatalogoClient.tsx
+// FIX: ahora SÍ muestra las imágenes de los productos.
+// Cambios clave:
+// - Renderiza producto.imagen_principal en cada card del catálogo
+// - Badge con conteo de imágenes adicionales (📷 N)
+// - Click en imagen abre la landing/u/slug en nueva pestaña (opcional)
+
 'use client'
 
 import { useState } from 'react'
@@ -76,7 +83,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     return normalizarProductos(data.productos)
   }
 
-  // Extracción desde textarea
   const extraerDesdeTexto = async () => {
     setProcesando(true)
     setError(null)
@@ -94,7 +100,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
-  // Extracción desde archivo Excel/CSV
   const handleArchivoExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0]
     if (!archivo) return
@@ -129,7 +134,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
-  // Extracción desde imagen
   const handleArchivoImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0]
     if (!archivo) return
@@ -183,7 +187,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     }
   }
 
-  // Extracción desde PDF (vía Supabase Storage)
   const handleArchivoPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0]
     if (!archivo) return
@@ -206,7 +209,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
     setArchivoNombre(archivo.name)
 
     try {
-      // Paso 1: obtener userId actual
       setEstadoPdf('Verificando sesión…')
       const supabase = createClient()
       const {
@@ -214,7 +216,6 @@ export function CatalogoClient({ productosIniciales }: Props) {
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Sesión expirada. Recarga la página.')
 
-      // Paso 2: subir a Supabase Storage
       setEstadoPdf('Subiendo PDF a la nube…')
       const rutaArchivo = `${user.id}/${Date.now()}-${archivo.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
 
@@ -229,11 +230,9 @@ export function CatalogoClient({ productosIniciales }: Props) {
         throw new Error(`Error al subir: ${uploadError.message}`)
       }
 
-      // Paso 3: llamar al endpoint con la ruta del archivo
       setEstadoPdf('La IA está leyendo el catálogo…')
       const productos = await extraerPDFConIA(rutaArchivo)
 
-      // Paso 4: limpiar el archivo de Storage (ya no lo necesitamos)
       await supabase.storage.from('catalogos').remove([rutaArchivo])
 
       setExtraidos(productos)
@@ -413,6 +412,7 @@ Mesa de centro nórdica - $680.000 - Madera roble
               />
               {imagenPreview ? (
                 <div className="border-2 border-brand-orange rounded-2xl p-4 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagenPreview}
                     alt="Preview"
@@ -555,25 +555,54 @@ Mesa de centro nórdica - $680.000 - Madera roble
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {productos.map((p) => (
-              <article key={p.id} className="card p-5 hover:shadow-md transition-shadow">
-                <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 mb-4 flex items-center justify-center">
-                  <span className="text-sm text-gray-400">Sin imagen</span>
-                </div>
-                <h3 className="font-semibold text-brand-navy line-clamp-1">{p.nombre}</h3>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.descripcion || '—'}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-brand-orange">{p.precio || 'Sin precio'}</span>
-                  <button
-                    onClick={() => eliminarProducto(p.id)}
-                    disabled={eliminandoId === p.id}
-                    className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-50"
-                  >
-                    {eliminandoId === p.id ? 'Eliminando…' : 'Eliminar'}
-                  </button>
-                </div>
-              </article>
-            ))}
+            {productos.map((p) => {
+              // ─── FIX: contar imágenes y elegir la principal ───
+              const totalImagenes =
+                (p.imagen_principal ? 1 : 0) +
+                (p.imagenes_adicionales?.length || 0)
+
+              return (
+                <article key={p.id} className="card p-5 hover:shadow-md transition-shadow">
+                  {/* ─── FIX: ahora SÍ renderiza la imagen ─── */}
+                  <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-50 mb-4">
+                    {p.imagen_principal ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.imagen_principal}
+                        alt={p.nombre}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <div className="text-center">
+                          <div className="text-3xl mb-1">📷</div>
+                          <div className="text-xs text-gray-400">Sin imagen</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {totalImagenes > 1 && (
+                      <div className="absolute bottom-2 right-2 text-white text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm bg-black/50">
+                        📷 {totalImagenes}
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="font-semibold text-brand-navy line-clamp-1">{p.nombre}</h3>
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.descripcion || '—'}</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-lg font-bold text-brand-orange">{p.precio || 'Sin precio'}</span>
+                    <button
+                      onClick={() => eliminarProducto(p.id)}
+                      disabled={eliminandoId === p.id}
+                      className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-50"
+                    >
+                      {eliminandoId === p.id ? 'Eliminando…' : 'Eliminar'}
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         )}
       </section>

@@ -21,28 +21,28 @@ export default function RegisterPage() {
       email, password,
       options: { data: { full_name: nombre } }
     })
-    if (signUpError) { setError(signUpError.message); setLoading(false) }
-    else {
-      console.log('[register] signUp OK, data:', data)
-      console.log('[register] user.id:', data.user?.id)
-    
-      fetch('/api/welcome-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, email, userId: data.user?.id }),
-      })
-        .then(async (r) => {
-          const json = await r.json()
-          console.log('[welcome-email] status:', r.status, 'response:', json)
+    if (signUpError) { 
+      setError(signUpError.message)
+      setLoading(false) 
+    } else {
+      console.log('[register] signUp OK, user.id:', data.user?.id)
+      
+      // Esperar el envío del email ANTES de redirigir
+      try {
+        const res = await fetch('/api/welcome-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, email, userId: data.user?.id }),
         })
-        .catch((e) => {
-          console.error('[welcome-email] error:', e)
-        })
+        const json = await res.json()
+        console.log('[welcome-email] status:', res.status, 'response:', json)
+      } catch (e) {
+        console.error('[welcome-email] error:', e)
+      }
       
       router.push('/onboarding')
       router.refresh()
     }
-  }
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({

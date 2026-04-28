@@ -17,11 +17,11 @@ export default function RegisterPage() {
     e.preventDefault()
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return }
     setLoading(true); setError('')
-    const { error } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: nombre } }
     })
-    if (error) { setError(error.message); setLoading(false) }
+    if (signUpError) { setError(signUpError.message); setLoading(false) }
     else {
       // Enviar email de bienvenida
       fetch('/api/welcome-email', {

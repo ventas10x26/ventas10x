@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .limit(5),
   ])
 
-  const profile = profileRes.data as Pick
+  const profile = profileRes.data as Pick<
     Profile,
     'nombre' | 'apellido' | 'empresa' | 'industria' | 'avatar_url' | 'whatsapp'
   > | null
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
-  const config = configRes.data as Pick
+  const config = configRes.data as Pick<
     LandingConfig,
     'titulo' | 'subtitulo' | 'producto' | 'imagen_hero' | 'color_acento'
   > | null
@@ -173,7 +173,7 @@ export default async function VendedorLandingPage({ params }: Props) {
     .eq('slug', slug)
     .single()
 
-  const profile = profileData as Pick
+  const profile = profileData as Pick<
     Profile,
     'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url' | 'industria' | 'whatsapp'
   > | null

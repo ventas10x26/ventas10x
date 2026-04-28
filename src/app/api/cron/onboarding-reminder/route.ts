@@ -1,12 +1,35 @@
+// Ruta destino: src/app/api/cron/onboarding-reminder/route.ts
+// REFACTORIZADO: cron unificado que evalúa qué email enviar a cada vendedor.
+// Reemplaza el cron viejo que solo enviaba 1 tipo de email.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
+import {
+  enviarEmailConTracking,
+  yaRecibioEmail,
+  diasDesdeRegistro,
+  diasHastaVencimiento,
+} from '@/lib/email-helpers'
+import {
+  templatePersonalizarLanding,
+  templateCrearBot,
+  templateViralizar,
+  templatePreVencimiento,
+  templateTrialVencido,
+} from '@/lib/email-templates'
 
-const supabase = createClient(
+const supabaseService = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-const resend = new Resend(process.env.RESEND_API_KEY)
+
+type ResultadoEnvio = {
+  vendedor_id: string
+  email: string
+  tipo: string
+  estado: 'enviado' | 'omitido' | 'error'
+  razon?: string
+}
 
 export async function GET(req: NextRequest) {
   // Verificar que viene de Vercel Cron
@@ -15,86 +38,203 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const hace48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-
-  // Usuarios registrados entre 24h y 48h sin empresa (onboarding incompleto)
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, nombre, created_at')
-    .is('empresa', null)
-    .gte('created_at', hace48h)
-    .lte('created_at', hace24h)
+  // Cargar todos los profiles + sus suscripciones
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profiles } = await (supabaseService.from('profiles') as any)
+    .select('id, nombre, apellido, empresa, slug, created_at')
+    .order('created_at', { ascending: false })
 
   if (!profiles?.length) {
-    return NextResponse.json({ message: 'No hay usuarios pendientes' })
+    return NextResponse.json({ message: 'No hay profiles', enviados: 0 })
   }
 
-  let enviados = 0
+  const resultados: ResultadoEnvio[] = []
 
   for (const profile of profiles) {
     try {
-      const { data: authUser } = await supabase.auth.admin.getUserById(profile.id)
-      const email = authUser?.user?.email
+      // Obtener email del usuario
+      const { data: authData } = await supabaseService.auth.admin.getUserById(profile.id)
+      const email = authData?.user?.email
       if (!email) continue
 
-      // Verificar que no tenga bots
-      const { data: bots } = await supabase
-        .from('bots').select('id').eq('user_id', profile.id).limit(1)
-      if (bots?.length) continue
+      const nombreCompleto = [profile.nombre, profile.apellido].filter(Boolean).join(' ')
+        || email.split('@')[0]
+      const primerNombre = nombreCompleto.split(' ')[0]
+      const slug = profile.slug || profile.id.slice(0, 8)
 
-      const firstName = profile.nombre || email.split('@')[0]
+      const datos = {
+        nombre: nombreCompleto,
+        primerNombre,
+        email,
+        slug,
+        empresa: profile.empresa || null,
+      }
 
-      await resend.emails.send({
-        from: 'Ricardo de Ventas10x <ricardo@ventas10x.co>',
-        to: email,
-        subject: `${firstName}, tu Bot IA te está esperando 🤖`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f4f6f9;padding:2rem;">
-            <div style="background:#0f1c2e;border-radius:20px;padding:2.5rem;margin-bottom:1.5rem;text-align:center;">
-              <div style="font-size:48px;margin-bottom:1rem;">🤖</div>
-              <h1 style="color:#fff;font-size:24px;font-weight:800;margin:0 0 10px;">
-                ${firstName}, tu bot sigue esperando
-              </h1>
-              <p style="color:rgba(255,255,255,.65);font-size:15px;margin:0;line-height:1.6;">
-                Creaste tu cuenta ayer pero aún no configuraste tu Bot IA.<br/>
-                <strong style="color:#FF6B2B;">Solo toma 5 minutos.</strong>
-              </p>
-            </div>
-            <div style="background:#fff;border-radius:16px;padding:1.75rem;margin-bottom:1.5rem;border:0.5px solid #e5e7eb;">
-              <h2 style="font-size:16px;font-weight:800;color:#111827;margin:0 0 1rem;">Lo que te estás perdiendo:</h2>
-              <div style="display:flex;flex-direction:column;gap:.875rem;">
-                <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">📱</span><span style="font-size:14px;color:#374151;">Leads llegando a tu WhatsApp mientras duermes</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">🎯</span><span style="font-size:14px;color:#374151;">Prospectos calificados listos para cerrar</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">⚡</span><span style="font-size:14px;color:#374151;">Respuestas automáticas 24/7 sin esfuerzo</span></div>
-              </div>
-            </div>
-            <a href="https://ventas10x.co/onboarding" style="display:block;background:#FF6B2B;color:#fff;text-decoration:none;text-align:center;padding:16px;border-radius:14px;font-weight:700;font-size:16px;margin-bottom:1rem;">
-              🚀 Configurar mi Bot IA ahora →
-            </a>
-            <div style="background:#fff;border-radius:16px;padding:1.25rem;border:0.5px solid #e5e7eb;margin-bottom:1.5rem;">
-              <p style="font-size:13px;color:#6b7280;margin:0;line-height:1.6;">
-                ¿Necesitas ayuda? Escríbeme al <a href="https://wa.me/573004339418" style="color:#FF6B2B;font-weight:600;">WhatsApp</a> o responde este email.
-              </p>
-              <div style="margin-top:1rem;display:flex;align-items:center;gap:10px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:#FF6B2B;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;">R</div>
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:#111827;">Ricardo Zambrano</div>
-                  <div style="font-size:12px;color:#9ca3af;">Fundador · Ventas10x</div>
-                </div>
-              </div>
-            </div>
-            <p style="text-align:center;color:#9ca3af;font-size:12px;">
-              Ventas10x · <a href="https://ventas10x.co" style="color:#FF6B2B;">ventas10x.co</a>
-            </p>
-          </div>
-        `,
-      })
-      enviados++
+      const dias = diasDesdeRegistro(profile.created_at)
+
+      // ─── DÍA 1: Personalizar landing (si NO editó landing) ───
+      if (dias === 1) {
+        const yaRecibio = await yaRecibioEmail(profile.id, 'personalizar_landing')
+        if (!yaRecibio) {
+          // Verificar si ya editó landing (tiene titulo o subtitulo custom)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: landing } = await (supabaseService.from('landing_config') as any)
+            .select('titulo, subtitulo')
+            .eq('vendedor_id', profile.id)
+            .maybeSingle()
+
+          const yaPersonalizo = !!(landing?.titulo || landing?.subtitulo)
+
+          if (!yaPersonalizo) {
+            const { asunto, html } = templatePersonalizarLanding(datos)
+            const r = await enviarEmailConTracking({
+              vendedorId: profile.id,
+              tipo: 'personalizar_landing',
+              email,
+              asunto,
+              html,
+            })
+            resultados.push({
+              vendedor_id: profile.id,
+              email,
+              tipo: 'personalizar_landing',
+              estado: r.ok ? 'enviado' : 'error',
+              razon: !r.ok && 'razon' in r ? r.razon : undefined,
+            })
+          }
+        }
+      }
+
+      // ─── DÍA 3: Crear Bot IA (si NO tiene bot) ───
+      if (dias === 3) {
+        const yaRecibio = await yaRecibioEmail(profile.id, 'crear_bot')
+        if (!yaRecibio) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: bots } = await (supabaseService.from('bots') as any)
+            .select('id')
+            .eq('user_id', profile.id)
+            .limit(1)
+
+          const tieneBot = (bots?.length || 0) > 0
+
+          if (!tieneBot) {
+            const { asunto, html } = templateCrearBot(datos)
+            const r = await enviarEmailConTracking({
+              vendedorId: profile.id,
+              tipo: 'crear_bot',
+              email,
+              asunto,
+              html,
+            })
+            resultados.push({
+              vendedor_id: profile.id,
+              email,
+              tipo: 'crear_bot',
+              estado: r.ok ? 'enviado' : 'error',
+              razon: !r.ok && 'razon' in r ? r.razon : undefined,
+            })
+          }
+        }
+      }
+
+      // ─── DÍA 7: Viralizar landing (a TODOS, sin filtro) ───
+      if (dias === 7) {
+        const yaRecibio = await yaRecibioEmail(profile.id, 'viralizar')
+        if (!yaRecibio) {
+          const { asunto, html } = templateViralizar(datos)
+          const r = await enviarEmailConTracking({
+            vendedorId: profile.id,
+            tipo: 'viralizar',
+            email,
+            asunto,
+            html,
+          })
+          resultados.push({
+            vendedor_id: profile.id,
+            email,
+            tipo: 'viralizar',
+            estado: r.ok ? 'enviado' : 'error',
+            razon: !r.ok && 'razon' in r ? r.razon : undefined,
+          })
+        }
+      }
+
+      // ─── PRE-VENCIMIENTO: 2 días antes de fin de trial ───
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: sub } = await (supabaseService.from('suscripciones') as any)
+        .select('plan, estado, fecha_fin')
+        .eq('vendedor_id', profile.id)
+        .eq('estado', 'activa')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (sub) {
+        const diasParaVencer = diasHastaVencimiento(sub.fecha_fin)
+
+        // Pre-vencimiento: 2 días antes (solo trial)
+        if (sub.plan === 'trial' && diasParaVencer === 2) {
+          const yaRecibio = await yaRecibioEmail(profile.id, 'pre_vencimiento')
+          if (!yaRecibio) {
+            const { asunto, html } = templatePreVencimiento(datos, diasParaVencer)
+            const r = await enviarEmailConTracking({
+              vendedorId: profile.id,
+              tipo: 'pre_vencimiento',
+              email,
+              asunto,
+              html,
+            })
+            resultados.push({
+              vendedor_id: profile.id,
+              email,
+              tipo: 'pre_vencimiento',
+              estado: r.ok ? 'enviado' : 'error',
+              razon: !r.ok && 'razon' in r ? r.razon : undefined,
+            })
+          }
+        }
+
+        // Trial vencido (día siguiente del vencimiento)
+        if (sub.plan === 'trial' && diasParaVencer <= 0 && diasParaVencer > -2) {
+          const yaRecibio = await yaRecibioEmail(profile.id, 'trial_vencido')
+          if (!yaRecibio) {
+            const { asunto, html } = templateTrialVencido(datos)
+            const r = await enviarEmailConTracking({
+              vendedorId: profile.id,
+              tipo: 'trial_vencido',
+              email,
+              asunto,
+              html,
+            })
+            resultados.push({
+              vendedor_id: profile.id,
+              email,
+              tipo: 'trial_vencido',
+              estado: r.ok ? 'enviado' : 'error',
+              razon: !r.ok && 'razon' in r ? r.razon : undefined,
+            })
+          }
+        }
+      }
     } catch (e) {
-      console.error('reminder error:', e)
+      console.error(`[cron] Error procesando ${profile.id}:`, e)
+      resultados.push({
+        vendedor_id: profile.id,
+        email: 'unknown',
+        tipo: 'unknown',
+        estado: 'error',
+        razon: e instanceof Error ? e.message : String(e),
+      })
     }
   }
 
-  return NextResponse.json({ message: `Recordatorios enviados: ${enviados}` })
+  const enviados = resultados.filter(r => r.estado === 'enviado').length
+  const errores = resultados.filter(r => r.estado === 'error').length
+
+  return NextResponse.json({
+    message: `Procesados ${profiles.length} profiles`,
+    enviados,
+    errores,
+    detalle: resultados,
+  })
 }

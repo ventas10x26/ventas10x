@@ -27,7 +27,7 @@ export default function RegisterPage() {
       fetch('/api/welcome-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, email }),
+        body: JSON.stringify({ nombre, email, userId: data.user?.id }),
       }).catch(() => {}) // fire and forget
       router.push('/onboarding')
       router.refresh()

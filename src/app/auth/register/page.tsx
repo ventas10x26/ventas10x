@@ -28,7 +28,15 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, email, userId: data.user?.id }),
-      }).catch(() => {}) // fire and forget
+      })
+        .then(async (r) => {
+          const json = await r.json()
+          console.log('[welcome-email] status:', r.status, 'response:', json)
+        })
+        .catch((e) => {
+          console.error('[welcome-email] error:', e)
+        })
+      
       router.push('/onboarding')
       router.refresh()
     }

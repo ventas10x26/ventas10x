@@ -1,7 +1,4 @@
 // Ruta destino: src/app/api/bot/chat/route.ts
-// REEMPLAZA. Único cambio respecto a la versión anterior:
-// - Al crear el lead, ahora se guarda accion.interes en el campo "producto"
-// - Las notas se mantienen como referencia adicional
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -26,6 +23,18 @@ interface BotRequestBody {
   conversacion_id?: string
 }
 
+type Bot = {
+  nombre: string | null
+  empresa: string | null
+  industria: string | null
+  tono: string | null
+  bienvenida: string | null
+  productos: string | null
+  faqs: string | null
+  whatsapp: string | null
+  activo: boolean | null
+}
+
 async function cargarContexto(slug: string) {
   const { data: perfil } = await supabase
     .from('profiles')
@@ -35,39 +44,72 @@ async function cargarContexto(slug: string) {
 
   if (!perfil) return null
 
-  const { data: productos } = await supabase
-    .from('productos')
-    .select('nombre, descripcion, precio')
-    .eq('vendedor_id', perfil.id)
-    .order('orden')
-    .limit(30)
+  const [productosRes, configRes, botRes] = await Promise.all([
+    supabase
+      .from('productos')
+      .select('nombre, descripcion, precio')
+      .eq('vendedor_id', perfil.id)
+      .order('orden')
+      .limit(30),
+    supabase
+      .from('landing_config')
+      .select('titulo, subtitulo, producto, whatsapp, mensaje_wa')
+      .eq('vendedor_id', perfil.id)
+      .single(),
+    supabase
+      .from('bots')
+      .select('nombre, empresa, industria, tono, bienvenida, productos, faqs, whatsapp, activo')
+      .eq('user_id', perfil.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
-  const { data: config } = await supabase
-    .from('landing_config')
-    .select('titulo, subtitulo, producto, whatsapp, mensaje_wa')
-    .eq('vendedor_id', perfil.id)
-    .single()
-
-  return { perfil, productos: productos ?? [], config }
+  return {
+    perfil,
+    productos: productosRes.data ?? [],
+    config: configRes.data,
+    bot: (botRes.data ?? null) as Bot | null,
+  }
 }
 
 function buildSystemPrompt(
   perfil: { nombre: string | null; apellido: string | null; empresa: string | null; industria: string | null },
   productos: { nombre: string; descripcion?: string | null; precio?: string | null }[],
   config: { titulo?: string | null; subtitulo?: string | null; producto?: string | null } | null,
+  bot: Bot | null,
   convData: { nombre?: string | null; whatsapp?: string | null }
 ): string {
-  const nombreAsesor = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'el asesor'
-  const empresa = perfil.empresa ?? 'la empresa'
-  const industria = perfil.industria?.toLowerCase() ?? 'default'
+  // El bot manda: si tiene nombre/industria/empresa, ESOS van. Si no, fallback al profile.
+  const nombreAsesor =
+    bot?.nombre?.trim() ||
+    [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') ||
+    'el asesor'
+  const empresa = bot?.empresa?.trim() || perfil.empresa?.trim() || 'la empresa'
+  const industria = (bot?.industria?.trim() || perfil.industria?.trim() || 'default').toLowerCase()
+  const tono = bot?.tono?.trim() || 'amigable y profesional'
 
-  const catalogoTexto = productos.length > 0
+  // Catálogo: combina la tabla productos + el campo libre del bot si existe
+  const catalogoTablaTexto = productos.length > 0
     ? productos.map(p => {
         const precio = p.precio ? ` — ${p.precio}` : ''
         const desc = p.descripcion ? ` (${p.descripcion})` : ''
         return `• ${p.nombre}${precio}${desc}`
       }).join('\n')
-    : 'El catálogo aún no está disponible. Ofrece que el asesor le enviará información por WhatsApp.'
+    : null
+
+  const catalogoBot = bot?.productos?.trim() || null
+
+  let bloqueCatalogo = ''
+  if (catalogoTablaTexto && catalogoBot) {
+    bloqueCatalogo = `${catalogoTablaTexto}\n\nInformación adicional:\n${catalogoBot}`
+  } else if (catalogoTablaTexto) {
+    bloqueCatalogo = catalogoTablaTexto
+  } else if (catalogoBot) {
+    bloqueCatalogo = catalogoBot
+  } else {
+    bloqueCatalogo = 'El catálogo aún no está disponible. Ofrece que el asesor le enviará información por WhatsApp.'
+  }
 
   const datosVisitante = [
     convData.nombre   ? `Nombre: ${convData.nombre}`     : null,
@@ -80,33 +122,41 @@ function buildSystemPrompt(
     retail:       'Pregunta qué producto necesita y para qué uso. Ofrece hacer una reserva o coordinar el envío.',
     manufactura:  'Pregunta el tipo de empresa, volumen mensual y línea de productos. Ofrece generar una cotización.',
     seguros:      'Pregunta qué quiere asegurar y para cuántas personas. Ofrece enviar una propuesta.',
+    salud:        'Pregunta el motivo de la consulta y la urgencia. Ofrece agendar la cita.',
+    educacion:    'Pregunta el nivel del interesado, materia y modalidad preferida. Ofrece una clase de muestra.',
+    gastronomia:  'Pregunta cuántas personas, ocasión y preferencias. Ofrece tomar la reserva.',
     default:      'Identifica la necesidad del visitante, muéstrale productos relevantes y ofrece continuar por WhatsApp.',
   }
   const guia = guiaIndustria[industria] ?? guiaIndustria.default
 
+  const seccionFaqs = bot?.faqs?.trim()
+    ? `\n## Preguntas frecuentes que ya conoces\n${bot.faqs.trim()}\n`
+    : ''
+
   return `Eres el asistente virtual de ${nombreAsesor} de ${empresa}.
 Tu trabajo: atender visitantes de su landing, responder preguntas del catálogo, calificar prospectos y capturar nombre y WhatsApp.
 
-## Personalidad
-- Amable, conciso. Máximo 2-3 oraciones por respuesta.
+## Personalidad y tono
+- Tu tono es: ${tono}.
+- Máximo 2-3 oraciones por respuesta.
 - Español latinoamericano, tuteo natural.
 - Nunca inventas precios ni productos que no estén en el catálogo.
 
 ## Catálogo
-${catalogoTexto}
+${bloqueCatalogo}
 
 ${config?.titulo ? `## Propuesta de valor\n${config.titulo}` : ''}
 ${config?.subtitulo ? `${config.subtitulo}` : ''}
 ${config?.producto ? `Producto principal: ${config.producto}` : ''}
-
+${seccionFaqs}
 ## Datos ya conocidos del visitante
 ${datosVisitante}
 
 ## Embudo (síguelo en orden)
 1. Saluda y pregunta en qué puedes ayudar.
 2. Identifica la necesidad: ${guia}
-3. Muestra 1-2 productos relevantes del catálogo.
-4. Pregunta presupuesto y urgencia.
+3. Muestra 1-2 productos/servicios relevantes del catálogo.
+4. Pregunta presupuesto y urgencia (cuando aplique).
 5. Pide nombre y número de WhatsApp para que ${nombreAsesor} le haga seguimiento.
 6. Confirma que ${nombreAsesor} le contactará pronto.
 
@@ -134,7 +184,18 @@ export async function POST(req: NextRequest) {
     if (!contexto) {
       return NextResponse.json({ error: 'Asesor no encontrado' }, { status: 404 })
     }
-    const { perfil, productos, config } = contexto
+    const { perfil, productos, config, bot } = contexto
+
+    // Si el bot está marcado como inactivo, responder con un mensaje cordial
+    if (bot && bot.activo === false) {
+      return NextResponse.json({
+        reply: 'En este momento el asistente virtual está pausado. Por favor escríbenos directamente por WhatsApp y te atenderemos pronto.',
+        conversacion_id: null,
+        lead_creado: false,
+        lead_id: null,
+        accion: null,
+      })
+    }
 
     let convId = conversacion_id
     let convData: { nombre?: string | null; whatsapp?: string | null } = {}
@@ -177,7 +238,7 @@ export async function POST(req: NextRequest) {
       content: message,
     })
 
-    const systemPrompt = buildSystemPrompt(perfil, productos, config, convData)
+    const systemPrompt = buildSystemPrompt(perfil, productos, config, bot, convData)
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
@@ -222,7 +283,6 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (!leadExistente && accion.whatsapp) {
-        // ── FIX: guardar el interés en producto + notas
         const interes = (accion.interes ?? '').trim()
         const notas = accion.accion === 'agendar_cita'
           ? `Cita solicitada: ${accion.fecha ?? 'a confirmar'}. Capturado por Bot IA.`
@@ -234,11 +294,11 @@ export async function POST(req: NextRequest) {
             vendedor_id: perfil.id,
             nombre:      accion.nombre ?? 'Visitante',
             whatsapp:    accion.whatsapp,
-            producto:    interes || null,         // ← AHORA SE GUARDA AQUÍ
+            producto:    interes || null,
             fuente:      'bot_landing',
             slug_origen: slug,
             etapa:       'nuevo',
-            notas,                                  // ← Notas separadas
+            notas,
           })
           .select('id')
           .single()
@@ -252,7 +312,6 @@ export async function POST(req: NextRequest) {
           }).eq('id', convId)
         }
 
-        // ── Notificaciones ──
         const vendedorNombre = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
 
         const mensajesPromise = generarMensajesParaLead({
@@ -268,7 +327,6 @@ export async function POST(req: NextRequest) {
           try {
             const mensajes = await mensajesPromise
 
-            // Email
             try {
               const { data: authUser } = await supabase.auth.admin.getUserById(perfil.id)
               const vendedorEmail = authUser?.user?.email
@@ -294,7 +352,6 @@ export async function POST(req: NextRequest) {
               console.error('[bot/chat] email error:', e)
             }
 
-            // WhatsApp (CallMeBot, si está activo)
             try {
               await notificarLeadPorWhatsApp(
                 {

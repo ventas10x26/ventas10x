@@ -13,6 +13,7 @@ interface ChatBotWidgetProps {
   nombreAsesor?: string
   colorAcento?: string
   industria?: string
+  bienvenida?: string | null
 }
 
 function getOrCreateSessionId(): string {
@@ -25,7 +26,9 @@ function getOrCreateSessionId(): string {
 
 const INDUSTRIA_AVATAR: Record<string, string> = {
   automotriz: '🚘', inmobiliaria: '🏠', retail: '🛍️',
-  manufactura: '🏭', seguros: '🛡️', tecnologia: '💻', default: '🤖',
+  manufactura: '🏭', seguros: '🛡️', tecnologia: '💻',
+  salud: '🩺', educacion: '🎓', gastronomia: '🍽️',
+  default: '🤖',
 }
 
 export default function ChatBotWidget({
@@ -33,6 +36,7 @@ export default function ChatBotWidget({
   nombreAsesor = 'Asistente',
   colorAcento = '#FF6B2B',
   industria = 'default',
+  bienvenida = null,
 }: ChatBotWidgetProps) {
   const [abierto, setAbierto]           = useState(true)
   const [mensajes, setMensajes]         = useState<Mensaje[]>([])
@@ -51,9 +55,13 @@ export default function ChatBotWidget({
 
   useEffect(() => {
     if (abierto && mensajes.length === 0) {
+      const mensajeInicial = bienvenida?.trim()
+        ? bienvenida.trim()
+        : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
+
       setMensajes([{
         role: 'assistant',
-        text: `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`,
+        text: mensajeInicial,
         timestamp: new Date(),
       }])
     }
@@ -61,7 +69,7 @@ export default function ChatBotWidget({
       setNotifBurbuja(false)
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [abierto, mensajes.length, nombreAsesor])
+  }, [abierto, mensajes.length, nombreAsesor, bienvenida])
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
@@ -104,7 +112,6 @@ export default function ChatBotWidget({
         timestamp: new Date(),
       }])
 
-      // Mostrar formulario si el bot detectó interés, creó lead, o después de 4 mensajes
       const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
       if (data.accion === 'crear_lead' || data.accion === 'agendar_cita' || userMsgCount >= 4) {
         setTimeout(mostrarFormulario, 600)
@@ -118,7 +125,7 @@ export default function ChatBotWidget({
     } finally {
       setCargando(false)
     }
-  }, [input, cargando, slug, convId, mostrarFormulario])
+  }, [input, cargando, slug, convId, mostrarFormulario, mensajes])
 
   const submitForm = async () => {
     if (!leadForm.nombre.trim() || !leadForm.whatsapp.trim()) return
@@ -181,7 +188,6 @@ export default function ChatBotWidget({
           animation: 'botSlideUp .25s ease',
         }}>
 
-          {/* Header */}
           <div style={{ background: colorAcento, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
               {avatar}
@@ -196,10 +202,8 @@ export default function ChatBotWidget({
             <button onClick={() => setAbierto(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
 
-          {/* Mensajes */}
           <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f8f8f6', minHeight: 0 }}>
             {mensajes.map((m, i) => {
-              // Formulario de captura
               if (m.role === 'form') {
                 return (
                   <div key={i} style={{ animation: 'botFadeUp .3s ease' }}>
@@ -228,7 +232,6 @@ export default function ChatBotWidget({
                 )
               }
 
-              // Mensajes normales
               return (
                 <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '82%', animation: 'botFadeUp .2s ease' }}>
                   <div style={{
@@ -239,6 +242,7 @@ export default function ChatBotWidget({
                     fontSize: 13, lineHeight: 1.55,
                     border: m.role === 'assistant' ? '1px solid rgba(0,0,0,0.07)' : 'none',
                     boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                    whiteSpace: 'pre-wrap',
                   }}>
                     {m.text}
                   </div>
@@ -260,7 +264,6 @@ export default function ChatBotWidget({
             )}
           </div>
 
-          {/* Input */}
           <div style={{ padding: '12px 14px', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               ref={inputRef}
@@ -282,7 +285,6 @@ export default function ChatBotWidget({
         </div>
       )}
 
-      {/* Botón flotante */}
       <button onClick={() => setAbierto(o => !o)} style={{ width: 56, height: 56, borderRadius: '50%', background: colorAcento, border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, transition: 'transform .2s', position: 'relative' }}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}

@@ -1,11 +1,12 @@
 // Ruta destino: src/app/u/[slug]/page.tsx
-// REEMPLAZA. Mejora MAYOR de SEO:
+// REEMPLAZA. Mejora MAYOR de SEO + integración real del bot:
 // - generateMetadata enriquecido con datos del vendedor
 // - OpenGraph con foto del vendedor
 // - JSON-LD de Person + Organization + LocalBusiness
 // - Description rica con productos
 // - Canonical URL
 // - Multi-idioma (alternates)
+// - ChatBotWidget ahora lee la config real del bot (nombre, bienvenida, industria)
 
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .limit(5),
   ])
 
-  const profile = profileRes.data as Pick<
+  const profile = profileRes.data as Pick
     Profile,
     'nombre' | 'apellido' | 'empresa' | 'industria' | 'avatar_url' | 'whatsapp'
   > | null
@@ -63,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
-  const config = configRes.data as Pick<
+  const config = configRes.data as Pick
     LandingConfig,
     'titulo' | 'subtitulo' | 'producto' | 'imagen_hero' | 'color_acento'
   > | null
@@ -172,14 +173,14 @@ export default async function VendedorLandingPage({ params }: Props) {
     .eq('slug', slug)
     .single()
 
-  const profile = profileData as Pick<
+  const profile = profileData as Pick
     Profile,
     'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url' | 'industria' | 'whatsapp'
   > | null
 
   if (!profile) notFound()
 
-  const [configRes, productosRes, seccionesRes] = await Promise.all([
+  const [configRes, productosRes, seccionesRes, botRes] = await Promise.all([
     supabase.from('landing_config').select('*').eq('vendedor_id', profile.id).single(),
     supabase.from('productos').select('*').eq('vendedor_id', profile.id).order('orden'),
     supabase
@@ -188,16 +189,35 @@ export default async function VendedorLandingPage({ params }: Props) {
       .eq('vendedor_id', profile.id)
       .eq('activa', true)
       .order('orden', { ascending: true }),
+    supabase
+      .from('bots')
+      .select('nombre, industria, bienvenida, activo')
+      .eq('user_id', profile.id)
+      .eq('activo', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const config = configRes.data as LandingConfig | null
   const productos = (productosRes.data || []) as Producto[]
   const secciones = (seccionesRes.data || []) as LandingSeccion[]
+  const bot = botRes.data as {
+    nombre: string | null
+    industria: string | null
+    bienvenida: string | null
+    activo: boolean | null
+  } | null
 
-  const nombreAsesor = [profile.nombre, profile.apellido]
+  const nombreFromProfile = [profile.nombre, profile.apellido]
     .filter(Boolean)
     .join(' ')
     .trim()
+
+  // El widget usa nombre del bot si existe; si no, cae al profile
+  const nombreBot = bot?.nombre?.trim() || nombreFromProfile || 'Asistente'
+  const industriaBot = bot?.industria?.trim() || profile.industria || 'default'
+  const bienvenidaBot = bot?.bienvenida?.trim() || null
 
   const colorAcento = config?.color_acento ?? '#FF6B2B'
   const canonicalUrl = absoluteUrl(`/u/${slug}`)
@@ -209,7 +229,7 @@ export default async function VendedorLandingPage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'Person',
     '@id': `${canonicalUrl}#person`,
-    name: nombreAsesor || 'Asesor',
+    name: nombreFromProfile || 'Asesor',
     url: canonicalUrl,
     image: profile.avatar_url || undefined,
     jobTitle: profile.industria ? `Asesor comercial en ${profile.industria}` : 'Asesor comercial',
@@ -236,7 +256,7 @@ export default async function VendedorLandingPage({ params }: Props) {
         '@type': 'ProfessionalService',
         '@id': `${canonicalUrl}#business`,
         name: profile.empresa,
-        description: config?.titulo || `${nombreAsesor} ofrece atención personalizada`,
+        description: config?.titulo || `${nombreFromProfile} ofrece atención personalizada`,
         url: canonicalUrl,
         image: config?.imagen_hero || profile.avatar_url || undefined,
         telephone: profile.whatsapp || undefined,
@@ -287,7 +307,7 @@ export default async function VendedorLandingPage({ params }: Props) {
       {
         '@type': 'ListItem',
         position: 2,
-        name: nombreAsesor,
+        name: nombreFromProfile,
         item: canonicalUrl,
       },
     ],
@@ -339,8 +359,10 @@ export default async function VendedorLandingPage({ params }: Props) {
 
       <ChatBotWidget
         slug={slug}
-        nombreAsesor={nombreAsesor}
+        nombreAsesor={nombreBot}
         colorAcento={colorAcento}
+        industria={industriaBot}
+        bienvenida={bienvenidaBot}
       />
     </>
   )

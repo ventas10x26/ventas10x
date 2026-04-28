@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     const siguienteOrden =
-      existentes && existentes.length > 0 ? existentes[0].orden + 1 : 0
+    existentes && existentes.length > 0 ? (existentes[0] as { orden: number }).orden + 1 : 0
 
     const nuevo = {
       user_id: user.id, // 🔥 CLAVE: relación correcta con el usuario

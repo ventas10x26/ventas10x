@@ -23,7 +23,9 @@ export default function RegisterPage() {
     })
     if (signUpError) { setError(signUpError.message); setLoading(false) }
     else {
-      // Enviar email de bienvenida
+      console.log('[register] signUp OK, data:', data)
+      console.log('[register] user.id:', data.user?.id)
+    
       fetch('/api/welcome-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

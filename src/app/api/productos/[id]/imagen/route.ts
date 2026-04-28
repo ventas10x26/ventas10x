@@ -84,11 +84,11 @@ export async function POST(req: NextRequest) {
       imagenes_adicionales: body.imagenes_adicionales || [],
     }
 
-    const { data, error } = await supabase
-      .from('productos')
-      .insert(nuevo)
-      .select('*')
-      .single()
+    const { data, error } = await (supabase as any)
+    .from('productos')
+    .insert(nuevo)
+    .select('*')
+    .single()
 
     if (error) {
       console.error('❌ ERROR INSERT PRODUCTO:', error)

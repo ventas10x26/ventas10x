@@ -6,11 +6,9 @@ import type { Profile, Suscripcion } from '@/types/database'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
   if (!user) redirect('/auth/login')
 
   // 🔍 Obtener perfil correctamente (con manejo de error)
@@ -18,7 +16,7 @@ export default async function DashboardPage() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .maybeSingle()
+    .maybeSingle<Profile>()
 
   if (profileError) {
     console.error('❌ PROFILE ERROR:', profileError)
@@ -32,22 +30,19 @@ export default async function DashboardPage() {
 
   // ⚠️ Validación más realista (NO usar slug aquí)
   const profileVacio = !profile.nombre && !profile.empresa
-
   if (profileVacio) {
     console.log('⚠️ PROFILE INCOMPLETO:', profile)
     redirect('/onboarding')
   }
 
   // 📦 Suscripción más reciente
-  const { data: susData } = await supabase
+  const { data: sus } = await supabase
     .from('suscripciones')
     .select('*')
     .eq('vendedor_id', user.id)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle()
-
-  const sus = susData as Suscripcion | null
+    .maybeSingle<Suscripcion>()
 
   // ⚡ Queries en paralelo
   const [leadsRes, botsRes] = await Promise.all([

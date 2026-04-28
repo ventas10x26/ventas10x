@@ -21,12 +21,11 @@ export default function RegisterPage() {
       email, password,
       options: { data: { full_name: nombre } }
     })
-    if (signUpError) { 
+    if (signUpError) {
       setError(signUpError.message)
-      setLoading(false) 
+      setLoading(false)
     } else {
       console.log('[register] signUp OK, user.id:', data.user?.id)
-      
       // Esperar el envío del email ANTES de redirigir
       try {
         const res = await fetch('/api/welcome-email', {
@@ -36,13 +35,13 @@ export default function RegisterPage() {
         })
         const json = await res.json()
         console.log('[welcome-email] status:', res.status, 'response:', json)
-      } catch (e) {
-        console.error('[welcome-email] error:', e)
+      } catch (err) {
+        console.error('[welcome-email] error:', err)
       }
-      
       router.push('/onboarding')
       router.refresh()
     }
+  }
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({

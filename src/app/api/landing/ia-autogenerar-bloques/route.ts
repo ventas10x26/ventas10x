@@ -1,170 +1,101 @@
-// Ruta destino: src/app/api/landing/config/route.ts
-// FASE 1 - Soporte para nuevos campos: stats, como_funciona, bloques_activos,
-// badge_promo, cta_principal_texto, cta_principal_microcopy.
-// Retrocompatible con los campos existentes (titulo, subtitulo, producto, color_acento).
+// Ruta destino: src/app/api/landing/ia-autogenerar-bloques/route.ts
+// Genera contenido por defecto (stats, como_funciona, badge) según industria
+// Se llama 1 vez por cada bloque vacío en la primera carga de la landing.
 
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 
-const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-type Stat = { valor: string; label: string }
-type Paso = { titulo: string; descripcion: string }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isStatArray(v: any): v is Stat[] {
-  return Array.isArray(v) && v.every(
-    (s) => s && typeof s.valor === 'string' && typeof s.label === 'string'
-  )
+interface RequestBody {
+  industria?: string
+  empresa?: string
+  nombreVendedor?: string
+  productoPrincipal?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isPasoArray(v: any): v is Paso[] {
-  return Array.isArray(v) && v.every(
-    (p) => p && typeof p.titulo === 'string' && typeof p.descripcion === 'string'
-  )
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isBloquesActivos(v: any): boolean {
-  if (!v || typeof v !== 'object' || Array.isArray(v)) return false
-  return Object.values(v).every((x) => typeof x === 'boolean')
-}
-
-export async function PATCH(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const body = await req.json()
+    const body: RequestBody = await req.json()
+    const industria = body.industria?.trim() || 'servicios'
+    const empresa = body.empresa?.trim() || ''
+    const nombreVendedor = body.nombreVendedor?.trim() || 'el asesor'
+    const productoPrincipal = body.productoPrincipal?.trim() || ''
 
-    // ── Validación del color (si viene) ──
-    if (body.color_acento && !HEX_REGEX.test(body.color_acento)) {
+    const prompt = `Eres experto en copywriting de landing pages para profesionales en Latinoamérica.
+
+Genera contenido por defecto para la landing de un asesor:
+- Industria: ${industria}
+- Asesor: ${nombreVendedor}
+- Empresa: ${empresa || 'sin especificar'}
+- Producto principal: ${productoPrincipal || 'no especificado'}
+
+Genera UN JSON válido (sin markdown, sin backticks) con esta estructura exacta:
+
+{
+  "stats": [
+    {"valor": "+200", "label": "CLIENTES"},
+    {"valor": "5 años", "label": "EXPERIENCIA"},
+    {"valor": "5 min", "label": "RESPUESTA"},
+    {"valor": "★ 4.9", "label": "RESEÑAS"}
+  ],
+  "como_funciona": [
+    {"titulo": "...", "descripcion": "..."},
+    {"titulo": "...", "descripcion": "..."},
+    {"titulo": "...", "descripcion": "..."}
+  ],
+  "badge_promo": "..."
+}
+
+Reglas:
+1. **stats**: 4 métricas creíbles para esa industria. Valores conservadores y realistas. Labels en MAYÚSCULAS, máximo 12 caracteres. NO inventes números muy altos.
+2. **como_funciona**: 3 pasos del cliente desde que descubre la landing hasta que recibe el servicio. Títulos de 1-2 palabras. Descripciones de máximo 12 palabras, claras y concretas.
+3. **badge_promo**: 1 frase corta (máx 8 palabras) que cree urgencia o destaque disponibilidad. Tono natural, sin clichés tipo "OFERTA LIMITADA". Ejemplo: "Disponible esta semana" o "Cupos para julio abiertos".
+
+Responde SOLO con el JSON, nada más.`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const textBlock = response.content.find((b) => b.type === 'text')
+    const text = textBlock && textBlock.type === 'text' ? textBlock.text : ''
+    const cleaned = text.replace(/```json|```/g, '').trim()
+
+    let data
+    try {
+      data = JSON.parse(cleaned)
+    } catch {
       return NextResponse.json(
-        { error: 'El color debe ser un hex válido (ej: #FF6B2B)' },
-        { status: 400 }
+        { error: 'La IA no devolvió un formato válido' },
+        { status: 500 }
       )
     }
 
-    // ── Construir objeto de cambios (solo campos enviados) ──
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cambios: Record<string, any> = {
-      vendedor_id: user.id,
-    }
-
-    // Campos texto existentes
-    if (body.titulo !== undefined) cambios.titulo = body.titulo?.trim() || null
-    if (body.subtitulo !== undefined) cambios.subtitulo = body.subtitulo?.trim() || null
-    if (body.producto !== undefined) cambios.producto = body.producto?.trim() || null
-    if (body.color_acento !== undefined) cambios.color_acento = body.color_acento?.trim() || '#FF6B2B'
-
-    // Campos texto adicionales (que ya existen en BD pero no estaban en el endpoint)
-    if (body.foto_url !== undefined) cambios.foto_url = body.foto_url?.trim() || null
-    if (body.whatsapp !== undefined) cambios.whatsapp = body.whatsapp?.trim() || null
-    if (body.mensaje_wa !== undefined) cambios.mensaje_wa = body.mensaje_wa?.trim() || null
-    if (body.imagen_hero !== undefined) cambios.imagen_hero = body.imagen_hero?.trim() || null
-    if (body.imagen_logo !== undefined) cambios.imagen_logo = body.imagen_logo?.trim() || null
-
-    // Imagenes galería (array de strings)
-    if (body.imagenes_galeria !== undefined) {
-      if (Array.isArray(body.imagenes_galeria)) {
-        cambios.imagenes_galeria = body.imagenes_galeria.filter(
-          (s: unknown) => typeof s === 'string'
-        )
-      } else if (body.imagenes_galeria === null) {
-        cambios.imagenes_galeria = null
-      } else {
-        return NextResponse.json(
-          { error: 'imagenes_galeria debe ser un array de strings' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // ── FASE 1: campos nuevos ──
-
-    // Stats (jsonb): array de {valor, label}
-    if (body.stats !== undefined) {
-      if (body.stats === null) {
-        cambios.stats = []
-      } else if (isStatArray(body.stats)) {
-        cambios.stats = body.stats.slice(0, 6) // máximo 6 stats
-      } else {
-        return NextResponse.json(
-          { error: 'stats debe ser un array de {valor, label}' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Como funciona (jsonb): array de {titulo, descripcion}
-    if (body.como_funciona !== undefined) {
-      if (body.como_funciona === null) {
-        cambios.como_funciona = []
-      } else if (isPasoArray(body.como_funciona)) {
-        cambios.como_funciona = body.como_funciona.slice(0, 5) // máximo 5 pasos
-      } else {
-        return NextResponse.json(
-          { error: 'como_funciona debe ser un array de {titulo, descripcion}' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Bloques activos (jsonb): objeto {hero: bool, stats: bool, ...}
-    if (body.bloques_activos !== undefined) {
-      if (isBloquesActivos(body.bloques_activos)) {
-        cambios.bloques_activos = body.bloques_activos
-      } else {
-        return NextResponse.json(
-          { error: 'bloques_activos debe ser un objeto de booleanos' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Badge promo (texto corto)
-    if (body.badge_promo !== undefined) {
-      cambios.badge_promo = body.badge_promo?.trim()?.slice(0, 80) || null
-    }
-
-    // CTA principal
-    if (body.cta_principal_texto !== undefined) {
-      cambios.cta_principal_texto = body.cta_principal_texto?.trim()?.slice(0, 50) || null
-    }
-    if (body.cta_principal_microcopy !== undefined) {
-      cambios.cta_principal_microcopy = body.cta_principal_microcopy?.trim()?.slice(0, 120) || null
-    }
-
-    // ── Si solo viene vendedor_id (nada más), error ──
-    if (Object.keys(cambios).length === 1) {
+    if (!data.stats || !data.como_funciona || !data.badge_promo) {
       return NextResponse.json(
-        { error: 'No hay cambios para guardar' },
-        { status: 400 }
+        { error: 'JSON incompleto' },
+        { status: 500 }
       )
     }
 
-    // ── Upsert ──
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.from('landing_config') as any)
-      .upsert(cambios, { onConflict: 'vendedor_id' })
-      .select('*')
-      .single()
-
-    if (error) {
-      console.error('[api/landing/config PATCH] Error Supabase:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ config: data })
+    return NextResponse.json({
+      ok: true,
+      stats: data.stats,
+      como_funciona: data.como_funciona,
+      badge_promo: data.badge_promo,
+    })
   } catch (error) {
-    console.error('[api/landing/config PATCH] Error:', error)
+    console.error('[ia-autogenerar-bloques]', error)
     const msg = error instanceof Error ? error.message : 'Error desconocido'
     return NextResponse.json({ error: msg }, { status: 500 })
   }

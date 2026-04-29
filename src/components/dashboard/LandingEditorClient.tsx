@@ -4,6 +4,14 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SeccionesEditor } from './SeccionesEditor'
+import { BloqueStats } from './landing-editor/BloqueStats'
+import { BloqueComoFunciona } from './landing-editor/BloqueComoFunciona'
+import { BloqueTestimonios } from './landing-editor/BloqueTestimonios'
+import { BloqueCTAyBadge } from './landing-editor/BloqueCTAyBadge'
+import { BloquesActivos, type BloquesConfig } from './landing-editor/BloquesActivos'
+
+type Stat = { valor: string; label: string }
+type Paso = { titulo: string; descripcion: string }
 
 type ConfigForm = {
   titulo: string
@@ -13,11 +21,30 @@ type ConfigForm = {
   imagen_hero?: string
   imagen_logo?: string
   imagenes_galeria?: string[]
+  // Campos Fase 1+2
+  stats?: Stat[]
+  como_funciona?: Paso[]
+  bloques_activos?: BloquesConfig
+  badge_promo?: string
+  cta_principal_texto?: string
+  cta_principal_microcopy?: string
+}
+
+type Testimonio = {
+  id: string
+  nombre_cliente: string
+  texto: string
+  rating: number
+  avatar_url: string | null
 }
 
 type Props = {
   slug: string
   configInicial: ConfigForm
+  industria?: string
+  empresa?: string
+  nombreVendedor?: string
+  testimoniosIniciales?: Testimonio[]
 }
 
 type ChatMsg = { role: 'user' | 'ai'; text: string }
@@ -57,7 +84,14 @@ const COLORES_SUGERIDOS = [
   { nombre: 'Rosa', hex: '#EC4899' },
 ]
 
-export function LandingEditorClient({ slug, configInicial }: Props) {
+export function LandingEditorClient({
+  slug,
+  configInicial,
+  industria,
+  empresa,
+  nombreVendedor,
+  testimoniosIniciales = [],
+}: Props) {
   const router = useRouter()
   const [form, setForm] = useState<ConfigForm>(configInicial)
   const [guardando, setGuardando] = useState(false)
@@ -747,6 +781,76 @@ export function LandingEditorClient({ slug, configInicial }: Props) {
           </div>
           <p className="text-xs text-gray-500 text-center">Guarda los cambios y el preview se actualiza.</p>
         </div>
+      </div>
+
+{/* ═════════ FASE 2: Bloques avanzados ═════════ */}
+<div className="mt-8 space-y-4">
+        <div className="border-t border-gray-200 pt-8">
+          <h2 className="text-2xl font-semibold text-brand-navy mb-1">Personalización avanzada</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Configura cada bloque de tu landing. Los cambios se guardan al hacer clic en &ldquo;Guardar cambios&rdquo;.
+          </p>
+        </div>
+
+        <details className="card p-6" open>
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">📊 Stats sociales</summary>
+          <div className="mt-4">
+            <BloqueStats
+              stats={form.stats || []}
+              onChange={(s) => actualizar('stats', s)}
+              industria={industria}
+              empresa={empresa}
+              nombreVendedor={nombreVendedor}
+              productoPrincipal={form.producto}
+            />
+          </div>
+        </details>
+
+        <details className="card p-6">
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">🎯 Botón principal y badge</summary>
+          <div className="mt-4">
+            <BloqueCTAyBadge
+              badge_promo={form.badge_promo || ''}
+              cta_principal_texto={form.cta_principal_texto || 'Reservar mi cita'}
+              cta_principal_microcopy={form.cta_principal_microcopy || 'Te respondo en 5 min por WhatsApp'}
+              onChange={(campo, valor) => actualizar(campo, valor)}
+            />
+          </div>
+        </details>
+
+        <details className="card p-6">
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">🚀 Cómo funciona</summary>
+          <div className="mt-4">
+            <BloqueComoFunciona
+              pasos={form.como_funciona || []}
+              onChange={(p) => actualizar('como_funciona', p)}
+              industria={industria}
+              empresa={empresa}
+              nombreVendedor={nombreVendedor}
+              productoPrincipal={form.producto}
+            />
+          </div>
+        </details>
+
+        <details className="card p-6">
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">💬 Testimonios</summary>
+          <div className="mt-4">
+            <BloqueTestimonios testimoniosIniciales={testimoniosIniciales} />
+          </div>
+        </details>
+
+        <details className="card p-6">
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">⚙️ Bloques activos</summary>
+          <div className="mt-4">
+            <BloquesActivos
+              bloques={form.bloques_activos || {
+                hero: true, stats: true, productos: true,
+                como_funciona: true, testimonios: true, cta_cierre: true,
+              }}
+              onChange={(b) => actualizar('bloques_activos', b)}
+            />
+          </div>
+        </details>
       </div>
 
       <style>{`

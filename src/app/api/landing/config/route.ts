@@ -141,6 +141,13 @@ export async function PATCH(req: NextRequest) {
     if (body.cta_principal_microcopy !== undefined) {
       cambios.cta_principal_microcopy = body.cta_principal_microcopy?.trim()?.slice(0, 120) || null
     }
+    if (body.tema !== undefined) {
+      const temasValidos = ['automotriz', 'inmobiliaria', 'salud', 'retail', 'tecnologia', 'belleza', 'servicios', 'generico']
+      const tema = String(body.tema).trim().toLowerCase()
+      if (temasValidos.includes(tema)) {
+        cambios.tema = tema
+      }
+    }
 
     // ── Si solo viene vendedor_id (nada más), error ──
     if (Object.keys(cambios).length === 1) {

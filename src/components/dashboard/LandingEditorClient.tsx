@@ -9,6 +9,8 @@ import { BloqueComoFunciona } from './landing-editor/BloqueComoFunciona'
 import { BloqueTestimonios } from './landing-editor/BloqueTestimonios'
 import { BloqueCTAyBadge } from './landing-editor/BloqueCTAyBadge'
 import { BloquesActivos, type BloquesConfig } from './landing-editor/BloquesActivos'
+import { SelectorTema } from './landing-editor/SelectorTema'
+import { SECTOR_THEMES, type SectorKey } from '@/lib/sector-themes'
 
 type Stat = { valor: string; label: string }
 type Paso = { titulo: string; descripcion: string }
@@ -28,6 +30,8 @@ type ConfigForm = {
   badge_promo?: string
   cta_principal_texto?: string
   cta_principal_microcopy?: string
+  // Campo Fase 3
+  tema?: SectorKey
 }
 
 type Testimonio = {
@@ -791,6 +795,32 @@ export function LandingEditorClient({
             Configura cada bloque de tu landing. Los cambios se guardan al hacer clic en &ldquo;Guardar cambios&rdquo;.
           </p>
         </div>
+
+        <details className="card p-6" open>
+          <summary className="text-lg font-semibold text-brand-navy cursor-pointer">🎨 Tema del sector</summary>
+          <div className="mt-4">
+            <SelectorTema
+              tema={(form.tema as SectorKey) || 'generico'}
+              onChange={(t) => actualizar('tema', t)}
+              onAplicarDefaults={(t) => {
+                const theme = SECTOR_THEMES[t]
+                if (!theme) return
+                // Solo sobrescribe campos vacíos
+                if (!form.titulo?.trim()) actualizar('titulo', theme.tituloDefault.replace(/\n/g, ' '))
+                if (!form.subtitulo?.trim()) actualizar('subtitulo', theme.subtituloDefault)
+                if (!form.badge_promo?.trim()) actualizar('badge_promo', theme.badgePromoDefault)
+                if (!form.cta_principal_texto?.trim() || form.cta_principal_texto === 'Reservar mi cita')
+                  actualizar('cta_principal_texto', theme.ctaTextoDefault)
+                if (!form.cta_principal_microcopy?.trim() || form.cta_principal_microcopy === 'Te respondo en 5 min por WhatsApp')
+                  actualizar('cta_principal_microcopy', theme.ctaMicrocopyDefault)
+                if (!form.stats || form.stats.length === 0) actualizar('stats', theme.statsDefault)
+                if (!form.como_funciona || form.como_funciona.length === 0) actualizar('como_funciona', theme.comoFuncionaDefault)
+                if (!form.color_acento || form.color_acento === '#FF6B2B') actualizar('color_acento', theme.colorSecundario)
+                setMensaje({ tipo: 'ok', texto: `Defaults del tema "${theme.nombre}" aplicados a campos vacíos.` })
+              }}
+            />
+          </div>
+        </details>
 
         <details className="card p-6" open>
           <summary className="text-lg font-semibold text-brand-navy cursor-pointer">📊 Stats sociales</summary>

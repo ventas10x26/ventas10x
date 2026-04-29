@@ -68,6 +68,7 @@ export default async function LandingEditorPage() {
           badge_promo: config?.badge_promo ?? '',
           cta_principal_texto: config?.cta_principal_texto ?? 'Reservar mi cita',
           cta_principal_microcopy: config?.cta_principal_microcopy ?? 'Te respondo en 5 min por WhatsApp',
+          tema: config?.tema ?? 'generico',
         }}
         // Datos auxiliares para autogeneración IA
         industria={profile?.industria ?? ''}

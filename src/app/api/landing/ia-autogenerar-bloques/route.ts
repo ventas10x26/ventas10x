@@ -1,10 +1,10 @@
 // Ruta destino: src/app/api/landing/ia-autogenerar-bloques/route.ts
-// Genera contenido por defecto (stats, como_funciona, badge) según industria
-// Se llama 1 vez por cada bloque vacío en la primera carga de la landing.
+// FASE 3 - Usa el tema del sector como base. Si el usuario tiene tema definido,
+// la IA refina los defaults del tema. Si no, mantiene comportamiento anterior.
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@/lib/supabase/server'
+import { getTheme, detectThemeFromIndustria, type SectorKey } from '@/lib/sector-themes'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -13,38 +13,65 @@ interface RequestBody {
   empresa?: string
   nombreVendedor?: string
   productoPrincipal?: string
+  tema?: SectorKey | string
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-    }
-
     const body: RequestBody = await req.json()
-    const industria = body.industria?.trim() || 'servicios'
+    const industria = body.industria?.trim() || ''
     const empresa = body.empresa?.trim() || ''
     const nombreVendedor = body.nombreVendedor?.trim() || 'el asesor'
     const productoPrincipal = body.productoPrincipal?.trim() || ''
 
+    // Resolver el tema: prioridad al campo `tema`, fallback al detectado por `industria`
+    const sectorKey = body.tema?.trim()
+      ? body.tema.trim() as SectorKey
+      : detectThemeFromIndustria(industria)
+    const theme = getTheme(sectorKey)
+
+    // Si la IA falla, devolvemos los defaults del tema (siempre algo se renderiza)
+    const fallback = {
+      ok: true,
+      tema: theme.key,
+      stats: theme.statsDefault,
+      como_funciona: theme.comoFuncionaDefault,
+      badge_promo: theme.badgePromoDefault,
+    }
+
     const prompt = `Eres experto en copywriting de landing pages para profesionales en Latinoamérica.
 
-Genera contenido por defecto para la landing de un asesor:
-- Industria: ${industria}
+Voy a darte un punto de partida de un sector específico, y tu tarea es **adaptarlo y refinarlo** al asesor concreto. NO inventes números altos. Mantén el tono natural latinoamericano.
+
+CONTEXTO DEL ASESOR:
+- Sector detectado: ${theme.nombre} (${theme.emoji})
+- Industria que escribió: ${industria || 'no especificada'}
 - Asesor: ${nombreVendedor}
 - Empresa: ${empresa || 'sin especificar'}
 - Producto principal: ${productoPrincipal || 'no especificado'}
 
-Genera UN JSON válido (sin markdown, sin backticks) con esta estructura exacta:
+PUNTO DE PARTIDA DEL SECTOR (refínalo):
+
+stats_base = ${JSON.stringify(theme.statsDefault)}
+como_funciona_base = ${JSON.stringify(theme.comoFuncionaDefault)}
+badge_promo_base = "${theme.badgePromoDefault}"
+
+INSTRUCCIONES:
+
+1. **stats**: Personaliza las 4 métricas para que encajen con el asesor (${nombreVendedor}) si tienes pistas en el contexto. Si no, deja las del sector pero ajusta valores conservadores. Labels en MAYÚSCULAS, máximo 14 caracteres.
+
+2. **como_funciona**: Toma los 3 pasos del sector y reescríbelos en primera persona desde la perspectiva del asesor. Adapta a su producto/servicio si lo conoces. Títulos cortos (1-2 palabras). Descripciones de máximo 12 palabras.
+
+3. **badge_promo**: Toma el badge del sector y adáptalo al contexto. Mantén el tono. Máximo 8 palabras.
+
+Responde SOLO con un JSON válido (sin markdown, sin backticks, sin texto adicional):
 
 {
   "stats": [
-    {"valor": "+200", "label": "CLIENTES"},
-    {"valor": "5 años", "label": "EXPERIENCIA"},
-    {"valor": "5 min", "label": "RESPUESTA"},
-    {"valor": "★ 4.9", "label": "RESEÑAS"}
+    {"valor": "...", "label": "..."},
+    {"valor": "...", "label": "..."},
+    {"valor": "...", "label": "..."},
+    {"valor": "...", "label": "..."}
   ],
   "como_funciona": [
     {"titulo": "...", "descripcion": "..."},
@@ -52,14 +79,7 @@ Genera UN JSON válido (sin markdown, sin backticks) con esta estructura exacta:
     {"titulo": "...", "descripcion": "..."}
   ],
   "badge_promo": "..."
-}
-
-Reglas:
-1. **stats**: 4 métricas creíbles para esa industria. Valores conservadores y realistas. Labels en MAYÚSCULAS, máximo 12 caracteres. NO inventes números muy altos.
-2. **como_funciona**: 3 pasos del cliente desde que descubre la landing hasta que recibe el servicio. Títulos de 1-2 palabras. Descripciones de máximo 12 palabras, claras y concretas.
-3. **badge_promo**: 1 frase corta (máx 8 palabras) que cree urgencia o destaque disponibilidad. Tono natural, sin clichés tipo "OFERTA LIMITADA". Ejemplo: "Disponible esta semana" o "Cupos para julio abiertos".
-
-Responde SOLO con el JSON, nada más.`
+}`
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
@@ -75,21 +95,17 @@ Responde SOLO con el JSON, nada más.`
     try {
       data = JSON.parse(cleaned)
     } catch {
-      return NextResponse.json(
-        { error: 'La IA no devolvió un formato válido' },
-        { status: 500 }
-      )
+      // Si la IA no devolvió JSON válido, usamos los defaults del sector
+      return NextResponse.json(fallback)
     }
 
     if (!data.stats || !data.como_funciona || !data.badge_promo) {
-      return NextResponse.json(
-        { error: 'JSON incompleto' },
-        { status: 500 }
-      )
+      return NextResponse.json(fallback)
     }
 
     return NextResponse.json({
       ok: true,
+      tema: theme.key,
       stats: data.stats,
       como_funciona: data.como_funciona,
       badge_promo: data.badge_promo,

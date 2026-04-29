@@ -48,9 +48,10 @@ type Props = {
   productos: Producto[]
   testimonios: Testimonio[]
   slug: string
+  tema?: string
 }
 
-export function LandingPage({ profile, config, productos, testimonios, slug }: Props) {
+export function LandingPage({ profile, config, productos, testimonios, slug, tema }: Props) {
   const colorAcento = config?.color_acento || '#FF6B2B'
   const bloques: BloquesActivos = config?.bloques_activos || {
     hero: true,
@@ -202,17 +203,18 @@ export function LandingPage({ profile, config, productos, testimonios, slug }: P
       {/* ── Hero ── */}
       {bloques.hero !== false && (
         <HeroSection
-          nombreVendedor={nombreVendedor}
-          titulo={config?.titulo || ''}
-          subtitulo={config?.subtitulo || ''}
-          imagenHero={config?.imagen_hero || profile.avatar_url || ''}
-          badgePromo={badgePromo}
-          colorAcento={colorAcento}
-          ctaTexto={ctaTexto}
-          ctaMicrocopy={ctaMicrocopy}
-          industria={industria}
-          onCtaClick={scrollToCTA}
-        />
+        nombreVendedor={nombreVendedor}
+        titulo={config?.titulo || ''}
+        subtitulo={config?.subtitulo || ''}
+        imagenHero={config?.imagen_hero || profile.avatar_url || ''}
+        badgePromo={badgePromo}
+        colorAcento={colorAcento}
+        ctaTexto={ctaTexto}
+        ctaMicrocopy={ctaMicrocopy}
+        industria={industria}
+        tema={tema}
+        onCtaClick={scrollToCTA}
+      />
       )}
 
       {/* ── Stats ── */}

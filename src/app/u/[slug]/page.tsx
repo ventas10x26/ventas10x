@@ -302,12 +302,13 @@ export default async function VendedorLandingPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
-      <LandingPage
+<LandingPage
         profile={profile}
         config={config}
         productos={productos}
         testimonios={testimonios}
         slug={slug}
+        tema={config?.tema ?? undefined}
       />
 
       {secciones.length > 0 && (

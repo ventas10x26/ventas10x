@@ -1,6 +1,10 @@
 // Ruta destino: src/components/landing/HeroSection.tsx
+// FASE 3 - Aplica el tema del sector. Mantiene compatibilidad: si no recibe tema, usa default.
 
 'use client'
+
+import type { SectorKey } from '@/lib/sector-themes'
+import { getTheme } from '@/lib/sector-themes'
 
 type Props = {
   nombreVendedor: string
@@ -12,6 +16,7 @@ type Props = {
   ctaTexto: string
   ctaMicrocopy: string
   industria: string
+  tema?: SectorKey | string
   onCtaClick: () => void
 }
 
@@ -23,17 +28,29 @@ export function HeroSection({
   colorAcento,
   ctaTexto,
   ctaMicrocopy,
+  tema,
   onCtaClick,
 }: Props) {
 
+  const theme = getTheme(tema)
   const tieneImagen = !!imagenHero?.trim()
+
+  // Si los textos están vacíos, usar defaults del tema
+  const tituloFinal = titulo?.trim() || theme.tituloDefault
+  const subtituloFinal = subtitulo?.trim() || theme.subtituloDefault
+  const badgeFinal = badgePromo?.trim() || theme.badgePromoDefault
+  const ctaFinal = ctaTexto?.trim() || theme.ctaTextoDefault
+  const microcopyFinal = ctaMicrocopy?.trim() || theme.ctaMicrocopyDefault
+
+  // Background suave según el tema
+  const bgGradient = `linear-gradient(180deg, #fff 0%, ${colorAcento}08 100%)`
 
   return (
     <section
       id="cta-principal"
       style={{
         padding: '40px 24px 32px',
-        background: 'linear-gradient(180deg, #fff 0%, #fdf9f5 100%)',
+        background: bgGradient,
       }}
     >
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -41,7 +58,7 @@ export function HeroSection({
         <div className="hero-grid">
 
           <div>
-            {badgePromo && (
+            {badgeFinal && (
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -63,7 +80,7 @@ export function HeroSection({
                   color: colorAcento,
                   fontWeight: 500,
                 }}>
-                  {badgePromo}
+                  {badgeFinal}
                 </span>
               </div>
             )}
@@ -75,8 +92,10 @@ export function HeroSection({
               letterSpacing: '-0.03em',
               color: '#0a0a0a',
               margin: '0 0 16px',
+              fontFamily: theme.fontHero,
+              whiteSpace: 'pre-line',
             }}>
-              {titulo || 'Tu próximo cliente está a un mensaje de distancia'}
+              {tituloFinal}
             </h1>
 
             <p style={{
@@ -86,7 +105,7 @@ export function HeroSection({
               margin: '0 0 26px',
               maxWidth: '520px',
             }}>
-              {subtitulo || 'Atención personalizada por WhatsApp. Te respondo rápido y sin compromiso.'}
+              {subtituloFinal}
             </p>
 
             <div style={{
@@ -111,7 +130,7 @@ export function HeroSection({
                   fontFamily: 'inherit',
                 }}
               >
-                {ctaTexto} →
+                {ctaFinal} →
               </button>
               <button
                 onClick={onCtaClick}
@@ -132,7 +151,7 @@ export function HeroSection({
             </div>
 
             <div style={{ fontSize: '12px', color: '#888' }}>
-              ⚡ {ctaMicrocopy}
+              {microcopyFinal}
             </div>
           </div>
 
@@ -140,7 +159,7 @@ export function HeroSection({
             aspectRatio: '4/5',
             background: tieneImagen
               ? `url(${imagenHero}) center/cover`
-              : 'linear-gradient(135deg, #f4ebe1, #d8c5b0)',
+              : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
             borderRadius: '20px',
             position: 'relative',
             overflow: 'hidden',
@@ -153,10 +172,12 @@ export function HeroSection({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#8b6f4d',
-                fontSize: '12px',
+                flexDirection: 'column',
+                color: colorAcento,
+                opacity: 0.7,
               }}>
-                Sube una imagen desde tu dashboard
+                <div style={{ fontSize: '64px', marginBottom: '8px' }}>{theme.emoji}</div>
+                <div style={{ fontSize: '12px' }}>Sube una imagen desde tu dashboard</div>
               </div>
             )}
           </div>

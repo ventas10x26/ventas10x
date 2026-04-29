@@ -128,11 +128,7 @@ export function LandingEditorClient({
     imagenes: ImagenProducto[]
   } | null>(null)
 
-  const hayCambios =
-    form.titulo !== configInicial.titulo ||
-    form.subtitulo !== configInicial.subtitulo ||
-    form.producto !== configInicial.producto ||
-    form.color_acento !== configInicial.color_acento
+  const hayCambios = JSON.stringify(form) !== JSON.stringify(configInicial)
 
   const actualizar = <K extends keyof ConfigForm>(campo: K, valor: ConfigForm[K]) => {
     setForm(prev => ({ ...prev, [campo]: valor }))

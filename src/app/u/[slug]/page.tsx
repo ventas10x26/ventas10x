@@ -1,12 +1,5 @@
 // Ruta destino: src/app/u/[slug]/page.tsx
-// REEMPLAZA. Mejora MAYOR de SEO + integración real del bot:
-// - generateMetadata enriquecido con datos del vendedor
-// - OpenGraph con foto del vendedor
-// - JSON-LD de Person + Organization + LocalBusiness
-// - Description rica con productos
-// - Canonical URL
-// - Multi-idioma (alternates)
-// - ChatBotWidget ahora lee la config real del bot (nombre, bienvenida, industria)
+// FASE 1 - Carga de testimonios + landing_config extendida
 
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
@@ -78,13 +71,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const subtitulo = config?.subtitulo?.trim() || ''
   const productoPrincipal = config?.producto?.trim() || ''
 
-  // Title optimizado: nombre + empresa + lo que vende
   const partesTitulo = [nombreVendedor]
   if (empresa) partesTitulo.push(empresa)
   if (productoPrincipal) partesTitulo.push(productoPrincipal)
   const titleSeo = partesTitulo.join(' · ')
 
-  // Description: rica con info del vendedor + productos
   let description = ''
   if (titulo) description = titulo
   if (subtitulo) description += description ? '. ' + subtitulo : subtitulo
@@ -97,7 +88,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!description) {
     description = `Solicita tu cotización con ${nombreVendedor}${empresa ? ` de ${empresa}` : ''}. Atención personalizada por WhatsApp.`
   }
-  // Truncar a 160 caracteres (recomendado para SEO)
   if (description.length > 160) {
     description = description.substring(0, 157) + '...'
   }
@@ -118,13 +108,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       'WhatsApp',
       'Latam',
     ].filter(Boolean) as string[],
-
     authors: [{ name: nombreVendedor }],
-
-    alternates: {
-      canonical: canonicalUrl,
-    },
-
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       type: 'profile',
       url: canonicalUrl,
@@ -132,25 +117,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${nombreVendedor}${empresa ? ' · ' + empresa : ''}`,
       description,
       images: ogImage
-        ? [
-            {
-              url: ogImage,
-              width: 1200,
-              height: 630,
-              alt: `Landing de ${nombreVendedor}`,
-            },
-          ]
+        ? [{ url: ogImage, width: 1200, height: 630, alt: `Landing de ${nombreVendedor}` }]
         : undefined,
       locale: SEO_CONFIG.defaultLocale,
     },
-
     twitter: {
       card: 'summary_large_image',
       title: `${nombreVendedor}${empresa ? ' · ' + empresa : ''}`,
       description,
       images: ogImage ? [ogImage] : undefined,
     },
-
     robots: {
       index: true,
       follow: true,
@@ -180,7 +156,7 @@ export default async function VendedorLandingPage({ params }: Props) {
 
   if (!profile) notFound()
 
-  const [configRes, productosRes, seccionesRes, botRes] = await Promise.all([
+  const [configRes, productosRes, seccionesRes, botRes, testimoniosRes] = await Promise.all([
     supabase.from('landing_config').select('*').eq('vendedor_id', profile.id).single(),
     supabase.from('productos').select('*').eq('vendedor_id', profile.id).order('orden'),
     supabase
@@ -197,11 +173,19 @@ export default async function VendedorLandingPage({ params }: Props) {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('testimonios')
+      .select('id, nombre_cliente, texto, rating, avatar_url')
+      .eq('vendedor_id', profile.id)
+      .order('orden', { ascending: true })
+      .limit(6),
   ])
 
-  const config = configRes.data as LandingConfig | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config = configRes.data as any
   const productos = (productosRes.data || []) as Producto[]
   const secciones = (seccionesRes.data || []) as LandingSeccion[]
+  const testimonios = testimoniosRes.data || []
   const bot = botRes.data as {
     nombre: string | null
     industria: string | null
@@ -214,7 +198,6 @@ export default async function VendedorLandingPage({ params }: Props) {
     .join(' ')
     .trim()
 
-  // El widget usa nombre del bot si existe; si no, cae al profile
   const nombreBot = bot?.nombre?.trim() || nombreFromProfile || 'Asistente'
   const industriaBot = bot?.industria?.trim() || profile.industria || 'default'
   const bienvenidaBot = bot?.bienvenida?.trim() || null
@@ -224,7 +207,6 @@ export default async function VendedorLandingPage({ params }: Props) {
 
   // ─── JSON-LD ───
 
-  // Person (el vendedor)
   const personJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Person',
@@ -234,10 +216,7 @@ export default async function VendedorLandingPage({ params }: Props) {
     image: profile.avatar_url || undefined,
     jobTitle: profile.industria ? `Asesor comercial en ${profile.industria}` : 'Asesor comercial',
     worksFor: profile.empresa
-      ? {
-          '@type': 'Organization',
-          name: profile.empresa,
-        }
+      ? { '@type': 'Organization', name: profile.empresa }
       : undefined,
     contactPoint: profile.whatsapp
       ? {
@@ -249,7 +228,6 @@ export default async function VendedorLandingPage({ params }: Props) {
       : undefined,
   }
 
-  // ProfessionalService (la landing como negocio local)
   const businessJsonLd = profile.empresa
     ? {
         '@context': 'https://schema.org',
@@ -266,7 +244,6 @@ export default async function VendedorLandingPage({ params }: Props) {
       }
     : null
 
-  // Productos como ItemList
   const productListJsonLd =
     productos.length > 0
       ? {
@@ -293,29 +270,17 @@ export default async function VendedorLandingPage({ params }: Props) {
         }
       : null
 
-  // Breadcrumb
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Inicio',
-        item: SEO_CONFIG.siteUrl,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: nombreFromProfile,
-        item: canonicalUrl,
-      },
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: SEO_CONFIG.siteUrl },
+      { '@type': 'ListItem', position: 2, name: nombreFromProfile, item: canonicalUrl },
     ],
   }
 
   return (
     <>
-      {/* JSON-LD para datos enriquecidos */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
@@ -341,6 +306,7 @@ export default async function VendedorLandingPage({ params }: Props) {
         profile={profile}
         config={config}
         productos={productos}
+        testimonios={testimonios}
         slug={slug}
       />
 

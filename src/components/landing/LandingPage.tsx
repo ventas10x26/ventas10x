@@ -1,203 +1,263 @@
 // Ruta destino: src/components/landing/LandingPage.tsx
+// FASE 1 - Renovación visual completa.
+// Estructura: Hero split + Stats + Productos + Cómo funciona + Testimonios + CTA cierre + Sticky mobile.
+
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { Profile, LandingConfig, Producto } from '@/types/database'
-import { ProductoCard } from './ProductoCard'
+import { HeroSection } from './HeroSection'
+import { StatsBar } from './StatsBar'
+import { ProductosGrid } from './ProductosGrid'
+import { ComoFuncionaSection } from './ComoFuncionaSection'
+import { TestimoniosSection } from './TestimoniosSection'
+import { CTACierre } from './CTACierre'
+import { StickyMobileCTA } from './StickyMobileCTA'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+type Stat = { valor: string; label: string }
+type Paso = { titulo: string; descripcion: string }
+type Testimonio = {
+  id: string
+  nombre_cliente: string
+  texto: string
+  rating: number
+  avatar_url: string | null
+}
 
-interface Props {
-  profile: Pick<Profile, 'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url'>
-  config: LandingConfig | null
+type BloquesActivos = {
+  hero?: boolean
+  stats?: boolean
+  productos?: boolean
+  como_funciona?: boolean
+  testimonios?: boolean
+  cta_cierre?: boolean
+}
+
+type LandingConfigExtended = LandingConfig & {
+  stats?: Stat[] | null
+  como_funciona?: Paso[] | null
+  bloques_activos?: BloquesActivos | null
+  badge_promo?: string | null
+  cta_principal_texto?: string | null
+  cta_principal_microcopy?: string | null
+}
+
+type Props = {
+  profile: Pick<Profile, 'id' | 'nombre' | 'apellido' | 'empresa' | 'avatar_url' | 'industria' | 'whatsapp'>
+  config: LandingConfigExtended | null
   productos: Producto[]
+  testimonios: Testimonio[]
   slug: string
 }
 
-export function LandingPage({ profile, config, productos, slug }: Props) {
-  const [nombre, setNombre] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [interes, setInteres] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-
-  const vendedorNombre = [profile.nombre, profile.apellido].filter(Boolean).join(' ')
-  const acento = config?.color_acento || '#FF6B2B'
-  const titulo = config?.titulo || 'Tu solución, personalizada.'
-  const subtitulo = config?.subtitulo || 'Escríbeme ahora y te respondo en menos de 30 minutos.'
-  const producto = config?.producto || 'productos y servicios'
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!nombre || !whatsapp) return
-    setLoading(true); setError('')
-
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({
-        vendedor_id: profile.id,
-        nombre,
-        whatsapp,
-        producto: interes || null,
-        fuente: 'landing',
-        slug_origen: slug,
-        etapa: 'nuevo',
-      }),
-    })
-
-    if (!res.ok) {
-      setError('Error al enviar. Intenta de nuevo.')
-      setLoading(false)
-      return
-    }
-
-    fetch(`${SUPABASE_URL}/functions/v1/notificar-lead`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
-      body: JSON.stringify({
-        vendedor_id: profile.id,
-        lead_nombre: nombre,
-        lead_whatsapp: whatsapp,
-        lead_producto: interes,
-      }),
-    }).catch(() => {})
-
-    setSuccess(true)
-    setLoading(false)
+export function LandingPage({ profile, config, productos, testimonios, slug }: Props) {
+  const colorAcento = config?.color_acento || '#FF6B2B'
+  const bloques: BloquesActivos = config?.bloques_activos || {
+    hero: true,
+    stats: true,
+    productos: true,
+    como_funciona: true,
+    testimonios: true,
+    cta_cierre: true,
   }
 
+  const nombreVendedor = [profile.nombre, profile.apellido].filter(Boolean).join(' ').trim() || 'Asesor'
+  const empresa = profile.empresa?.trim() || ''
+  const industria = profile.industria?.trim() || ''
+
+  // ── Estados de bloques (con autogeneración lazy) ──
+  const [stats, setStats] = useState<Stat[]>(config?.stats || [])
+  const [comoFunciona, setComoFunciona] = useState<Paso[]>(config?.como_funciona || [])
+  const [badgePromo, setBadgePromo] = useState<string>(config?.badge_promo || '')
+  const autogenIntentado = useRef(false)
+
+  // Si hay bloques vacíos, los autogenera con IA en background (1 sola vez)
+  useEffect(() => {
+    if (autogenIntentado.current) return
+    const necesitaAutogen =
+      stats.length === 0 || comoFunciona.length === 0 || !badgePromo
+    if (!necesitaAutogen) return
+    autogenIntentado.current = true
+
+    const productoPrincipal = productos[0]?.nombre || config?.producto || ''
+
+    fetch('/api/landing/ia-autogenerar-bloques', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        industria,
+        empresa,
+        nombreVendedor,
+        productoPrincipal,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          if (stats.length === 0 && data.stats) setStats(data.stats)
+          if (comoFunciona.length === 0 && data.como_funciona) setComoFunciona(data.como_funciona)
+          if (!badgePromo && data.badge_promo) setBadgePromo(data.badge_promo)
+
+          // Persistir en BD para próximas cargas (no bloqueante)
+          fetch('/api/landing/config', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stats: stats.length === 0 ? data.stats : stats,
+              como_funciona: comoFunciona.length === 0 ? data.como_funciona : comoFunciona,
+              badge_promo: !badgePromo ? data.badge_promo : badgePromo,
+            }),
+          }).catch(() => {})
+        }
+      })
+      .catch(() => {})
+  }, [stats, comoFunciona, badgePromo, industria, empresa, nombreVendedor, productos, config])
+
+  // ── Scroll al CTA principal ──
+  const scrollToCTA = () => {
+    const target = document.getElementById('cta-principal')
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const ctaTexto = config?.cta_principal_texto || 'Reservar mi cita'
+  const ctaMicrocopy = config?.cta_principal_microcopy || 'Te respondo en 5 min por WhatsApp'
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0"
-            style={{ background: acento }}>
-            {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={vendedorNombre} className="w-full h-full object-cover"/>
-              : vendedorNombre.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()
-            }
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      background: '#fff',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      color: '#0a0a0a',
+    }}>
+
+      {/* ── Nav superior ── */}
+      <nav style={{
+        padding: '14px 24px',
+        borderBottom: '0.5px solid #eee',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#fff',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.avatar_url}
+              alt={nombreVendedor}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #fff',
+                boxShadow: '0 0 0 1px #eee',
+              }}
+            />
+          ) : (
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: colorAcento,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '13px',
+              fontWeight: 500,
+            }}>
+              {nombreVendedor.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+            </div>
+          )}
           <div>
-            <div className="font-semibold text-gray-900 text-sm">{vendedorNombre}</div>
-            <div className="text-xs text-gray-500">{profile.empresa || 'Asesor Ventas10x'}</div>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: '#111', lineHeight: 1.2 }}>
+              {nombreVendedor}
+            </div>
+            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.2 }}>
+              {[industria, empresa].filter(Boolean).join(' · ') || 'Asesor verificado'}
+            </div>
           </div>
         </div>
-        <a href="#cta" className="text-white text-sm font-semibold px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
-          style={{ background: acento }}>
-          Solicitar cotización →
-        </a>
+        <button
+          onClick={scrollToCTA}
+          style={{
+            background: '#111',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '100px',
+            padding: '8px 16px',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          {ctaTexto} →
+        </button>
       </nav>
 
-      {/* Hero */}
-      <div className="py-20 px-6 text-center border-b border-gray-100">
-        <div className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full mb-6 border"
-          style={{ background: `${acento}15`, color: acento, borderColor: `${acento}40` }}>
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: acento }}/>
-          Asesor verificado · {profile.empresa || 'Ventas10x'}
-        </div>
-        <h1 className="text-4xl lg:text-5xl font-display font-extrabold text-gray-900 mb-4 leading-tight tracking-tight max-w-2xl mx-auto">
-          {titulo.replace(/\{producto\}/g, producto)}
-        </h1>
-        <p className="text-lg text-gray-500 max-w-lg mx-auto mb-8 leading-relaxed">{subtitulo}</p>
-        <a href="#cta" className="inline-block text-white font-bold px-8 py-4 rounded-2xl text-base transition-opacity hover:opacity-90"
-          style={{ background: acento }}>
-          Solicitar cotización →
-        </a>
-      </div>
-
-      {/* Productos con galería */}
-      {productos.length > 0 && (
-        <div className="py-16 px-6 bg-gray-50 border-b border-gray-100">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-display font-bold text-gray-900 text-center mb-2">
-              Productos disponibles
-            </h2>
-            <p className="text-gray-500 text-center mb-8 text-sm">
-              {producto.toLowerCase()} que puedes cotizar conmigo hoy.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {productos.map(p => (
-                <ProductoCard
-                  key={p.id}
-                  producto={p}
-                  colorAcento={acento}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* ── Hero ── */}
+      {bloques.hero !== false && (
+        <HeroSection
+          nombreVendedor={nombreVendedor}
+          titulo={config?.titulo || ''}
+          subtitulo={config?.subtitulo || ''}
+          imagenHero={config?.imagen_hero || profile.avatar_url || ''}
+          badgePromo={badgePromo}
+          colorAcento={colorAcento}
+          ctaTexto={ctaTexto}
+          ctaMicrocopy={ctaMicrocopy}
+          industria={industria}
+          onCtaClick={scrollToCTA}
+        />
       )}
 
-      {/* CTA Form */}
-      <div id="cta" className="py-16 px-6" style={{ background: '#0f1a2e' }}>
-        <div className="max-w-md mx-auto text-center">
-          <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#B5D4F4' }}>
-            Contáctame ahora
-          </span>
-          <h2 className="text-2xl font-display font-bold text-white mt-3 mb-2">
-            ¿Listo para tu cotización?
-          </h2>
-          <p className="text-sm mb-8" style={{ color: '#B5D4F4' }}>
-            Llena el formulario y te respondo en menos de 30 minutos.
-          </p>
+      {/* ── Stats ── */}
+      {bloques.stats !== false && stats.length > 0 && (
+        <StatsBar stats={stats} />
+      )}
 
-          {success ? (
-            <div className="bg-green-900/30 border border-green-500/30 rounded-2xl p-6 text-center">
-              <div className="text-4xl mb-3">✓</div>
-              <div className="text-white font-semibold">¡Solicitud enviada!</div>
-              <div className="text-green-300 text-sm mt-1">
-                Te contactamos en menos de 30 minutos por WhatsApp.
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input type="text" placeholder="Tu nombre completo" value={nombre}
-                onChange={e => setNombre(e.target.value)} required
-                className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
-                style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+      {/* ── Productos ── */}
+      {bloques.productos !== false && productos.length > 0 && (
+        <ProductosGrid
+          productos={productos}
+          colorAcento={colorAcento}
+          whatsapp={profile.whatsapp || config?.whatsapp || ''}
+        />
+      )}
 
-              <input type="tel" placeholder="Tu WhatsApp (+57 300...)" value={whatsapp}
-                onChange={e => setWhatsapp(e.target.value)} required
-                className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
-                style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+      {/* ── Cómo funciona ── */}
+      {bloques.como_funciona !== false && comoFunciona.length > 0 && (
+        <ComoFuncionaSection pasos={comoFunciona} colorAcento={colorAcento} />
+      )}
 
-              <input type="text" placeholder={`¿Qué ${producto.toLowerCase()} necesitas? (opcional)`}
-                value={interes} onChange={e => setInteres(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors"
-                style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', borderColor: '#0C447C' }}/>
+      {/* ── Testimonios ── */}
+      {bloques.testimonios !== false && testimonios.length > 0 && (
+        <TestimoniosSection testimonios={testimonios} />
+      )}
 
-              {error && <div className="text-red-400 text-sm">{error}</div>}
-              <button type="submit" disabled={loading}
-                className="w-full py-4 rounded-2xl text-white font-bold text-base transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: acento }}>
-                {loading ? 'Enviando...' : 'Solicitar cotización →'}
-              </button>
-            </form>
-          )}
-          <p className="text-xs mt-4" style={{ color: '#0C447C' }}>
-            Sin compromisos · Respuesta en 30 min · 100% gratuito
-          </p>
-        </div>
-      </div>
+      {/* ── CTA cierre ── */}
+      {bloques.cta_cierre !== false && (
+        <CTACierre
+          colorAcento={colorAcento}
+          ctaTexto={ctaTexto}
+          ctaMicrocopy={ctaMicrocopy}
+          whatsapp={profile.whatsapp || config?.whatsapp || ''}
+          mensajeWa={config?.mensaje_wa || ''}
+          slug={slug}
+        />
+      )}
 
-      <footer className="px-6 py-4 border-t border-gray-100 text-center text-xs text-gray-400">
-        Powered by{' '}
-        <a href="https://ventas10x.co" className="font-semibold text-gray-600 hover:text-gray-900">
-          Ventas10x
-        </a>
-      </footer>
+      {/* ── Sticky CTA mobile ── */}
+      <StickyMobileCTA
+        colorAcento={colorAcento}
+        ctaTexto={ctaTexto}
+        whatsapp={profile.whatsapp || config?.whatsapp || ''}
+        mensajeWa={config?.mensaje_wa || ''}
+      />
     </div>
   )
 }

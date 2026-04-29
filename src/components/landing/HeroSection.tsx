@@ -1,96 +1,182 @@
+// Ruta destino: src/components/landing/HeroSection.tsx
+
 'use client'
 
-import Link from 'next/link'
+type Props = {
+  nombreVendedor: string
+  titulo: string
+  subtitulo: string
+  imagenHero: string
+  badgePromo: string
+  colorAcento: string
+  ctaTexto: string
+  ctaMicrocopy: string
+  industria: string
+  onCtaClick: () => void
+}
 
-export default function HeroSection() {
+export function HeroSection({
+  titulo,
+  subtitulo,
+  imagenHero,
+  badgePromo,
+  colorAcento,
+  ctaTexto,
+  ctaMicrocopy,
+  onCtaClick,
+}: Props) {
+
+  const tieneImagen = !!imagenHero?.trim()
+
   return (
-    <section className="w-full relative overflow-hidden bg-[#0f0f0f]">
+    <section
+      id="cta-principal"
+      style={{
+        padding: '40px 24px 32px',
+        background: 'linear-gradient(180deg, #fff 0%, #fdf9f5 100%)',
+      }}
+    >
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
-      {/* Glow */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,107,43,0.15)_0%,transparent_70%)]" />
+        <div className="hero-grid">
 
-      {/* CONTENIDO */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-24 flex flex-col items-center text-center">
+          <div>
+            {badgePromo && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#fff',
+                border: `0.5px solid ${colorAcento}40`,
+                padding: '6px 14px',
+                borderRadius: '100px',
+                marginBottom: '20px',
+              }}>
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#1d9e75',
+                }} />
+                <span style={{
+                  fontSize: '12px',
+                  color: colorAcento,
+                  fontWeight: 500,
+                }}>
+                  {badgePromo}
+                </span>
+              </div>
+            )}
 
-        {/* Badge */}
-        <div className="animate-fadeUp inline-flex items-center gap-2 mb-8 px-4 py-1.5 rounded-full text-sm font-semibold text-orange-500 border border-orange-500/30 bg-orange-500/10">
-          ⚡ 14 días gratis · Sin tarjeta · Setup en 48h
-        </div>
+            <h1 style={{
+              fontSize: 'clamp(36px, 5vw, 56px)',
+              fontWeight: 500,
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              color: '#0a0a0a',
+              margin: '0 0 16px',
+            }}>
+              {titulo || 'Tu próximo cliente está a un mensaje de distancia'}
+            </h1>
 
-        {/* Headline */}
-        <h1 className="animate-fadeUp-1 max-w-4xl text-white font-bold leading-[1.05] tracking-tight text-[clamp(42px,7vw,88px)]">
-          Tu proceso de ventas,<br />
-          <span className="text-orange-500">automatizado.</span> Por fin.
-        </h1>
+            <p style={{
+              fontSize: 'clamp(15px, 1.6vw, 17px)',
+              lineHeight: 1.55,
+              color: '#555',
+              margin: '0 0 26px',
+              maxWidth: '520px',
+            }}>
+              {subtitulo || 'Atención personalizada por WhatsApp. Te respondo rápido y sin compromiso.'}
+            </p>
 
-        {/* Sub */}
-        <p className="animate-fadeUp-2 mt-6 mb-10 max-w-xl text-gray-400 text-[clamp(16px,2vw,19px)] leading-relaxed">
-          Bot IA por industria, catálogo desde cualquier archivo, WhatsApp automático y pipeline visual.
-        </p>
-
-        {/* Buttons */}
-        <div className="animate-fadeUp-3 flex gap-4 justify-center flex-wrap">
-          <Link
-            href="/auth/register"
-            className="px-7 py-3.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:shadow-[0_8px_32px_rgba(255,107,43,0.4)] transition"
-          >
-            Crear cuenta gratis →
-          </Link>
-
-          <a
-            href="#como-funciona"
-            className="px-7 py-3.5 rounded-xl text-sm font-semibold text-white border border-white/10 bg-white/5 hover:bg-white/10 transition"
-          >
-            Ver demo ↓
-          </a>
-        </div>
-
-        {/* Social proof */}
-        <div className="animate-fadeUp-4 flex items-center gap-3 mt-12">
-          <div className="flex">
-            {[
-              { bg: '#e67e22', l: 'C' },
-              { bg: '#2980b9', l: 'M' },
-              { bg: '#27ae60', l: 'A' },
-              { bg: '#8e44ad', l: 'S' },
-            ].map((a, i) => (
-              <span
-                key={i}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-[#0f0f0f]"
-                style={{ background: a.bg, marginLeft: i === 0 ? 0 : -8 }}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginBottom: '14px',
+            }}>
+              <button
+                onClick={onCtaClick}
+                style={{
+                  background: colorAcento,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '14px 24px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  boxShadow: `0 8px 20px ${colorAcento}3a`,
+                  fontFamily: 'inherit',
+                }}
               >
-                {a.l}
-              </span>
-            ))}
+                {ctaTexto} →
+              </button>
+              <button
+                onClick={onCtaClick}
+                style={{
+                  background: '#fff',
+                  color: '#111',
+                  border: '0.5px solid #ddd',
+                  borderRadius: '12px',
+                  padding: '14px 20px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Ver más
+              </button>
+            </div>
+
+            <div style={{ fontSize: '12px', color: '#888' }}>
+              ⚡ {ctaMicrocopy}
+            </div>
           </div>
 
-          <span className="text-sm text-gray-400">
-            <strong className="text-white">+200 vendedores activos</strong> en Latam
-          </span>
-        </div>
-
-        {/* Stats */}
-        <div className="animate-fadeUp-5 w-full max-w-3xl mt-16 rounded-2xl overflow-hidden border border-white/10 bg-white/5 grid grid-cols-2 md:grid-cols-4">
-
-          {[
-            { num: '68%', color: 'text-orange-500', label: 'menos leads perdidos' },
-            { num: '3.4x', color: 'text-white', label: 'más cierres' },
-            { num: '48h', color: 'text-white', label: 'setup completo' },
-            { num: '30s', color: 'text-teal-400', label: 'respuesta automática' },
-          ].map(s => (
-            <div key={s.label} className="text-center py-8 px-4 bg-[#161616]">
-              <div className={`text-3xl md:text-4xl font-bold ${s.color}`}>
-                {s.num}
+          <div style={{
+            aspectRatio: '4/5',
+            background: tieneImagen
+              ? `url(${imagenHero}) center/cover`
+              : 'linear-gradient(135deg, #f4ebe1, #d8c5b0)',
+            borderRadius: '20px',
+            position: 'relative',
+            overflow: 'hidden',
+            maxHeight: '520px',
+          }}>
+            {!tieneImagen && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#8b6f4d',
+                fontSize: '12px',
+              }}>
+                Sube una imagen desde tu dashboard
               </div>
-              <div className="mt-1 text-xs text-gray-400">
-                {s.label}
-              </div>
-            </div>
-          ))}
-
+            )}
+          </div>
         </div>
-
       </div>
+
+      <style>{`
+        .hero-grid {
+          display: grid;
+          grid-template-columns: 1.15fr 1fr;
+          gap: 32px;
+          align-items: center;
+        }
+        @media (max-width: 768px) {
+          .hero-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+        }
+      `}</style>
     </section>
   )
 }

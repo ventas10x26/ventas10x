@@ -64,7 +64,7 @@ export function StickyMobileCTA({ colorAcento, ctaTexto, whatsapp, mensajeWa }: 
             color: '#fff',
             borderRadius: '14px',
             padding: '14px 20px',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 500,
             textDecoration: 'none',
             boxShadow: `0 10px 30px ${colorAcento}55, 0 4px 8px rgba(0,0,0,.12)`,

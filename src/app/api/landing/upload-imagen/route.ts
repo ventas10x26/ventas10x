@@ -1,12 +1,12 @@
 // Ruta destino: src/app/api/landing/upload-imagen/route.ts
-// Sube un archivo o descarga desde URL externa (ej: Unsplash) y la guarda
-// en el bucket 'landing-images' de Supabase Storage.
-// Luego devuelve la URL pública lista para usar en la landing.
+// FIX: ahora resuelve vendedor_id desde la sesión autenticada (no necesita slug en body).
+// landing_config NO tiene columna `slug`, solo `vendedor_id`. Por eso fallaba.
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
-// Cliente con service_role para poder escribir en Storage sin RLS
+// Cliente admin (service_role) para escribir en Storage sin RLS
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -20,9 +20,25 @@ type TipoImagen = (typeof TIPOS_VALIDOS)[number]
 
 export async function POST(req: Request) {
   try {
+    // ── Auth: obtener user.id desde cookies (sesión actual) ──
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+    const vendedorId = user.id
+
+    // ── Obtener slug del usuario para el path en Storage ──
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile } = await (supabase.from('profiles') as any)
+      .select('slug')
+      .eq('id', vendedorId)
+      .single()
+
+    const slug = profile?.slug || vendedorId  // fallback al user.id si no hay slug
+
     const contentType = req.headers.get('content-type') || ''
 
-    let slug: string
     let tipo: TipoImagen
     let fileBuffer: ArrayBuffer
     let filename: string
@@ -32,7 +48,6 @@ export async function POST(req: Request) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData()
       const file = formData.get('file') as File | null
-      slug = (formData.get('slug') as string) || ''
       tipo = (formData.get('tipo') as TipoImagen) || 'hero'
 
       if (!file) {
@@ -49,7 +64,6 @@ export async function POST(req: Request) {
     // ── Caso 2: JSON con URL externa (ej: Unsplash) ──
     else {
       const body = await req.json()
-      slug = body.slug || ''
       tipo = body.tipo || 'hero'
       const url = body.url as string
 
@@ -74,10 +88,7 @@ export async function POST(req: Request) {
       filename = `external-${Date.now()}.${ext}`
     }
 
-    // Validaciones
-    if (!slug) {
-      return NextResponse.json({ error: 'Falta el slug' }, { status: 400 })
-    }
+    // ── Validaciones ──
     if (!TIPOS_VALIDOS.includes(tipo)) {
       return NextResponse.json(
         { error: `Tipo inválido. Debe ser: ${TIPOS_VALIDOS.join(', ')}` },
@@ -98,11 +109,11 @@ export async function POST(req: Request) {
     }
 
     // Ruta en el bucket: slug/tipo-timestamp.ext
-    const ext = filename.split('.').pop() || 'jpg'
+    const ext = filename.split('.').pop()?.split('?')[0] || 'jpg'
     const timestamp = Date.now()
     const path = `${slug}/${tipo}-${timestamp}.${ext}`
 
-    // Subir a Supabase Storage
+    // ── Subir a Supabase Storage ──
     const { error: uploadError } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(path, fileBuffer, {
@@ -118,29 +129,30 @@ export async function POST(req: Request) {
       )
     }
 
-    // Obtener URL pública
+    // URL pública
     const { data: publicData } = supabaseAdmin.storage
       .from(BUCKET)
       .getPublicUrl(path)
 
     const publicUrl = publicData.publicUrl
 
-    // Actualizar el registro de la landing según el tipo
+    // ── Actualizar landing_config (usando vendedor_id, NO slug) ──
     if (tipo === 'galeria') {
-      // Leer array actual y agregar nueva URL
-      const { data: landing } = await supabaseAdmin
-        .from(TABLA)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: landing } = await (supabaseAdmin.from(TABLA) as any)
         .select('imagenes_galeria')
-        .eq('slug', slug)
-        .single()
+        .eq('vendedor_id', vendedorId)
+        .maybeSingle()
 
       const galeriaActual: string[] = landing?.imagenes_galeria || []
       const nuevaGaleria = [...galeriaActual, publicUrl]
 
-      const { error: updateError } = await supabaseAdmin
-        .from(TABLA)
-        .update({ imagenes_galeria: nuevaGaleria })
-        .eq('slug', slug)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabaseAdmin.from(TABLA) as any)
+        .upsert(
+          { vendedor_id: vendedorId, imagenes_galeria: nuevaGaleria },
+          { onConflict: 'vendedor_id' }
+        )
 
       if (updateError) {
         return NextResponse.json(
@@ -159,10 +171,12 @@ export async function POST(req: Request) {
     } else {
       const campoDb = tipo === 'hero' ? 'imagen_hero' : 'imagen_logo'
 
-      const { error: updateError } = await supabaseAdmin
-        .from(TABLA)
-        .update({ [campoDb]: publicUrl })
-        .eq('slug', slug)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabaseAdmin.from(TABLA) as any)
+        .upsert(
+          { vendedor_id: vendedorId, [campoDb]: publicUrl },
+          { onConflict: 'vendedor_id' }
+        )
 
       if (updateError) {
         return NextResponse.json(
@@ -184,7 +198,6 @@ export async function POST(req: Request) {
   }
 }
 
-// Aumentar límite de body para archivos
 export const config = {
   api: {
     bodyParser: false,

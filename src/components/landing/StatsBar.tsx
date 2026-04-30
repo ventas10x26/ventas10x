@@ -38,7 +38,7 @@ export function StatsBar({ stats }: Props) {
               {s.valor}
             </div>
             <div style={{
-              fontSize: '10px',
+              fontSize: '12px',
               color: '#888',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',

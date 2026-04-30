@@ -1,16 +1,12 @@
 // Ruta destino: src/components/dashboard/PipelineKanban.tsx
-// REEMPLAZA. Cambios:
-// - Badge de fuente en cada card (Bot Landing / Bot IA / Formulario / Otro)
-// - Borde lateral coloreado para identificación rápida visual
-// - Resto del comportamiento intacto (drag&drop, notas, WhatsApp)
+// FIX: ahora usa /api/leads/[id] (endpoint propio con auth correcto)
+// en vez de pegarle directo al REST API de Supabase con la anon key.
+// Incluye rollback visual si la actualización falla.
 
 'use client'
 
 import { useState } from 'react'
 import type { Lead } from '@/types/database'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const ETAPAS = [
   { key: 'nuevo', label: 'Nuevo', color: '#888780' },
@@ -19,13 +15,12 @@ const ETAPAS = [
   { key: 'cerrado', label: 'Cerrado ✓', color: '#3B6D11' },
 ]
 
-// ── Configuración visual de cada fuente ──
 type FuenteConfig = {
   emoji: string
   label: string
-  color: string       // color del borde y badge
-  bg: string          // background del badge
-  texto: string       // color del texto del badge
+  color: string
+  bg: string
+  texto: string
 }
 
 const FUENTES: Record<string, FuenteConfig> = {
@@ -57,7 +52,6 @@ const FUENTES: Record<string, FuenteConfig> = {
     bg: 'rgba(168,85,247,.1)',
     texto: '#7e22ce',
   },
-  // Fallback para cualquier otra fuente
   otro: {
     emoji: '📍',
     label: 'Otro',
@@ -77,17 +71,18 @@ interface Props {
   userId: string
 }
 
-async function updateLead(id: string, data: Record<string, string>) {
-  await fetch(`${SUPABASE_URL}/rest/v1/leads?id=eq.${id}`, {
+// ── Llama al endpoint propio (con auth de cookies) ──
+async function updateLeadAPI(id: string, data: Record<string, string | null>) {
+  const res = await fetch(`/api/leads/${id}`, {
     method: 'PATCH',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.error || `HTTP ${res.status}`)
+  }
+  return res.json()
 }
 
 function timeAgo(date: string) {
@@ -105,6 +100,8 @@ export function PipelineKanban({ initialLeads }: Props) {
   const [notaLead, setNotaLead] = useState<Lead | null>(null)
   const [notaText, setNotaText] = useState('')
   const [filtroFuente, setFiltroFuente] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [guardandoNota, setGuardandoNota] = useState(false)
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggingId(id)
@@ -114,33 +111,58 @@ export function PipelineKanban({ initialLeads }: Props) {
   const handleDrop = async (e: React.DragEvent, etapa: string) => {
     e.preventDefault()
     if (!draggingId) return
+
     const lead = leads.find(l => l.id === draggingId)
-    if (!lead || lead.etapa === etapa) { setDraggingId(null); return }
-    setLeads(prev => prev.map(l => l.id === draggingId ? { ...l, etapa } : l))
-    await updateLead(draggingId, { etapa, updated_at: new Date().toISOString() })
+    if (!lead || lead.etapa === etapa) {
+      setDraggingId(null)
+      return
+    }
+
+    const etapaPrevia = lead.etapa
+    const idMovido = draggingId
+
+    // 1. Actualizar visualmente (optimistic update)
+    setLeads(prev => prev.map(l => l.id === idMovido ? { ...l, etapa } : l))
     setDraggingId(null)
+    setError(null)
+
+    // 2. Persistir en backend
+    try {
+      await updateLeadAPI(idMovido, { etapa })
+    } catch (e) {
+      // 3. Si falla, hacer ROLLBACK visual
+      setLeads(prev => prev.map(l => l.id === idMovido ? { ...l, etapa: etapaPrevia } : l))
+      setError(e instanceof Error ? e.message : 'Error al guardar el cambio')
+      // Auto-clear del error después de 5s
+      setTimeout(() => setError(null), 5000)
+    }
   }
 
   const saveNota = async () => {
     if (!notaLead) return
-    await updateLead(notaLead.id, { notas: notaText, updated_at: new Date().toISOString() })
-    setLeads(prev => prev.map(l => l.id === notaLead.id ? { ...l, notas: notaText } : l))
-    setNotaLead(null)
+    setGuardandoNota(true)
+    setError(null)
+    try {
+      await updateLeadAPI(notaLead.id, { notas: notaText })
+      setLeads(prev => prev.map(l => l.id === notaLead.id ? { ...l, notas: notaText } : l))
+      setNotaLead(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar la nota')
+    } finally {
+      setGuardandoNota(false)
+    }
   }
 
-  // Aplicar filtro de fuente
   const leadsFiltrados = filtroFuente
     ? leads.filter(l => (l.fuente || 'otro') === filtroFuente)
     : leads
 
-  // Calcular conteo por fuente para los chips
   const conteoFuentes = leads.reduce<Record<string, number>>((acc, l) => {
     const f = l.fuente || 'otro'
     acc[f] = (acc[f] || 0) + 1
     return acc
   }, {})
 
-  // Solo mostrar chips de fuentes que tienen al menos 1 lead
   const fuentesPresentes = Object.keys(conteoFuentes)
 
   return (
@@ -149,6 +171,16 @@ export function PipelineKanban({ initialLeads }: Props) {
         <h2 className="text-lg font-display font-bold text-gray-900">Pipeline de ventas</h2>
         <span className="text-xs text-gray-400">Arrastra las tarjetas entre columnas</span>
       </div>
+
+      {/* Banner de error */}
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between">
+          <span>❌ {error}</span>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Filtros por fuente */}
       {fuentesPresentes.length > 1 && (
@@ -239,7 +271,6 @@ export function PipelineKanban({ initialLeads }: Props) {
                           borderLeftColor: cfgFuente.color,
                         }}
                       >
-                        {/* Badge de fuente arriba */}
                         <div style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -289,20 +320,23 @@ export function PipelineKanban({ initialLeads }: Props) {
 
       {notaLead && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setNotaLead(null)}>
+          onClick={() => !guardandoNota && setNotaLead(null)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-gray-900 mb-4">📝 Nota — {notaLead.nombre}</h3>
             <textarea value={notaText} onChange={e => setNotaText(e.target.value)} rows={4}
               placeholder="Escribe una nota sobre este prospecto..."
+              disabled={guardandoNota}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-blue-500 resize-none"/>
             <div className="flex gap-2 mt-4">
               <button onClick={() => setNotaLead(null)}
-                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+                disabled={guardandoNota}
+                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50">
                 Cancelar
               </button>
               <button onClick={saveNota}
-                className="flex-1 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                Guardar nota
+                disabled={guardandoNota}
+                className="flex-1 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+                {guardandoNota ? 'Guardando…' : 'Guardar nota'}
               </button>
             </div>
           </div>

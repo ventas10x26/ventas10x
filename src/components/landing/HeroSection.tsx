@@ -87,7 +87,7 @@ export function HeroSection({
 
             <h1 style={{
               fontSize: 'clamp(36px, 5vw, 56px)',
-              fontWeight: 500,
+              fontWeight: 580,
               lineHeight: 1.02,
               letterSpacing: '-0.03em',
               color: '#0a0a0a',
@@ -99,7 +99,7 @@ export function HeroSection({
             </h1>
 
             <p style={{
-              fontSize: 'clamp(15px, 1.6vw, 17px)',
+              fontSize: 'clamp(17px, 1.8vw, 19px)',
               lineHeight: 1.55,
               color: '#555',
               margin: '0 0 26px',
@@ -122,8 +122,8 @@ export function HeroSection({
                   color: '#fff',
                   border: 'none',
                   borderRadius: '12px',
-                  padding: '14px 24px',
-                  fontSize: '14px',
+                  padding: '15px 26px',
+                  fontSize: '16px',
                   fontWeight: 500,
                   cursor: 'pointer',
                   boxShadow: `0 8px 20px ${colorAcento}3a`,
@@ -139,8 +139,8 @@ export function HeroSection({
                   color: '#111',
                   border: '0.5px solid #ddd',
                   borderRadius: '12px',
-                  padding: '14px 20px',
-                  fontSize: '14px',
+                  padding: '15px 22px',
+                  fontSize: '16px',
                   fontWeight: 500,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
@@ -150,7 +150,7 @@ export function HeroSection({
               </button>
             </div>
 
-            <div style={{ fontSize: '12px', color: '#888' }}>
+            <div style={{ fontSize: '14px', color: '#888' }}>
               {microcopyFinal}
             </div>
           </div>

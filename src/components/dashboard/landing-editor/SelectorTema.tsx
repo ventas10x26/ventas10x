@@ -1,4 +1,5 @@
 // Ruta destino: src/components/dashboard/landing-editor/SelectorTema.tsx
+// FIX FASE 3 - Aplicar defaults inteligente: detecta defaults de OTROS temas y los reemplaza.
 
 'use client'
 
@@ -7,10 +8,11 @@ import { SECTOR_THEMES, SECTOR_KEYS, type SectorKey } from '@/lib/sector-themes'
 type Props = {
   tema: SectorKey
   onChange: (tema: SectorKey) => void
-  onAplicarDefaults?: (tema: SectorKey) => void
+  onAplicarInteligente?: (tema: SectorKey) => void
+  onForzarTodo?: (tema: SectorKey) => void
 }
 
-export function SelectorTema({ tema, onChange, onAplicarDefaults }: Props) {
+export function SelectorTema({ tema, onChange, onAplicarInteligente, onForzarTodo }: Props) {
   const temaActual = SECTOR_THEMES[tema] || SECTOR_THEMES.generico
 
   return (
@@ -48,14 +50,14 @@ export function SelectorTema({ tema, onChange, onAplicarDefaults }: Props) {
           <span className="font-semibold text-gray-800">Tema activo: {temaActual.nombre}</span>
         </div>
 
-        <div className="text-xs text-gray-600 space-y-1.5">
+        <div className="text-xs text-gray-600 space-y-1.5 mb-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold w-24">Color primario:</span>
+            <span className="font-semibold w-24">Color sugerido:</span>
             <span
               className="inline-block w-4 h-4 rounded border border-gray-300"
-              style={{ background: temaActual.colorPrimario }}
+              style={{ background: temaActual.colorSecundario }}
             />
-            <code>{temaActual.colorPrimario}</code>
+            <code>{temaActual.colorSecundario}</code>
           </div>
           <div>
             <span className="font-semibold">CTA default:</span>{' '}
@@ -67,18 +69,36 @@ export function SelectorTema({ tema, onChange, onAplicarDefaults }: Props) {
           </div>
         </div>
 
-        {onAplicarDefaults && (
-          <button
-            onClick={() => {
-              if (confirm('Esto sobrescribirá los textos vacíos con los defaults del tema. ¿Continuar?')) {
-                onAplicarDefaults(tema)
-              }
-            }}
-            className="mt-3 text-xs font-semibold px-3 py-1.5 rounded bg-orange-500 text-white hover:bg-orange-600"
-          >
-            ✨ Aplicar defaults del tema en campos vacíos
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+          {onAplicarInteligente && (
+            <button
+              onClick={() => onAplicarInteligente(tema)}
+              className="text-xs font-semibold px-3 py-1.5 rounded bg-orange-500 text-white hover:bg-orange-600"
+              title="Reemplaza los textos vacíos o que vienen de otros temas. Respeta tu texto custom."
+            >
+              ✨ Sincronizar con tema
+            </button>
+          )}
+          {onForzarTodo && (
+            <button
+              onClick={() => {
+                if (confirm(`Esto SOBRESCRIBIRÁ todos los textos con los defaults de "${temaActual.nombre}". Perderás cualquier texto personalizado. ¿Continuar?`)) {
+                  onForzarTodo(tema)
+                }
+              }}
+              className="text-xs font-semibold px-3 py-1.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              title="Sobrescribe TODOS los textos con los defaults del tema. Borra tu personalización."
+            >
+              ⚠️ Forzar todos los defaults
+            </button>
+          )}
+        </div>
+
+        <div className="text-xs text-gray-500 mt-2 leading-relaxed">
+          <strong>Sincronizar:</strong> reemplaza textos vacíos o que pertenecen a otros temas. Respeta lo que escribiste tú.
+          <br />
+          <strong>Forzar:</strong> sobrescribe TODO con los defaults del tema (úsalo si quieres &ldquo;empezar de cero&rdquo;).
+        </div>
       </div>
     </div>
   )

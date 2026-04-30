@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import BotIASection from '@/components/landing/BotIASection'
+import KitDigitalSection from '@/components/landing/KitDigitalSection'
 
 const DARK = '#0f1c2e'
 const SOFT = '#f4f6f9'
@@ -123,6 +124,8 @@ export default function HomePage() {
       </div>
 
       {/* ── DARK: BOT IA ── */}
+      <KitDigitalSection />
+
       <BotIASection />
 
       {/* ── SOFT: CATÁLOGO IA ── */}

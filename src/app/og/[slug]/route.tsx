@@ -7,8 +7,8 @@ import { createClient } from '@supabase/supabase-js'
 import { getTheme, detectThemeFromIndustria } from '@/lib/sector-themes'
 
 export const runtime = 'edge'
-export const contentType = 'image/png'
-export const size = { width: 1200, height: 630 }
+
+const SIZE = { width: 1200, height: 630 }
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -268,7 +268,7 @@ export async function GET(
         </div>
       ),
       {
-        ...size,
+        ...SIZE,
         // Cache 1 día en CDN, 5 min en cliente
         headers: {
           'cache-control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800',

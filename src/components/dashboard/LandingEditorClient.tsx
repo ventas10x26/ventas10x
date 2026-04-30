@@ -798,21 +798,103 @@ export function LandingEditorClient({
             <SelectorTema
               tema={(form.tema as SectorKey) || 'generico'}
               onChange={(t) => actualizar('tema', t)}
-              onAplicarDefaults={(t) => {
+              onAplicarInteligente={(t) => {
                 const theme = SECTOR_THEMES[t]
                 if (!theme) return
-                // Solo sobrescribe campos vacíos
-                if (!form.titulo?.trim()) actualizar('titulo', theme.tituloDefault.replace(/\n/g, ' '))
-                if (!form.subtitulo?.trim()) actualizar('subtitulo', theme.subtituloDefault)
-                if (!form.badge_promo?.trim()) actualizar('badge_promo', theme.badgePromoDefault)
-                if (!form.cta_principal_texto?.trim() || form.cta_principal_texto === 'Reservar mi cita')
+
+                // Helper: ¿el valor actual es default de algún OTRO tema?
+                const esDefaultDeOtroTema = (
+                  campo: 'tituloDefault' | 'subtituloDefault' | 'badgePromoDefault' | 'ctaTextoDefault' | 'ctaMicrocopyDefault',
+                  valorActual: string
+                ): boolean => {
+                  if (!valorActual?.trim()) return true // vacío = aplicar default
+                  for (const key of Object.keys(SECTOR_THEMES)) {
+                    const otroTema = SECTOR_THEMES[key as SectorKey]
+                    const defaultDeOtro = otroTema[campo].replace(/\n/g, ' ').trim()
+                    if (defaultDeOtro === valorActual.trim()) return true
+                  }
+                  return false
+                }
+
+                // Aplicar título
+                const tituloActual = form.titulo?.trim() || ''
+                if (esDefaultDeOtroTema('tituloDefault', tituloActual)) {
+                  actualizar('titulo', theme.tituloDefault.replace(/\n/g, ' '))
+                }
+
+                // Aplicar subtítulo
+                if (esDefaultDeOtroTema('subtituloDefault', form.subtitulo || '')) {
+                  actualizar('subtitulo', theme.subtituloDefault)
+                }
+
+                // Aplicar badge
+                if (esDefaultDeOtroTema('badgePromoDefault', form.badge_promo || '')) {
+                  actualizar('badge_promo', theme.badgePromoDefault)
+                }
+
+                // Aplicar CTA texto
+                if (esDefaultDeOtroTema('ctaTextoDefault', form.cta_principal_texto || '')) {
                   actualizar('cta_principal_texto', theme.ctaTextoDefault)
-                if (!form.cta_principal_microcopy?.trim() || form.cta_principal_microcopy === 'Te respondo en 5 min por WhatsApp')
+                }
+
+                // Aplicar CTA microcopy
+                if (esDefaultDeOtroTema('ctaMicrocopyDefault', form.cta_principal_microcopy || '')) {
                   actualizar('cta_principal_microcopy', theme.ctaMicrocopyDefault)
-                if (!form.stats || form.stats.length === 0) actualizar('stats', theme.statsDefault)
-                if (!form.como_funciona || form.como_funciona.length === 0) actualizar('como_funciona', theme.comoFuncionaDefault)
-                if (!form.color_acento || form.color_acento === '#FF6B2B') actualizar('color_acento', theme.colorSecundario)
-                setMensaje({ tipo: 'ok', texto: `Defaults del tema "${theme.nombre}" aplicados a campos vacíos.` })
+                }
+
+                // Stats: si están vacíos o coinciden con defaults de otro tema
+                const statsActuales = JSON.stringify(form.stats || [])
+                let aplicarStats = !form.stats || form.stats.length === 0
+                if (!aplicarStats) {
+                  for (const key of Object.keys(SECTOR_THEMES)) {
+                    if (JSON.stringify(SECTOR_THEMES[key as SectorKey].statsDefault) === statsActuales) {
+                      aplicarStats = true
+                      break
+                    }
+                  }
+                }
+                if (aplicarStats) actualizar('stats', theme.statsDefault)
+
+                // Como funciona: igual lógica
+                const comoFuncionaActual = JSON.stringify(form.como_funciona || [])
+                let aplicarPasos = !form.como_funciona || form.como_funciona.length === 0
+                if (!aplicarPasos) {
+                  for (const key of Object.keys(SECTOR_THEMES)) {
+                    if (JSON.stringify(SECTOR_THEMES[key as SectorKey].comoFuncionaDefault) === comoFuncionaActual) {
+                      aplicarPasos = true
+                      break
+                    }
+                  }
+                }
+                if (aplicarPasos) actualizar('como_funciona', theme.comoFuncionaDefault)
+
+                // Color: si es uno de los colores secundarios de otro tema, reemplazar
+                const colorActual = form.color_acento?.toLowerCase() || ''
+                let aplicarColor = !colorActual || colorActual === '#ff6b2b'
+                if (!aplicarColor) {
+                  for (const key of Object.keys(SECTOR_THEMES)) {
+                    if (SECTOR_THEMES[key as SectorKey].colorSecundario.toLowerCase() === colorActual) {
+                      aplicarColor = true
+                      break
+                    }
+                  }
+                }
+                if (aplicarColor) actualizar('color_acento', theme.colorSecundario)
+
+                setMensaje({ tipo: 'ok', texto: `Sincronizado con tema "${theme.nombre}". No olvides guardar.` })
+              }}
+              onForzarTodo={(t) => {
+                const theme = SECTOR_THEMES[t]
+                if (!theme) return
+                actualizar('titulo', theme.tituloDefault.replace(/\n/g, ' '))
+                actualizar('subtitulo', theme.subtituloDefault)
+                actualizar('badge_promo', theme.badgePromoDefault)
+                actualizar('cta_principal_texto', theme.ctaTextoDefault)
+                actualizar('cta_principal_microcopy', theme.ctaMicrocopyDefault)
+                actualizar('stats', theme.statsDefault)
+                actualizar('como_funciona', theme.comoFuncionaDefault)
+                actualizar('color_acento', theme.colorSecundario)
+                setMensaje({ tipo: 'ok', texto: `Todos los defaults del tema "${theme.nombre}" aplicados. No olvides guardar.` })
               }}
             />
           </div>

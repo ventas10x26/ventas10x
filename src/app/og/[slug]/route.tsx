@@ -49,7 +49,7 @@ export async function GET(
     // ── Resolver textos (con fallback al tema) ──
     const nombreCompleto = [profile.nombre, profile.apellido].filter(Boolean).join(' ').trim() || 'Asesor'
     const empresa = profile.empresa?.trim() || ''
-    const industria = profile.industria?.trim() || theme.nombre
+    const industria = theme.nombre
     const titulo = (config?.titulo?.trim() || theme.tituloDefault).replace(/\n/g, ' ')
     const subtituloFull = config?.subtitulo?.trim() || theme.subtituloDefault
     // Truncar subtítulo si es muy largo (cabe ~120 chars)
@@ -229,16 +229,30 @@ export async function GET(
           <div
             style={{
               width: '38%',
-              background: imagenHero
-                ? `url(${imagenHero}) center/cover`
-                : `linear-gradient(135deg, ${colorAcento}30, ${colorAcento}60)`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
+              background: imagenHero
+                ? '#f4ebe1'
+                : `linear-gradient(135deg, ${colorAcento}30, ${colorAcento}60)`,
+              overflow: 'hidden',
             }}
           >
-            {!imagenHero && (
+            {imagenHero ? (
+              // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+              <img
+                src={imagenHero}
+                width={456}
+                height={630}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
               <div
                 style={{
                   fontSize: '160px',

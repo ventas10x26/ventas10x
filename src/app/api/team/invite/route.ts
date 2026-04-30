@@ -1,14 +1,21 @@
 // Ruta destino: src/app/api/team/invite/route.ts
-// POST: crea una invitación y envía email al destinatario.
+// FIX: queries internas con service_role para bypass RLS.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { getUserOrg, tieneRolMinimo } from '@/lib/team-helpers'
 import { emailInvitacionEquipo } from '@/lib/email-templates/invitation'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
+
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 const ROLES_INVITABLES = ['admin', 'viewer'] as const
 
@@ -24,7 +31,6 @@ export async function POST(req: NextRequest) {
     const email = body.email?.toString().trim().toLowerCase()
     const rol = body.rol?.toString().trim() || 'admin'
 
-    // Validaciones
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
     }
@@ -36,8 +42,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Obtener org del usuario y verificar permisos
-    const orgInfo = await getUserOrg(supabase, user.id)
+    const orgInfo = await getUserOrg(null, user.id)
     if (!orgInfo) {
       return NextResponse.json(
         { error: 'No perteneces a ninguna organización' },
@@ -51,21 +56,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verificar que el email no sea ya miembro de la org
+    // Verificar invitación pendiente (con admin)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existingProfile } = await (supabase.from('profiles') as any)
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    // Buscar si ese email ya tiene cuenta
-    // (vía auth.users no es accesible directo; intentamos via profiles si guardas email)
-    // Para ahora, asumimos que si el email tiene cuenta, ya sale el flujo correcto al aceptar.
-
-    // Verificar si ya hay invitación pendiente para ese email a esa org
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: invitePendiente } = await (supabase.from('org_invitations') as any)
-      .select('id, expires_at')
+    const { data: invitePendiente } = await (supabaseAdmin.from('org_invitations') as any)
+      .select('id, expires_at, token')
       .eq('org_id', orgInfo.org.id)
       .eq('email', email)
       .is('used_at', null)
@@ -73,11 +67,10 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    // Si hay invitación pendiente, la reusamos (no creamos otra)
     let invitation = invitePendiente
     if (!invitation) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: nueva, error: errInvite } = await (supabase.from('org_invitations') as any)
+      const { data: nueva, error: errInvite } = await (supabaseAdmin.from('org_invitations') as any)
         .insert({
           org_id: orgInfo.org.id,
           email,
@@ -96,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     // Obtener nombre del que invita
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: inviterProfile } = await (supabase.from('profiles') as any)
+    const { data: inviterProfile } = await (supabaseAdmin.from('profiles') as any)
       .select('nombre, apellido')
       .eq('id', user.id)
       .maybeSingle()
@@ -123,7 +116,6 @@ export async function POST(req: NextRequest) {
       })
     } catch (emailErr) {
       console.error('[team/invite email]', emailErr)
-      // No fallamos: la invitación quedó creada, el dueño puede reenviar
       return NextResponse.json({
         ok: true,
         invitation: {

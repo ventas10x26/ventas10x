@@ -1,9 +1,16 @@
 // Ruta destino: src/app/api/team/invitation-cancel/route.ts
-// POST: cancela una invitación pendiente. Solo admin/owner pueden cancelar.
+// FIX: con service_role para bypass RLS.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { getUserOrg, tieneRolMinimo } from '@/lib/team-helpers'
+
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'id requerido' }, { status: 400 })
     }
 
-    const orgInfo = await getUserOrg(supabase, user.id)
+    const orgInfo = await getUserOrg(null, user.id)
     if (!orgInfo) {
       return NextResponse.json({ error: 'No perteneces a ninguna organización' }, { status: 400 })
     }
@@ -27,9 +34,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
-    // Marcar como usada (efectivamente cancelada)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('org_invitations') as any)
+    const { error } = await (supabaseAdmin.from('org_invitations') as any)
       .update({ used_at: new Date().toISOString() })
       .eq('id', id)
       .eq('org_id', orgInfo.org.id)

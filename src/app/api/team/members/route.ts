@@ -1,9 +1,9 @@
 // Ruta destino: src/app/api/team/members/route.ts
-// GET: lista miembros de la org del usuario autenticado + invitaciones pendientes.
+// FIX: usa service_role internamente vía helpers.
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getUserOrg, listarMiembrosOrg } from '@/lib/team-helpers'
+import { getUserOrg, listarMiembrosOrg, listarInvitacionesOrg } from '@/lib/team-helpers'
 
 export async function GET() {
   try {
@@ -13,7 +13,8 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const orgInfo = await getUserOrg(supabase, user.id)
+    // Pasamos null porque ya no se usa, pero dejamos compat
+    const orgInfo = await getUserOrg(null, user.id)
     if (!orgInfo) {
       return NextResponse.json(
         { error: 'No perteneces a ninguna organización' },
@@ -21,24 +22,15 @@ export async function GET() {
       )
     }
 
-    // Miembros activos
-    const miembros = await listarMiembrosOrg(supabase, orgInfo.org.id)
-
-    // Invitaciones pendientes (no usadas, no expiradas)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: invitaciones } = await (supabase.from('org_invitations') as any)
-      .select('id, email, rol, expires_at, created_at, invited_by')
-      .eq('org_id', orgInfo.org.id)
-      .is('used_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
+    const miembros = await listarMiembrosOrg(null, orgInfo.org.id)
+    const invitaciones = await listarInvitacionesOrg(orgInfo.org.id)
 
     return NextResponse.json({
       ok: true,
       org: orgInfo.org,
       miRol: orgInfo.rol,
       miembros,
-      invitaciones: invitaciones || [],
+      invitaciones,
     })
   } catch (error) {
     console.error('[team/members]', error)

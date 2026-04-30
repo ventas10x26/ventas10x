@@ -1,10 +1,16 @@
 // Ruta destino: src/app/api/team/members/[userId]/route.ts
-// DELETE: quita un miembro de la org. Solo owner/admin pueden hacerlo.
-// El owner NO se puede quitar a sí mismo.
+// FIX: con service_role.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { getUserOrg, tieneRolMinimo } from '@/lib/team-helpers'
+
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 export async function DELETE(
   _req: NextRequest,
@@ -18,7 +24,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const orgInfo = await getUserOrg(supabase, user.id)
+    const orgInfo = await getUserOrg(null, user.id)
     if (!orgInfo) {
       return NextResponse.json(
         { error: 'No perteneces a ninguna organización' },
@@ -26,7 +32,6 @@ export async function DELETE(
       )
     }
 
-    // Verificar permisos del usuario actual
     if (!tieneRolMinimo(orgInfo.rol, 'admin')) {
       return NextResponse.json(
         { error: 'No tienes permisos para quitar miembros' },
@@ -34,9 +39,8 @@ export async function DELETE(
       )
     }
 
-    // Buscar el miembro a quitar
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: target } = await (supabase.from('org_members') as any)
+    const { data: target } = await (supabaseAdmin.from('org_members') as any)
       .select('id, user_id, rol')
       .eq('org_id', orgInfo.org.id)
       .eq('user_id', targetUserId)
@@ -46,7 +50,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Miembro no encontrado' }, { status: 404 })
     }
 
-    // No se puede quitar al owner
     if (target.rol === 'owner') {
       return NextResponse.json(
         { error: 'No puedes quitar al owner. Debe transferir ownership primero.' },
@@ -54,7 +57,6 @@ export async function DELETE(
       )
     }
 
-    // Si soy admin, no puedo quitar a otro admin (solo el owner puede)
     if (orgInfo.rol === 'admin' && target.rol === 'admin' && target.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Solo el owner puede quitar a otro admin' },
@@ -62,9 +64,8 @@ export async function DELETE(
       )
     }
 
-    // Eliminar
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('org_members') as any)
+    const { error } = await (supabaseAdmin.from('org_members') as any)
       .delete()
       .eq('id', target.id)
 

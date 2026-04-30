@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inviteToken = searchParams.get('invite')
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -37,6 +39,21 @@ export default function RegisterPage() {
         console.log('[welcome-email] status:', res.status, 'response:', json)
       } catch (err) {
         console.error('[welcome-email] error:', err)
+      }
+      // Si vino con invite, auto-aceptar y redirigir al dashboard
+      if (inviteToken) {
+        try {
+          await fetch('/api/team/accept-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: inviteToken }),
+          })
+          router.push('/dashboard?bienvenida=team')
+          router.refresh()
+          return
+        } catch (e) {
+          console.error('[register] auto-accept invite error:', e)
+        }
       }
       router.push('/onboarding')
       router.refresh()

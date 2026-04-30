@@ -44,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/dashboard/planes', label: 'Cambiar plan', icon: '⚡' },
     ],
   },
+  { href: '/dashboard/equipo', label: 'Equipo', icon: '👥' },
   { href: '/dashboard/perfil', label: 'Mi perfil', icon: '◉' },
 ]
 

@@ -92,7 +92,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description = description.substring(0, 157) + '...'
   }
 
-  const ogImage = config?.imagen_hero || profile.avatar_url || absoluteUrl(SEO_CONFIG.defaultOgImage)
+  // OG image dinámica generada en /og/[slug] (1200x630 optimizada para social)
+  const ogImage = absoluteUrl(`/og/${slug}`)
   const canonicalUrl = absoluteUrl(`/u/${slug}`)
 
   return {

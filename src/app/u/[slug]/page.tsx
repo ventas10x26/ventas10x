@@ -156,6 +156,24 @@ export default async function VendedorLandingPage({ params }: Props) {
 
   if (!profile) notFound()
 
+    // ── Tracking de visita (fire-and-forget, no bloquea render) ──
+    // Solo lo hacemos en el server, no en re-renders del cliente
+    const { headers } = await import('next/headers')
+    const h = await headers()
+    const xfwd = h.get('x-forwarded-for') || ''
+    const referer = h.get('referer') || ''
+    const ua = h.get('user-agent') || ''
+    // No esperamos respuesta - dispara y olvida
+    fetch(`${absoluteUrl('/api/track-visita')}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': xfwd,
+        'user-agent': ua,
+      },
+      body: JSON.stringify({ slug, referrer: referer }),
+    }).catch(() => {})
+
   const [configRes, productosRes, seccionesRes, botRes, testimoniosRes] = await Promise.all([
     supabase.from('landing_config').select('*').eq('vendedor_id', profile.id).single(),
     supabase.from('productos').select('*').eq('vendedor_id', profile.id).order('orden'),

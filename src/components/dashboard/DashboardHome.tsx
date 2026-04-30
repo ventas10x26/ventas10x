@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlanBadge } from '@/components/ui/PlanBadge'
+import { MetricasLandingCard } from './MetricasLandingCard'
 import Link from 'next/link'
 import type { Suscripcion } from '@/types/database'
 
@@ -74,6 +75,9 @@ export function DashboardHome({ nombre, slug, sus, totalLeads, bots }: Props) {
           Tu sistema de ventas está activo. Aquí tienes el resumen de tu cuenta.
         </p>
       </div>
+
+      {/* Métricas de la landing */}
+      <MetricasLandingCard />
 
       {/* Plan banner */}
       <PlanBadge

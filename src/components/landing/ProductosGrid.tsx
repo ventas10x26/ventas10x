@@ -77,8 +77,8 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
                 flex: 1,
               }}>
                 <div style={{
-                  fontSize: '17px',
-                  fontWeight: 500,
+                  fontSize: '18px',
+                  fontWeight: 580,
                   color: '#111',
                   lineHeight: 1.3,
                 }}>

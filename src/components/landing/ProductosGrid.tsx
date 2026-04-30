@@ -41,7 +41,7 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
             Productos y servicios
           </h2>
           <p style={{
-            fontSize: '13px',
+            fontSize: '15px',
             color: '#666',
             margin: '4px 0 0',
           }}>
@@ -77,7 +77,7 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
                 flex: 1,
               }}>
                 <div style={{
-                  fontSize: '14px',
+                  fontSize: '17px',
                   fontWeight: 500,
                   color: '#111',
                   lineHeight: 1.3,
@@ -87,7 +87,7 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
 
                 {p.descripcion && (
                   <div style={{
-                    fontSize: '12px',
+                    fontSize: '14px',
                     color: '#666',
                     lineHeight: 1.5,
                     display: '-webkit-box',
@@ -109,8 +109,8 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
                   paddingTop: '8px',
                 }}>
                   <div style={{
-                    fontSize: '15px',
-                    fontWeight: 500,
+                    fontSize: '16px',
+                    fontWeight: 600,
                     color: colorAcento,
                   }}>
                     {formatearPrecio(p.precio)}
@@ -124,7 +124,7 @@ export function ProductosGrid({ productos, colorAcento, whatsapp }: Props) {
                       color: '#fff',
                       borderRadius: '100px',
                       padding: '7px 14px',
-                      fontSize: '11px',
+                      fontSize: '13px',
                       fontWeight: 500,
                       textDecoration: 'none',
                       whiteSpace: 'nowrap',

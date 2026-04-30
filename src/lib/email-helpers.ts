@@ -32,6 +32,7 @@ export type TipoEmail =
   | 'trial_vencido'
   | 'comprobante_aprobado'
   | 'comprobante_rechazado'
+  | 'invitacion_equipo'
 
 // Tipos que NO se pueden enviar más de una vez por vendedor
 const EMAILS_UNICOS: TipoEmail[] = [

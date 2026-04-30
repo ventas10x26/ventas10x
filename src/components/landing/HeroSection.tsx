@@ -87,7 +87,7 @@ export function HeroSection({
 
             <h1 style={{
               fontSize: 'clamp(36px, 5vw, 56px)',
-              fontWeight: 500,
+              fontWeight: 800,
               lineHeight: 1.02,
               letterSpacing: '-0.03em',
               color: '#0a0a0a',

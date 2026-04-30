@@ -73,7 +73,7 @@ export async function GET(
     // Optimizar vía wsrv.nl: resize + JPEG quality 75 (sin necesidad de Image Transformation)
     const imagenHeroRaw = config?.imagen_hero?.trim() || profile.avatar_url?.trim() || ''
     const imagenHero = imagenHeroRaw
-      ? `https://wsrv.nl/?url=${encodeURIComponent(imagenHeroRaw)}&w=500&h=700&fit=cover&q=75&output=jpg`
+      ? `https://wsrv.nl/?url=${encodeURIComponent(imagenHeroRaw)}&w=460&h=630&fit=cover&q=65&output=jpg`
       : ''
 
     // ── Componer la imagen ──

@@ -70,7 +70,11 @@ export async function GET(
       .toUpperCase()
 
     // ── Imagen del hero (foto del lado derecho) ──
-    const imagenHero = config?.imagen_hero?.trim() || profile.avatar_url?.trim() || ''
+    // Optimizar vía wsrv.nl: resize + JPEG quality 75 (sin necesidad de Image Transformation)
+    const imagenHeroRaw = config?.imagen_hero?.trim() || profile.avatar_url?.trim() || ''
+    const imagenHero = imagenHeroRaw
+      ? `https://wsrv.nl/?url=${encodeURIComponent(imagenHeroRaw)}&w=500&h=700&fit=cover&q=75&output=jpg`
+      : ''
 
     // ── Componer la imagen ──
     return new ImageResponse(
@@ -283,8 +287,8 @@ export async function GET(
       ),
       {
         ...SIZE,
-        // Cache 1 día en CDN, 5 min en cliente
         headers: {
+          'content-type': 'image/jpeg',
           'cache-control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800',
         },
       }

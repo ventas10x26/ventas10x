@@ -1,10 +1,26 @@
 'use client'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterFallback />}>
+      <RegisterForm />
+    </Suspense>
+  )
+}
+
+function RegisterFallback() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#f7f6f4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#888', fontSize: '14px' }}>Cargando...</div>
+    </div>
+  )
+}
+
+function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const inviteToken = searchParams.get('invite')

@@ -17,8 +17,24 @@ export default async function LandingEditorPage() {
   const active = await getActiveOrg()
   if (!active) redirect('/onboarding')
 
-  const [profileRes, configRes, testimoniosRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle<Profile>(),
+  // Cargar perfil del USUARIO actual (para nombre/initials del header)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle<Profile>()
+
+  if (!profile) redirect('/onboarding')
+
+  // Cargar perfil del OWNER de la org (para industria/empresa que se muestran al editar)
+  const { data: ownerProfile } = await supabase
+    .from('profiles')
+    .select('industria, empresa, nombre, apellido')
+    .eq('id', active.org.owner_id)
+    .maybeSingle<Profile>()
+
+  // Cargar landing_config y testimonios de la org activa
+  const [configRes, testimoniosRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('landing_config') as any)
       .select('*')
@@ -31,38 +47,66 @@ export default async function LandingEditorPage() {
       .order('orden', { ascending: true }),
   ])
 
-  const profile = profileRes.data
-  if (!profile) redirect('/onboarding')
+  // Construir configInicial con defaults seguros
+  const config = configRes.data
+  const configInicial = {
+    titulo: config?.titulo || '',
+    subtitulo: config?.subtitulo || '',
+    producto: config?.producto || '',
+    color_acento: config?.color_acento || '#FF6B2B',
+    foto_url: config?.foto_url || '',
+    whatsapp: config?.whatsapp || '',
+    mensaje_wa: config?.mensaje_wa || '',
+    imagen_hero: config?.imagen_hero || '',
+    imagen_logo: config?.imagen_logo || '',
+    imagenes_galeria: config?.imagenes_galeria || [],
+    stats: config?.stats || [],
+    como_funciona: config?.como_funciona || [],
+    bloques_activos: config?.bloques_activos || {},
+    badge_promo: config?.badge_promo || '',
+    cta_principal_texto: config?.cta_principal_texto || '',
+    cta_principal_microcopy: config?.cta_principal_microcopy || '',
+    tema: config?.tema || 'generico',
+  }
 
-  const config = configRes.data || null
   const testimonios = testimoniosRes.data || []
 
-  const nombre =
+  // Header del usuario actual
+  const nombreUsuario =
     [profile.nombre, profile.apellido].filter(Boolean).join(' ') ||
     user.email?.split('@')[0] ||
     'Usuario'
 
-  const initials = nombre
+  const initials = nombreUsuario
     .split(' ')
     .map((w: string) => w[0])
     .join('')
     .substring(0, 2)
     .toUpperCase()
 
+  // Datos del owner para el editor (industria/empresa de la org, no del usuario)
+  const nombreVendedorOwner = ownerProfile
+    ? [ownerProfile.nombre, ownerProfile.apellido].filter(Boolean).join(' ') ||
+      'Vendedor'
+    : 'Vendedor'
+
   return (
     <DashboardLayout
       user={{
         email: user.email!,
-        name: nombre,
+        name: nombreUsuario,
         initials,
         avatarUrl: user.user_metadata?.avatar_url,
       }}
       slug={active.org.slug ?? ''}
     >
       <LandingEditorClient
-        profile={profile}
-        config={config}
-        testimonios={testimonios}
+        slug={active.org.slug ?? ''}
+        configInicial={configInicial}
+        industria={ownerProfile?.industria || ''}
+        empresa={ownerProfile?.empresa || ''}
+        nombreVendedor={nombreVendedorOwner}
+        testimoniosIniciales={testimonios}
       />
     </DashboardLayout>
   )

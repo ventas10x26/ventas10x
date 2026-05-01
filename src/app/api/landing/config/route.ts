@@ -1,10 +1,10 @@
 // Ruta destino: src/app/api/landing/config/route.ts
-// FASE 1 - Soporte para nuevos campos: stats, como_funciona, bloques_activos,
-// badge_promo, cta_principal_texto, cta_principal_microcopy.
-// Retrocompatible con los campos existentes (titulo, subtitulo, producto, color_acento).
+// FASE 4.B: usa org activa. El admin invitado puede editar la landing del owner.
+// El registro en landing_config se identifica por vendedor_id = owner de la org.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/
 
@@ -34,17 +34,18 @@ function isBloquesActivos(v: any): boolean {
 export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
+    const active = await getActiveOrg()
+    if (!active) {
+      return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
+    }
+
     const body = await req.json()
 
-    // ── Validación del color (si viene) ──
     if (body.color_acento && !HEX_REGEX.test(body.color_acento)) {
       return NextResponse.json(
         { error: 'El color debe ser un hex válido (ej: #FF6B2B)' },
@@ -52,10 +53,11 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    // ── Construir objeto de cambios (solo campos enviados) ──
+    // El registro en landing_config se identifica por vendedor_id = owner de la org
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cambios: Record<string, any> = {
-      vendedor_id: user.id,
+      vendedor_id: active.org.owner_id,
+      org_id: active.org.id,
     }
 
     // Campos texto existentes
@@ -64,14 +66,14 @@ export async function PATCH(req: NextRequest) {
     if (body.producto !== undefined) cambios.producto = body.producto?.trim() || null
     if (body.color_acento !== undefined) cambios.color_acento = body.color_acento?.trim() || '#FF6B2B'
 
-    // Campos texto adicionales (que ya existen en BD pero no estaban en el endpoint)
+    // Campos texto adicionales
     if (body.foto_url !== undefined) cambios.foto_url = body.foto_url?.trim() || null
     if (body.whatsapp !== undefined) cambios.whatsapp = body.whatsapp?.trim() || null
     if (body.mensaje_wa !== undefined) cambios.mensaje_wa = body.mensaje_wa?.trim() || null
     if (body.imagen_hero !== undefined) cambios.imagen_hero = body.imagen_hero?.trim() || null
     if (body.imagen_logo !== undefined) cambios.imagen_logo = body.imagen_logo?.trim() || null
 
-    // Imagenes galería (array de strings)
+    // Imagenes galería
     if (body.imagenes_galeria !== undefined) {
       if (Array.isArray(body.imagenes_galeria)) {
         cambios.imagenes_galeria = body.imagenes_galeria.filter(
@@ -87,14 +89,12 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // ── FASE 1: campos nuevos ──
-
-    // Stats (jsonb): array de {valor, label}
+    // Stats
     if (body.stats !== undefined) {
       if (body.stats === null) {
         cambios.stats = []
       } else if (isStatArray(body.stats)) {
-        cambios.stats = body.stats.slice(0, 6) // máximo 6 stats
+        cambios.stats = body.stats.slice(0, 6)
       } else {
         return NextResponse.json(
           { error: 'stats debe ser un array de {valor, label}' },
@@ -103,12 +103,12 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Como funciona (jsonb): array de {titulo, descripcion}
+    // Como funciona
     if (body.como_funciona !== undefined) {
       if (body.como_funciona === null) {
         cambios.como_funciona = []
       } else if (isPasoArray(body.como_funciona)) {
-        cambios.como_funciona = body.como_funciona.slice(0, 5) // máximo 5 pasos
+        cambios.como_funciona = body.como_funciona.slice(0, 5)
       } else {
         return NextResponse.json(
           { error: 'como_funciona debe ser un array de {titulo, descripcion}' },
@@ -117,7 +117,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Bloques activos (jsonb): objeto {hero: bool, stats: bool, ...}
+    // Bloques activos
     if (body.bloques_activos !== undefined) {
       if (isBloquesActivos(body.bloques_activos)) {
         cambios.bloques_activos = body.bloques_activos
@@ -129,18 +129,16 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Badge promo (texto corto)
     if (body.badge_promo !== undefined) {
       cambios.badge_promo = body.badge_promo?.trim()?.slice(0, 80) || null
     }
-
-    // CTA principal
     if (body.cta_principal_texto !== undefined) {
       cambios.cta_principal_texto = body.cta_principal_texto?.trim()?.slice(0, 50) || null
     }
     if (body.cta_principal_microcopy !== undefined) {
       cambios.cta_principal_microcopy = body.cta_principal_microcopy?.trim()?.slice(0, 120) || null
     }
+
     if (body.tema !== undefined) {
       const temasValidos = ['automotriz', 'inmobiliaria', 'salud', 'retail', 'tecnologia', 'belleza', 'servicios', 'generico']
       const tema = String(body.tema).trim().toLowerCase()
@@ -149,15 +147,15 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // ── Si solo viene vendedor_id (nada más), error ──
-    if (Object.keys(cambios).length === 1) {
+    // Si solo vienen vendedor_id y org_id (los seteamos arriba), no hay cambios reales
+    if (Object.keys(cambios).length === 2) {
       return NextResponse.json(
         { error: 'No hay cambios para guardar' },
         { status: 400 }
       )
     }
 
-    // ── Upsert ──
+    // Upsert
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.from('landing_config') as any)
       .upsert(cambios, { onConflict: 'vendedor_id' })

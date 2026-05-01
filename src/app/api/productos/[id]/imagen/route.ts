@@ -1,19 +1,19 @@
 // Ruta destino: src/app/api/productos/[id]/imagen/route.ts
-// POST: sube imagen (FormData con file+rol) o asigna URL externa (JSON con rol+url)
-// DELETE: quita imagen del producto
+// FASE 4.B: usa org activa.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const BUCKET = 'producto-imagenes'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getProducto(supabase: any, id: string, userId: string) {
+async function getProducto(supabase: any, id: string, orgId: string) {
   const { data, error } = await supabase
     .from('productos')
-    .select('id, vendedor_id, imagen_principal, imagenes_adicionales')
+    .select('id, vendedor_id, org_id, imagen_principal, imagenes_adicionales')
     .eq('id', id)
-    .eq('vendedor_id', userId)
+    .eq('org_id', orgId)
     .single()
   if (error || !data) return null
   return data
@@ -29,7 +29,10 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    const producto = await getProducto(supabase, id, user.id)
+    const active = await getActiveOrg()
+    if (!active) return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
+
+    const producto = await getProducto(supabase, id, active.org.id)
     if (!producto) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
 
     const contentType = req.headers.get('content-type') || ''
@@ -37,7 +40,6 @@ export async function POST(
     let rol: 'principal' | 'adicional'
 
     if (contentType.includes('multipart/form-data')) {
-      // ── Subida de archivo ──
       const formData = await req.formData()
       const file = formData.get('file') as File | null
       const rolRaw = formData.get('rol') as string | null
@@ -49,7 +51,8 @@ export async function POST(
       rol = rolRaw
 
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-      const path = `${user.id}/${id}/${Date.now()}.${ext}`
+      // Path usa el owner_id de la org para mantener consistencia
+      const path = `${active.org.owner_id}/${id}/${Date.now()}.${ext}`
 
       const { error: upError } = await supabase.storage
         .from(BUCKET)
@@ -65,7 +68,6 @@ export async function POST(
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path)
       urlFinal = pub.publicUrl
     } else {
-      // ── URL externa (Unsplash u otra) ──
       const body = await req.json()
       if (!body.url || typeof body.url !== 'string') {
         return NextResponse.json({ error: 'Falta URL de la imagen' }, { status: 400 })
@@ -77,7 +79,6 @@ export async function POST(
       rol = body.rol
     }
 
-    // ── Actualizar el producto ──
     const cambios: Record<string, unknown> = {}
     if (rol === 'principal') {
       cambios.imagen_principal = urlFinal
@@ -90,7 +91,7 @@ export async function POST(
     const { error: updError } = await (supabase.from('productos') as any)
       .update(cambios)
       .eq('id', id)
-      .eq('vendedor_id', user.id)
+      .eq('org_id', active.org.id)
 
     if (updError) return NextResponse.json({ error: updError.message }, { status: 500 })
 
@@ -111,7 +112,10 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    const producto = await getProducto(supabase, id, user.id)
+    const active = await getActiveOrg()
+    if (!active) return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
+
+    const producto = await getProducto(supabase, id, active.org.id)
     if (!producto) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
 
     const body = await req.json()
@@ -134,11 +138,10 @@ export async function DELETE(
     const { error: updError } = await (supabase.from('productos') as any)
       .update(cambios)
       .eq('id', id)
-      .eq('vendedor_id', user.id)
+      .eq('org_id', active.org.id)
 
     if (updError) return NextResponse.json({ error: updError.message }, { status: 500 })
 
-    // Si la imagen está en nuestro bucket (no Unsplash), borrarla del storage también
     if (url.includes(`/storage/v1/object/public/${BUCKET}/`)) {
       const path = url.split(`/${BUCKET}/`)[1]
       if (path) {

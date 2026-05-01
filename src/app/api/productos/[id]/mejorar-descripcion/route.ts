@@ -1,10 +1,10 @@
 // Ruta destino: src/app/api/productos/[id]/mejorar-descripcion/route.ts
-// Recibe la descripción actual de un producto y la reformatea con IA
-// para mejor legibilidad. La IA decide si usar bullets, párrafos o mezcla.
+// FASE 4.B: usa org activa.
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -17,20 +17,17 @@ export async function POST(
   try {
     const { id } = await params
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    if (!user) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-    }
+    const active = await getActiveOrg()
+    if (!active) return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
 
-    // Verificar que el producto pertenece al usuario
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: producto } = await (supabase.from('productos') as any)
       .select('*')
       .eq('id', id)
-      .eq('vendedor_id', user.id)
+      .eq('org_id', active.org.id)
       .single()
 
     if (!producto) {
@@ -76,16 +73,6 @@ Responde SOLO con un JSON válido (sin markdown, sin backticks):
   "descripcionMejorada": "el texto reformateado con saltos de línea reales",
   "formatoUsado": "bullets" | "parrafos" | "mezcla",
   "explicacion": "breve explicación en español de por qué este formato (1 oración)"
-}
-
-Ejemplo (solo para referencia, NO lo copies literalmente):
-Input: "Vehículo compacto con motor 1.0. Disponible en versiones Concept, Drive y GT-Line. Características: pantalla táctil 8\\", panel digital, conectividad CarPlay, sistemas de seguridad, maletero de 255l."
-
-Output JSON:
-{
-  "descripcionMejorada": "Vehículo compacto con motor 1.0 GDi, disponible en versiones Concept, Drive y GT-Line.\\n\\n**Características:**\\n• Pantalla táctil de 8\\"\\n• Panel clúster digital LCD\\n• Conectividad Apple CarPlay y Android Auto\\n• Sistemas de seguridad avanzada\\n• Maletero de 255l",
-  "formatoUsado": "mezcla",
-  "explicacion": "Tiene una introducción seguida de características técnicas, ideal para mezcla"
 }`
 
     const response = await anthropic.messages.create({

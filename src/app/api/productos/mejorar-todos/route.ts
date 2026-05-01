@@ -1,11 +1,10 @@
 // Ruta destino: src/app/api/productos/mejorar-todos/route.ts
-// Recorre TODOS los productos del vendedor y mejora cada descripción con IA.
-// Procesa secuencialmente para no saturar la API.
-// Devuelve un resumen con qué productos se mejoraron y cuáles fallaron.
+// FASE 4.B: usa org activa.
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -28,30 +27,24 @@ type Resultado = {
 }
 
 const MIN_LARGO_DESCRIPCION = 50
-// Si la descripción ya tiene varios saltos de línea, asumimos que ya está formateada
 const YA_FORMATEADA_REGEX = /\n.*\n/
 
 export async function POST() {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    if (!user) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-    }
+    const active = await getActiveOrg()
+    if (!active) return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
 
-    // Cargar todos los productos del vendedor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: productos, error: errProd } = await (supabase.from('productos') as any)
       .select('id, nombre, precio, descripcion')
-      .eq('vendedor_id', user.id)
+      .eq('org_id', active.org.id)
       .order('orden', { ascending: true })
 
-    if (errProd) {
-      return NextResponse.json({ error: errProd.message }, { status: 500 })
-    }
+    if (errProd) return NextResponse.json({ error: errProd.message }, { status: 500 })
 
     if (!productos || productos.length === 0) {
       return NextResponse.json({
@@ -66,11 +59,9 @@ export async function POST() {
 
     const resultados: Resultado[] = []
 
-    // Procesar uno por uno (secuencial para no agotar rate limits)
     for (const producto of productos as Producto[]) {
       const descripcion = (producto.descripcion || '').trim()
 
-      // Skip si no tiene descripción o es muy corta
       if (!descripcion || descripcion.length < MIN_LARGO_DESCRIPCION) {
         resultados.push({
           id: producto.id,
@@ -81,7 +72,6 @@ export async function POST() {
         continue
       }
 
-      // Skip si ya tiene formato (varios saltos de línea)
       if (YA_FORMATEADA_REGEX.test(descripcion)) {
         resultados.push({
           id: producto.id,
@@ -92,7 +82,6 @@ export async function POST() {
         continue
       }
 
-      // Llamar a la IA
       try {
         const prompt = `Eres un experto en copywriting y diseño de descripciones de productos para landing pages.
 
@@ -138,16 +127,13 @@ Responde SOLO con un JSON válido (sin markdown):
           throw new Error('IA no devolvió descripción')
         }
 
-        // Guardar en la BD
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: errUpdate } = await (supabase.from('productos') as any)
           .update({ descripcion: data.descripcionMejorada })
           .eq('id', producto.id)
-          .eq('vendedor_id', user.id)
+          .eq('org_id', active.org.id)
 
-        if (errUpdate) {
-          throw new Error(errUpdate.message)
-        }
+        if (errUpdate) throw new Error(errUpdate.message)
 
         resultados.push({
           id: producto.id,
@@ -166,9 +152,9 @@ Responde SOLO con un JSON válido (sin markdown):
       }
     }
 
-    const mejorados = resultados.filter(r => r.estado === 'mejorado').length
-    const omitidos = resultados.filter(r => r.estado === 'omitido').length
-    const errores = resultados.filter(r => r.estado === 'error').length
+    const mejorados = resultados.filter((r) => r.estado === 'mejorado').length
+    const omitidos = resultados.filter((r) => r.estado === 'omitido').length
+    const errores = resultados.filter((r) => r.estado === 'error').length
 
     return NextResponse.json({
       ok: true,

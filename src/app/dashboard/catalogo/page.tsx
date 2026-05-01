@@ -1,11 +1,11 @@
 // Ruta destino: src/app/dashboard/catalogo/page.tsx
-// FIX: agregar imagen_principal e imagenes_adicionales al tipo Producto
-// para que TypeScript NO descarte estas columnas que sí vienen de la BD.
+// FASE 4.B: filtra productos por org_id (no por user.id)
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { CatalogoClient } from '@/components/dashboard/CatalogoClient'
+import { getActiveOrg } from '@/lib/get-active-org'
 import type { Profile } from '@/types/database'
 
 export type Producto = {
@@ -15,7 +15,6 @@ export type Producto = {
   descripcion: string | null
   orden: number
   created_at: string
-  // ─── FIX: agregar campos de imagen ───
   imagen_principal: string | null
   imagenes_adicionales: string[] | null
 }
@@ -25,23 +24,34 @@ export default async function CatalogoPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
+  const active = await getActiveOrg()
+  if (!active) redirect('/onboarding')
+
   const [profileRes, productosRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
       .from('productos')
-      .select('*')
-      .eq('vendedor_id', user.id)
+      .select('id, nombre, precio, descripcion, orden, created_at, imagen_principal, imagenes_adicionales')
+      .eq('org_id', active.org.id)
       .order('orden', { ascending: true }),
   ])
 
   const profile = profileRes.data as Profile | null
-  const productos = (productosRes.data as Producto[] | null) ?? []
+  if (!profile) redirect('/onboarding')
 
-  const nombre = profile
-    ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'Usuario'
-    : user.email?.split('@')[0] || 'Usuario'
+  const productos = (productosRes.data || []) as Producto[]
 
-  const initials = nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()
+  const nombre =
+    [profile.nombre, profile.apellido].filter(Boolean).join(' ') ||
+    user.email?.split('@')[0] ||
+    'Usuario'
+
+  const initials = nombre
+    .split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase()
 
   return (
     <DashboardLayout
@@ -49,9 +59,9 @@ export default async function CatalogoPage() {
         email: user.email!,
         name: nombre,
         initials,
-        avatarUrl: user.user_metadata?.avatar_url
+        avatarUrl: user.user_metadata?.avatar_url,
       }}
-      slug={profile?.slug ?? ''}
+      slug={active.org.slug ?? ''}
     >
       <CatalogoClient productosIniciales={productos} />
     </DashboardLayout>

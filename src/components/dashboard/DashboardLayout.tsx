@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/ui/Logo'
 import { LandingUrlBanner } from './LandingUrlBanner'
 import { SuscripcionBanner } from './SuscripcionBanner'
+import { SelectorOrg } from './SelectorOrg'
 
 type SubItem = { href: string; label: string; icon?: string }
 type NavItem = {
@@ -84,8 +85,12 @@ export function DashboardLayout({ children, user, slug }: DashboardLayoutProps) 
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:relative lg:translate-x-0
       `}>
-        <div className="p-6 border-b border-white/10">
+<div className="p-6 border-b border-white/10">
           <Logo dark />
+        </div>
+
+        <div className="pt-4">
+          <SelectorOrg />
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

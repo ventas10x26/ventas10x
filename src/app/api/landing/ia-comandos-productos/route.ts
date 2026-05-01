@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const supabaseAdmin = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,23 +24,24 @@ type AccionProducto =
 export async function POST(req: Request) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-    if (!user) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-    }
+    // ✅ Usar org activa (funciona para owner e invitados)
+    const active = await getActiveOrg()
+    if (!active) return NextResponse.json({ error: 'Sin org activa' }, { status: 400 })
+
+    const orgId = active.org.id
+    const ownerId = active.org.owner_id
 
     const body = (await req.json()) as AccionProducto
 
     // ── CREAR ──
     if (body.accion === 'crear') {
-      // Calcular siguiente orden
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: existentes } = await (supabase.from('productos') as any)
         .select('orden')
-        .eq('vendedor_id', user.id)
+        .eq('org_id', orgId)
         .order('orden', { ascending: false })
         .limit(1)
 
@@ -47,7 +49,8 @@ export async function POST(req: Request) {
         existentes && existentes.length > 0 ? existentes[0].orden + 1 : 0
 
       const nuevo = {
-        vendedor_id: user.id,
+        vendedor_id: ownerId,   // ✅ siempre el owner para retrocompatibilidad
+        org_id: orgId,          // ✅ org activa para RLS
         nombre: body.nombre.trim(),
         precio: body.precio?.trim() || null,
         descripcion: body.descripcion?.trim() || null,
@@ -60,11 +63,8 @@ export async function POST(req: Request) {
         .select('*')
         .single()
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-      // Si pidió buscar imagen, la buscamos en Unsplash
       let imagenSugerida: { url: string; autor: string } | null = null
       if (body.buscar_imagen) {
         const accessKey = process.env.UNSPLASH_ACCESS_KEY
@@ -83,33 +83,26 @@ export async function POST(req: Request) {
                 }
               }
             }
-          } catch {
-            // Silencioso
-          }
+          } catch { /* silencioso */ }
         }
       }
 
-      return NextResponse.json({
-        ok: true,
-        accion: 'crear',
-        producto,
-        imagenSugerida,
-      })
+      return NextResponse.json({ ok: true, accion: 'crear', producto, imagenSugerida })
     }
 
-    // Helper para buscar producto por nombre aproximado
+    // ✅ Helper busca por org_id, no por vendedor_id
     const buscarProducto = async (id?: string, nombreAprox?: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query = (supabase.from('productos') as any)
+      const base = (supabase.from('productos') as any)
         .select('*')
-        .eq('vendedor_id', user.id)
+        .eq('org_id', orgId)
 
       if (id) {
-        const { data } = await query.eq('id', id).single()
+        const { data } = await base.eq('id', id).single()
         return data
       }
       if (nombreAprox) {
-        const { data } = await query.ilike('nombre', `%${nombreAprox}%`).limit(1).single()
+        const { data } = await base.ilike('nombre', `%${nombreAprox}%`).limit(1).single()
         return data
       }
       return null
@@ -118,78 +111,57 @@ export async function POST(req: Request) {
     // ── ACTUALIZAR ──
     if (body.accion === 'actualizar') {
       const producto = await buscarProducto(body.id, body.nombre_aproximado)
-      if (!producto) {
-        return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
-      }
+      if (!producto) return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
 
       const updates: Record<string, unknown> = {}
       if (body.nuevo_nombre) updates.nombre = body.nuevo_nombre.trim()
       if (body.precio) updates.precio = body.precio.trim()
       if (body.descripcion) updates.descripcion = body.descripcion.trim()
 
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(updates).length === 0)
         return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
-      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from('productos') as any)
         .update(updates)
         .eq('id', producto.id)
-        .eq('vendedor_id', user.id)
+        .eq('org_id', orgId)   // ✅ RLS por org
         .select('*')
         .single()
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ ok: true, accion: 'actualizar', producto: data })
     }
 
     // ── ELIMINAR ──
     if (body.accion === 'eliminar') {
       const producto = await buscarProducto(body.id, body.nombre_aproximado)
-      if (!producto) {
-        return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
-      }
+      if (!producto) return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from('productos') as any)
         .delete()
         .eq('id', producto.id)
-        .eq('vendedor_id', user.id)
+        .eq('org_id', orgId)   // ✅ RLS por org
 
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-
-      return NextResponse.json({
-        ok: true,
-        accion: 'eliminar',
-        nombre: producto.nombre,
-      })
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, accion: 'eliminar', nombre: producto.nombre })
     }
 
-    // ── AGREGAR IMAGEN (busca en Unsplash y la sube) ──
+    // ── AGREGAR IMAGEN ──
     if (body.accion === 'agregar_imagen') {
       const producto = await buscarProducto(body.id, body.nombre_aproximado)
-      if (!producto) {
-        return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
-      }
+      if (!producto) return NextResponse.json({ error: 'No encontré ese producto' }, { status: 404 })
 
       const accessKey = process.env.UNSPLASH_ACCESS_KEY
-      if (!accessKey) {
-        return NextResponse.json({ error: 'Búsqueda de imágenes no configurada' }, { status: 500 })
-      }
+      if (!accessKey) return NextResponse.json({ error: 'Búsqueda de imágenes no configurada' }, { status: 500 })
 
-      // Buscar varias opciones en Unsplash
       const res = await fetch(
         `https://api.unsplash.com/search/photos?query=${encodeURIComponent(body.query_imagen)}&orientation=landscape&per_page=6&content_filter=high`,
         { headers: { Authorization: `Client-ID ${accessKey}` } }
       )
-      if (!res.ok) {
-        return NextResponse.json({ error: 'Error al buscar imágenes' }, { status: 500 })
-      }
+      if (!res.ok) return NextResponse.json({ error: 'Error al buscar imágenes' }, { status: 500 })
+
       const data = await res.json()
       const imagenes = (data.results || []).slice(0, 6).map((p: {
         id: string

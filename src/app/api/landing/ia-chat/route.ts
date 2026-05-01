@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: productos } = await (supabase.from('productos') as any)
         .select('id, nombre, precio')
-        .eq('vendedor_id', user.id)
+        .eq('org_id', (await getActiveOrg())?.org?.id)
         .order('orden', { ascending: true })
 
       if (productos && productos.length > 0) {

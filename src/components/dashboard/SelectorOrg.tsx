@@ -76,7 +76,7 @@ export function SelectorOrg() {
 
   // Si está cargando o tiene 0/1 org, no mostrar el selector
   if (loading) return null
-  if (orgs.length <= 1) return null
+  if (orgs.length === 0) return null
 
   const orgActiva = orgs.find((o) => o.id === orgActivaId) || orgs[0]
   const inicial = orgActiva.nombre.charAt(0).toUpperCase()

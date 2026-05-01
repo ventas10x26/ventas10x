@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 export async function GET() {
   try {
@@ -22,7 +23,7 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: visitas, error } = await (supabase.from('landing_visitas') as any)
       .select('visitado_at, ciudad, pais, referrer, dispositivo')
-      .eq('vendedor_id', user.id)
+      .eq('vendedor_id', (await getActiveOrg())?.org?.owner_id)
       .gte('visitado_at', hace30dias)
       .order('visitado_at', { ascending: false })
 

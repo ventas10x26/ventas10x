@@ -16,12 +16,15 @@ type Metricas = {
   dispositivos: { mobile: number; desktop: number; tablet: number }
 }
 
-export function MetricasLandingCard() {
+export function MetricasLandingCard({ orgId }: { orgId: string }) {
   const [data, setData] = useState<Metricas | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    setLoading(true)
+    setData(null)
+    setError(null)
     fetch('/api/dashboard/metricas-landing')
       .then((r) => r.json())
       .then((d) => {
@@ -30,7 +33,7 @@ export function MetricasLandingCard() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [orgId])  // ✅ se recarga cuando cambia la org
 
   if (loading) {
     return (

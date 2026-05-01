@@ -4,7 +4,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
-import { LeadsManager } from '@/components/dashboard/LeadsManager'
+import { LeadsTable } from '@/components/dashboard/LeadsTable'
 import { getActiveOrg } from '@/lib/get-active-org'
 import type { Profile, Lead } from '@/types/database'
 
@@ -53,7 +53,7 @@ export default async function LeadsPage() {
       }}
       slug={active.org.slug ?? ''}
     >
-      <LeadsManager initialLeads={leads} userId={user.id} />
+      <LeadsTable initialLeads={leads} userId={user.id} />
     </DashboardLayout>
   )
 }

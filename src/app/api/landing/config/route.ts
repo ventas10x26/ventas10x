@@ -69,7 +69,6 @@ export async function PATCH(req: NextRequest) {
     // Campos texto adicionales
     if (body.foto_url !== undefined) cambios.foto_url = body.foto_url?.trim() || null
     if (body.whatsapp !== undefined) cambios.whatsapp = body.whatsapp?.trim() || null
-    if (body.mensaje_wa !== undefined) cambios.mensaje_wa = body.mensaje_wa?.trim() || null
     if (body.imagen_hero !== undefined) cambios.imagen_hero = body.imagen_hero?.trim() || null
     if (body.imagen_logo !== undefined) cambios.imagen_logo = body.imagen_logo?.trim() || null
 

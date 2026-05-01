@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getActiveOrg } from '@/lib/get-active-org'
 
 const ETAPAS_VALIDAS = ['nuevo', 'contactado', 'interesado', 'cerrado']
 
@@ -59,7 +60,7 @@ export async function PATCH(
     const { data, error } = await (supabase.from('leads') as any)
       .update(cambios)
       .eq('id', id)
-      .eq('vendedor_id', user.id)
+      .eq('vendedor_id', (await getActiveOrg())?.org?.owner_id)
       .select('*')
       .single()
 
@@ -96,7 +97,7 @@ export async function DELETE(
     const { error } = await (supabase.from('leads') as any)
       .delete()
       .eq('id', id)
-      .eq('vendedor_id', user.id)
+      .eq('vendedor_id', (await getActiveOrg())?.org?.owner_id)
 
     if (error) {
       console.error('[api/leads DELETE]', error)

@@ -254,8 +254,8 @@ export default function HomePage() {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1.5rem' }}>
             {[
-              { plan:'Starter', price:'$49', period:'/mes', desc:'Para asesores independientes que quieren empezar.', features:['Catálogo IA (hasta 50 productos)','Bot IA básico por WhatsApp','Pipeline visual','1 usuario'], cta:'Probar 14 días gratis', highlight:false },
-              { plan:'Pro', price:'$99', period:'/mes', desc:'Para equipos que quieren escalar sus ventas.', features:['Catálogo IA ilimitado','Bot IA avanzado por industria','Pipeline + automatizaciones','Hasta 5 usuarios','Soporte prioritario'], cta:'Probar 14 días gratis', highlight:true },
+              { plan:'Starter', price:'$19.900', period:'/mes', desc:'Para asesores independientes que quieren empezar.', features:['Catálogo IA (hasta 50 productos)','Bot IA básico por WhatsApp','Pipeline visual','1 usuario'], cta:'Probar 14 días gratis', highlight:false },
+              { plan:'Pro', price:'$39.900', period:'/mes', desc:'Para equipos que quieren escalar sus ventas.', features:['Catálogo IA ilimitado','Bot IA avanzado por industria','Pipeline + automatizaciones','Hasta 5 usuarios','Soporte prioritario'], cta:'Probar 14 días gratis', highlight:true },
               { plan:'Enterprise', price:'Cotiza', period:'', desc:'Para empresas con necesidades personalizadas.', features:['Todo lo de Pro','Usuarios ilimitados','Integraciones custom','Gestor de cuenta dedicado','SLA garantizado'], cta:'Hablar con ventas', highlight:false },
             ].map(p => (
               <div key={p.plan} style={{ background: p.highlight ? 'rgba(255,107,43,.1)' : 'rgba(255,255,255,.04)', border: p.highlight ? '1px solid rgba(255,107,43,.45)' : '1px solid rgba(255,255,255,.08)', borderRadius:'20px', padding:'2rem', position:'relative' }}>

@@ -1,5 +1,6 @@
 // Ruta destino: src/components/landing-sections/SeccionRenderer.tsx
 
+'use client'
 import { LandingSeccion } from '@/types/secciones'
 import { SeccionTestimonios } from './SeccionTestimonios'
 import { SeccionFAQ } from './SeccionFAQ'

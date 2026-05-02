@@ -102,7 +102,7 @@ export function CatalogoIASection() {
         <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] pointer-events-none rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(255,107,43,0.06) 0%, transparent 70%)' }} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-16 items-center">
+        <div className="grid grid-cols-1 gap-8 p-6 lg:p-16 items-center lg:grid-cols-2">
           {/* Left */}
           <div>
             <div className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--orange)' }}>✨ Catálogo IA</div>
@@ -137,7 +137,7 @@ export function CatalogoIASection() {
           </div>
 
           {/* Right — demo — oculto en mobile */}
-          <div className="relative hidden lg:block">
+          <div className="relative" style={{display:'none'}} id="catalogo-demo-desktop">
             <div className="absolute -top-2.5 -right-2.5 z-10 text-xs font-bold text-white px-3 py-1 rounded-full"
               style={{ background: 'var(--orange)', boxShadow: '0 4px 16px rgba(255,107,43,0.4)' }}>
               ⚡ Powered by IA
@@ -176,6 +176,11 @@ export function CatalogoIASection() {
           </div>
         </div>
       </div>
+      <style>{`
+  @media (min-width: 1024px) {
+    #catalogo-demo-desktop { display: block !important; }
+  }
+`}</style>
     </section>
   )
 }

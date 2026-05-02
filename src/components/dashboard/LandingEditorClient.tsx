@@ -21,6 +21,7 @@ type ConfigForm = {
   producto: string
   color_acento: string
   imagen_hero?: string
+  hero_video_url?: string
   imagen_logo?: string
   imagenes_galeria?: string[]
   // Campos Fase 1+2
@@ -750,6 +751,25 @@ export function LandingEditorClient({
               <input type="color" value={form.color_acento} onChange={(e) => actualizar('color_acento', e.target.value)} className="w-14 h-10 rounded-lg border border-gray-200 cursor-pointer" />
               <input value={form.color_acento} onChange={(e) => actualizar('color_acento', e.target.value)} className="input font-mono text-sm" placeholder="#FF6B2B" maxLength={7} />
             </div>
+          </section>
+
+          <section className="card p-6 space-y-3">
+            <h2 className="text-lg font-semibold text-brand-navy">Video del hero (Instagram)</h2>
+            <p className="text-xs text-gray-500">Pega la URL de un post o reel de Instagram. Se mostrará en lugar de la imagen hero.</p>
+            <input
+              value={form.hero_video_url || ''}
+              onChange={(e) => actualizar('hero_video_url', e.target.value)}
+              className="input font-mono text-sm"
+              placeholder="https://www.instagram.com/reel/ABC123/"
+            />
+            {form.hero_video_url && (
+              <button
+                onClick={() => actualizar('hero_video_url', '')}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                ✕ Quitar video
+              </button>
+            )}
           </section>
 
           <div className="flex items-center justify-between gap-4 flex-wrap">

@@ -207,6 +207,7 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
         titulo={config?.titulo || ''}
         subtitulo={config?.subtitulo || ''}
         imagenHero={config?.imagen_hero || profile.avatar_url || ''}
+        heroVideoUrl={config?.hero_video_url || ''}
         badgePromo={badgePromo}
         colorAcento={colorAcento}
         ctaTexto={ctaTexto}

@@ -17,7 +17,13 @@ type Props = {
   ctaMicrocopy: string
   industria: string
   tema?: SectorKey | string
+  heroVideoUrl?: string
   onCtaClick: () => void
+}
+
+function extractIgCode(url: string): string {
+  const match = url.match(/\/(p|reel|tv)\/([A-Za-z0-9_-]+)/)
+  return match ? match[2] : ''
 }
 
 export function HeroSection({
@@ -29,6 +35,7 @@ export function HeroSection({
   ctaTexto,
   ctaMicrocopy,
   tema,
+  heroVideoUrl,
   onCtaClick,
 }: Props) {
 
@@ -157,7 +164,7 @@ export function HeroSection({
 
           <div style={{
             aspectRatio: '4/5',
-            background: tieneImagen
+            background: tieneImagen && !heroVideoUrl
               ? `url(${imagenHero}) center/cover`
               : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
             borderRadius: '20px',
@@ -165,7 +172,15 @@ export function HeroSection({
             overflow: 'hidden',
             maxHeight: '520px',
           }}>
-            {!tieneImagen && (
+      {heroVideoUrl ? (
+              <iframe
+                src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl)}/embed/`}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                allowFullScreen
+                scrolling="no"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+              />
+            ) : !tieneImagen && (
               <div style={{
                 position: 'absolute',
                 inset: 0,

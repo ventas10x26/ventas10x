@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import BotIASection from '@/components/landing/BotIASection'
 import KitDigitalSection from '@/components/landing/KitDigitalSection'
+import DashboardIASection from '@/components/landing/DashboardIASection'
 
 const DARK = '#0f1c2e'
 const SOFT = '#f4f6f9'
@@ -50,6 +51,8 @@ export default function HomePage() {
           <p style={{ fontSize:'13px', color:'rgba(255,255,255,.5)' }}>+200 vendedores activos · Sin tarjeta de crédito · Cancela cuando quieras</p>
         </div>
       </div>
+
+      <DashboardIASection />
 
       {/* ── TICKER: INDUSTRIAS (dark) ── */}
       <div style={{ background:'rgba(255,255,255,.03)', borderTop:'1px solid rgba(255,255,255,.07)', borderBottom:'1px solid rgba(255,255,255,.07)', overflow:'hidden', padding:'1.1rem 0' }}>
@@ -243,6 +246,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      <DashboardIASection />
 
       {/* ── DARK: PRECIOS ── */}
       <div id="precios" style={{ background:DARK }}>

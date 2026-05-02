@@ -71,6 +71,7 @@ export async function PATCH(req: NextRequest) {
     if (body.whatsapp !== undefined) cambios.whatsapp = body.whatsapp?.trim() || null
     if (body.imagen_hero !== undefined) cambios.imagen_hero = body.imagen_hero?.trim() || null
     if (body.imagen_logo !== undefined) cambios.imagen_logo = body.imagen_logo?.trim() || null
+    if (body.hero_video_url !== undefined) cambios.hero_video_url = body.hero_video_url?.trim() || null
 
     // Imagenes galería
     if (body.imagenes_galeria !== undefined) {

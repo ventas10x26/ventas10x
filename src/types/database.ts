@@ -54,6 +54,7 @@ export interface Database {
           mensaje_wa: string | null
           updated_at: string
           imagen_hero: string | null
+          hero_video_url: string | null
           imagen_logo: string | null
           imagenes_galeria: string[] | null
         }

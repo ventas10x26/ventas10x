@@ -102,7 +102,7 @@ export function CatalogoIASection() {
         <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] pointer-events-none rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(255,107,43,0.06) 0%, transparent 70%)' }} />
 
-        <div className="grid grid-cols-1 gap-8 p-6 lg:p-16 items-center lg:grid-cols-2">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', padding: '1.5rem' }} className="catalogo-grid">
           {/* Left */}
           <div>
             <div className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--orange)' }}>✨ Catálogo IA</div>
@@ -180,6 +180,10 @@ export function CatalogoIASection() {
   @media (min-width: 1024px) {
     #catalogo-demo-desktop { display: block !important; }
   }
+    @media (min-width: 1024px) {
+  #catalogo-demo-desktop { display: block !important; }
+  .catalogo-grid { grid-template-columns: 1fr 1fr !important; padding: 4rem !important; }
+}
 `}</style>
     </section>
   )

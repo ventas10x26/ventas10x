@@ -1,3 +1,18 @@
+const formatos = [
+  { icon: '🖼️', cls: 'bg-blue-50',   name: 'Imagen / Foto',   sub: 'Foto de tu catálogo físico o banner' },
+  { icon: '📄', cls: 'bg-red-50',    name: 'PDF',              sub: 'Brochure, lista de precios, ficha' },
+  { icon: '📊', cls: 'bg-green-50',  name: 'Excel / XLSX',     sub: 'Tu inventario o lista de productos' },
+  { icon: '📋', cls: 'bg-teal-50',   name: 'CSV',              sub: 'Exportación de cualquier sistema' },
+  { icon: '✏️', cls: 'bg-purple-50', name: 'Texto libre',      sub: 'Pega tu lista directamente' },
+  { icon: '🔗', cls: 'bg-yellow-50', name: 'URL / Link',       sub: 'Enlace a tu catálogo online' },
+]
+
+const demoProducts = [
+  { thumb: '🚗', bg: 'rgba(59,130,246,0.15)', name: 'Toyota Corolla 2024 — LE', price: '$89.900.000 COP' },
+  { thumb: '🏠', bg: 'rgba(34,197,94,0.15)',  name: 'Apto 3 hab. — Laureles 85m²', price: '$450.000.000 COP' },
+  { thumb: '📦', bg: 'rgba(168,85,247,0.15)', name: 'Nevera Samsung 400L Inverter', price: '$2.899.000 COP' },
+]
+
 export function CatalogoIASection() {
   return (
     <section id="catalogo-ia" style={{ background: 'var(--light-bg)', padding: '0 1rem' }}>

@@ -89,17 +89,6 @@ export function CatalogoIASection() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        .catalogo-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-        }
-        @media (min-width: 1024px) {
-          .catalogo-grid { grid-template-columns: 1fr 1fr; }
-          #catalogo-demo-desktop { display: block !important; }
-        }
-      `}</style>
     </section>
   )
 }

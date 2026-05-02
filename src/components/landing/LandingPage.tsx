@@ -49,9 +49,10 @@ type Props = {
   testimonios: Testimonio[]
   slug: string
   tema?: string
+  seccionesCampana?: import('@/types/secciones').LandingSeccion[]
+  colorAcento?: string
 }
-
-export function LandingPage({ profile, config, productos, testimonios, slug, tema }: Props) {
+export function LandingPage({ profile, config, productos, testimonios, slug, tema, seccionesCampana }: Props) {
   const colorAcento = config?.color_acento || '#FF6B2B'
   const bloques: BloquesActivos = config?.bloques_activos || {
     hero: true,
@@ -223,6 +224,15 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
         <StatsBar stats={stats} />
       )}
 
+      {/* ── Campaña destacada ── */}
+      {seccionesCampana && seccionesCampana.length > 0 && seccionesCampana.map(s => (
+        <SeccionRenderer
+          key={s.id}
+          seccion={s}
+          colorAcento={colorAcento}
+          whatsappVendedor={profile.whatsapp || config?.whatsapp || null}
+        />
+      ))}
       {/* ── Productos ── */}
       {bloques.productos !== false && productos.length > 0 && (
         <ProductosGrid

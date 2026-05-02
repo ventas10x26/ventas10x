@@ -328,11 +328,12 @@ export default async function VendedorLandingPage({ params }: Props) {
         testimonios={testimonios}
         slug={slug}
         tema={config?.tema ?? undefined}
+        seccionesCampana={secciones.filter(s => s.tipo === 'campana' && s.activa)}
+        colorAcento={colorAcento}
       />
-
-      {secciones.length > 0 && (
+      {secciones.filter(s => s.tipo !== 'campana').length > 0 && (
         <div>
-          {secciones.map((seccion) => (
+          {secciones.filter(s => s.tipo !== 'campana').map((seccion) => (
             <SeccionRenderer
               key={seccion.id}
               seccion={seccion}

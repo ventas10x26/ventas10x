@@ -49,25 +49,6 @@ export function HeroSection({
 
   const bgGradient = `linear-gradient(180deg, #fff 0%, ${colorAcento}08 100%)`
 
-  const mediaStyle = tieneVideo
-    ? {
-        borderRadius: '20px',
-        overflow: 'hidden',
-        maxHeight: '600px',
-        position: 'relative' as const,
-        background: 'transparent',
-      }
-    : {
-        aspectRatio: '4/5' as const,
-        background: tieneImagen
-          ? `url(${imagenHero}) center/cover`
-          : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
-        borderRadius: '20px',
-        position: 'relative' as const,
-        overflow: 'hidden',
-        maxHeight: '520px',
-      }
-
   return (
     <section
       id="cta-principal"
@@ -128,26 +109,36 @@ export function HeroSection({
           </div>
 
           {/* Media */}
-          <div style={mediaStyle}>
+          <div style={{
+            borderRadius: '20px',
+            overflow: 'hidden',
+            position: 'relative',
+            aspectRatio: tieneVideo ? undefined : '4/5',
+            background: tieneVideo
+              ? 'transparent'
+              : tieneImagen
+                ? `url(${imagenHero}) center/cover`
+                : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
+            maxHeight: '600px',
+          }}>
             {tieneVideo ? (
               <div style={{ position: 'relative', width: '100%', height: '600px', overflow: 'hidden' }}>
-              <iframe
-                src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl!)}/embed/`}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: '130%',
-                  height: '130%',
-                  transform: 'translate(-50%, -50%)',
-                  border: 'none',
-                }}
+                <iframe
+                  src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl!)}/embed/`}
+                  allowFullScreen
+                  scrolling="no"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '140%',
+                    height: '140%',
+                    transform: 'translate(-50%, -50%)',
+                    border: 'none',
+                  }}
                 />
               </div>
-                allowFullScreen
-                scrolling="no"
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-              />
             ) : !tieneImagen && (
               <div style={{
                 position: 'absolute', inset: 0, display: 'flex',

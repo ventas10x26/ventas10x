@@ -7,7 +7,6 @@ import { SeccionFAQ } from './SeccionFAQ'
 import { SeccionCTA } from './SeccionCTA'
 import { CampanaDestacadaSection } from '@/components/landing/CampanaDestacadaSection'
 import { ContenidoCampana } from '@/types/secciones'
-import { SeccionRenderer } from '@/components/landing-sections/SeccionRenderer'
 import {
   ContenidoTestimonios,
   ContenidoFAQ,

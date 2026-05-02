@@ -114,7 +114,7 @@ export function CatalogoIASection() {
               extraer automáticamente nombres, precios, descripciones e imágenes desde cualquier formato que ya tengas.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-8">
+            <div className="grid grid-cols-1 gap-2.5 mb-8">
               {formatos.map(f => (
                 <div key={f.name} className="flex items-center gap-3 p-4 rounded-xl transition-all duration-200 cursor-default"
                   style={{ background: 'var(--light-bg)', border: '1px solid var(--light-border)' }}

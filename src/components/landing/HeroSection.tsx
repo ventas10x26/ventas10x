@@ -1,6 +1,4 @@
 // Ruta destino: src/components/landing/HeroSection.tsx
-// FASE 3 - Aplica el tema del sector. Mantiene compatibilidad: si no recibe tema, usa default.
-
 'use client'
 
 import type { SectorKey } from '@/lib/sector-themes'
@@ -41,155 +39,109 @@ export function HeroSection({
 
   const theme = getTheme(tema)
   const tieneImagen = !!imagenHero?.trim()
+  const tieneVideo = !!heroVideoUrl?.trim()
 
-  // Si los textos están vacíos, usar defaults del tema
   const tituloFinal = titulo?.trim() || theme.tituloDefault
   const subtituloFinal = subtitulo?.trim() || theme.subtituloDefault
   const badgeFinal = badgePromo?.trim() || theme.badgePromoDefault
   const ctaFinal = ctaTexto?.trim() || theme.ctaTextoDefault
   const microcopyFinal = ctaMicrocopy?.trim() || theme.ctaMicrocopyDefault
 
-  // Background suave según el tema
   const bgGradient = `linear-gradient(180deg, #fff 0%, ${colorAcento}08 100%)`
+
+  const mediaStyle = tieneVideo
+    ? {
+        borderRadius: '20px',
+        overflow: 'hidden',
+        maxHeight: '600px',
+        position: 'relative' as const,
+        background: 'transparent',
+      }
+    : {
+        aspectRatio: '4/5' as const,
+        background: tieneImagen
+          ? `url(${imagenHero}) center/cover`
+          : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
+        borderRadius: '20px',
+        position: 'relative' as const,
+        overflow: 'hidden',
+        maxHeight: '520px',
+      }
 
   return (
     <section
       id="cta-principal"
-      style={{
-        padding: '40px 24px 32px',
-        background: bgGradient,
-      }}
+      style={{ padding: '40px 24px 32px', background: bgGradient }}
     >
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-
         <div className="hero-grid">
 
+          {/* Texto */}
           <div>
             {badgeFinal && (
               <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#fff',
-                border: `0.5px solid ${colorAcento}40`,
-                padding: '6px 14px',
-                borderRadius: '100px',
-                marginBottom: '20px',
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: '#fff', border: `0.5px solid ${colorAcento}40`,
+                padding: '6px 14px', borderRadius: '100px', marginBottom: '20px',
               }}>
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#1d9e75',
-                }} />
-                <span style={{
-                  fontSize: '12px',
-                  color: colorAcento,
-                  fontWeight: 500,
-                }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1d9e75' }} />
+                <span style={{ fontSize: '12px', color: colorAcento, fontWeight: 500 }}>
                   {badgeFinal}
                 </span>
               </div>
             )}
 
             <h1 style={{
-              fontSize: 'clamp(36px, 5vw, 56px)',
-              fontWeight: 580,
-              lineHeight: 1.02,
-              letterSpacing: '-0.03em',
-              color: '#0a0a0a',
-              margin: '0 0 16px',
-              fontFamily: theme.fontHero,
-              whiteSpace: 'pre-line',
+              fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 580,
+              lineHeight: 1.02, letterSpacing: '-0.03em', color: '#0a0a0a',
+              margin: '0 0 16px', fontFamily: theme.fontHero, whiteSpace: 'pre-line',
             }}>
               {tituloFinal}
             </h1>
 
             <p style={{
-              fontSize: 'clamp(17px, 1.8vw, 19px)',
-              lineHeight: 1.55,
-              color: '#555',
-              margin: '0 0 26px',
-              maxWidth: '520px',
+              fontSize: 'clamp(17px, 1.8vw, 19px)', lineHeight: 1.55,
+              color: '#555', margin: '0 0 26px', maxWidth: '520px',
             }}>
               {subtituloFinal}
             </p>
 
-            <div style={{
-              display: 'flex',
-              gap: '10px',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              marginBottom: '14px',
-            }}>
-              <button
-                onClick={onCtaClick}
-                style={{
-                  background: colorAcento,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '15px 26px',
-                  fontSize: '16px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  boxShadow: `0 8px 20px ${colorAcento}3a`,
-                  fontFamily: 'inherit',
-                }}
-              >
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' }}>
+              <button onClick={onCtaClick} style={{
+                background: colorAcento, color: '#fff', border: 'none',
+                borderRadius: '12px', padding: '15px 26px', fontSize: '16px',
+                fontWeight: 500, cursor: 'pointer',
+                boxShadow: `0 8px 20px ${colorAcento}3a`, fontFamily: 'inherit',
+              }}>
                 {ctaFinal} →
               </button>
-              <button
-                onClick={onCtaClick}
-                style={{
-                  background: '#fff',
-                  color: '#111',
-                  border: '0.5px solid #ddd',
-                  borderRadius: '12px',
-                  padding: '15px 22px',
-                  fontSize: '16px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
+              <button onClick={onCtaClick} style={{
+                background: '#fff', color: '#111', border: '0.5px solid #ddd',
+                borderRadius: '12px', padding: '15px 22px', fontSize: '16px',
+                fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
                 Ver más
               </button>
             </div>
 
-            <div style={{ fontSize: '14px', color: '#888' }}>
-              {microcopyFinal}
-            </div>
+            <div style={{ fontSize: '14px', color: '#888' }}>{microcopyFinal}</div>
           </div>
 
-          <div style={{
-            aspectRatio: '4/5',
-            background: tieneImagen && !heroVideoUrl
-              ? `url(${imagenHero}) center/cover`
-              : `linear-gradient(135deg, ${colorAcento}20, ${colorAcento}40)`,
-            borderRadius: '20px',
-            position: 'relative',
-            overflow: 'hidden',
-            maxHeight: '520px',
-          }}>
-      {heroVideoUrl ? (
+          {/* Media */}
+          <div style={mediaStyle}>
+            {tieneVideo ? (
               <iframe
-                src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl)}/embed/`}
-                style={{ width: '100%', height: '100%', border: 'none' }}
+                src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl!)}/embed/`}
+                style={{ width: '100%', height: '600px', border: 'none', display: 'block' }}
                 allowFullScreen
                 scrolling="no"
                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
               />
             ) : !tieneImagen && (
               <div style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                color: colorAcento,
-                opacity: 0.7,
+                position: 'absolute', inset: 0, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', color: colorAcento, opacity: 0.7,
               }}>
                 <div style={{ fontSize: '64px', marginBottom: '8px' }}>{theme.emoji}</div>
                 <div style={{ fontSize: '12px' }}>Sube una imagen desde tu dashboard</div>
@@ -207,10 +159,7 @@ export function HeroSection({
           align-items: center;
         }
         @media (max-width: 768px) {
-          .hero-grid {
-            grid-template-columns: 1fr;
-            gap: 24px;
-          }
+          .hero-grid { grid-template-columns: 1fr; gap: 24px; }
         }
       `}</style>
     </section>

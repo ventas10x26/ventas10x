@@ -136,8 +136,8 @@ export function CatalogoIASection() {
             </a>
           </div>
 
-          {/* Right — demo */}
-          <div className="relative">
+          {/* Right — demo — oculto en mobile */}
+          <div className="relative hidden lg:block">
             <div className="absolute -top-2.5 -right-2.5 z-10 text-xs font-bold text-white px-3 py-1 rounded-full"
               style={{ background: 'var(--orange)', boxShadow: '0 4px 16px rgba(255,107,43,0.4)' }}>
               ⚡ Powered by IA

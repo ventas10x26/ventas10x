@@ -42,25 +42,20 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
 
   return (
     <section style={{
-      background: 'linear-gradient(135deg, #0f1c2e 0%, #1a2f4a 100%)',
+      background: '#ffffff',
       padding: '4rem 1.5rem',
       position: 'relative',
       overflow: 'hidden',
+      borderTop: '1px solid #f0f0f0',
     }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: `radial-gradient(circle at 10% 50%, ${colorAcento}22 0%, transparent 60%), radial-gradient(circle at 90% 50%, ${colorAcento}15 0%, transparent 60%)`,
-        pointerEvents: 'none',
-      }} />
-
       <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
 
         {contenido.badge && (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <span style={{
-              background: `${colorAcento}25`,
+              background: `${colorAcento}15`,
               color: colorAcento,
-              border: `1px solid ${colorAcento}50`,
+              border: `1px solid ${colorAcento}40`,
               padding: '6px 18px',
               borderRadius: '100px',
               fontSize: '13px',
@@ -79,7 +74,6 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
           alignItems: 'center',
         }}>
 
-          {/* Texto */}
           <div style={{
             textAlign: tieneMedia ? 'left' : 'center',
             maxWidth: tieneMedia ? 'none' : '640px',
@@ -90,7 +84,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
                 fontSize: 'clamp(28px,4vw,48px)',
                 fontWeight: 900,
                 letterSpacing: '-0.04em',
-                color: '#ffffff',
+                color: '#0f1c2e',
                 marginBottom: '1rem',
                 lineHeight: 1.05,
               }}>
@@ -100,7 +94,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
             {subtitulo && (
               <p style={{
                 fontSize: '18px',
-                color: 'rgba(255,255,255,.65)',
+                color: '#4b5563',
                 lineHeight: 1.6,
                 marginBottom: '1.5rem',
               }}>
@@ -119,7 +113,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
                   {contenido.precio}
                 </span>
                 {contenido.precio_anterior && (
-                  <span style={{ fontSize: '18px', color: 'rgba(255,255,255,.35)', textDecoration: 'line-through' }}>
+                  <span style={{ fontSize: '18px', color: '#9ca3af', textDecoration: 'line-through' }}>
                     {contenido.precio_anterior}
                   </span>
                 )}
@@ -127,7 +121,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
             )}
 
             {contenido.vigencia && (
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.45)', marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '1.5rem' }}>
                 ⏳ {contenido.vigencia}
               </p>
             )}
@@ -143,7 +137,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
                 fontSize: '17px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: `0 8px 28px ${colorAcento}50`,
+                boxShadow: `0 8px 28px ${colorAcento}40`,
                 letterSpacing: '-0.01em',
               }}
             >
@@ -151,16 +145,15 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
             </button>
           </div>
 
-          {/* Media */}
           {tieneMedia && (
             <div style={{
               aspectRatio: '4/5',
               borderRadius: '20px',
               overflow: 'hidden',
-              background: 'rgba(255,255,255,.05)',
+              background: '#f5f5f5',
               maxHeight: '520px',
-              boxShadow: '0 32px 64px rgba(0,0,0,.4)',
-              border: '1px solid rgba(255,255,255,.08)',
+              boxShadow: '0 16px 40px rgba(0,0,0,.08)',
+              border: '1px solid #e5e7eb',
             }}>
               {contenido.video_url ? (
                 <iframe

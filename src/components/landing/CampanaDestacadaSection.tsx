@@ -42,27 +42,30 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
 
   return (
     <section style={{
-        background: 'linear-gradient(135deg, #0f1c2e 0%, #1a2f4a 100%)',
-        padding: '4rem 1.5rem',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, #FF6B2B 0%, transparent 50%), radial-gradient(circle at 80% 50%, #FF6B2B 0%, transparent 50%)',
-        }} />
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      background: 'linear-gradient(135deg, #0f1c2e 0%, #1a2f4a 100%)',
+      padding: '4rem 1.5rem',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `radial-gradient(circle at 10% 50%, ${colorAcento}22 0%, transparent 60%), radial-gradient(circle at 90% 50%, ${colorAcento}15 0%, transparent 60%)`,
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
 
         {contenido.badge && (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <span style={{
-              background: `${colorAcento}15`,
+              background: `${colorAcento}25`,
               color: colorAcento,
-              border: `1px solid ${colorAcento}30`,
+              border: `1px solid ${colorAcento}50`,
               padding: '6px 18px',
               borderRadius: '100px',
               fontSize: '13px',
               fontWeight: 700,
+              letterSpacing: '0.02em',
             }}>
               {contenido.badge}
             </span>
@@ -72,37 +75,51 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
         <div style={{
           display: 'grid',
           gridTemplateColumns: tieneMedia ? '1fr 1fr' : '1fr',
-          gap: '2.5rem',
+          gap: '3rem',
           alignItems: 'center',
         }}>
 
           {/* Texto */}
-          <div style={{ textAlign: tieneMedia ? 'left' : 'center', maxWidth: tieneMedia ? 'none' : '640px', margin: tieneMedia ? '0' : '0 auto' }}>
+          <div style={{
+            textAlign: tieneMedia ? 'left' : 'center',
+            maxWidth: tieneMedia ? 'none' : '640px',
+            margin: tieneMedia ? '0' : '0 auto',
+          }}>
             {titulo && (
               <h2 style={{
-                fontSize: 'clamp(26px,4vw,42px)',
-                fontWeight: 800,
-                letterSpacing: '-0.03em',
-                color: '#0a0a0a',
+                fontSize: 'clamp(28px,4vw,48px)',
+                fontWeight: 900,
+                letterSpacing: '-0.04em',
+                color: '#ffffff',
                 marginBottom: '1rem',
-                lineHeight: 1.1,
+                lineHeight: 1.05,
               }}>
                 {titulo}
               </h2>
             )}
             {subtitulo && (
-              <p style={{ fontSize: '17px', color: '#555', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+              <p style={{
+                fontSize: '18px',
+                color: 'rgba(255,255,255,.65)',
+                lineHeight: 1.6,
+                marginBottom: '1.5rem',
+              }}>
                 {subtitulo}
               </p>
             )}
 
             {contenido.destacar_precio && contenido.precio && (
               <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 900, color: colorAcento, letterSpacing: '-0.03em' }}>
+                <span style={{
+                  fontSize: 'clamp(32px,4vw,48px)',
+                  fontWeight: 900,
+                  color: colorAcento,
+                  letterSpacing: '-0.03em',
+                }}>
                   {contenido.precio}
                 </span>
                 {contenido.precio_anterior && (
-                  <span style={{ fontSize: '18px', color: '#aaa', textDecoration: 'line-through' }}>
+                  <span style={{ fontSize: '18px', color: 'rgba(255,255,255,.35)', textDecoration: 'line-through' }}>
                     {contenido.precio_anterior}
                   </span>
                 )}
@@ -110,7 +127,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
             )}
 
             {contenido.vigencia && (
-              <p style={{ fontSize: '13px', color: '#888', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.45)', marginBottom: '1.5rem' }}>
                 ⏳ {contenido.vigencia}
               </p>
             )}
@@ -121,12 +138,13 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
                 background: colorAcento,
                 color: '#fff',
                 border: 'none',
-                borderRadius: '12px',
-                padding: '14px 28px',
-                fontSize: '16px',
+                borderRadius: '14px',
+                padding: '16px 32px',
+                fontSize: '17px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: `0 8px 20px ${colorAcento}35`,
+                boxShadow: `0 8px 28px ${colorAcento}50`,
+                letterSpacing: '-0.01em',
               }}
             >
               {contenido.cta_texto || 'Quiero este producto'} →
@@ -139,8 +157,10 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
               aspectRatio: '4/5',
               borderRadius: '20px',
               overflow: 'hidden',
-              background: '#f5f5f5',
-              maxHeight: '500px',
+              background: 'rgba(255,255,255,.05)',
+              maxHeight: '520px',
+              boxShadow: '0 32px 64px rgba(0,0,0,.4)',
+              border: '1px solid rgba(255,255,255,.08)',
             }}>
               {contenido.video_url ? (
                 <iframe

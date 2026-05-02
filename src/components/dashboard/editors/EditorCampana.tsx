@@ -12,8 +12,26 @@ export function EditorCampana({ contenido, onChange }: { contenido: any; onChang
         <input value={contenido.badge || ''} onChange={e => upd('badge', e.target.value)} placeholder="🔥 Oferta del mes" style={inputStyle} />
       </div>
       <div>
-        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>URL de imagen</label>
+        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Imagen</label>
         <input value={contenido.imagen_url || ''} onChange={e => upd('imagen_url', e.target.value)} placeholder="https://..." style={inputStyle} />
+        <div style={{ marginTop: '8px' }}>
+          <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>O sube desde tu computador:</label>
+          <input
+            type="file"
+            accept="image/*"
+            style={{ fontSize: '12px', color: '#374151' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const formData = new FormData()
+              formData.append('file', file)
+              formData.append('tipo', 'hero')
+              const res = await fetch('/api/landing/upload-imagen', { method: 'POST', body: formData })
+              const data = await res.json()
+              if (data.ok) upd('imagen_url', data.url)
+            }}
+          />
+        </div>
       </div>
       <div>
         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>URL de video Instagram (opcional)</label>

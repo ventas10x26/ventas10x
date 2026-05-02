@@ -79,8 +79,38 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
           alignItems: 'center',
         }}>
 
+          {/* Media — izquierda */}
+          {tieneMedia && (
+            <div style={{
+              aspectRatio: '4/5',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              background: 'rgba(255,255,255,.05)',
+              maxHeight: '520px',
+              boxShadow: '0 32px 64px rgba(0,0,0,.4)',
+              border: '1px solid rgba(255,255,255,.08)',
+            }}>
+              {contenido.video_url ? (
+                <iframe
+                  src={`https://www.instagram.com/p/${extractIgCode(contenido.video_url)}/embed/`}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  allowFullScreen
+                  scrolling="no"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                />
+              ) : contenido.imagen_url ? (
+                <img
+                  src={contenido.imagen_url}
+                  alt={titulo || 'Campaña'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : null}
+            </div>
+          )}
+
+          {/* Texto — derecha */}
           <div style={{
-            textAlign: tieneMedia ? 'left' : 'center',
+            textAlign: 'left',
             maxWidth: tieneMedia ? 'none' : '640px',
             margin: tieneMedia ? '0' : '0 auto',
           }}>
@@ -149,34 +179,6 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
               {contenido.cta_texto || 'Quiero este producto'} →
             </button>
           </div>
-
-          {tieneMedia && (
-            <div style={{
-              aspectRatio: '4/5',
-              borderRadius: '20px',
-              overflow: 'hidden',
-              background: 'rgba(255,255,255,.05)',
-              maxHeight: '520px',
-              boxShadow: '0 32px 64px rgba(0,0,0,.4)',
-              border: '1px solid rgba(255,255,255,.08)',
-            }}>
-              {contenido.video_url ? (
-                <iframe
-                  src={`https://www.instagram.com/p/${extractIgCode(contenido.video_url)}/embed/`}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  allowFullScreen
-                  scrolling="no"
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                />
-              ) : contenido.imagen_url ? (
-                <img
-                  src={contenido.imagen_url}
-                  alt={titulo || 'Campaña'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : null}
-            </div>
-          )}
         </div>
       </div>
 

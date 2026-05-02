@@ -72,7 +72,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
           </div>
         )}
 
-        <div style={{
+        <div className="campana-grid" style={{
           display: 'grid',
           gridTemplateColumns: tieneMedia ? '1fr 1fr' : '1fr',
           gap: '3rem',
@@ -183,8 +183,18 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
       </div>
 
       <style>{`
+        .campana-grid {
+          display: grid !important;
+        }
         @media (max-width: 768px) {
-          .campana-grid { grid-template-columns: 1fr !important; }
+          .campana-grid {
+            grid-template-columns: 1fr !important;
+            gap: 2rem !important;
+          }
+          .campana-grid > div:first-child {
+            max-height: 350px !important;
+            aspect-ratio: 1/1 !important;
+          }
         }
       `}</style>
     </section>

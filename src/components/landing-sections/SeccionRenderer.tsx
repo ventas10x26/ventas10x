@@ -4,6 +4,8 @@ import { LandingSeccion } from '@/types/secciones'
 import { SeccionTestimonios } from './SeccionTestimonios'
 import { SeccionFAQ } from './SeccionFAQ'
 import { SeccionCTA } from './SeccionCTA'
+import { CampanaDestacadaSection } from '@/components/landing/CampanaDestacadaSection'
+import { ContenidoCampana } from '@/types/secciones'
 import {
   ContenidoTestimonios,
   ContenidoFAQ,
@@ -52,7 +54,19 @@ export function SeccionRenderer({
           whatsappVendedor={whatsappVendedor}
         />
       )
-    // Tipos futuros (todavía no implementados en MVP)
+      case 'campana':
+        return (
+          <CampanaDestacadaSection
+            {...commonProps}
+            contenido={seccion.contenido as ContenidoCampana}
+            colorAcento={colorAcento || '#FF6B2B'}
+            whatsapp={whatsappVendedor || ''}
+            onCtaClick={() => {
+              document.getElementById('cta-principal')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          />
+        )
+      // Tipos futuros (todavía no implementados en MVP)
     default:
       return null
   }

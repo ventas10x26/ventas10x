@@ -6,6 +6,7 @@ import { LandingSeccion, ContenidoTestimonios, ContenidoFAQ, ContenidoCTA } from
 import { EditorTestimonios } from './editors/EditorTestimonios'
 import { EditorFAQ } from './editors/EditorFAQ'
 import { EditorCTA } from './editors/EditorCTA'
+import { EditorCampana } from './editors/EditorCampana'
 
 type Props = {
   seccion: LandingSeccion
@@ -122,6 +123,12 @@ export function EditorSeccionModal({ seccion, onClose, onGuardada }: Props) {
               onChange={setContenido}
             />
           )}
+          {seccion.tipo === 'campana' && (
+            <EditorCampana
+              contenido={contenido}
+              onChange={setContenido}
+            />
+          )}
           {seccion.tipo === 'faq' && (
             <EditorFAQ
               contenido={contenido as ContenidoFAQ}
@@ -129,6 +136,18 @@ export function EditorSeccionModal({ seccion, onClose, onGuardada }: Props) {
             />
           )}
           {seccion.tipo === 'cta' && (
+            <EditorCTA
+              contenido={contenido as ContenidoCTA}
+              onChange={setContenido}
+            />
+          )}
+          {seccion.tipo === 'campana' && (
+            <EditorCampana
+              contenido={contenido}
+              onChange={setContenido}
+            />
+          )}
+          {false && (
             <EditorCTA
               contenido={contenido as ContenidoCTA}
               onChange={setContenido}

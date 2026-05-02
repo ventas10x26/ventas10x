@@ -12,6 +12,7 @@ export type TipoSeccion =
   | 'mapa'
   | 'bio'
   | 'redes'
+  | 'campana'
   | 'custom'
 
 // ── Contenido por tipo (cada tipo tiene su shape) ──
@@ -94,6 +95,20 @@ export interface ContenidoRedes {
   }>
 }
 
+export interface ContenidoCampana {
+  imagen_url?: string
+  video_url?: string
+  badge?: string
+  cta_texto?: string
+  cta_url?: string
+  usar_whatsapp: boolean
+  mensaje_wa?: string
+  vigencia?: string
+  destacar_precio?: boolean
+  precio?: string
+  precio_anterior?: string
+}
+
 export interface ContenidoCustom {
   html: string
 }
@@ -110,6 +125,7 @@ export type ContenidoSeccion =
   | ContenidoMapa
   | ContenidoBio
   | ContenidoRedes
+  | ContenidoCampana
   | ContenidoCustom
 
 // ── Fila principal ──
@@ -207,6 +223,13 @@ export const SECCIONES_META: Record<
     color: '#F59E0B',
     disponibleMVP: false,
   },
+  campana: {
+    nombre: 'Campaña Destacada',
+    descripcion: 'Producto o promo del mes con imagen y CTA',
+    icono: '🔥',
+    color: '#FF6B2B',
+    disponibleMVP: true,
+  },
   custom: {
     nombre: 'Personalizada',
     descripcion: 'HTML libre (avanzado)',
@@ -243,6 +266,13 @@ export function contenidoInicial(tipo: TipoSeccion): ContenidoSeccion {
       return { texto: '', habilidades: [] }
     case 'redes':
       return { items: [] }
+      case 'campana':
+        return {
+          usar_whatsapp: true,
+          badge: '🔥 Oferta del mes',
+          cta_texto: 'Quiero este producto',
+          destacar_precio: false,
+        }
     case 'custom':
       return { html: '' }
   }

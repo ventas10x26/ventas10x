@@ -102,7 +102,7 @@ export function CatalogoIASection() {
         <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] pointer-events-none rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(255,107,43,0.06) 0%, transparent 70%)' }} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 p-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-16 items-center">
           {/* Left */}
           <div>
             <div className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--orange)' }}>✨ Catálogo IA</div>
@@ -114,7 +114,7 @@ export function CatalogoIASection() {
               extraer automáticamente nombres, precios, descripciones e imágenes desde cualquier formato que ya tengas.
             </p>
 
-            <div className="grid grid-cols-2 gap-2.5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-8">
               {formatos.map(f => (
                 <div key={f.name} className="flex items-center gap-3 p-4 rounded-xl transition-all duration-200 cursor-default"
                   style={{ background: 'var(--light-bg)', border: '1px solid var(--light-border)' }}

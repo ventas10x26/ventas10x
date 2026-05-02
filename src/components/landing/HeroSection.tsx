@@ -122,7 +122,13 @@ export function HeroSection({
             maxHeight: '600px',
           }}>
             {tieneVideo ? (
-              <div style={{ position: 'relative', width: '100%', height: '600px', overflow: 'hidden' }}>
+              <div style={{
+                position: 'relative',
+                width: 'calc(100% + 16px)',
+                height: '616px',
+                overflow: 'hidden',
+                margin: '-8px',
+              }}>
                 <iframe
                   src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl!)}/embed/`}
                   allowFullScreen
@@ -132,8 +138,8 @@ export function HeroSection({
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
-                    width: '140%',
-                    height: '140%',
+                    width: '142%',
+                    height: '142%',
                     transform: 'translate(-50%, -50%)',
                     border: 'none',
                   }}

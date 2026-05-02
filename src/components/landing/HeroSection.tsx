@@ -130,9 +130,20 @@ export function HeroSection({
           {/* Media */}
           <div style={mediaStyle}>
             {tieneVideo ? (
+              <div style={{ position: 'relative', width: '100%', height: '600px', overflow: 'hidden' }}>
               <iframe
                 src={`https://www.instagram.com/p/${extractIgCode(heroVideoUrl!)}/embed/`}
-                style={{ width: '100%', height: '600px', border: 'none', display: 'block' }}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '130%',
+                  height: '130%',
+                  transform: 'translate(-50%, -50%)',
+                  border: 'none',
+                }}
+                />
+              </div>
                 allowFullScreen
                 scrolling="no"
                 allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"

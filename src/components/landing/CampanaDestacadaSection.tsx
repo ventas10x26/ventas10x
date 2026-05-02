@@ -41,7 +41,16 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
   }
 
   return (
-    <section style={{ background: '#fff', padding: '3rem 1.5rem', borderTop: '1px solid #f0f0f0' }}>
+    <section style={{
+        background: 'linear-gradient(135deg, #0f1c2e 0%, #1a2f4a 100%)',
+        padding: '4rem 1.5rem',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.04,
+          backgroundImage: 'radial-gradient(circle at 20% 50%, #FF6B2B 0%, transparent 50%), radial-gradient(circle at 80% 50%, #FF6B2B 0%, transparent 50%)',
+        }} />
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
         {contenido.badge && (

@@ -122,7 +122,9 @@ export function HeroSection({
             maxHeight: '600px',
           }}>
             {tieneVideo ? (
-              <div style={{
+              <div
+              className="hero-media-video"
+              style={{
                 position: 'relative',
                 width: 'calc(100% + 16px)',
                 height: '616px',
@@ -167,7 +169,18 @@ export function HeroSection({
           align-items: center;
         }
         @media (max-width: 768px) {
-          .hero-grid { grid-template-columns: 1fr; gap: 24px; }
+          .hero-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+          .hero-media-video {
+            height: 400px !important;
+            width: calc(100% + 16px) !important;
+          }
+          .hero-media-video iframe {
+            width: 160% !important;
+            height: 160% !important;
+          }
         }
       `}</style>
     </section>

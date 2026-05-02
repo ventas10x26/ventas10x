@@ -12,6 +12,7 @@ import { ProductosGrid } from './ProductosGrid'
 import { ComoFuncionaSection } from './ComoFuncionaSection'
 import { TestimoniosSection } from './TestimoniosSection'
 import { CTACierre } from './CTACierre'
+import { SeccionRenderer } from '@/components/landing-sections/SeccionRenderer'
 import { StickyMobileCTA } from './StickyMobileCTA'
 
 type Stat = { valor: string; label: string }

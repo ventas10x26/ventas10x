@@ -95,9 +95,9 @@ const demoProducts = [
 
 export function CatalogoIASection() {
   return (
-    <section id="catalogo-ia" className="w-full"
+    <section id="catalogo-ia" className="w-full px-3 sm:px-6"
       style={{ background: 'var(--light-bg)' }}>
-      <div className="rounded-3xl overflow-hidden relative"
+      <div className="rounded-2xl sm:rounded-3xl overflow-hidden relative"
         style={{ background: 'var(--light-card)', border: '1px solid var(--light-border)', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
         <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] pointer-events-none rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(255,107,43,0.06) 0%, transparent 70%)' }} />

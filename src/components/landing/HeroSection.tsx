@@ -257,12 +257,12 @@ export function HeroSection({
                 }}>
                   <span style={{
                     width: '22px', height: '22px', borderRadius: '50%',
-                    background: `${colorAcento}25`,
-                    border: `1px solid ${colorAcento}50`,
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', color: colorAcento, flexShrink: 0,
+                    fontSize: '13px', color: '#fff', flexShrink: 0,
                   }}>{t.icon}</span>
-                  <span style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>{t.label}</span>
+                  <span style={{ fontSize: '14px', color: '#cbd5e1', fontWeight: 500 }}>{t.label}</span>
                 </div>
               ))}
             </div>

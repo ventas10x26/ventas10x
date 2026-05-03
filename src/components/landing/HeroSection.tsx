@@ -159,7 +159,7 @@ export function HeroSection({
 
             {/* Selectores de intención (del screenshot, pero mejorados) */}
             <div style={{ marginBottom: '28px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
                 ¿Qué estás buscando?
               </p>
               <div className="intent-grid">
@@ -199,7 +199,7 @@ export function HeroSection({
                   border: 'none',
                   borderRadius: '14px',
                   padding: '17px 28px',
-                  fontSize: '16px',
+                  fontSize: '18px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -225,7 +225,7 @@ export function HeroSection({
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: '14px',
                   padding: '17px 24px',
-                  fontSize: '16px',
+                  fontSize: '17px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -260,15 +260,15 @@ export function HeroSection({
                     background: `${colorAcento}25`,
                     border: `1px solid ${colorAcento}50`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', color: colorAcento, flexShrink: 0,
+                    fontSize: '13px', color: colorAcento, flexShrink: 0,
                   }}>{t.icon}</span>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{t.label}</span>
+                  <span style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>{t.label}</span>
                 </div>
               ))}
             </div>
 
             {microcopyFinal && (
-              <p style={{ fontSize: '12px', color: '#475569', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <p style={{ fontSize: '14px', color: '#475569', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 }} />
                 {microcopyFinal}
               </p>

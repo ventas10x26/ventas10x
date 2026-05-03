@@ -78,7 +78,7 @@ export default function ChatBotWidget({
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
-  }, [mensajes, cargando, formVisible])
+  }, [mensajes, cargando, formVisible, botonesIniciales])
 
   const mostrarFormulario = useCallback(() => {
     if (!formVisible && !formSent) {
@@ -177,6 +177,16 @@ export default function ChatBotWidget({
     marginBottom: '6px',
   }
 
+  // Opciones iniciales: campaña primero, luego productos
+  const tieneOpciones = campanaDestacada?.titulo || productosIniciales.length > 0
+  const mostrarBotones = botonesIniciales && mensajes.length === 1 && tieneOpciones
+
+  const seleccionarOpcion = (texto: string) => {
+    setBotonesIniciales(false)
+    setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
+    setTimeout(() => enviar(texto), 100)
+  }
+
   return (
     <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, fontFamily: 'Inter, sans-serif' }}>
 
@@ -192,6 +202,7 @@ export default function ChatBotWidget({
           animation: 'botSlideUp .25s ease',
         }}>
 
+          {/* Header */}
           <div style={{ background: colorAcento, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
               {avatar}
@@ -206,64 +217,9 @@ export default function ChatBotWidget({
             <button onClick={() => setAbierto(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
 
+          {/* Mensajes */}
           <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f8f8f6', minHeight: 0 }}>
-            {/* Botones de selección inicial */}
-            {botonesIniciales && mensajes.length === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', animation: 'botFadeUp .3s ease' }}>
-                {campanaDestacada?.titulo && (
-                  <button
-                    onClick={() => {
-                      setBotonesIniciales(false)
-                      const texto = `Me interesa: ${campanaDestacada.titulo}`
-                      setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
-                      setTimeout(() => enviar(texto), 100)
-                    }}
-                    style={{
-                      padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`,
-                      background: `${colorAcento}10`, color: colorAcento, fontWeight: 700,
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    🔥 {campanaDestacada.titulo}
-                  </button>
-                )}
-                {(productosIniciales.length > 0 ? productosIniciales : []).map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setBotonesIniciales(false)
-                      const texto = `Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`
-                      setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
-                      setTimeout(() => enviar(texto), 100)
-                    }}
-                    style={{
-                      padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb',
-                      background: '#fff', color: '#0f1c2e', fontWeight: 600,
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
-                    {p.nombre}{p.precio ? ` — ${p.precio}` : ''}
-                  </button>
-                ))}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    placeholder="Estoy interesado en..."
-                    style={{
-                      flex: 1, padding: '10px 14px', borderRadius: '12px',
-                      border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none',
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
-                        setBotonesIniciales(false)
-                        const texto = (e.target as HTMLInputElement).value.trim()
-                        setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
-                        setTimeout(() => enviar(texto), 100)
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+
             {mensajes.map((m, i) => {
               if (m.role === 'form') {
                 return (
@@ -314,6 +270,51 @@ export default function ChatBotWidget({
               )
             })}
 
+            {/* Botones de selección inicial — DESPUÉS del mensaje de bienvenida */}
+            {mostrarBotones && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', animation: 'botFadeUp .3s ease' }}>
+                {campanaDestacada?.titulo && (
+                  <button
+                    onClick={() => seleccionarOpcion(`Me interesa: ${campanaDestacada.titulo}`)}
+                    style={{
+                      padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`,
+                      background: `${colorAcento}15`, color: colorAcento, fontWeight: 700,
+                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    🔥 {campanaDestacada.titulo}
+                  </button>
+                )}
+                {productosIniciales.map((p, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => seleccionarOpcion(`Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`)}
+                    style={{
+                      padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb',
+                      background: '#fff', color: '#0f1c2e', fontWeight: 600,
+                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {p.nombre}{p.precio ? ` — ${p.precio}` : ''}
+                  </button>
+                ))}
+                <input
+                  placeholder="Estoy interesado en..."
+                  style={{
+                    padding: '10px 14px', borderRadius: '12px',
+                    border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const val = (e.target as HTMLInputElement).value.trim()
+                      if (val) seleccionarOpcion(val)
+                    }
+                  }}
+                />
+              </div>
+            )}
+
             {cargando && (
               <div style={{ alignSelf: 'flex-start', animation: 'botFadeUp .2s ease' }}>
                 <div style={{ padding: '10px 14px', borderRadius: '16px 16px 16px 4px', background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -325,6 +326,7 @@ export default function ChatBotWidget({
             )}
           </div>
 
+          {/* Input */}
           <div style={{ padding: '12px 14px', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               ref={inputRef}
@@ -333,7 +335,7 @@ export default function ChatBotWidget({
               onKeyDown={handleKey}
               placeholder="Escribe tu mensaje…"
               disabled={cargando}
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 100, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, outline: 'none', background: cargando ? '#f5f5f5' : '#fff', color: '#222', fontFamily: 'Inter, sans-serif' }}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 100, border: '1px solid rgba(0,0,0,0.12)', fontSize: 15, outline: 'none', background: cargando ? '#f5f5f5' : '#fff', color: '#222', fontFamily: 'Inter, sans-serif' }}
             />
             <button onClick={() => enviar()} disabled={cargando || !input.trim()} style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: !input.trim() || cargando ? '#e5e7eb' : colorAcento, border: 'none', cursor: !input.trim() || cargando ? 'default' : 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}>
               ➤
@@ -346,7 +348,10 @@ export default function ChatBotWidget({
         </div>
       )}
 
-      <button onClick={() => setAbierto(o => !o)} style={{ width: 56, height: 56, borderRadius: '50%', background: colorAcento, border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, transition: 'transform .2s', position: 'relative' }}
+      <button
+        onClick={() => setAbierto(o => !o)}
+        data-chat-toggle
+        style={{ width: 56, height: 56, borderRadius: '50%', background: colorAcento, border: 'none', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, transition: 'transform .2s', position: 'relative' }}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
       >

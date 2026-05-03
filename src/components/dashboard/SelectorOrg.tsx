@@ -66,7 +66,7 @@ export function SelectorOrg() {
       })
       if (res.ok) {
         // Recargar la página para que el server lea la cookie nueva
-        window.location.reload()
+          window.location.href = '/dashboard'
       }
     } catch (e) {
       console.error(e)

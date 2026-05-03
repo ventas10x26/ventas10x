@@ -239,7 +239,7 @@ export default function ChatBotWidget({
                     borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                     background: m.role === 'user' ? colorAcento : '#ffffff',
                     color: m.role === 'user' ? '#fff' : '#222',
-                    fontSize: 13, lineHeight: 1.55,
+                    fontSize: 15, lineHeight: 1.55,
                     border: m.role === 'assistant' ? '1px solid rgba(0,0,0,0.07)' : 'none',
                     boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                     whiteSpace: 'pre-wrap',

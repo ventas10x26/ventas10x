@@ -45,11 +45,7 @@
   }
   
   @media (min-width: 1024px) {
-    .catalogo-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-    #catalogo-demo-desktop {
-      display: block !important;
-    }
+    #catalogo-wrapper { grid-template-columns: 1fr 1fr !important; }
+    #catalogo-demo-desktop { display: block !important; }
   }
 }

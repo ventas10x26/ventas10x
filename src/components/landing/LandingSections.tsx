@@ -17,7 +17,7 @@ export function CatalogoIASection() {
   return (
     <section id="catalogo-ia" style={{ background: 'var(--light-bg)', padding: '0 1rem' }}>
       <div style={{ background: 'var(--light-card)', border: '1px solid var(--light-border)', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
-        <div className="catalogo-grid">
+      <div id="catalogo-wrapper" style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
           {/* Left */}
           <div style={{ padding: '2rem 1.5rem' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--orange)', marginBottom: '12px' }}>✨ Catálogo IA</div>

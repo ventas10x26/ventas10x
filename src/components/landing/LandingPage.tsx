@@ -102,7 +102,7 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
 
   const [showCtaModal, setShowCtaModal] = useState(false)
   const whatsappNum = (profile.whatsapp || config?.whatsapp || '').replace(/\D/g, '')
-  const msgWa = encodeURIComponent(config?.mensaje_wa || `Hola, me interesa obtener más información`)
+  const msgWa = encodeURIComponent(config?.mensaje_wa || 'Hola, me interesa obtener más información')
   const scrollToCTA = () => setShowCtaModal(true)
   const ctaTexto = config?.cta_principal_texto || 'Reservar mi cita'
   const ctaMicrocopy = config?.cta_principal_microcopy || 'Te respondo en 5 min por WhatsApp'

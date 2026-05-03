@@ -139,7 +139,7 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
               Escríbele directo al asesor por WhatsApp o chatea con el asistente IA.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              
+            <a
                 href={`https://wa.me/${whatsappNum}?text=${msgWa}`}
                 target="_blank"
                 rel="noopener noreferrer"

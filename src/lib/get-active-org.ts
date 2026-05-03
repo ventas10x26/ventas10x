@@ -42,6 +42,7 @@ export async function getActiveOrg(): Promise<ActiveOrg | null> {
   // Leer cookie
   const cookieStore = await cookies()
   const activaCookie = cookieStore.get('org_activa_id')?.value
+  console.log('🍪 [getActiveOrg] cookie:', activaCookie, '| user:', user.id)
 
   // Buscar todas las membresías del usuario
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -89,15 +89,26 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
               maxHeight: '520px',
               boxShadow: '0 32px 64px rgba(0,0,0,.4)',
               border: '1px solid rgba(255,255,255,.08)',
+              position: 'relative',
             }}>
               {contenido.video_url ? (
-                <iframe
-                  src={`https://www.instagram.com/p/${extractIgCode(contenido.video_url)}/embed/`}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  allowFullScreen
-                  scrolling="no"
-                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                />
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <iframe
+                    src={`https://www.instagram.com/p/${extractIgCode(contenido.video_url)}/embed/`}
+                    allowFullScreen
+                    scrolling="no"
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      width: '142%',
+                      height: '142%',
+                      transform: 'translate(-50%, -50%)',
+                      border: 'none',
+                    }}
+                  />
+                </div>
               ) : contenido.imagen_url ? (
                 <img
                   src={contenido.imagen_url}
@@ -183,9 +194,7 @@ export function CampanaDestacadaSection({ titulo, subtitulo, contenido, colorAce
       </div>
 
       <style>{`
-        .campana-grid {
-          display: grid !important;
-        }
+        .campana-grid { display: grid !important; }
         @media (max-width: 768px) {
           .campana-grid {
             grid-template-columns: 1fr !important;

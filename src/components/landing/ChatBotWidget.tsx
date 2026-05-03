@@ -15,7 +15,7 @@ interface ChatBotWidgetProps {
   industria?: string
   bienvenida?: string | null
   productosIniciales?: { nombre: string; precio: string | null }[]
-  campanaDestacada?: { titulo: string | null; contenido: Record<string, unknown> } | null
+  campanaDestacada?: { titulo: string | null; contenido: unknown } | null
 }
 
 function getOrCreateSessionId(): string {

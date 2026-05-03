@@ -1,7 +1,7 @@
 // Ruta destino: src/components/landing/ComoFuncionaSection.tsx
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type Paso = { titulo: string; descripcion: string }
 type Props = {
@@ -11,30 +11,22 @@ type Props = {
 
 export function ComoFuncionaSection({ pasos, colorAcento }: Props) {
   const [visible, setVisible] = useState<boolean[]>(pasos.map(() => false))
-  const refs = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
-    const observers = refs.current.map((el, i) => {
-      if (!el) return null
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setTimeout(() => {
-              setVisible(prev => {
-                const next = [...prev]
-                next[i] = true
-                return next
-              })
-            }, i * 180)
-            obs.disconnect()
-          }
-        },
-        { threshold: 0.2 }
-      )
-      obs.observe(el)
-      return obs
-    })
-    return () => observers.forEach(o => o?.disconnect())
+    // Trigger inmediato para elementos ya en viewport
+    const triggerAll = setTimeout(() => {
+      pasos.forEach((_, i) => {
+        setTimeout(() => {
+          setVisible(prev => {
+            const next = [...prev]
+            next[i] = true
+            return next
+          })
+        }, i * 200)
+      })
+    }, 300)
+
+    return () => clearTimeout(triggerAll)
   }, [])
 
   if (!pasos || pasos.length === 0) return null
@@ -101,7 +93,6 @@ export function ComoFuncionaSection({ pasos, colorAcento }: Props) {
           {pasos.map((p, i) => (
             <div
               key={i}
-              ref={el => { refs.current[i] = el; return undefined }}
               style={{
                 opacity: visible[i] ? 1 : 0,
                 transform: visible[i] ? 'translateY(0)' : 'translateY(32px)',

@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Guardar actividad
-    const { data: actividad, error: actErr } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: actividad, error: actErr } = await (supabase as any)
       .from('lead_actividades')
       .insert({
         lead_id,
@@ -77,7 +78,8 @@ export async function POST(req: NextRequest) {
     // Si hay recordatorio, guardarlo
     let recordatorio = null
     if (fecha_recordatorio) {
-      const { data: rec } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rec } = await (supabase as any)
         .from('lead_recordatorios')
         .insert({
           lead_id,
@@ -108,7 +110,8 @@ export async function PATCH(req: NextRequest) {
     const { recordatorio_id } = body
     if (!recordatorio_id) return NextResponse.json({ error: 'recordatorio_id requerido' }, { status: 400 })
 
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('lead_recordatorios')
       .update({ completado: true })
       .eq('id', recordatorio_id)

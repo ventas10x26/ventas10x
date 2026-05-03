@@ -260,9 +260,9 @@ export function HeroSection({
                     background: `${colorAcento}25`,
                     border: `1px solid ${colorAcento}50`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', color: colorAcento, flexShrink: 0,
+                    fontSize: '11px', color:'#e2e8f0', flexShrink: 0,
                   }}>{t.icon}</span>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{t.label}</span>
+                  <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 500 }}>{t.label}</span>
                 </div>
               ))}
             </div>

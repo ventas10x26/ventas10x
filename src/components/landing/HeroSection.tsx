@@ -134,7 +134,7 @@ export function HeroSection({
 
             {/* Título — tipografía máxima */}
             <h1 style={{
-              fontSize: 'clamp(42px, 6vw, 72px)',
+              fontSize: 'clamp(52px, 7vw, 88px)',
               fontWeight: 700,
               lineHeight: 1.0,
               letterSpacing: '-0.04em',
@@ -147,7 +147,7 @@ export function HeroSection({
 
             {/* Subtítulo */}
             <p style={{
-              fontSize: 'clamp(17px, 2vw, 21px)',
+              fontSize: 'clamp(20px, 2.5vw, 26px)',
               lineHeight: 1.6,
               color: '#94a3b8',
               margin: '0 0 36px',

@@ -154,8 +154,9 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
               <button
                 onClick={() => {
                   setShowCtaModal(false)
-                  const btn = document.querySelector('[data-chat-toggle]') as HTMLElement
-                  if (btn) btn.click()
+                  const bot = document.querySelector('[data-chat-toggle]') as HTMLElement
+                  const botAbierto = document.querySelector('[data-chat-open]')
+                  if (bot && !botAbierto) bot.click()
                 }}
                 style={{
                   padding: '14px', borderRadius: '12px',

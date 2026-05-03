@@ -191,7 +191,7 @@ export default function ChatBotWidget({
     <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, fontFamily: 'Inter, sans-serif' }}>
 
       {abierto && (
-        <div style={{
+        <div data-chat-open style={{
           position: 'absolute', bottom: 72, right: 0,
           width: 360, maxHeight: 580,
           background: '#fff', borderRadius: 20,

@@ -257,7 +257,7 @@ export default function HomePage() {
             <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em' }}>Simple. Sin sorpresas.</h2>
             <p style={{ fontSize:'20px', color:'rgba(255,255,255,.6)', marginTop:'.75rem', fontWeight:400 }}>Empieza gratis 14 días. Sin tarjeta de crédito.</p>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'1.5rem' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:'1.5rem' }}>
             {[
               { plan:'Starter', price:'$19.900', period:'/mes', desc:'Para asesores independientes que quieren empezar.', features:['Catálogo IA (hasta 50 productos)','Bot IA básico por WhatsApp','Pipeline visual','1 usuario'], cta:'Probar 14 días gratis', highlight:false },
               { plan:'Pro', price:'$39.900', period:'/mes', desc:'Para equipos que quieren escalar sus ventas.', features:['Catálogo IA ilimitado','Bot IA avanzado por industria','Pipeline + automatizaciones','Hasta 5 usuarios','Soporte prioritario'], cta:'Probar 14 días gratis', highlight:true },

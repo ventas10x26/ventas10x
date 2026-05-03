@@ -268,7 +268,7 @@ export function HeroSection({
             </div>
 
             {microcopyFinal && (
-              <p style={{ fontSize: '14px', color: '#475569', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 }} />
                 {microcopyFinal}
               </p>

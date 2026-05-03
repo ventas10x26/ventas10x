@@ -71,11 +71,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: resultado.error }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      mensaje: 'Welcome email enviado',
-      resendId: resultado.resendId,
-    })
+// Notificación interna a vinxit.data@gmail.com
+try {
+  const { Resend } = await import('resend')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: 'Ventas10x <noreply@ventas10x.co>',
+    to: 'vinxit.data@gmail.com',
+    subject: `🎉 Nuevo usuario: ${nombreCompleto}`,
+    html: `
+      <h2>Nuevo registro en Ventas10x</h2>
+      <p><strong>Nombre:</strong> ${nombreCompleto}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Empresa:</strong> ${profile?.empresa || 'No indicada'}</p>
+      <p><strong>Slug:</strong> ${slug}</p>
+      <p><strong>ID:</strong> ${vendedorId}</p>
+      <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</p>
+    `,
+  })
+} catch (notifError) {
+  console.error('[welcome-email] notificación interna falló:', notifError)
+}
+
+return NextResponse.json({
+  success: true,
+  mensaje: 'Welcome email enviado',
+  resendId: resultado.resendId,
+})
   } catch (error) {
     console.error('[welcome-email] Error:', error)
     return NextResponse.json(

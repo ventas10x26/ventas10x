@@ -133,7 +133,7 @@ export default function HomePage() {
 
       {/* ── SOFT: CATÁLOGO IA ── */}
       <div id="catalogo-ia" style={{ background:SOFT, color:'#111827' }}>
-        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem', alignItems:'center' }}>
+        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem' }}>
           <div>
             <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Catálogo IA</div>
             <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#111827', marginBottom:'1.25rem' }}>Sube lo que tengas.<br/>La IA hace el resto.</h2>
@@ -144,7 +144,7 @@ export default function HomePage() {
               Ver mi catálogo en acción →
             </Link>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
+          <div className="catalogo-formatos-grid">
             {[
               { icon:'📄', format:'PDF', desc:'Listas de precios y fichas técnicas' },
               { icon:'📊', format:'Excel / CSV', desc:'Tu base de datos de productos' },

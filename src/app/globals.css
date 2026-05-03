@@ -48,4 +48,10 @@
     #catalogo-wrapper { grid-template-columns: 1fr 1fr !important; }
     #catalogo-demo-desktop { display: block !important; }
   }
+  .catalogo-formatos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
 }

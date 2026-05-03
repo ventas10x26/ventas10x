@@ -52,6 +52,7 @@ export default async function PerfilPage() {
           empresa: profile?.empresa ?? '',
           whatsapp: profile?.whatsapp ?? '',
           slug: profile?.slug ?? '',
+          industria: profile?.industria ?? '',
         }}
         callmebotInicial={{
           apikey: p?.callmebot_apikey ?? '',

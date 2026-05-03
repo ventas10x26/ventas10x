@@ -283,6 +283,8 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
           whatsapp={profile.whatsapp || config?.whatsapp || ''}
           mensajeWa={config?.mensaje_wa || ''}
           slug={slug}
+          industria={industria}
+          nombreVendedor={nombreVendedor}
         />
       )}
 

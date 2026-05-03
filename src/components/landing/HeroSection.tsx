@@ -134,7 +134,7 @@ export function HeroSection({
 
             {/* Título — tipografía máxima */}
             <h1 style={{
-              fontSize: 'clamp(38px, 7vw, 68px)',
+              fontSize: 'clamp(42px, 6vw, 72px)',
               fontWeight: 700,
               lineHeight: 1.0,
               letterSpacing: '-0.04em',
@@ -147,7 +147,7 @@ export function HeroSection({
 
             {/* Subtítulo */}
             <p style={{
-              fontSize: 'clamp(20px, 2.5vw, 26px)',
+              fontSize: 'clamp(17px, 2vw, 21px)',
               lineHeight: 1.6,
               color: '#94a3b8',
               margin: '0 0 36px',
@@ -159,11 +159,11 @@ export function HeroSection({
 
             {/* Selectores de intención (del screenshot, pero mejorados) */}
             <div style={{ marginBottom: '28px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
                 ¿Qué estás buscando?
               </p>
               <div className="intent-grid">
-                {['Consulta médica', 'Procedimiento', 'Medicamento', 'Solo información'].map(opt => (
+                {theme.intentOptions.map(opt => (
                   <button
                     key={opt}
                     onClick={onCtaClick}
@@ -199,7 +199,7 @@ export function HeroSection({
                   border: 'none',
                   borderRadius: '14px',
                   padding: '17px 28px',
-                  fontSize: '18px',
+                  fontSize: '16px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -225,7 +225,7 @@ export function HeroSection({
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: '14px',
                   padding: '17px 24px',
-                  fontSize: '17px',
+                  fontSize: '16px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -257,18 +257,18 @@ export function HeroSection({
                 }}>
                   <span style={{
                     width: '22px', height: '22px', borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: `${colorAcento}25`,
+                    border: `1px solid ${colorAcento}50`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', color: '#fff', flexShrink: 0,
+                    fontSize: '11px', color: colorAcento, flexShrink: 0,
                   }}>{t.icon}</span>
-                  <span style={{ fontSize: '14px', color: '#cbd5e1', fontWeight: 500 }}>{t.label}</span>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>{t.label}</span>
                 </div>
               ))}
             </div>
 
             {microcopyFinal && (
-              <p style={{ fontSize: '14px', color: '#94a3b8', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <p style={{ fontSize: '12px', color: '#475569', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 }} />
                 {microcopyFinal}
               </p>

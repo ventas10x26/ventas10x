@@ -35,6 +35,9 @@ export type SectorTheme = {
   ctaTextoDefault: string
   ctaMicrocopyDefault: string
 
+  // Intent grid (hero) — 4 opciones según industria
+  intentOptions: [string, string, string, string]
+
   // Bloques con datos default
   statsDefault: StatDefault[]
   comoFuncionaDefault: PasoDefault[]
@@ -68,6 +71,8 @@ const automotriz: SectorTheme = {
 
   ctaTextoDefault: 'Cotizar y agendar test drive',
   ctaMicrocopyDefault: '⚡ Te respondo en menos de 1 hora por WhatsApp',
+
+  intentOptions: ['SUV / Camioneta', 'Sedán / Compacto', 'Eléctrico / Híbrido', 'Solo estoy cotizando'],
 
   statsDefault: [
     { valor: '+150', label: 'CARROS ENTREGADOS' },
@@ -109,6 +114,8 @@ const inmobiliaria: SectorTheme = {
   ctaTextoDefault: 'Agendar visita',
   ctaMicrocopyDefault: '🏠 Te muestro 3 opciones que se ajustan a tu presupuesto',
 
+  intentOptions: ['Comprar apartamento', 'Comprar casa', 'Arrendar', 'Solo mirando'],
+
   statsDefault: [
     { valor: '+80', label: 'PROPIEDADES' },
     { valor: '10 años', label: 'EN EL SECTOR' },
@@ -148,6 +155,8 @@ const salud: SectorTheme = {
 
   ctaTextoDefault: 'Reservar valoración',
   ctaMicrocopyDefault: '⚡ Te respondo personalmente por WhatsApp en minutos',
+
+  intentOptions: ['Consulta médica', 'Procedimiento', 'Medicamento', 'Solo información'],
 
   statsDefault: [
     { valor: '+500', label: 'PACIENTES' },
@@ -189,6 +198,8 @@ const retail: SectorTheme = {
   ctaTextoDefault: 'Ver disponibilidad',
   ctaMicrocopyDefault: '📦 Stock confirmado en 5 min · Envío el mismo día',
 
+  intentOptions: ['Ver catálogo', 'Precio y disponibilidad', 'Envíos y garantías', 'Solo mirando'],
+
   statsDefault: [
     { valor: '+1.000', label: 'VENTAS' },
     { valor: '★ 4.8', label: 'CLIENTES FELICES' },
@@ -228,6 +239,8 @@ const tecnologia: SectorTheme = {
 
   ctaTextoDefault: 'Solicitar demo',
   ctaMicrocopyDefault: '🚀 Demo en vivo de 20 min · Sin tarjeta de crédito',
+
+  intentOptions: ['Solicitar demo', 'Ver precios', 'Integración con mi sistema', 'Solo explorando'],
 
   statsDefault: [
     { valor: '+50', label: 'CLIENTES' },
@@ -269,6 +282,8 @@ const belleza: SectorTheme = {
   ctaTextoDefault: 'Reservar mi cita',
   ctaMicrocopyDefault: '✨ Confirmación inmediata · Recordatorios por WhatsApp',
 
+  intentOptions: ['Agendar cita', 'Ver servicios', 'Precios y disponibilidad', 'Solo mirando'],
+
   statsDefault: [
     { valor: '+800', label: 'CLIENTES' },
     { valor: '6 años', label: 'EXPERIENCIA' },
@@ -309,6 +324,8 @@ const servicios: SectorTheme = {
   ctaTextoDefault: 'Agendar consulta',
   ctaMicrocopyDefault: '💼 Primera reunión sin compromiso · 30 min',
 
+  intentOptions: ['Agendar consulta', 'Ver servicios', 'Precios y tiempos', 'Solo información'],
+
   statsDefault: [
     { valor: '+200', label: 'CLIENTES' },
     { valor: '10 años', label: 'EXPERIENCIA' },
@@ -348,6 +365,8 @@ const generico: SectorTheme = {
 
   ctaTextoDefault: 'Reservar mi cita',
   ctaMicrocopyDefault: '⚡ Te respondo en 5 min por WhatsApp',
+
+  intentOptions: ['Ver productos', 'Solicitar cotización', 'Agendar cita', 'Solo información'],
 
   statsDefault: [
     { valor: '+200', label: 'CLIENTES' },

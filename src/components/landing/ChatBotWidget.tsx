@@ -335,7 +335,7 @@ export default function ChatBotWidget({
               disabled={cargando}
               style={{ flex: 1, padding: '10px 14px', borderRadius: 100, border: '1px solid rgba(0,0,0,0.12)', fontSize: 13, outline: 'none', background: cargando ? '#f5f5f5' : '#fff', color: '#222', fontFamily: 'Inter, sans-serif' }}
             />
-            <button onClick={enviar} disabled={cargando || !input.trim()} style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: !input.trim() || cargando ? '#e5e7eb' : colorAcento, border: 'none', cursor: !input.trim() || cargando ? 'default' : 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}>
+            <button onClick={() => enviar()} disabled={cargando || !input.trim()} style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: !input.trim() || cargando ? '#e5e7eb' : colorAcento, border: 'none', cursor: !input.trim() || cargando ? 'default' : 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}>
               ➤
             </button>
           </div>

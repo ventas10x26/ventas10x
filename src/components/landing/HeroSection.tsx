@@ -134,7 +134,7 @@ export function HeroSection({
 
             {/* Título — tipografía máxima */}
             <h1 style={{
-              fontSize: 'clamp(38px, 7vw, 88px)',
+              fontSize: 'clamp(38px, 7vw, 68px)',
               fontWeight: 700,
               lineHeight: 1.0,
               letterSpacing: '-0.04em',

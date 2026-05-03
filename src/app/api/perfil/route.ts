@@ -7,6 +7,7 @@ type ProfileInput = {
   empresa: string
   whatsapp: string
   slug: string
+  industria?: string
 }
 
 const SLUG_REGEX = /^[a-z0-9-]+$/
@@ -66,6 +67,7 @@ export async function PATCH(req: NextRequest) {
       empresa: empresa?.trim() || null,
       whatsapp: whatsapp?.trim() || null,
       slug: slug?.trim().toLowerCase() || null,
+      industria: body.industria?.trim() || null,
     }
 
     // Update en Supabase

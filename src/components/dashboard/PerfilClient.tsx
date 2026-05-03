@@ -16,6 +16,7 @@ type ProfileForm = {
   empresa: string
   whatsapp: string
   slug: string
+  industria: string
 }
 
 type CallMeBotConfig = {
@@ -164,8 +165,31 @@ export function PerfilClient({
             placeholder="+57 300 000 0000"
             maxLength={30}
           />
-          <p className="text-xs text-gray-500 mt-1">
+<p className="text-xs text-gray-500 mt-1">
             Incluye código de país. Este será el número donde te contacten los prospectos.
+          </p>
+        </div>
+        <div>
+          <label className="label">Industria / Sector</label>
+          <select
+            value={form.industria || ''}
+            onChange={(e) => actualizar('industria', e.target.value)}
+            className="input"
+          >
+            <option value="">Selecciona tu industria</option>
+            <option value="Automotriz">🚗 Automotriz</option>
+            <option value="Inmobiliaria">🏠 Inmobiliaria</option>
+            <option value="Retail">👗 Retail</option>
+            <option value="Salud">💊 Salud</option>
+            <option value="Educacion">🎓 Educación</option>
+            <option value="Fitness">🏋️ Fitness</option>
+            <option value="Turismo">✈️ Turismo</option>
+            <option value="Servicios">🛠️ Servicios</option>
+            <option value="Tecnologia">💻 Tecnología</option>
+            <option value="Alimentos">🍔 Alimentos</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Personaliza tu landing, bot IA y sección de contacto según tu sector.
           </p>
         </div>
       </section>

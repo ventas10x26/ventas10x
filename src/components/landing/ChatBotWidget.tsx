@@ -226,9 +226,9 @@ export default function ChatBotWidget({
                   <div key={i} style={{ animation: 'botFadeUp .3s ease' }}>
                     {!formSent ? (
                       <div style={{ background: '#0f1c2e', borderRadius: '14px', padding: '1rem' }}>
-                        <div style={{ fontSize: '10px', fontWeight: 700, color: colorAcento, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>CONTÁCTAME AHORA</div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: colorAcento, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>CONTÁCTAME AHORA</div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>¿Listo para tu cotización?</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', marginBottom: '10px' }}>Te respondemos en menos de 30 minutos.</div>
+                        <div style={{ fontSize: '15px', color: 'rgba(255,255,255,.6)', marginBottom: '10px' }}>Te respondemos en menos de 30 minutos.</div>
                         <input style={inputStyle} placeholder="Tu nombre completo" value={leadForm.nombre} onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))} />
                         <input style={inputStyle} placeholder="Tu WhatsApp (+57 300...)" value={leadForm.whatsapp} onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))} />
                         <input style={{ ...inputStyle, marginBottom: '10px' }} placeholder="¿Qué te interesa? (opcional)" value={leadForm.interes} onChange={e => setLeadForm(f => ({ ...f, interes: e.target.value }))} />
@@ -242,7 +242,7 @@ export default function ChatBotWidget({
                     ) : (
                       <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '10px 14px', textAlign: 'center' }}>
                         <div style={{ fontSize: '20px', marginBottom: '4px' }}>✅</div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#166534' }}>¡Datos enviados al asesor!</div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: '#166534' }}>¡Datos enviados al asesor!</div>
                       </div>
                     )}
                   </div>

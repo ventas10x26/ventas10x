@@ -344,12 +344,14 @@ export default async function VendedorLandingPage({ params }: Props) {
         </div>
       )}
 
-      <ChatBotWidget
+<ChatBotWidget
         slug={slug}
         nombreAsesor={nombreBot}
         colorAcento={colorAcento}
         industria={industriaBot}
         bienvenida={bienvenidaBot}
+        productosIniciales={productos.slice(0, 3).map(p => ({ nombre: p.nombre, precio: p.precio }))}
+        campanaDestacada={secciones.find(s => s.tipo === 'campana' && s.activa) ?? null}
       />
     </>
   )

@@ -14,6 +14,8 @@ interface ChatBotWidgetProps {
   colorAcento?: string
   industria?: string
   bienvenida?: string | null
+  productosIniciales?: { nombre: string; precio: string | null }[]
+  campanaDestacada?: { titulo: string | null; contenido: Record<string, unknown> } | null
 }
 
 function getOrCreateSessionId(): string {
@@ -37,6 +39,8 @@ export default function ChatBotWidget({
   colorAcento = '#FF6B2B',
   industria = 'default',
   bienvenida = null,
+  productosIniciales = [],
+  campanaDestacada = null,
 }: ChatBotWidgetProps) {
   const [abierto, setAbierto]           = useState(true)
   const [mensajes, setMensajes]         = useState<Mensaje[]>([])
@@ -46,6 +50,7 @@ export default function ChatBotWidget({
   const [leadCreado, setLeadCreado]     = useState(false)
   const [notifBurbuja, setNotifBurbuja] = useState(true)
   const [formVisible, setFormVisible]   = useState(false)
+  const [botonesIniciales, setBotonesIniciales] = useState(true)
   const [leadForm, setLeadForm]         = useState({ nombre: '', whatsapp: '', interes: '' })
   const [submitting, setSubmitting]     = useState(false)
   const [formSent, setFormSent]         = useState(false)
@@ -58,12 +63,12 @@ export default function ChatBotWidget({
       const mensajeInicial = bienvenida?.trim()
         ? bienvenida.trim()
         : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
-
       setMensajes([{
         role: 'assistant',
         text: mensajeInicial,
         timestamp: new Date(),
       }])
+      setBotonesIniciales(true)
     }
     if (abierto) {
       setNotifBurbuja(false)
@@ -82,11 +87,10 @@ export default function ChatBotWidget({
     }
   }, [formVisible, formSent])
 
-  const enviar = useCallback(async () => {
-    const texto = input.trim()
+  const enviar = useCallback(async (textoDirecto?: string) => {
+    const texto = textoDirecto || input.trim()
     if (!texto || cargando) return
-
-    setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
+    if (!textoDirecto) setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
     setInput('')
     setCargando(true)
 
@@ -203,6 +207,63 @@ export default function ChatBotWidget({
           </div>
 
           <div ref={chatRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f8f8f6', minHeight: 0 }}>
+            {/* Botones de selección inicial */}
+            {botonesIniciales && mensajes.length === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', animation: 'botFadeUp .3s ease' }}>
+                {campanaDestacada?.titulo && (
+                  <button
+                    onClick={() => {
+                      setBotonesIniciales(false)
+                      const texto = `Me interesa: ${campanaDestacada.titulo}`
+                      setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
+                      setTimeout(() => enviar(texto), 100)
+                    }}
+                    style={{
+                      padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`,
+                      background: `${colorAcento}10`, color: colorAcento, fontWeight: 700,
+                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    🔥 {campanaDestacada.titulo}
+                  </button>
+                )}
+                {(productosIniciales.length > 0 ? productosIniciales : []).map((p, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setBotonesIniciales(false)
+                      const texto = `Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`
+                      setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
+                      setTimeout(() => enviar(texto), 100)
+                    }}
+                    style={{
+                      padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb',
+                      background: '#fff', color: '#0f1c2e', fontWeight: 600,
+                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {p.nombre}{p.precio ? ` — ${p.precio}` : ''}
+                  </button>
+                ))}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    placeholder="Estoy interesado en..."
+                    style={{
+                      flex: 1, padding: '10px 14px', borderRadius: '12px',
+                      border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none',
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && (e.target as HTMLInputElement).value.trim()) {
+                        setBotonesIniciales(false)
+                        const texto = (e.target as HTMLInputElement).value.trim()
+                        setMensajes(prev => [...prev, { role: 'user', text: texto, timestamp: new Date() }])
+                        setTimeout(() => enviar(texto), 100)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             {mensajes.map((m, i) => {
               if (m.role === 'form') {
                 return (

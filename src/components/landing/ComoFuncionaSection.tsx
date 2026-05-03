@@ -101,7 +101,7 @@ export function ComoFuncionaSection({ pasos, colorAcento }: Props) {
           {pasos.map((p, i) => (
             <div
               key={i}
-              ref={el => { refs.current[i] = el }}
+              ref={el => { refs.current[i] = el; return undefined }}
               style={{
                 opacity: visible[i] ? 1 : 0,
                 transform: visible[i] ? 'translateY(0)' : 'translateY(32px)',

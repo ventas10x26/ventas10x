@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { NavResponsive } from '@/components/NavResponsive'
 import { SectoresShowcase } from '@/components/landing/SectoresShowcase'
+import { RedSocialSection } from '@/components/landing/RedSocialSection'
 import BotIASection from '@/components/landing/BotIASection'
 import KitDigitalSection from '@/components/landing/KitDigitalSection'
 import DashboardIASection from '@/components/landing/DashboardIASection'
@@ -188,6 +189,8 @@ export default function HomePage() {
       </div>
 
       <DashboardIASection />
+
+      <RedSocialSection />
 
       {/* ── DARK: PRECIOS ── */}
       <div id="precios" style={{ background:DARK }}>

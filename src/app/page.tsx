@@ -256,7 +256,7 @@ export default function HomePage() {
 
       {/* ── DARK: CTA FINAL ── */}
       <div style={{ background:DARK, borderTop:'1px solid rgba(255,255,255,.07)', padding:'7rem 2rem' }}>
-        <div style={{ maxWidth:'1100px', margin:'0 auto', display:'grid', gridTemplateColumns:'1fr auto', gap:'4rem', alignItems:'center' }}>
+        <div className='cta-final-grid' style={{ maxWidth:'1100px', margin:'0 auto', display:'grid', gridTemplateColumns:'1fr auto', gap:'4rem', alignItems:'center' }}>
           <div>
             <h2 style={{ fontSize:'clamp(32px,5vw,56px)', fontWeight:800, letterSpacing:'-.04em', marginBottom:'1.25rem', lineHeight:1.05 }}>
               Empieza hoy.<br/><span style={{ color:'#FF6B2B' }}>14 días completamente gratis.</span>

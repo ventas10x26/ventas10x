@@ -222,14 +222,14 @@ export default function DashboardIASection() {
 
           {/* Chat */}
           <div style={{
-            background: 'rgba(255,255,255,.04)', border: `1px solid ${industria.color}40`,
+            background: '#fff', border: `1px solid ${industria.color}40`,
             borderRadius: '20px', overflow: 'hidden', transition: 'border-color 0.5s',
           }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px', background: '#f8fafc' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: ORANGE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff', flexShrink: 0 }}>IA</div>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Asistente Ventas10x</div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Asistente Ventas10x</div>
+                <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
                   {industria.icon} {industria.label}
                 </div>
@@ -239,14 +239,14 @@ export default function DashboardIASection() {
             <div ref={chatRef} style={{ padding: '1rem', height: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', scrollBehavior: 'smooth' }}>
               {shownMsgs.map((msg, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', animation: 'fadeUp .3s ease' }}>
-                  <div style={{ maxWidth: '80%', padding: '8px 12px', borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: msg.role === 'user' ? ORANGE : 'rgba(255,255,255,.1)', color: '#fff', fontSize: '13px', lineHeight: 1.5 }}>
+                  <div style={{ maxWidth: '80%', padding: '8px 12px', borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', background: msg.role === 'user' ? ORANGE : '#f1f5f9', color: msg.role === 'user' ? '#fff' : '#1e293b', fontSize: '13px', lineHeight: 1.5 }}>
                     {msg.text}
                   </div>
                 </div>
               ))}
               {typing && (
                 <div style={{ display: 'flex', justifyContent: 'flex-start', animation: 'fadeUp .3s ease' }}>
-                  <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', background: 'rgba(255,255,255,.1)', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ padding: '10px 14px', borderRadius: '14px 14px 14px 4px', background: '#f1f5f9', display: 'flex', gap: '4px', alignItems: 'center' }}>
                     {[0, 1, 2].map(i => (
                       <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,.5)', animation: `bounce .8s ${i * .15}s infinite` }} />
                     ))}
@@ -255,8 +255,8 @@ export default function DashboardIASection() {
               )}
             </div>
 
-            <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,.08)', display: 'flex', gap: '8px' }}>
-              <div style={{ flex: 1, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', color: 'rgba(255,255,255,.35)' }}>
+            <div style={{ padding: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '8px', background: '#fff' }}>
+              <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', color: '#94a3b8' }}>
                 Escribe un comando a la IA...
               </div>
               <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: ORANGE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

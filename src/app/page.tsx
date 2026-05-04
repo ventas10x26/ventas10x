@@ -17,7 +17,8 @@ export default function HomePage() {
           <span style={{ fontWeight:800, fontSize:'19px', letterSpacing:'-.02em' }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
         </div>
         <div style={{ display:'flex', gap:'1.75rem', alignItems:'center' }}>
-          {['#como-funciona:Cómo funciona','#bot-ia:Bot IA','#sectores:Sectores','#precios:Precios'].map(item => {
+          {['#como-funciona:Cómo funciona','#bot-ia:Bot IA','#sectores:Sectores','#precios:Precios','/por-que:Por qué existimos'
+].map(item => {
             const [href, label] = item.split(':')
             return <a key={href} href={href} style={{ fontSize:'14px', color:'rgba(255,255,255,.72)', textDecoration:'none', fontWeight:500 }}>{label}</a>
           })}

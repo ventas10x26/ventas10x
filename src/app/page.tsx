@@ -19,6 +19,7 @@ export default function HomePage() {
           { href: '#bot-ia', label: 'Bot IA' },
           { href: '#sectores', label: 'Sectores' },
           { href: '#precios', label: 'Precios' },
+          { href: '/explore', label: '🌎 Explorar' },
           { href: '/por-que', label: 'Por qué existimos' },
           { href: '/auth/login', label: 'Ingresar' },
         ]}

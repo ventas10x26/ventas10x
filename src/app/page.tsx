@@ -294,6 +294,8 @@ export default function HomePage() {
       </div>
 
       <style>{`
+        .cta-final-grid { grid-template-columns: 1fr auto; }
+        @media (max-width: 768px) { .cta-final-grid { grid-template-columns: 1fr !important; gap: 2rem !important; } }
         @keyframes ticker {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }

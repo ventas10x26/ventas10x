@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavResponsive } from '@/components/NavResponsive'
 import BotIASection from '@/components/landing/BotIASection'
 import KitDigitalSection from '@/components/landing/KitDigitalSection'
 import DashboardIASection from '@/components/landing/DashboardIASection'
@@ -10,29 +11,18 @@ export default function HomePage() {
   return (
     <div style={{ fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)", background:DARK, minHeight:'100vh', color:'#fff' }}>
 
-      {/* NAV — responsive */}
-      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.5rem', borderBottom:'1px solid rgba(255,255,255,.07)', position:'sticky', top:0, zIndex:50, background:'rgba(15,28,46,.97)', backdropFilter:'blur(14px)' }}>
-        <Link href="/" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
-          <svg width="32" height="32" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
-          <span style={{ fontWeight:800, fontSize:'18px', letterSpacing:'-.02em', color:'#fff' }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
-        </Link>
-        <div className="nav-links" style={{ display:'flex', gap:'1.5rem', alignItems:'center' }}>
-          {[
-            { href:'#como-funciona', label:'Cómo funciona' },
-            { href:'#bot-ia', label:'Bot IA' },
-            { href:'#sectores', label:'Sectores' },
-            { href:'#precios', label:'Precios' },
-            { href:'/por-que', label:'Por qué existimos' },
-          ].map(({ href, label }) => href.startsWith('/')
-            ? <Link key={href} href={href} style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500, whiteSpace:'nowrap' }}>{label}</Link>
-            : <a key={href} href={href} style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500, whiteSpace:'nowrap' }}>{label}</a>
-          )}
-          <Link href="/auth/login" style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500 }}>Ingresar</Link>
-        </div>
-        <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'9px 18px', borderRadius:'10px', fontSize:'13px', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>
-          Probar gratis →
-        </Link>
-      </nav>
+      <NavResponsive
+        links={[
+          { href: '#como-funciona', label: 'Cómo funciona' },
+          { href: '#bot-ia', label: 'Bot IA' },
+          { href: '#sectores', label: 'Sectores' },
+          { href: '#precios', label: 'Precios' },
+          { href: '/por-que', label: 'Por qué existimos' },
+          { href: '/auth/login', label: 'Ingresar' },
+        ]}
+        ctaHref="/auth/register"
+        ctaLabel="Probar gratis"
+      />
 
       {/* ── DARK: HERO ── */}
       <div style={{ background:DARK, padding:'7rem 2rem 5rem' }}>
@@ -363,9 +353,6 @@ export default function HomePage() {
         @keyframes sectoresRight {
           0% { transform: translateX(-33.33%); }
           100% { transform: translateX(0); }
-        }
-        @media (max-width: 768px) {
-          .nav-links { display: none !important; }
         }
       `}</style>
 

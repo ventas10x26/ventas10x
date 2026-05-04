@@ -1,6 +1,7 @@
 // Ruta destino: src/app/por-que/page.tsx
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { NavResponsive } from '@/components/NavResponsive'
 
 export const metadata: Metadata = {
   title: 'Por qué existe Ventas10x · La historia detrás del producto',
@@ -19,31 +20,17 @@ export default function PorQuePage() {
       color: '#fff',
     }}>
 
-      {/* NAV */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '1.1rem 2rem', borderBottom: '1px solid rgba(255,255,255,.07)',
-        position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(11,17,32,.97)', backdropFilter: 'blur(14px)',
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-          <svg width="34" height="34" viewBox="0 0 52 52" fill="none">
-            <rect width="52" height="52" rx="13" fill="#FF6B2B"/>
-            <rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/>
-            <rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/>
-            <rect x="28" y="16" width="7" height="28" rx="2" fill="white"/>
-          </svg>
-          <span style={{ fontWeight: 800, fontSize: '19px', letterSpacing: '-.02em', color: '#fff' }}>
-            Ventas<span style={{ color: ACCENT }}>10x</span>
-          </span>
-        </Link>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link href="/" style={{ fontSize: '14px', color: 'rgba(255,255,255,.6)', textDecoration: 'none', fontWeight: 500 }}>← Inicio</Link>
-          <Link href="/auth/register" style={{ background: ACCENT, color: '#fff', padding: '9px 22px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}>
-            Probar gratis →
-          </Link>
-        </div>
-      </nav>
+      <NavResponsive
+        links={[
+          { href: '/', label: '← Inicio' },
+          { href: '#problema', label: 'El problema' },
+          { href: '#solucion', label: 'La solución' },
+          { href: '#sectores', label: 'Sectores' },
+          { href: '/auth/login', label: 'Ingresar' },
+        ]}
+        ctaHref="/auth/register"
+        ctaLabel="Probar gratis"
+      />
 
       {/* ── HERO ── */}
       <section style={{ padding: '7rem 2rem 5rem', position: 'relative', overflow: 'hidden' }}>

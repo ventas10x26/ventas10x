@@ -10,23 +10,28 @@ export default function HomePage() {
   return (
     <div style={{ fontFamily:"var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)", background:DARK, minHeight:'100vh', color:'#fff' }}>
 
-      {/* NAV — dark sticky */}
-      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1.1rem 2rem', borderBottom:'1px solid rgba(255,255,255,.07)', position:'sticky', top:0, zIndex:50, background:'rgba(15,28,46,.97)', backdropFilter:'blur(14px)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          <svg width="34" height="34" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
-          <span style={{ fontWeight:800, fontSize:'19px', letterSpacing:'-.02em' }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
+      {/* NAV — responsive */}
+      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.5rem', borderBottom:'1px solid rgba(255,255,255,.07)', position:'sticky', top:0, zIndex:50, background:'rgba(15,28,46,.97)', backdropFilter:'blur(14px)' }}>
+        <Link href="/" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
+          <svg width="32" height="32" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
+          <span style={{ fontWeight:800, fontSize:'18px', letterSpacing:'-.02em', color:'#fff' }}>Ventas<span style={{ color:'#FF6B2B' }}>10x</span></span>
+        </Link>
+        <div className="nav-links" style={{ display:'flex', gap:'1.5rem', alignItems:'center' }}>
+          {[
+            { href:'#como-funciona', label:'Cómo funciona' },
+            { href:'#bot-ia', label:'Bot IA' },
+            { href:'#sectores', label:'Sectores' },
+            { href:'#precios', label:'Precios' },
+            { href:'/por-que', label:'Por qué existimos' },
+          ].map(({ href, label }) => href.startsWith('/')
+            ? <Link key={href} href={href} style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500, whiteSpace:'nowrap' }}>{label}</Link>
+            : <a key={href} href={href} style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500, whiteSpace:'nowrap' }}>{label}</a>
+          )}
+          <Link href="/auth/login" style={{ fontSize:'13px', color:'rgba(255,255,255,.65)', textDecoration:'none', fontWeight:500 }}>Ingresar</Link>
         </div>
-        <div style={{ display:'flex', gap:'1.75rem', alignItems:'center' }}>
-          {['#como-funciona:Cómo funciona','#bot-ia:Bot IA','#sectores:Sectores','#precios:Precios','/por-que:Por qué existimos'
-].map(item => {
-            const [href, label] = item.split(':')
-            return <a key={href} href={href} style={{ fontSize:'14px', color:'rgba(255,255,255,.72)', textDecoration:'none', fontWeight:500 }}>{label}</a>
-          })}
-          <Link href="/auth/login" style={{ fontSize:'14px', color:'rgba(255,255,255,.72)', textDecoration:'none', fontWeight:500 }}>Ingresar</Link>
-          <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'9px 22px', borderRadius:'10px', fontSize:'14px', fontWeight:700, textDecoration:'none' }}>
-            Probar gratis →
-          </Link>
-        </div>
+        <Link href="/auth/register" style={{ background:'#FF6B2B', color:'#fff', padding:'9px 18px', borderRadius:'10px', fontSize:'13px', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap' }}>
+          Probar gratis →
+        </Link>
       </nav>
 
       {/* ── DARK: HERO ── */}
@@ -84,8 +89,6 @@ export default function HomePage() {
 
       {/* ── SOFT: STATS + CÓMO FUNCIONA ── */}
       <div style={{ background:SOFT, color:'#111827' }}>
-
-        {/* Stats */}
         <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'4rem 2rem 0', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'2rem', textAlign:'center' }}>
           {[
             { n:'10x', label:'más respuestas con bot IA' },
@@ -100,7 +103,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Cómo funciona */}
         <div id="como-funciona" style={{ maxWidth:'1100px', margin:'0 auto', padding:'5rem 2rem' }}>
           <div style={{ marginBottom:'3rem' }}>
             <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Cómo funciona</div>
@@ -127,9 +129,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── DARK: BOT IA ── */}
+      {/* ── DARK: KIT DIGITAL + BOT IA ── */}
       <KitDigitalSection />
-
       <BotIASection />
 
       {/* ── SOFT: CATÁLOGO IA ── */}
@@ -162,7 +163,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── DARK: SECTORES animados ── */}
+      {/* ── DARK: SECTORES ── */}
       <div id="sectores" style={{ background:DARK, borderTop:'1px solid rgba(255,255,255,.07)', borderBottom:'1px solid rgba(255,255,255,.07)', overflow:'hidden' }}>
         <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem 3rem' }}>
           <div style={{ marginBottom:'3.5rem' }}>
@@ -173,8 +174,6 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-
-        {/* Fila 1 — izquierda */}
         <div style={{ overflow:'hidden', marginBottom:'1.25rem', paddingLeft:'2rem' }}>
           <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresLeft 35s linear infinite', width:'max-content' }}>
             {[...Array(3)].map((_, rep) =>
@@ -194,8 +193,6 @@ export default function HomePage() {
             )}
           </div>
         </div>
-
-        {/* Fila 2 — derecha */}
         <div style={{ overflow:'hidden', paddingLeft:'2rem', marginBottom:'5rem' }}>
           <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresRight 35s linear infinite', width:'max-content' }}>
             {[...Array(3)].map((_, rep) =>
@@ -339,7 +336,7 @@ export default function HomePage() {
       </div>
 
       {/* FOOTER */}
-      <div style={{ background:'#080e1a', borderTop:'1px solid rgba(255,255,255,.06)', padding:'2.5rem 2rem', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem', maxWidth:'100%' }}>
+      <div style={{ background:'#080e1a', borderTop:'1px solid rgba(255,255,255,.06)', padding:'2.5rem 2rem' }}>
         <div style={{ maxWidth:'1100px', width:'100%', margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
             <svg width="22" height="22" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="13" fill="#FF6B2B"/><rect x="8" y="32" width="7" height="12" rx="2" fill="rgba(255,255,255,0.4)"/><rect x="18" y="24" width="7" height="20" rx="2" fill="rgba(255,255,255,0.65)"/><rect x="28" y="16" width="7" height="28" rx="2" fill="white"/></svg>
@@ -349,6 +346,7 @@ export default function HomePage() {
             {['Privacidad','Términos','Contacto'].map(l => (
               <a key={l} href="#" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>{l}</a>
             ))}
+            <Link href="/por-que" style={{ fontSize:'13px', color:'rgba(255,107,43,.6)', textDecoration:'none', fontWeight:600 }}>Por qué existimos</Link>
           </div>
         </div>
       </div>
@@ -365,6 +363,9 @@ export default function HomePage() {
         @keyframes sectoresRight {
           0% { transform: translateX(-33.33%); }
           100% { transform: translateX(0); }
+        }
+        @media (max-width: 768px) {
+          .nav-links { display: none !important; }
         }
       `}</style>
 

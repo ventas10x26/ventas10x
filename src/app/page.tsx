@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { NavResponsive } from '@/components/NavResponsive'
+import { SectoresShowcase } from '@/components/landing/SectoresShowcase'
 import BotIASection from '@/components/landing/BotIASection'
 import KitDigitalSection from '@/components/landing/KitDigitalSection'
 import DashboardIASection from '@/components/landing/DashboardIASection'
@@ -153,56 +154,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── DARK: SECTORES ── */}
-      <div id="sectores" style={{ background:DARK, borderTop:'1px solid rgba(255,255,255,.07)', borderBottom:'1px solid rgba(255,255,255,.07)', overflow:'hidden' }}>
-        <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'6rem 2rem 3rem' }}>
-          <div style={{ marginBottom:'3.5rem' }}>
-            <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'.12em', color:'#FF6B2B', marginBottom:'1rem', textTransform:'uppercase' }}>Sectores</div>
-            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-.03em', color:'#fff' }}>Hecho para tu industria</h2>
-            <p style={{ fontSize:'20px', color:'rgba(255,255,255,.72)', marginTop:'.75rem', maxWidth:'560px', lineHeight:1.7, fontWeight:400 }}>
-              El bot IA se entrena con el lenguaje y las variables de cada sector.
-            </p>
-          </div>
-        </div>
-        <div style={{ overflow:'hidden', marginBottom:'1.25rem', paddingLeft:'2rem' }}>
-          <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresLeft 35s linear infinite', width:'max-content' }}>
-            {[...Array(3)].map((_, rep) =>
-              [
-                { icon:'🚗', sector:'Automotriz', desc:'Concesionarios, talleres, flotas' },
-                { icon:'🏠', sector:'Inmobiliaria', desc:'Proyectos, arriendos, usados' },
-                { icon:'👗', sector:'Retail', desc:'Ropa, calzado, accesorios' },
-                { icon:'🍔', sector:'Alimentos', desc:'Restaurantes, dark kitchens' },
-                { icon:'💊', sector:'Salud', desc:'Clínicas, farmacias, bienestar' },
-              ].map(s => (
-                <div key={`${s.sector}-${rep}`} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'1.75rem', minWidth:'230px', boxShadow:'0 1px 6px rgba(0,0,0,.05)', flexShrink:0 }}>
-                  <div style={{ fontSize:'34px', marginBottom:'1rem' }}>{s.icon}</div>
-                  <div style={{ fontSize:'18px', fontWeight:800, marginBottom:'.5rem', color:'#111827' }}>{s.sector}</div>
-                  <div style={{ fontSize:'16px', color:'#4b5563', lineHeight:1.6, fontWeight:400 }}>{s.desc}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        <div style={{ overflow:'hidden', paddingLeft:'2rem', marginBottom:'5rem' }}>
-          <div style={{ display:'flex', gap:'1.25rem', animation:'sectoresRight 35s linear infinite', width:'max-content' }}>
-            {[...Array(3)].map((_, rep) =>
-              [
-                { icon:'🛠️', sector:'Servicios', desc:'Construcción, consultoría, IT' },
-                { icon:'💻', sector:'Tecnología', desc:'SaaS, apps, agencias digitales' },
-                { icon:'🎓', sector:'Educación', desc:'Cursos, academias, coachings' },
-                { icon:'🏋️', sector:'Fitness', desc:'Gimnasios, entrenadores, wellness' },
-                { icon:'✈️', sector:'Turismo', desc:'Agencias, hoteles, tours' },
-              ].map(s => (
-                <div key={`${s.sector}-${rep}`} style={{ background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:'20px', padding:'1.75rem', minWidth:'230px', boxShadow:'0 1px 6px rgba(0,0,0,.05)', flexShrink:0 }}>
-                  <div style={{ fontSize:'34px', marginBottom:'1rem' }}>{s.icon}</div>
-                  <div style={{ fontSize:'18px', fontWeight:800, marginBottom:'.5rem', color:'#111827' }}>{s.sector}</div>
-                  <div style={{ fontSize:'16px', color:'#4b5563', lineHeight:1.6, fontWeight:400 }}>{s.desc}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      <SectoresShowcase />
 
       {/* ── SOFT: TESTIMONIOS ── */}
       <div style={{ background:SOFT, color:'#111827' }}>

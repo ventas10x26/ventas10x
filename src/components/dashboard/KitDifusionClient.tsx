@@ -262,8 +262,11 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
   }
 
   // ── Dibuja un frame del canvas ──
+  // drawFrame — para VIDEO animado (fuentes proporcionales al ancho)
   const drawFrame = useCallback(async (ctx: CanvasRenderingContext2D, w: number, h: number, t: number, avatarImg: HTMLImageElement | null) => {
-    // Fondo
+    const scale = w / 1080 // factor de escala respecto a imagen base
+    const s = (n: number) => Math.round(n * scale) // escala un valor
+
     const grad = ctx.createLinearGradient(0, 0, 0, h)
     grad.addColorStop(0, '#0b1120')
     grad.addColorStop(0.6, '#0f1c2e')
@@ -271,8 +274,7 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    // Glow animado
-    const glowX = w * 0.8 + Math.sin(t * 0.02) * 80
+    const glowX = w * 0.8 + Math.sin(t * 0.02) * s(80)
     const radGrad = ctx.createRadialGradient(glowX, 0, 0, glowX, 0, w * 0.6)
     radGrad.addColorStop(0, `${colorAcento}25`)
     radGrad.addColorStop(1, 'transparent')
@@ -281,22 +283,21 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
 
     // Logo
     ctx.fillStyle = colorAcento
-    roundRect(ctx, 40, 40, 48, 48, 12)
+    roundRect(ctx, s(80), s(80), s(72), s(72), s(18))
     ctx.fill()
     ctx.fillStyle = '#fff'
-    ctx.font = 'bold 18px Inter, system-ui, sans-serif'
+    ctx.font = `bold ${s(28)}px Inter, system-ui, sans-serif`
     ctx.textAlign = 'left'
-    ctx.fillText('V10x', 52, 70)
-    ctx.fillStyle = '#fff'
-    ctx.font = 'bold 22px Inter, system-ui, sans-serif'
-    ctx.fillText('Ventas', 100, 70)
+    ctx.fillText('V10x', s(95), s(125))
+    ctx.font = `bold ${s(36)}px Inter, system-ui, sans-serif`
+    ctx.fillText('Ventas', s(170), s(120))
     ctx.fillStyle = colorAcento
-    ctx.fillText('10x', 100 + ctx.measureText('Ventas').width, 70)
+    ctx.fillText('10x', s(170) + ctx.measureText('Ventas').width, s(120))
 
-    // Avatar — aparece con fade-in
+    // Avatar
     const avatarAlpha = Math.min(1, t / 30)
     const cy = h * 0.38
-    const r = Math.min(w * 0.14, 80)
+    const r = s(140)
     ctx.globalAlpha = avatarAlpha
     if (avatarImg) {
       ctx.save()
@@ -310,38 +311,33 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
     }
     ctx.globalAlpha = 1
 
-    // Ring pulsante
     const pulse = 1 + Math.sin(t * 0.08) * 0.04
     ctx.strokeStyle = colorAcento
-    ctx.lineWidth = 3
+    ctx.lineWidth = s(6)
     ctx.globalAlpha = 0.7 + Math.sin(t * 0.08) * 0.3
     ctx.beginPath()
-    ctx.arc(w / 2, cy, (r + 8) * pulse, 0, Math.PI * 2)
+    ctx.arc(w / 2, cy, (r + s(12)) * pulse, 0, Math.PI * 2)
     ctx.stroke()
     ctx.globalAlpha = 1
 
-    // Nombre — slide up
     const nameY = h * 0.57 - Math.max(0, (30 - t) * 3)
     const nameAlpha = Math.min(1, t / 20)
     ctx.globalAlpha = nameAlpha
     ctx.fillStyle = '#f8fafc'
-    ctx.font = `bold ${Math.min(w * 0.07, 42)}px Inter, system-ui, sans-serif`
+    ctx.font = `bold ${s(64)}px Inter, system-ui, sans-serif`
     ctx.textAlign = 'center'
     ctx.fillText(nombre, w / 2, nameY)
-
     if (empresa || industria) {
       ctx.fillStyle = 'rgba(255,255,255,0.5)'
-      ctx.font = `${Math.min(w * 0.04, 22)}px Inter, system-ui, sans-serif`
-      ctx.fillText([empresa, industria].filter(Boolean).join(' · '), w / 2, nameY + 36)
+      ctx.font = `${s(36)}px Inter, system-ui, sans-serif`
+      ctx.fillText([empresa, industria].filter(Boolean).join(' · '), w / 2, nameY + s(50))
     }
     ctx.globalAlpha = 1
 
-    // Línea separadora
     if (t > 20) {
-      const lineAlpha = Math.min(1, (t - 20) / 15)
-      ctx.globalAlpha = lineAlpha * 0.4
+      ctx.globalAlpha = Math.min(1, (t - 20) / 15) * 0.4
       ctx.strokeStyle = colorAcento
-      ctx.lineWidth = 1
+      ctx.lineWidth = s(2)
       ctx.beginPath()
       ctx.moveTo(w * 0.15, h * 0.63)
       ctx.lineTo(w * 0.85, h * 0.63)
@@ -349,18 +345,15 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
       ctx.globalAlpha = 1
     }
 
-    // Título
     if (t > 30) {
-      const textAlpha = Math.min(1, (t - 30) / 20)
-      ctx.globalAlpha = textAlpha
+      ctx.globalAlpha = Math.min(1, (t - 30) / 20)
       ctx.fillStyle = '#f1f5f9'
-      ctx.font = `bold ${Math.min(w * 0.05, 28)}px Inter, system-ui, sans-serif`
+      ctx.font = `bold ${s(52)}px Inter, system-ui, sans-serif`
       ctx.textAlign = 'center'
-      wrapText(ctx, titulo, w / 2, h * 0.68, w * 0.85, 36)
+      wrapText(ctx, titulo, w / 2, h * 0.68, w * 0.85, s(68))
       ctx.globalAlpha = 1
     }
 
-    // CTA animado
     if (t > 50) {
       const ctaAlpha = Math.min(1, (t - 50) / 20)
       const ctaScale = 0.9 + Math.min(0.1, (t - 50) / 100)
@@ -369,39 +362,142 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
       ctx.translate(w / 2, h * 0.83)
       ctx.scale(ctaScale, ctaScale)
       ctx.fillStyle = colorAcento
-      roundRect(ctx, -w * 0.36, -28, w * 0.72, 56, 16)
+      roundRect(ctx, -s(390), -s(50), s(780), s(100), s(24))
       ctx.fill()
       ctx.fillStyle = '#fff'
-      ctx.font = `bold ${Math.min(w * 0.045, 24)}px Inter, system-ui, sans-serif`
+      ctx.font = `bold ${s(40)}px Inter, system-ui, sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('¡Visítame ahora!', 0, 0)
       ctx.textBaseline = 'alphabetic'
       ctx.restore()
-
-      // URL parpadeante
       if (t > 60) {
-        const urlAlpha = 0.5 + Math.sin(t * 0.1) * 0.2
-        ctx.globalAlpha = urlAlpha * ctaAlpha
+        ctx.globalAlpha = (0.5 + Math.sin(t * 0.1) * 0.2) * ctaAlpha
         ctx.fillStyle = 'rgba(255,255,255,0.6)'
-        ctx.font = `${Math.min(w * 0.032, 18)}px Inter, system-ui, sans-serif`
+        ctx.font = `${s(32)}px Inter, system-ui, sans-serif`
         ctx.textAlign = 'center'
         ctx.fillText(landingUrl, w / 2, h * 0.91)
       }
       ctx.globalAlpha = 1
     }
 
-    // Badge bottom
     ctx.fillStyle = 'rgba(255,255,255,.06)'
-    roundRect(ctx, w * 0.25, h * 0.94, w * 0.5, 30, 15)
+    roundRect(ctx, w * 0.25, h * 0.94, w * 0.5, s(60), s(30))
     ctx.fill()
     ctx.fillStyle = 'rgba(255,255,255,.35)'
-    ctx.font = `${Math.min(w * 0.028, 14)}px Inter, system-ui, sans-serif`
+    ctx.font = `${s(24)}px Inter, system-ui, sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText('Creado con Ventas10x', w / 2, h * 0.94 + 20)
+    ctx.fillText('Creado con Ventas10x', w / 2, h * 0.94 + s(38))
   }, [nombre, empresa, industria, slug, colorAcento, titulo, landingUrl, initials])
 
   // ── Generar imagen estática ──
+  // ── Generar imagen estática en alta resolución ──
+  const drawImageEstatica = async (ctx: CanvasRenderingContext2D, avatarImg: HTMLImageElement | null) => {
+    const W = 1080
+    const H = 1920
+
+    const grad = ctx.createLinearGradient(0, 0, 0, H)
+    grad.addColorStop(0, '#0b1120')
+    grad.addColorStop(0.6, '#0f1c2e')
+    grad.addColorStop(1, '#0b1120')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, W, H)
+
+    const radGrad = ctx.createRadialGradient(W, 0, 0, W, 0, 600)
+    radGrad.addColorStop(0, `${colorAcento}22`)
+    radGrad.addColorStop(1, 'transparent')
+    ctx.fillStyle = radGrad
+    ctx.fillRect(0, 0, W, H)
+
+    // Logo
+    ctx.fillStyle = colorAcento
+    roundRect(ctx, 80, 80, 72, 72, 18)
+    ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.font = 'bold 28px Inter, system-ui, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText('V10x', 95, 125)
+    ctx.font = 'bold 36px Inter, system-ui, sans-serif'
+    ctx.fillStyle = '#fff'
+    ctx.fillText('Ventas', 170, 120)
+    ctx.fillStyle = colorAcento
+    ctx.fillText('10x', 170 + ctx.measureText('Ventas').width, 120)
+
+    // Avatar
+    const cx = 540
+    const cy = 560
+    const r = 140
+    if (avatarImg) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.drawImage(avatarImg, cx - r, cy - r, r * 2, r * 2)
+      ctx.restore()
+    } else {
+      drawInitialsAvatar(ctx, cx, cy, r, colorAcento, initials)
+    }
+
+    ctx.strokeStyle = colorAcento
+    ctx.lineWidth = 6
+    ctx.beginPath()
+    ctx.arc(cx, cy, r + 12, 0, Math.PI * 2)
+    ctx.stroke()
+
+    // Nombre
+    ctx.fillStyle = '#f8fafc'
+    ctx.font = 'bold 64px Inter, system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(nombre, 540, 780)
+
+    if (empresa || industria) {
+      ctx.fillStyle = 'rgba(255,255,255,.55)'
+      ctx.font = '36px Inter, system-ui, sans-serif'
+      ctx.fillText([empresa, industria].filter(Boolean).join(' · '), 540, 840)
+    }
+
+    // Línea
+    ctx.strokeStyle = `${colorAcento}60`
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(200, 900)
+    ctx.lineTo(880, 900)
+    ctx.stroke()
+
+    // Título
+    ctx.fillStyle = '#f1f5f9'
+    ctx.font = 'bold 52px Inter, system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    wrapText(ctx, titulo, 540, 990, 900, 68)
+
+    // Subtítulo
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+    ctx.font = '34px Inter, system-ui, sans-serif'
+    wrapText(ctx, subtitulo, 540, 1180, 860, 50)
+
+    // CTA
+    ctx.fillStyle = colorAcento
+    roundRect(ctx, 140, 1380, 800, 100, 24)
+    ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.font = 'bold 40px Inter, system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('¡Visítame ahora!', 540, 1442)
+
+    // URL
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'
+    ctx.font = '32px Inter, system-ui, sans-serif'
+    ctx.fillText(landingUrl, 540, 1570)
+
+    // Badge
+    ctx.fillStyle = 'rgba(255,255,255,.08)'
+    roundRect(ctx, 340, 1740, 400, 60, 30)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,.5)'
+    ctx.font = '24px Inter, system-ui, sans-serif'
+    ctx.fillText('Creado con Ventas10x', 540, 1778)
+  }
+
   const generarImagen = async () => {
     setGenerandoImg(true)
     const canvas = canvasRef.current
@@ -414,7 +510,7 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
     if (avatarUrl) {
       try { avatarImg = await loadImage(avatarUrl) } catch {}
     }
-    await drawFrame(ctx, 1080, 1920, 80, avatarImg)
+    await drawImageEstatica(ctx, avatarImg)
     setGenerandoImg(false)
     setDescargadoImg(false)
   }

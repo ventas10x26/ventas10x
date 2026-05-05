@@ -3,13 +3,15 @@
 // - Si el usuario no tiene perfil → onboarding
 // - Si no tiene org activa → onboarding (caso edge)
 // - Filtra leads, suscripcion, bots por org_id
-
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { DashboardHome } from '@/components/dashboard/DashboardHome'
 import { getActiveOrg } from '@/lib/get-active-org'
+import { headers } from 'next/headers'
 import type { Profile, Suscripcion } from '@/types/database'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -24,7 +26,6 @@ export default async function DashboardPage() {
     .select('*')
     .eq('id', user.id)
     .maybeSingle<Profile>()
-
   if (profileError) {
     console.error('❌ PROFILE ERROR:', profileError)
   }
@@ -32,7 +33,6 @@ export default async function DashboardPage() {
     console.log('🚨 NO PROFILE FOUND FOR:', user.id)
     redirect('/onboarding')
   }
-
   const profileVacio = !profile.nombre && !profile.empresa
   if (profileVacio) {
     console.log('⚠️ PROFILE INCOMPLETO:', profile)
@@ -45,6 +45,21 @@ export default async function DashboardPage() {
     console.log('⚠️ Sin org activa, redirigiendo a onboarding')
     redirect('/onboarding')
   }
+
+  // 📊 Log de login — fire-and-forget
+  try {
+    const h = await headers()
+    const xfwd = h.get('x-forwarded-for') || ''
+    const ua = h.get('user-agent') || ''
+    fetch(`${BASE_URL}/api/auth/log-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': xfwd,
+        'user-agent': ua,
+      },
+    }).catch(() => {})
+  } catch {}
 
   // 📦 Suscripción: SIEMPRE del owner de la org (es quien paga)
   const { data: sus } = await supabase
@@ -70,7 +85,6 @@ export default async function DashboardPage() {
     [profile.nombre, profile.apellido].filter(Boolean).join(' ') ||
     user.email?.split('@')[0] ||
     'Usuario'
-
   const initials = nombre
     .split(' ')
     .map((w: string) => w[0])

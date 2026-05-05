@@ -32,7 +32,8 @@ Tono: profesional pero cercano, motivador, español latinoamericano.`,
     })
 
     const rawText = msg.content[0].type === 'text' ? msg.content[0].text : ''
-    const parsed = JSON.parse(rawText)
+    const clean = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const parsed = JSON.parse(clean)
     return NextResponse.json({ ok: true, ...parsed })
 
   } catch (e) {

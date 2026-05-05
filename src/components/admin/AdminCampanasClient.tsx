@@ -84,7 +84,8 @@ function AgenteIA({ onGenerar }: {
       const data = await res.json()
 
       try {
-        const parsed = data
+        if (!data.ok) throw new Error(data.error || 'Error del servidor')
+          const parsed = data
         setHistorial(prev => [...prev,
           { role: 'ai', text: `✅ ¡Listo! Generé "${parsed.nombre}".\n\n💡 ${parsed.explicacion}\n\nRevisa y ajusta los campos abajo antes de guardar.` }
         ])

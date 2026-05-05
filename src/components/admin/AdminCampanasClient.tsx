@@ -318,6 +318,18 @@ export function AdminCampanasClient({ vendedores, campanasIniciales }: Props) {
                       </div>
                     ))}
                   </div>
+                  <button
+                    onClick={() => {
+                      setNombre(`Copia de ${c.nombre}`)
+                      setAsunto(c.asunto || '')
+                      setCuerpoEmail(c.cuerpo_email || '')
+                      setMensajeWa(c.mensaje_wa || '')
+                      setVista('nueva')
+                    }}
+                    style={{ padding: '10px 16px', background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    📋 Duplicar
+                  </button>
                   {c.estado !== 'enviada' && (
                     <button onClick={() => enviarCampana(c.id)} disabled={enviando === c.id} style={{ padding: '10px 20px', background: enviando === c.id ? '#e2e8f0' : ORANGE, color: enviando === c.id ? '#94a3b8' : '#fff', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: enviando === c.id ? 'default' : 'pointer' }}>
                       {enviando === c.id ? 'Enviando...' : '🚀 Enviar ahora'}

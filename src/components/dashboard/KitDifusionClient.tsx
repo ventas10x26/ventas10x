@@ -700,9 +700,22 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
                 {generandoVideo ? '🎬 Grabando...' : '🎬 Generar video'}
               </button>
               {videoUrl && (
-                <button onClick={descargarVideo} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: DARK, color: '#fff', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
-                  ⬇️ Descargar WebM
-                </button>
+                <>
+                  <button onClick={descargarVideo} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: DARK, color: '#fff', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
+                    ⬇️ Descargar WebM
+                  </button>
+                  <button onClick={async () => {
+                    try {
+                      const blob = await fetch(videoUrl).then(r => r.blob())
+                      const file = new File([blob], `historia-${slug}.webm`, { type: 'video/webm' })
+                      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: nombre, text: `ventas10x.co/u/${slug}` })
+                      } else { descargarVideo() }
+                    } catch { console.log('cancelled') }
+                  }} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#8b5cf6', color: '#fff', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
+                    📤 Compartir
+                  </button>
+                </>
               )}
             </div>
           </div>

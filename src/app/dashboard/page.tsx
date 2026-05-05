@@ -4,6 +4,7 @@
 // - Si no tiene org activa → onboarding (caso edge)
 // - Filtra leads, suscripcion, bots por org_id
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { DashboardHome } from '@/components/dashboard/DashboardHome'
@@ -11,7 +12,11 @@ import { getActiveOrg } from '@/lib/get-active-org'
 import { headers } from 'next/headers'
 import type { Profile, Suscripcion } from '@/types/database'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -46,19 +51,24 @@ export default async function DashboardPage() {
     redirect('/onboarding')
   }
 
-  // 📊 Log de login — fire-and-forget
+  // 📊 Log de login — directo a BD con service role
   try {
     const h = await headers()
     const xfwd = h.get('x-forwarded-for') || ''
     const ua = h.get('user-agent') || ''
-    fetch(`${BASE_URL}/api/auth/log-login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-forwarded-for': xfwd,
-        'user-agent': ua,
-      },
-    }).catch(() => {})
+    const dispositivo = /mobile|android|iphone|ipad/i.test(ua) ? 'mobile' : /tablet/i.test(ua) ? 'tablet' : 'desktop'
+    const ip = xfwd.split(',')[0]?.trim() || 'desconocida'
+    const nombre_log = [profile.nombre, profile.apellido].filter(Boolean).join(' ') || null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabaseAdmin as any).from('login_logs').insert({
+      user_id: user.id,
+      email: user.email,
+      nombre: nombre_log,
+      ip,
+      user_agent: ua.slice(0, 300),
+      dispositivo,
+      exitoso: true,
+    }).then(() => {}).catch(() => {})
   } catch {}
 
   // 📦 Suscripción: SIEMPRE del owner de la org (es quien paga)

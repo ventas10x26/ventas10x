@@ -75,33 +75,16 @@ function AgenteIA({ onGenerar }: {
     setHistorial(prev => [...prev, { role: 'user', text: texto }])
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/admin/campanas/generar-ia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: `Eres un experto en email marketing para Ventas10x, plataforma SaaS de ventas para Latinoamérica.
-
-Genera el contenido completo de una campaña. Responde ÚNICAMENTE con JSON válido sin backticks:
-{
-  "nombre": "Nombre corto de la campaña",
-  "asunto": "Asunto del email atractivo max 60 chars",
-  "cuerpo_email": "Cuerpo en texto plano, profesional y cercano, 3-4 párrafos, sin saludo inicial, con CTA claro al final",
-  "mensaje_wa": "Mensaje WhatsApp max 300 chars con {{nombre}}, emoji relevante y link https://ventas10x.co/dashboard",
-  "explicacion": "Una línea con la estrategia de esta campaña"
-}
-
-Tono: profesional pero cercano, motivador, español latinoamericano.`,
-          messages: [{ role: 'user', content: texto }]
-        })
+        body: JSON.stringify({ instruccion: texto })
       })
 
       const data = await res.json()
-      const rawText = data.content?.[0]?.text || ''
 
       try {
-        const parsed = JSON.parse(rawText)
+        const parsed = data
         setHistorial(prev => [...prev,
           { role: 'ai', text: `✅ ¡Listo! Generé "${parsed.nombre}".\n\n💡 ${parsed.explicacion}\n\nRevisa y ajusta los campos abajo antes de guardar.` }
         ])

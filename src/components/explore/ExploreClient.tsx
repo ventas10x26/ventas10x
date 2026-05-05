@@ -361,7 +361,7 @@ export function ExploreClient() {
         </Link>
       </nav>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '32px', alignItems: 'start' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '32px', alignItems: 'start' }} className='explore-layout'>
 
         {/* Feed principal — grid */}
         <div>
@@ -379,7 +379,7 @@ export function ExploreClient() {
 
           {/* Grid de posts */}
           {loading && posts.length === 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }} className='posts-grid'>
               {[...Array(9)].map((_, i) => (
                 <div key={i} style={{ background: DARK2, borderRadius: '16px', aspectRatio: '1', animation: 'pulse 1.5s ease-in-out infinite', border: '1px solid rgba(255,255,255,.05)' }} />
               ))}
@@ -395,7 +395,7 @@ export function ExploreClient() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }} className='posts-grid'>
                 {posts.map(post => (
                   <PostCard key={post.id} post={post} onClick={() => setPostDetalle(post)} />
                 ))}
@@ -411,7 +411,7 @@ export function ExploreClient() {
         </div>
 
         {/* Sidebar */}
-        <div style={{ position: 'sticky', top: '76px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ position: 'sticky', top: '76px', display: 'flex', flexDirection: 'column', gap: '20px' }} className='explore-sidebar'>
 
           {/* Asesores activos */}
           <div style={{ background: DARK2, borderRadius: '16px', border: '1px solid rgba(255,255,255,.07)', padding: '20px' }}>
@@ -490,7 +490,13 @@ export function ExploreClient() {
           .nav-filters { display: none !important; }
         }
         @media (max-width: 768px) {
+          .explore-layout { grid-template-columns: 1fr !important; padding: 16px 12px !important; gap: 20px !important; }
+          .explore-sidebar { position: static !important; top: auto !important; }
+          .posts-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .mobile-cta { display: flex !important; }
+        }
+        @media (max-width: 480px) {
+          .posts-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
         }
       `}</style>
     </div>

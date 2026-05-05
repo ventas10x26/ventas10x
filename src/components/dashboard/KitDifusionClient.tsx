@@ -495,6 +495,28 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
     window.open(`https://wa.me/?text=${texto}`, '_blank')
   }
 
+  const compartirNativo = async () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    try {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        const file = new File([blob], `historia-${slug}.png`, { type: 'image/png' })
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `${nombre} · ${empresa || 'Ventas10x'}`,
+            text: `¡Visítame en ventas10x.co/u/${slug}!`,
+          })
+        } else {
+          descargarImagen()
+        }
+      }, 'image/png')
+    } catch {
+      console.log('Share cancelled')
+    }
+  }
+
   const tabs = [
     { key: 'historia', label: '📸 Historia' },
     { key: 'video', label: '🎬 Video' },

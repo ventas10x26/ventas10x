@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1000,
       system: `Eres un experto en email marketing para Ventas10x, plataforma SaaS de ventas para Latinoamérica.
 

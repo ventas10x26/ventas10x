@@ -167,7 +167,7 @@ function AgenteKitIA({
       if (data.ok) {
         setHistorial(prev => [...prev, {
           role: 'ai',
-          text: `✅ Kit generado para ${nombre}${empresa ? ` · ${empresa}` : ''}!\n\n📱 ${data.copies_wa?.length || 0} copies de WhatsApp\n📷 ${data.copies_ig?.length || 0} copies de Instagram\n📧 Email personalizado\n📅 ${data.estrategia?.length || 0} días de estrategia\n\nHaz clic en "Aplicar al kit" para usar este contenido.`,
+          text: `✅ Kit generado para ${nombre}${empresa ? ` · ${empresa}` : ''}!\n\n📱 ${data.copies_wa?.length || 0} copies de WhatsApp\n📷 ${data.copies_ig?.length || 0} copies de Instagram\n📧 Email personalizado\n📅 ${data.estrategia?.length || 0} días de estrategia\n\n✅ El contenido ya fue aplicado a todas las tabs. Ve a WhatsApp, Instagram, Email o Estrategia para verlo.
         }])
         onApply(data)
         setAplicado(true)

@@ -36,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: '/dashboard/bot', label: 'Bot IA', icon: '🤖' },
   { href: '/dashboard/landing-editor', label: 'Mi landing', icon: '◈' },
+  { href: '/dashboard/kit-difusion', label: 'Kit Difusión', icon: '🚀' },
   {
     href: '/dashboard/mi-suscripcion',
     label: 'Mi plan',

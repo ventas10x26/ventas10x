@@ -1,22 +1,19 @@
 // Ruta destino: src/app/api/admin/campanas/generar-ia/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
+import Anthropic from '@anthropic-ai/sdk'
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 export async function POST(req: NextRequest) {
-  const admin = await getCurrentAdmin()
-  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const admin = await getCurrentAdmin()
+    if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { instruccion } = await req.json()
-  if (!instruccion?.trim()) return NextResponse.json({ error: 'instruccion requerida' }, { status: 400 })
+    const { instruccion } = await req.json()
+    if (!instruccion?.trim()) return NextResponse.json({ error: 'instruccion requerida' }, { status: 400 })
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
+    const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: `Eres un experto en email marketing para Ventas10x, plataforma SaaS de ventas para Latinoamérica.
@@ -32,16 +29,14 @@ Genera el contenido completo de una campaña. Responde ÚNICAMENTE con JSON vál
 
 Tono: profesional pero cercano, motivador, español latinoamericano.`,
       messages: [{ role: 'user', content: instruccion }],
-    }),
-  })
+    })
 
-  const data = await res.json()
-  const rawText = data.content?.[0]?.text || ''
-
-  try {
+    const rawText = msg.content[0].type === 'text' ? msg.content[0].text : ''
     const parsed = JSON.parse(rawText)
     return NextResponse.json({ ok: true, ...parsed })
-  } catch {
-    return NextResponse.json({ error: 'Error procesando respuesta IA', raw: rawText }, { status: 500 })
+
+  } catch (e) {
+    console.error('[generar-ia]', e)
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error interno' }, { status: 500 })
   }
 }

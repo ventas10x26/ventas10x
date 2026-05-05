@@ -539,6 +539,9 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
               <button onClick={descargarImagen} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: descargadoImg ? '#f0fdf4' : DARK, color: descargadoImg ? '#16a34a' : '#fff', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
                 {descargadoImg ? '✓ Descargado' : '⬇️ Descargar PNG'}
               </button>
+              <button onClick={compartirNativo} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#8b5cf6', color: '#fff', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
+                📤 Compartir
+              </button>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

@@ -29,6 +29,7 @@ type Campana = {
   created_at: string
   asunto: string | null
   mensaje_wa: string | null
+  cuerpo_email?: string | null
 }
 
 const ESTADO_COLORS: Record<string, string> = {
@@ -84,8 +85,7 @@ function AgenteIA({ onGenerar }: {
       const data = await res.json()
 
       try {
-        if (!data.ok) throw new Error(data.error || 'Error del servidor')
-          const parsed = data
+        const parsed = data
         setHistorial(prev => [...prev,
           { role: 'ai', text: `✅ ¡Listo! Generé "${parsed.nombre}".\n\n💡 ${parsed.explicacion}\n\nRevisa y ajusta los campos abajo antes de guardar.` }
         ])

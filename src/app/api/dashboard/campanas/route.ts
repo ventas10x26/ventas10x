@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
 
           await resend.emails.send({
             from: `${nombreVendedor} <hola@ventas10x.co>`,
+            replyTo: user.email || undefined,
             to: contacto.email,
             subject: campana.asunto || `Mensaje de ${nombreVendedor}`,
             html,

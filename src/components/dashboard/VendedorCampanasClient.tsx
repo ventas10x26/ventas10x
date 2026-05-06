@@ -1,28 +1,191 @@
-// Ruta destino: src/components/dashboard/VendedorCampanasClient.tsx
 'use client'
 import { useState, useEffect, useRef } from 'react'
 
 const DARK = '#0f1c2e'
 const ORANGE = '#FF6B2B'
 
-type Producto = { id: string; nombre: string; imagen_principal: string | null; precio: string | null }
-type Contacto = { id: string; nombre: string | null; email: string | null; whatsapp: string | null; empresa: string | null; fuente: string }
-type Campana = {
-  id: string; nombre: string; canal: string; estado: string
-  asunto: string | null; cuerpo_email: string | null; mensaje_wa: string | null
-  total_destinatarios: number; total_enviados: number
-  programada_para: string | null; enviada_at: string | null; created_at: string
-  productos: Producto | null
+type Contacto = {
+  id: string
+  nombre: string | null
+  email: string | null
+  whatsapp: string | null
+  empresa: string | null
+  fuente: string
 }
 
-const CANAL_LABELS: Record<string, string> = { email: '📧 Email', whatsapp: '💬 WhatsApp', ambos: '📧💬 Ambos' }
-const ESTADO_COLORS: Record<string, string> = { borrador: '#94a3b8', programada: '#f59e0b', enviada: '#22c55e', error: '#ef4444' }
+type Producto = {
+  id: string
+  nombre: string
+  imagen_principal: string | null
+  precio: string | null
+}
 
-function timeAgo(d: string) {
-  const diff = Date.now() - new Date(d).getTime()
-  const h = Math.floor(diff / 3600000)
-  if (h < 24) return `Hace ${h}h`
-  return `Hace ${Math.floor(h / 24)}d`
+type Campana = {
+  id: string
+  nombre: string
+  canal: string
+  estado: string
+  total_destinatarios: number
+  total_enviados: number
+  total_errores: number
+  programada_para: string | null
+  enviada_at: string | null
+  created_at: string
+  asunto: string | null
+  mensaje_wa: string | null
+  cuerpo_email?: string | null
+}
+
+const ESTADO_COLORS: Record<string, string> = {
+  borrador: '#94a3b8',
+  programada: '#f59e0b',
+  enviando: '#3b82f6',
+  enviada: '#22c55e',
+  error: '#ef4444',
+}
+
+const CANAL_LABELS: Record<string, string> = {
+  email: '📧 Email',
+  whatsapp: '💬 WhatsApp',
+  ambos: '📧💬 Ambos',
+}
+
+const SUGERENCIAS = [
+  'Campaña de bienvenida para mis nuevos contactos',
+  'Oferta especial de fin de mes para clientes',
+  'Seguimiento a leads que no han respondido',
+  'Anuncio de nuevo producto en mi catálogo',
+  'Recordatorio de cita o reunión pendiente',
+]
+
+function formatFecha(d: string) {
+  return new Date(d).toLocaleDateString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  })
+}
+
+function AgenteIA({ onGenerar }: {
+  onGenerar: (data: { nombre: string; asunto: string; cuerpoEmail: string; mensajeWa: string }) => void
+}) {
+  const [instruccion, setInstruccion] = useState('')
+  const [generando, setGenerando] = useState(false)
+  const [historial, setHistorial] = useState<{ role: 'user' | 'ai'; text: string }[]>([
+    { role: 'ai', text: '¡Hola! Soy tu agente de campañas ✨ Dime qué tipo de campaña quieres y te genero el contenido completo: nombre, asunto del email, cuerpo y mensaje de WhatsApp.' }
+  ])
+  const [generado, setGenerado] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [historial, generando])
+
+  const generar = async () => {
+    if (!instruccion.trim() || generando) return
+    const texto = instruccion.trim()
+    setInstruccion('')
+    setGenerando(true)
+    setHistorial(prev => [...prev, { role: 'user', text: texto }])
+
+    try {
+      const res = await fetch('/api/dashboard/campanas/generar-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instruccion: texto })
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setHistorial(prev => [...prev, {
+          role: 'ai',
+          text: `✅ ¡Listo! Generé "${data.nombre}".\n\n💡 ${data.explicacion}\n\nRevisa y ajusta los campos abajo antes de guardar.`
+        }])
+        onGenerar({ nombre: data.nombre, asunto: data.asunto, cuerpoEmail: data.cuerpo_email, mensajeWa: data.mensaje_wa })
+        setGenerado(true)
+      } else {
+        setHistorial(prev => [...prev, { role: 'ai', text: '⚠️ Error procesando respuesta. Intenta con más detalles sobre la campaña.' }])
+      }
+    } catch {
+      setHistorial(prev => [...prev, { role: 'ai', text: '❌ Error de conexión. Intenta de nuevo.' }])
+    } finally {
+      setGenerando(false)
+    }
+  }
+
+  return (
+    <div style={{ background: '#fff', borderRadius: '16px', border: `1px solid ${ORANGE}30`, padding: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${ORANGE}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>✨</div>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Agente IA de Campañas</div>
+          <div style={{ fontSize: '12px', color: '#94a3b8' }}>Describe tu campaña y la genero automáticamente</div>
+        </div>
+        {generado && (
+          <div style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: '#22c55e', background: '#f0fdf4', padding: '4px 10px', borderRadius: '999px' }}>
+            ✓ Contenido generado
+          </div>
+        )}
+      </div>
+
+      <div ref={scrollRef} style={{ background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '14px', maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {historial.map((msg, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            <div style={{
+              maxWidth: '85%', padding: '9px 13px',
+              borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+              background: msg.role === 'user' ? ORANGE : '#fff',
+              color: msg.role === 'user' ? '#fff' : '#374151',
+              fontSize: '13px', lineHeight: 1.55,
+              border: msg.role === 'ai' ? '1px solid #e2e8f0' : 'none',
+            }}>
+              {msg.text.split('\n').map((line, j, arr) => (
+                <span key={j}>{line}{j < arr.length - 1 && <br />}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+        {generando && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{ padding: '10px 14px', borderRadius: '12px 12px 12px 4px', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', gap: '4px', alignItems: 'center' }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: ORANGE, animation: `iabounce .8s ${i * .15}s infinite` }} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {historial.length === 1 && (
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sugerencias</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {SUGERENCIAS.map(s => (
+              <button key={s} onClick={() => setInstruccion(s)} style={{ padding: '5px 12px', borderRadius: '999px', fontSize: '12px', background: '#f1f5f9', color: '#475569', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <input
+          value={instruccion}
+          onChange={e => setInstruccion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && generar()}
+          placeholder="Ej: Seguimiento a leads de la semana pasada..."
+          disabled={generando}
+          style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+        />
+        <button
+          onClick={generar}
+          disabled={generando || !instruccion.trim()}
+          style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: instruccion.trim() && !generando ? ORANGE : '#e2e8f0', color: instruccion.trim() && !generando ? '#fff' : '#94a3b8', fontWeight: 700, fontSize: '13px', cursor: instruccion.trim() && !generando ? 'pointer' : 'default' }}
+        >
+          {generando ? '...' : '✨ Generar'}
+        </button>
+      </div>
+      <style>{`@keyframes iabounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-5px);opacity:1}}`}</style>
+    </div>
+  )
 }
 
 type Props = {
@@ -32,123 +195,61 @@ type Props = {
   productos: Producto[]
 }
 
-export function VendedorCampanasClient({ vendedorId, nombreVendedor, slug, productos }: Props) {
-  const [vista, setVista] = useState<'campanas' | 'contactos' | 'nueva'>('campanas')
+export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor, slug: _slug, productos }: Props) {
   const [campanas, setCampanas] = useState<Campana[]>([])
   const [contactos, setContactos] = useState<Contacto[]>([])
-  const [selContactos, setSelContactos] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [enviando, setEnviando] = useState<string | null>(null)
-  const [waLinks, setWaLinks] = useState<string[]>([])
-  const [resultado, setResultado] = useState<{ enviados: number } | null>(null)
-  const [generandoIA, setGenerandoIA] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>('lista')
+  const [cargando, setCargando] = useState(true)
 
-  // Form nueva campaña
+  // form nueva campaña
   const [nombre, setNombre] = useState('')
   const [canal, setCanal] = useState<'email' | 'whatsapp' | 'ambos'>('ambos')
   const [asunto, setAsunto] = useState('')
   const [cuerpoEmail, setCuerpoEmail] = useState('')
   const [mensajeWa, setMensajeWa] = useState('')
-  const [productoId, setProductoId] = useState('')
   const [programarPara, setProgramarPara] = useState('')
+  const [productoId, setProductoId] = useState('')
+  const [selContactos, setSelContactos] = useState<string[]>([])
+  const [busqueda, setBusqueda] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [enviando, setEnviando] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<{ enviados: number; waLinks: string[] } | null>(null)
 
-  // Form contacto manual
+  // form contacto
   const [formContacto, setFormContacto] = useState({ nombre: '', email: '', whatsapp: '', empresa: '' })
   const [guardandoContacto, setGuardandoContacto] = useState(false)
-  const [busqueda, setBusqueda] = useState('')
+  const [csvTexto, setCsvTexto] = useState('')
+  const [importando, setImportando] = useState(false)
 
-  const landingUrl = `https://ventas10x.co/u/${slug}`
-
-  const cargar = async () => {
-    setLoading(true)
-    const [c, ct] = await Promise.all([
+  useEffect(() => {
+    Promise.all([
       fetch('/api/dashboard/campanas').then(r => r.json()),
       fetch('/api/dashboard/campanas?tipo=contactos').then(r => r.json()),
-    ])
-    setCampanas(c.campanas || [])
-    setContactos(ct.contactos || [])
-    setLoading(false)
-  }
-
-  useEffect(() => { cargar() }, [])
+    ]).then(([c, ct]) => {
+      setCampanas(c.campanas || [])
+      setContactos(ct.contactos || [])
+    }).finally(() => setCargando(false))
+  }, [])
 
   const contactosFiltrados = contactos.filter(c => {
     const q = busqueda.toLowerCase()
-    return !q || [c.nombre, c.email, c.whatsapp, c.empresa].some(v => v?.toLowerCase().includes(q))
+    return [c.nombre, c.email, c.whatsapp, c.empresa].filter(Boolean).join(' ').toLowerCase().includes(q)
   })
 
-  const agregarContacto = async () => {
-    if (!formContacto.nombre.trim()) return
-    setGuardandoContacto(true)
-    try {
-      await fetch('/api/dashboard/campanas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: 'agregar_contacto', ...formContacto }),
-      })
-      setFormContacto({ nombre: '', email: '', whatsapp: '', empresa: '' })
-      await cargar()
-    } finally { setGuardandoContacto(false) }
+  const toggleContacto = (id: string) =>
+    setSelContactos(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+  const toggleTodos = () =>
+    setSelContactos(selContactos.length === contactosFiltrados.length ? [] : contactosFiltrados.map(c => c.id))
+
+  const handleGenerarIA = (data: { nombre: string; asunto: string; cuerpoEmail: string; mensajeWa: string }) => {
+    setNombre(data.nombre); setAsunto(data.asunto); setCuerpoEmail(data.cuerpoEmail); setMensajeWa(data.mensajeWa)
   }
 
-  const importarCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const text = await file.text()
-    const lines = text.split('\n').filter(Boolean)
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
-    const rows = lines.slice(1).map(line => {
-      const vals = line.split(',').map(v => v.trim().replace(/['"]/g, ''))
-      const obj: Record<string, string> = {}
-      headers.forEach((h, i) => { obj[h] = vals[i] || '' })
-      return {
-        nombre: obj.nombre || obj.name || '',
-        email: obj.email || obj.correo || '',
-        whatsapp: obj.whatsapp || obj.celular || obj.telefono || obj.phone || '',
-        empresa: obj.empresa || obj.company || '',
-      }
-    }).filter(r => r.nombre || r.email || r.whatsapp)
-
-    await fetch('/api/dashboard/campanas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accion: 'importar_csv', contactos: rows }),
-    })
-    await cargar()
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  const generarConIA = async () => {
-    if (generandoIA) return
-    setGenerandoIA(true)
+  const guardarCampana = async () => {
+    if (!nombre.trim() || selContactos.length === 0) return
+    setGuardando(true)
     try {
-      const productoSeleccionado = productos.find(p => p.id === productoId)
-      const instruccion = `Genera una campaña de ventas para ${nombreVendedor}. 
-      ${productoSeleccionado ? `Producto destacado: ${productoSeleccionado.nombre}${productoSeleccionado.precio ? ` · Precio: ${productoSeleccionado.precio}` : ''}` : ''}
-      Link de la página: ${landingUrl}
-      Canal: ${canal}`
-
-      const res = await fetch('/api/dashboard/campanas/generar-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instruccion }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        if (!nombre) setNombre(data.nombre || '')
-        setAsunto(data.asunto || '')
-        setCuerpoEmail(data.cuerpo_email || '')
-        setMensajeWa(data.mensaje_wa || '')
-      }
-    } finally { setGenerandoIA(false) }
-  }
-
-  const crearCampana = async () => {
-    if (!nombre.trim()) return
-    setLoading(true)
-    try {
-      await fetch('/api/dashboard/campanas', {
+      const res = await fetch('/api/dashboard/campanas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,15 +258,13 @@ export function VendedorCampanasClient({ vendedorId, nombreVendedor, slug, produ
           contacto_ids: selContactos, programada_para: programarPara || null,
         }),
       })
-      await cargar()
-      setVista('campanas')
-      resetForm()
-    } finally { setLoading(false) }
+      const data = await res.json()
+      if (data.ok) { setCampanas(prev => [data.campana, ...prev]); setVista('lista'); resetForm() }
+    } finally { setGuardando(false) }
   }
 
   const enviarCampana = async (campanaId: string) => {
-    if (selContactos.length === 0) { alert('Selecciona al menos un contacto'); return }
-    setEnviando(campanaId); setWaLinks([]); setResultado(null)
+    setEnviando(campanaId); setResultado(null)
     try {
       const res = await fetch('/api/dashboard/campanas', {
         method: 'POST',
@@ -174,283 +273,289 @@ export function VendedorCampanasClient({ vendedorId, nombreVendedor, slug, produ
       })
       const data = await res.json()
       if (data.ok) {
-        setResultado({ enviados: data.enviados })
-        setWaLinks(data.wa_links || [])
-        await cargar()
+        setResultado({ enviados: data.enviados, waLinks: data.wa_links || [] })
+        setCampanas(prev => prev.map(c => c.id === campanaId ? { ...c, estado: 'enviada', total_enviados: data.enviados } : c))
       }
     } finally { setEnviando(null) }
   }
 
-  const resetForm = () => {
-    setNombre(''); setAsunto(''); setCuerpoEmail(''); setMensajeWa('')
-    setProductoId(''); setProgramarPara(''); setSelContactos([])
-    setCanal('ambos')
+  const agregarContacto = async () => {
+    if (!formContacto.nombre.trim()) return
+    setGuardandoContacto(true)
+    try {
+      const res = await fetch('/api/dashboard/campanas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'agregar_contacto', ...formContacto }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setContactos(prev => [data.contacto, ...prev])
+        setFormContacto({ nombre: '', email: '', whatsapp: '', empresa: '' })
+      }
+    } finally { setGuardandoContacto(false) }
   }
 
-  const toggleContacto = (id: string) => setSelContactos(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+  const importarCSV = async () => {
+    if (!csvTexto.trim()) return
+    setImportando(true)
+    try {
+      const lines = csvTexto.trim().split('\n').slice(1) // skip header
+      const rows = lines.map(l => {
+        const [nombre, email, whatsapp, empresa] = l.split(',').map(s => s.trim())
+        return { nombre, email, whatsapp, empresa }
+      }).filter(r => r.nombre)
+      const res = await fetch('/api/dashboard/campanas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'importar_csv', contactos: rows }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        const ct = await fetch('/api/dashboard/campanas?tipo=contactos').then(r => r.json())
+        setContactos(ct.contactos || [])
+        setCsvTexto('')
+      }
+    } finally { setImportando(false) }
+  }
+
+  const resetForm = () => {
+    setNombre(''); setAsunto(''); setCuerpoEmail(''); setMensajeWa('')
+    setProgramarPara(''); setSelContactos([]); setCanal('ambos'); setProductoId('')
+  }
+
+  if (cargando) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: '#94a3b8', fontSize: '14px' }}>
+      Cargando campañas...
+    </div>
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
-      <div style={{ background: DARK, padding: '20px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ background: DARK, padding: '20px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>📣 Mis Campañas</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.4)', marginTop: '2px' }}>Envía emails y WhatsApp a tus contactos</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.4)', marginTop: '2px' }}>
+            Envía emails y WhatsApp a tus contactos · {nombreVendedor}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {(['campanas', 'contactos', 'nueva'] as const).map(v => (
-            <button key={v} onClick={() => setVista(v)} style={{ padding: '9px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', background: vista === v ? ORANGE : 'rgba(255,255,255,.1)', color: '#fff' }}>
-              {v === 'campanas' ? '📋 Campañas' : v === 'contactos' ? '👥 Contactos' : '+ Nueva campaña'}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => { setVista('contactos') }} style={{ background: vista === 'contactos' ? ORANGE : 'rgba(255,255,255,.1)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            👥 Contactos ({contactos.length})
+          </button>
+          <button onClick={() => { setVista(vista === 'nueva' ? 'lista' : 'nueva'); resetForm() }} style={{ background: vista === 'nueva' ? 'rgba(255,255,255,.15)' : ORANGE, color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 18px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            {vista === 'nueva' ? '← Ver lista' : '+ Nueva campaña'}
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 20px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
 
-        {/* Resultado */}
+        {/* Resultado de envío */}
         {resultado && (
-          <div style={{ marginBottom: '20px', padding: '14px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <span>✅</span>
-            <div style={{ fontWeight: 700, color: '#15803d' }}>{resultado.enviados} emails enviados</div>
-            {waLinks.length > 0 && (
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '6px' }}>Links WhatsApp:</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '100px', overflowY: 'auto' }}>
-                  {waLinks.map((l, i) => <a key={i} href={l} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#16a34a', wordBreak: 'break-all' }}>{l}</a>)}
-                </div>
-              </div>
-            )}
-            <button onClick={() => setResultado(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '18px' }}>×</button>
-          </div>
-        )}
-
-        {/* VISTA CAMPAÑAS */}
-        {vista === 'campanas' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
-            <div>
-              {campanas.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>📣</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Sin campañas aún</div>
-                  <button onClick={() => setVista('nueva')} style={{ marginTop: '12px', padding: '11px 24px', background: ORANGE, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
-                    Crear primera campaña →
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {campanas.map(c => (
-                    <div key={c.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '18px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>{c.nombre}</span>
-                        <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${ESTADO_COLORS[c.estado] || '#94a3b8'}20`, color: ESTADO_COLORS[c.estado] || '#94a3b8' }}>{c.estado.toUpperCase()}</span>
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>{CANAL_LABELS[c.canal]}</span>
-                        {c.productos && <span style={{ fontSize: '11px', color: '#8b5cf6', fontWeight: 600 }}>📦 {c.productos.nombre}</span>}
-                      </div>
-                      {c.asunto && <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Asunto: {c.asunto}</div>}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        {[{ l: 'Dest.', v: c.total_destinatarios, c: '#3b82f6' }, { l: 'Enviados', v: c.total_enviados, c: '#22c55e' }].map(s => (
-                          <div key={s.l} style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '18px', fontWeight: 800, color: s.c }}>{s.v}</div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.l}</div>
-                          </div>
-                        ))}
-                        <div style={{ fontSize: '12px', color: '#94a3b8', marginLeft: 'auto' }}>{timeAgo(c.created_at)}</div>
-                        {c.estado !== 'enviada' && (
-                          <button onClick={() => enviarCampana(c.id)} disabled={enviando === c.id || selContactos.length === 0}
-                            style={{ padding: '9px 18px', background: enviando === c.id || selContactos.length === 0 ? '#e2e8f0' : ORANGE, color: enviando === c.id || selContactos.length === 0 ? '#94a3b8' : '#fff', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                            {enviando === c.id ? 'Enviando...' : selContactos.length === 0 ? 'Selecciona contactos →' : `🚀 Enviar a ${selContactos.length}`}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Selector de contactos */}
-            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '18px', alignSelf: 'start', position: 'sticky', top: '20px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>👥 Seleccionar destinatarios</div>
-              <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar..." style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', boxSizing: 'border-box', marginBottom: '10px', fontFamily: 'inherit' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>{selContactos.length} seleccionados</span>
-                <button onClick={() => setSelContactos(selContactos.length === contactosFiltrados.length ? [] : contactosFiltrados.map(c => c.id))} style={{ fontSize: '11px', color: ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                  {selContactos.length === contactosFiltrados.length ? 'Deselec. todos' : 'Sel. todos'}
-                </button>
-              </div>
-              <div style={{ maxHeight: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {contactosFiltrados.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px' }}>
-                    Sin contactos. <button onClick={() => setVista('contactos')} style={{ color: ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Agregar →</button>
+          <div style={{ marginBottom: '20px', padding: '16px 20px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '20px' }}>✅</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: '#15803d' }}>Campaña enviada — {resultado.enviados} emails enviados</div>
+              {resultado.waLinks.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '6px' }}>Links WhatsApp (ábrelos uno a uno):</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+                    {resultado.waLinks.map((link, i) => (
+                      <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#16a34a' }}>WA #{i + 1} →</a>
+                    ))}
                   </div>
-                ) : contactosFiltrados.map(c => {
-                  const sel = selContactos.includes(c.id)
-                  return (
-                    <div key={c.id} onClick={() => toggleContacto(c.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', background: sel ? `${ORANGE}08` : '#f8fafc', border: `1px solid ${sel ? ORANGE + '30' : '#f1f5f9'}` }}>
-                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${sel ? ORANGE : '#cbd5e1'}`, background: sel ? ORANGE : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {sel && <span style={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}>✓</span>}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nombre || 'Sin nombre'}</div>
-                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>{c.email || c.whatsapp || ''}</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* VISTA CONTACTOS */}
-        {vista === 'contactos' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
-            {/* Lista */}
-            <div>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar contacto..." style={{ flex: 1, padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit', minWidth: '150px' }} />
-                <div style={{ fontSize: '13px', color: '#94a3b8', alignSelf: 'center' }}>{contactosFiltrados.length} contactos</div>
-              </div>
-
-              {contactosFiltrados.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px', background: '#fff', borderRadius: '16px', border: '2px dashed #e2e8f0' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>👥</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#374151' }}>Sin contactos</div>
-                  <div style={{ fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>Agrega manualmente o importa un CSV</div>
-                </div>
-              ) : (
-                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                        {['Nombre', 'Email', 'WhatsApp', 'Empresa', 'Fuente'].map(h => (
-                          <th key={h} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contactosFiltrados.map((c, i) => (
-                        <tr key={c.id} style={{ borderBottom: '1px solid #f8fafc', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '10px 14px', fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{c.nombre || '—'}</td>
-                          <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>{c.email || '—'}</td>
-                          <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>{c.whatsapp || '—'}</td>
-                          <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>{c.empresa || '—'}</td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '999px', background: c.fuente === 'csv' ? '#eff6ff' : '#f0fdf4', color: c.fuente === 'csv' ? '#3b82f6' : '#16a34a' }}>
-                              {c.fuente === 'csv' ? '📊 CSV' : '✏️ Manual'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               )}
             </div>
+            <button onClick={() => setResultado(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '20px' }}>×</button>
+          </div>
+        )}
 
-            {/* Panel agregar */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Agregar manual */}
-              <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>✏️ Agregar contacto</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {[
-                    { key: 'nombre', label: 'Nombre *', placeholder: 'Juan García', type: 'text' },
-                    { key: 'email', label: 'Email', placeholder: 'juan@email.com', type: 'email' },
-                    { key: 'whatsapp', label: 'WhatsApp', placeholder: '+57 300 000 0000', type: 'tel' },
-                    { key: 'empresa', label: 'Empresa', placeholder: 'Empresa SAS', type: 'text' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>{f.label}</label>
-                      <input type={f.type} placeholder={f.placeholder} value={formContacto[f.key as keyof typeof formContacto]}
-                        onChange={e => setFormContacto(prev => ({ ...prev, [f.key]: e.target.value }))}
-                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-                    </div>
-                  ))}
-                  <button onClick={agregarContacto} disabled={guardandoContacto || !formContacto.nombre.trim()}
-                    style={{ padding: '11px', background: formContacto.nombre.trim() ? DARK : '#e2e8f0', color: formContacto.nombre.trim() ? '#fff' : '#94a3b8', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {guardandoContacto ? 'Guardando...' : '+ Agregar'}
-                  </button>
-                </div>
+        {/* ── VISTA CONTACTOS ── */}
+        {vista === 'contactos' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Agregar manual */}
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>➕ Agregar contacto</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { key: 'nombre', label: 'Nombre *', placeholder: 'Juan García' },
+                  { key: 'email', label: 'Email', placeholder: 'juan@email.com' },
+                  { key: 'whatsapp', label: 'WhatsApp', placeholder: '+57 300 000 0000' },
+                  { key: 'empresa', label: 'Empresa', placeholder: 'Empresa S.A.' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>{f.label}</label>
+                    <input
+                      value={formContacto[f.key as keyof typeof formContacto]}
+                      onChange={e => setFormContacto(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      style={{ width: '100%', padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                ))}
+                <button onClick={agregarContacto} disabled={guardandoContacto || !formContacto.nombre.trim()} style={{ padding: '11px', background: formContacto.nombre.trim() ? DARK : '#e2e8f0', color: formContacto.nombre.trim() ? '#fff' : '#94a3b8', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: formContacto.nombre.trim() ? 'pointer' : 'default', fontFamily: 'inherit' }}>
+                  {guardandoContacto ? 'Guardando...' : '✓ Agregar contacto'}
+                </button>
               </div>
 
-              {/* Importar CSV */}
-              <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>📊 Importar CSV/Excel</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px', lineHeight: 1.6 }}>
-                  El archivo debe tener columnas: <strong>nombre, email, whatsapp, empresa</strong>
-                </div>
-                <input ref={fileRef} type="file" accept=".csv,.txt" onChange={importarCSV} style={{ display: 'none' }} />
-                <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '11px', background: '#f1f5f9', color: '#374151', border: '1px dashed #cbd5e1', borderRadius: '10px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  📂 Seleccionar archivo CSV
+              <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#374151', marginBottom: '8px' }}>📂 Importar CSV</h4>
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>Formato: nombre,email,whatsapp,empresa (primera fila = encabezado)</div>
+                <textarea
+                  value={csvTexto}
+                  onChange={e => setCsvTexto(e.target.value)}
+                  rows={5}
+                  placeholder={'nombre,email,whatsapp,empresa\nJuan García,juan@email.com,+573001234567,Empresa SA'}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', outline: 'none', fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+                <button onClick={importarCSV} disabled={importando || !csvTexto.trim()} style={{ marginTop: '8px', width: '100%', padding: '10px', background: csvTexto.trim() ? '#3b82f6' : '#e2e8f0', color: csvTexto.trim() ? '#fff' : '#94a3b8', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: csvTexto.trim() ? 'pointer' : 'default', fontFamily: 'inherit' }}>
+                  {importando ? 'Importando...' : '📂 Importar CSV'}
                 </button>
+              </div>
+            </div>
+
+            {/* Lista contactos */}
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>👥 Mis contactos ({contactos.length})</h3>
+              </div>
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar..."
+                style={{ width: '100%', padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '12px' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '480px', overflowY: 'auto' }}>
+                {contactosFiltrados.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '14px' }}>
+                    Sin contactos aún. Agrega el primero →
+                  </div>
+                ) : contactosFiltrados.map(c => (
+                  <div key={c.id} style={{ padding: '12px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{c.nombre || 'Sin nombre'}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                      {[c.email, c.whatsapp, c.empresa].filter(Boolean).join(' · ')}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '2px' }}>fuente: {c.fuente}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* VISTA NUEVA CAMPAÑA */}
+        {/* ── VISTA LISTA ── */}
+        {vista === 'lista' && (
+          campanas.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 40px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📣</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>No hay campañas aún</div>
+              <div style={{ fontSize: '14px', marginBottom: '24px' }}>Crea tu primera campaña y llega a tus contactos con email y WhatsApp</div>
+              <button onClick={() => setVista('nueva')} style={{ padding: '12px 28px', background: ORANGE, color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>
+                + Crear primera campaña
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {campanas.map(c => (
+                <div key={c.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>{c.nombre}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${ESTADO_COLORS[c.estado]}20`, color: ESTADO_COLORS[c.estado] }}>{c.estado.toUpperCase()}</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{CANAL_LABELS[c.canal]}</span>
+                    </div>
+                    {c.asunto && <div style={{ fontSize: '13px', color: '#64748b' }}>Asunto: {c.asunto}</div>}
+                    {c.programada_para && <div style={{ fontSize: '12px', color: '#f59e0b' }}>⏰ {formatFecha(c.programada_para)}</div>}
+                    {c.enviada_at && <div style={{ fontSize: '12px', color: '#22c55e' }}>✓ Enviada: {formatFecha(c.enviada_at)}</div>}
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '4px' }}>{formatFecha(c.created_at)}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    {[
+                      { label: 'Dest.', val: c.total_destinatarios, color: '#3b82f6' },
+                      { label: 'Enviados', val: c.total_enviados, color: '#22c55e' },
+                      { label: 'Errores', val: c.total_errores, color: '#ef4444' },
+                    ].map(s => (
+                      <div key={s.label} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => { setNombre(`Copia de ${c.nombre}`); setAsunto(c.asunto || ''); setCuerpoEmail(c.cuerpo_email || ''); setMensajeWa(c.mensaje_wa || ''); setVista('nueva') }}
+                    style={{ padding: '10px 16px', background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    📋 Duplicar
+                  </button>
+                  {c.estado !== 'enviada' && (
+                    <button onClick={() => enviarCampana(c.id)} disabled={enviando === c.id} style={{ padding: '10px 20px', background: enviando === c.id ? '#e2e8f0' : ORANGE, color: enviando === c.id ? '#94a3b8' : '#fff', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: enviando === c.id ? 'default' : 'pointer' }}>
+                      {enviando === c.id ? 'Enviando...' : '🚀 Enviar'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* ── VISTA NUEVA CAMPAÑA ── */}
         {vista === 'nueva' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Columna izquierda */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <AgenteIA onGenerar={handleGenerarIA} />
 
-              {/* Agente IA */}
-              <div style={{ background: '#fff', borderRadius: '16px', border: `1px solid ${ORANGE}25`, padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                  <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${ORANGE}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>✨</div>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Generar con IA</div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>Selecciona canal y producto, la IA crea el contenido</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  {(['email', 'whatsapp', 'ambos'] as const).map(c => (
-                    <button key={c} onClick={() => setCanal(c)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid', borderColor: canal === c ? ORANGE : '#e2e8f0', background: canal === c ? `${ORANGE}10` : '#fff', color: canal === c ? ORANGE : '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                      {c === 'email' ? '📧' : c === 'whatsapp' ? '💬' : '📧💬'} {c}
-                    </button>
-                  ))}
-                </div>
-                {productos.length > 0 && (
-                  <select value={productoId} onChange={e => setProductoId(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', marginBottom: '12px', fontFamily: 'inherit', color: '#374151' }}>
-                    <option value="">— Sin producto específico —</option>
-                    {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.precio ? ` · ${p.precio}` : ''}</option>)}
-                  </select>
-                )}
-                <button onClick={generarConIA} disabled={generandoIA}
-                  style={{ width: '100%', padding: '11px', background: generandoIA ? '#e2e8f0' : ORANGE, color: generandoIA ? '#94a3b8' : '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {generandoIA ? '✨ Generando...' : '✨ Generar contenido con IA'}
-                </button>
-              </div>
-
-              {/* Config */}
-              <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '14px' }}>⚙️ Configuración</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Configuración */}
+              <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>⚙️ Configuración</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Nombre *</label>
-                    <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Promo Picanto Mayo" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Oferta especial julio" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                   </div>
                   <div>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Canal</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {(['email', 'whatsapp', 'ambos'] as const).map(ch => (
+                        <button key={ch} onClick={() => setCanal(ch)} style={{ flex: 1, padding: '9px', borderRadius: '10px', border: '1px solid', borderColor: canal === ch ? ORANGE : '#e2e8f0', background: canal === ch ? `${ORANGE}10` : '#fff', color: canal === ch ? ORANGE : '#64748b', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                          {CANAL_LABELS[ch]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {productos.length > 0 && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Producto destacado (opcional)</label>
+                      <select value={productoId} onChange={e => setProductoId(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', background: '#fff' }}>
+                        <option value="">Sin producto</option>
+                        {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.precio ? ` — ${p.precio}` : ''}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div>
                     <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Programar envío (opcional)</label>
-                    <input type="datetime-local" value={programarPara} onChange={e => setProgramarPara(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <input type="datetime-local" value={programarPara} onChange={e => setProgramarPara(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Vacío = envío inmediato</div>
                   </div>
                 </div>
               </div>
 
               {/* Email */}
               {(canal === 'email' || canal === 'ambos') && (
-                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>📧 Email</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>📧 Email</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Asunto</label>
-                      <input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="Asunto del email" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Asunto</label>
+                      <input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="Asunto del email" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                     </div>
                     <div>
-                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Cuerpo</label>
-                      <textarea value={cuerpoEmail} onChange={e => setCuerpoEmail(e.target.value)} rows={6} placeholder="Usa IA o escribe el contenido..." style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Cuerpo del email</label>
+                      <textarea value={cuerpoEmail} onChange={e => setCuerpoEmail(e.target.value)} rows={8} placeholder="Usa el agente IA para generar el contenido ✨" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
                     </div>
                   </div>
                 </div>
@@ -458,73 +563,70 @@ export function VendedorCampanasClient({ vendedorId, nombreVendedor, slug, produ
 
               {/* WhatsApp */}
               {(canal === 'whatsapp' || canal === 'ambos') && (
-                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>💬 WhatsApp</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '10px' }}>Usa {'{{nombre}}'} y {'{{link}}'} para personalizar</div>
-                  <textarea value={mensajeWa} onChange={e => setMensajeWa(e.target.value)} rows={4} placeholder={`Hola {{nombre}} 👋\n\nTe comparto mi catálogo: {{link}}`} style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>💬 WhatsApp</h3>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>Usa {'{{nombre}}'} para personalizar.</div>
+                  <textarea value={mensajeWa} onChange={e => setMensajeWa(e.target.value)} rows={5} placeholder={`Hola {{nombre}} 👋\n\nTe escribimos desde ${nombreVendedor}...`} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
                 </div>
               )}
-
-              <button onClick={crearCampana} disabled={loading || !nombre.trim()}
-                style={{ padding: '14px', background: nombre.trim() ? DARK : '#e2e8f0', color: nombre.trim() ? '#fff' : '#94a3b8', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '15px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                {loading ? 'Guardando...' : '💾 Guardar campaña'}
-              </button>
             </div>
 
-            {/* Preview producto + selector contactos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Preview producto */}
-              {productoId && (() => {
-                const p = productos.find(pr => pr.id === productoId)
-                return p ? (
-                  <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Producto destacado</div>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      {p.imagen_principal && <img src={p.imagen_principal} alt="" style={{ width: '64px', height: '64px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />}
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{p.nombre}</div>
-                        {p.precio && <div style={{ fontSize: '16px', fontWeight: 800, color: ORANGE }}>{p.precio}</div>}
-                      </div>
-                    </div>
-                    <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                      <a href={`${landingUrl}#catalogo`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>Ver en landing →</a>
-                    </div>
-                  </div>
-                ) : null
-              })()}
+            {/* Columna derecha — destinatarios */}
+            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '24px', alignSelf: 'start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>👥 Destinatarios</h3>
+                {selContactos.length > 0 && (
+                  <span style={{ fontSize: '12px', color: ORANGE, fontWeight: 700, cursor: 'pointer' }} onClick={() => setSelContactos([])}>Deselec.</span>
+                )}
+              </div>
 
-              {/* Selector destinatarios */}
-              <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>👥 Destinatarios</div>
-                  <button onClick={() => setSelContactos(selContactos.length === contactos.length ? [] : contactos.map(c => c.id))} style={{ fontSize: '11px', color: ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                    {selContactos.length === contactos.length ? 'Deselec.' : 'Sel. todos'}
+              {contactos.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                  <div>Sin contactos.</div>
+                  <button onClick={() => setVista('contactos')} style={{ marginTop: '12px', padding: '8px 16px', background: ORANGE, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                    Agregar →
                   </button>
                 </div>
-                {contactos.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px' }}>
-                    Sin contactos. <button onClick={() => setVista('contactos')} style={{ color: ORANGE, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Agregar →</button>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                    <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar contacto..." style={{ flex: 1, padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
+                    <button onClick={toggleTodos} style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      {selContactos.length === contactosFiltrados.length ? 'Deselec. todos' : 'Sel. todos'}
+                    </button>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '300px', overflowY: 'auto' }}>
-                    {contactos.map(c => {
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '380px', overflowY: 'auto' }}>
+                    {contactosFiltrados.map(c => {
                       const sel = selContactos.includes(c.id)
                       return (
-                        <div key={c.id} onClick={() => toggleContacto(c.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', background: sel ? `${ORANGE}08` : '#f8fafc', border: `1px solid ${sel ? ORANGE + '30' : '#f1f5f9'}` }}>
-                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${sel ? ORANGE : '#cbd5e1'}`, background: sel ? ORANGE : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {sel && <span style={{ color: '#fff', fontSize: '10px', fontWeight: 900 }}>✓</span>}
+                        <div key={c.id} onClick={() => toggleContacto(c.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', background: sel ? `${ORANGE}08` : '#f8fafc', border: `1px solid ${sel ? ORANGE + '40' : '#f1f5f9'}` }}>
+                          <div style={{ width: '18px', height: '18px', borderRadius: '4px', border: `2px solid ${sel ? ORANGE : '#cbd5e1'}`, background: sel ? ORANGE : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {sel && <span style={{ color: '#fff', fontSize: '11px', fontWeight: 900 }}>✓</span>}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{c.nombre || 'Sin nombre'}</div>
-                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>{c.email || c.whatsapp || ''}</div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{c.nombre || 'Sin nombre'}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {c.email || 'Sin email'}{c.whatsapp ? ` · ${c.whatsapp}` : ''}
+                            </div>
                           </div>
+                          {c.empresa && <span style={{ fontSize: '10px', color: '#94a3b8', flexShrink: 0 }}>{c.empresa}</span>}
                         </div>
                       )
                     })}
                   </div>
-                )}
-                <div style={{ marginTop: '10px', fontSize: '13px', color: '#94a3b8' }}>{selContactos.length} de {contactos.length} seleccionados</div>
-              </div>
+                  <div style={{ marginTop: '12px', fontSize: '13px', color: '#94a3b8' }}>
+                    {selContactos.length} de {contactos.length} seleccionados
+                  </div>
+                </>
+              )}
+
+              <button
+                onClick={guardarCampana}
+                disabled={guardando || !nombre.trim() || selContactos.length === 0}
+                style={{ marginTop: '20px', width: '100%', padding: '14px', background: nombre.trim() && selContactos.length > 0 ? DARK : '#e2e8f0', color: nombre.trim() && selContactos.length > 0 ? '#fff' : '#94a3b8', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: nombre.trim() && selContactos.length > 0 ? 'pointer' : 'default', fontFamily: 'inherit' }}
+              >
+                {guardando ? 'Guardando...' : `💾 Guardar campaña${selContactos.length > 0 ? ` (${selContactos.length} dest.)` : ''}`}
+              </button>
             </div>
           </div>
         )}

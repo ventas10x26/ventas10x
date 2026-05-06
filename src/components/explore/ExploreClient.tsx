@@ -122,6 +122,9 @@ function PostModal({ post, onClose, onConectar, logueado }: { post: Post; onClos
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.4)' }}>{perfil.empresa || perfil.industria}</div>
             </div>
             <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '999px', background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+            <Link href={`/u/${perfil.slug || ''}`} onClick={onClose} style={{ fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '8px', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.7)', textDecoration: 'none', whiteSpace: 'nowrap', border: '1px solid rgba(255,255,255,.1)' }}>
+              Ver perfil →
+            </Link>
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,.08)', border: 'none', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
           </div>
 

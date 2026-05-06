@@ -86,15 +86,6 @@ export function LandingPage({ profile, config, productos, testimonios, slug, tem
           if (stats.length === 0 && data.stats) setStats(data.stats)
           if (comoFunciona.length === 0 && data.como_funciona) setComoFunciona(data.como_funciona)
           if (!badgePromo && data.badge_promo) setBadgePromo(data.badge_promo)
-          fetch('/api/landing/config', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              stats: stats.length === 0 ? data.stats : stats,
-              como_funciona: comoFunciona.length === 0 ? data.como_funciona : comoFunciona,
-              badge_promo: !badgePromo ? data.badge_promo : badgePromo,
-            }),
-          }).catch(() => {})
         }
       })
       .catch(() => {})

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         id, tipo, titulo, contenido, imagen_url, deal_valor, deal_industria,
         metrica_tipo, metrica_valor, likes_count, created_at, vendedor_id, producto_id,
         profiles!vendedor_id (
-          id, nombre, apellido, empresa, avatar_url, slug, industria
+          id, nombre, apellido, empresa, avatar_url, slug, industria, whatsapp
         ),
         productos (
           id, nombre, precio, descripcion, imagen_principal

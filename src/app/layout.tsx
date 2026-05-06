@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     description: 'Plataforma de ventas con IA para Latam. Landing, bot WhatsApp y pipeline en 48h. 14 días gratis sin tarjeta.',
     images: [
       {
-        url: absoluteUrl(SEO_CONFIG.defaultOgImage),
+        url: absoluteUrl('/og/home'),
         width: 1200,
         height: 630,
         alt: 'Ventas10x - Plataforma de ventas con IA',
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     creator: SEO_CONFIG.twitterHandle,
     title: 'Ventas10x — Vende 10x más con IA',
     description: 'Catálogo IA, bot WhatsApp 24/7 y pipeline visual. 14 días gratis sin tarjeta.',
-    images: [absoluteUrl(SEO_CONFIG.defaultOgImage)],
+    images: [absoluteUrl('/og/home')],
   },
 
   // Verificación (si tienes códigos)

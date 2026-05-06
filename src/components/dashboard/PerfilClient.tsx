@@ -55,7 +55,7 @@ export function PerfilClient({
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await fetch('/api/landing/upload-imagen', { method: 'POST', body: fd })
+      const res = await fetch('/api/dashboard/campanas/upload-imagen', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.url) actualizar('logo_url', data.url)
     } finally {

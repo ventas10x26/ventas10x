@@ -37,7 +37,7 @@ export function PerfilClient({
   callmebotInicial,
 }: Props) {
   const router = useRouter()
-  const [form, setForm] = useState<ProfileForm>({ logo_url: '', ...profileInicial })
+  const [form, setForm] = useState<ProfileForm>(profileInicial)
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   const [subiendoLogo, setSubiendoLogo] = useState(false)

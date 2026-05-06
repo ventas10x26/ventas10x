@@ -1,8 +1,3 @@
-// Ruta destino: src/components/dashboard/PerfilClient.tsx
-// REEMPLAZA. Cambios:
-// - Agrega el card NotificacionesWhatsAppCard al final
-// - Recibe la config inicial de CallMeBot vía props
-
 'use client'
 
 import { useState } from 'react'
@@ -17,6 +12,7 @@ type ProfileForm = {
   whatsapp: string
   slug: string
   industria: string
+  logo_url: string
 }
 
 type CallMeBotConfig = {
@@ -41,9 +37,10 @@ export function PerfilClient({
   callmebotInicial,
 }: Props) {
   const router = useRouter()
-  const [form, setForm] = useState<ProfileForm>(profileInicial)
+  const [form, setForm] = useState<ProfileForm>({ logo_url: '', ...profileInicial })
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+  const [subiendoLogo, setSubiendoLogo] = useState(false)
 
   const slugOriginal = profileInicial.slug
   const slugCambio = form.slug !== slugOriginal && slugOriginal.length > 0
@@ -53,10 +50,22 @@ export function PerfilClient({
     setMensaje(null)
   }
 
+  const subirLogo = async (file: File) => {
+    setSubiendoLogo(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/landing/upload-imagen', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) actualizar('logo_url', data.url)
+    } finally {
+      setSubiendoLogo(false)
+    }
+  }
+
   const guardar = async () => {
     setGuardando(true)
     setMensaje(null)
-
     try {
       const res = await fetch('/api/perfil', {
         method: 'PATCH',
@@ -65,7 +74,6 @@ export function PerfilClient({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al guardar')
-
       setMensaje({ tipo: 'ok', texto: 'Perfil actualizado correctamente.' })
       router.refresh()
     } catch (e) {
@@ -118,6 +126,54 @@ export function PerfilClient({
         </div>
       </section>
 
+      {/* Logo de empresa */}
+      <section className="card p-6 mb-6">
+        <h2 className="text-lg font-semibold text-brand-navy mb-1">Logo de tu empresa</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Se mostrará en el header de tus emails de campaña.
+        </p>
+        <div className="flex items-center gap-6">
+          {form.logo_url ? (
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.logo_url}
+                alt="Logo empresa"
+                className="h-16 max-w-[180px] object-contain rounded-lg border border-gray-200 bg-gray-50 p-2"
+              />
+              <button
+                onClick={() => actualizar('logo_url', '')}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <div className="w-24 h-16 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 text-xs text-center">
+              Sin logo
+            </div>
+          )}
+          <label className="cursor-pointer">
+            <div className="btn-primary text-sm px-4 py-2 inline-block">
+              {subiendoLogo ? 'Subiendo...' : '📁 Subir logo'}
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={subiendoLogo}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) subirLogo(f)
+              }}
+            />
+          </label>
+          {form.logo_url && (
+            <span className="text-xs text-green-600">✓ Logo cargado</span>
+          )}
+        </div>
+      </section>
+
       {/* Datos personales */}
       <section className="card p-6 mb-6 space-y-4">
         <h2 className="text-lg font-semibold text-brand-navy mb-2">Datos personales</h2>
@@ -165,10 +221,11 @@ export function PerfilClient({
             placeholder="+57 300 000 0000"
             maxLength={30}
           />
-<p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Incluye código de país. Este será el número donde te contacten los prospectos.
           </p>
         </div>
+
         <div>
           <label className="label">Industria / Sector</label>
           <select
@@ -252,7 +309,6 @@ export function PerfilClient({
         </div>
       </section>
 
-      {/* ─── NUEVA SECCIÓN: Notificaciones WhatsApp ─── */}
       <NotificacionesWhatsAppCard
         apiKeyInicial={callmebotInicial?.apikey ?? ''}
         telefonoInicial={callmebotInicial?.telefono ?? ''}

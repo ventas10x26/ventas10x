@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     // Obtener perfil del vendedor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: perfil } = await (supabaseAdmin as any).from('profiles')
-      .select('nombre, apellido, empresa, slug, whatsapp').eq('id', user.id).single()
+      .select('nombre, apellido, empresa, slug, whatsapp, logo_url').eq('id', user.id).single()
 
     const nombreVendedor = perfil ? [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') : 'Tu asesor'
     const landingUrl = `https://ventas10x.co/u/${perfil?.slug || ''}`
@@ -134,9 +134,11 @@ export async function POST(req: NextRequest) {
           const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:system-ui,sans-serif;background:#f8fafc;margin:0;padding:0;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
-    <div style="background:#0f1c2e;padding:24px 32px;display:flex;align-items:center;gap:12px;">
-      <div style="width:36px;height:36px;background:#FF6B2B;border-radius:10px;"></div>
-      <span style="font-size:18px;font-weight:800;color:#fff;">Ventas<span style="color:#FF6B2B;">10x</span></span>
+    <div style="background:#0f1c2e;padding:20px 32px;display:flex;align-items:center;justify-content:center;min-height:64px;">
+      ${perfil?.logo_url
+        ? `<img src="${perfil.logo_url}" alt="${perfil?.empresa || nombreVendedor}" style="max-height:48px;max-width:200px;object-fit:contain;"/>`
+        : `<div style="display:flex;align-items:center;gap:12px;"><div style="width:36px;height:36px;background:#FF6B2B;border-radius:10px;"></div><span style="font-size:18px;font-weight:800;color:#fff;">Ventas<span style="color:#FF6B2B;">10x</span></span></div>`
+      }
     </div>
     <div style="padding:32px;">
       <p style="font-size:16px;color:#374151;margin-bottom:16px;">Hola ${contacto.nombre || 'amigo/a'} 👋</p>

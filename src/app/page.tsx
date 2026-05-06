@@ -289,9 +289,9 @@ export default function HomePage() {
             <span style={{ fontSize:'14px', fontWeight:700, color:'rgba(255,255,255,.5)' }}>Ventas10x © 2026</span>
           </div>
           <div style={{ display:'flex', gap:'2rem' }}>
-            {['Privacidad','Términos','Contacto'].map(l => (
-              <a key={l} href="#" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>{l}</a>
-            ))}
+          <Link href="/privacidad" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>Privacidad</Link>
+<Link href="/terminos" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>Términos</Link>
+<a href="mailto:hola@ventas10x.co" style={{ fontSize:'13px', color:'rgba(255,255,255,.4)', textDecoration:'none', fontWeight:500 }}>Contacto</a>
             <Link href="/por-que" style={{ fontSize:'13px', color:'rgba(255,107,43,.6)', textDecoration:'none', fontWeight:600 }}>Por qué existimos</Link>
           </div>
         </div>

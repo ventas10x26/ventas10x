@@ -101,6 +101,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: 'duplicate' })
     }
 
+    // Filtrar IPs de Vercel/crawlers (Ashburn = datacenter de Vercel/AWS)
+    if (ciudad === 'Ashburn') {
+      return NextResponse.json({ ok: true, skipped: 'datacenter' })
+    }
+
+    // Filtrar visitas desde el propio dashboard (propietario editando)
+    if (referrer && referrer.includes('/dashboard')) {
+      return NextResponse.json({ ok: true, skipped: 'owner' })
+    }
+
     const dispositivo = detectarDispositivo(userAgent)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

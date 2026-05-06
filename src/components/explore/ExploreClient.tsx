@@ -145,7 +145,7 @@ function PostModal({ post, onClose, onConectar, logueado }: { post: Post; onClos
           </div>
 
           {/* Acciones */}
-          <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,.07)', display: 'flex', gap: '10px' }}>
+          <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,.07)', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <a
               href={perfil.whatsapp ? `https://wa.me/${perfil.whatsapp.replace(/\D/g, '')}` : '/auth/register'}
               target={perfil.whatsapp ? '_blank' : '_self'}
@@ -158,6 +158,9 @@ function PostModal({ post, onClose, onConectar, logueado }: { post: Post; onClos
             <button onClick={onConectar} style={{ flex: 1, padding: '11px', background: ORANGE, color: '#fff', border: 'none', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', boxShadow: `0 4px 14px ${ORANGE}40` }}>
               Conectar →
             </button>
+            <Link href={`/u/${perfil.slug || ''}`} onClick={onClose} style={{ flex: 1, padding: '11px', background: 'rgba(255,255,255,.08)', color: 'rgba(255,255,255,.7)', borderRadius: '12px', textDecoration: 'none', textAlign: 'center', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Ver perfil →
+            </Link>
           </div>
         </div>
       </div>

@@ -129,7 +129,7 @@ export function VendedorCampanasClient({ vendedorId, nombreVendedor, slug, produ
       Link de la página: ${landingUrl}
       Canal: ${canal}`
 
-      const res = await fetch('/api/admin/campanas/generar-ia', {
+      const res = await fetch('/api/dashboard/campanas/generar-ia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instruccion }),

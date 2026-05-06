@@ -53,6 +53,7 @@ export default async function PerfilPage() {
           whatsapp: profile?.whatsapp ?? '',
           slug: profile?.slug ?? '',
           industria: profile?.industria ?? '',
+          logo_url: p?.logo_url ?? '',
         }}
         callmebotInicial={{
           apikey: p?.callmebot_apikey ?? '',

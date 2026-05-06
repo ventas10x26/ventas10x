@@ -72,8 +72,6 @@ export async function POST(req: NextRequest) {
       ? decodeURIComponent(req.headers.get('x-vercel-ip-city')!)
       : null
       // DEBUG temporal - borrar después
-    console.log('[track-visita]', { pais, ciudad, referrer, userAgent: userAgent.slice(0, 80) })
-
     // Filtrar IPs de Vercel/crawlers (Ashburn = datacenter de Vercel/AWS)
     if (ciudad === 'Ashburn') {
       return NextResponse.json({ ok: true, skipped: 'datacenter' })
@@ -111,11 +109,6 @@ export async function POST(req: NextRequest) {
 
     if (existente) {
       return NextResponse.json({ ok: true, skipped: 'duplicate' })
-    }
-
-    // Filtrar IPs de Vercel/crawlers (Ashburn = datacenter de Vercel/AWS)
-    if (ciudad === 'Ashburn') {
-      return NextResponse.json({ ok: true, skipped: 'datacenter' })
     }
 
     // Filtrar visitas desde el propio dashboard (propietario editando)

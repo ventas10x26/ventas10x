@@ -21,7 +21,7 @@ Genera el contenido completo de una campaña. Responde ÚNICAMENTE con JSON vál
 {
   "nombre": "Nombre corto de la campaña",
   "asunto": "Asunto del email atractivo max 60 chars",
-  "cuerpo_email": "Cuerpo en texto plano, profesional y cercano, 3-4 párrafos, sin saludo inicial, con CTA claro al final",
+  "cuerpo_email": "Cuerpo en texto plano, profesional y cercano, 3-4 párrafos, sin saludo inicial, con CTA claro al final. NO incluyas links ni URLs en el cuerpo del email.",
   "mensaje_wa": "Mensaje WhatsApp max 300 chars con {{nombre}}, emoji relevante y link https://ventas10x.co/dashboard",
   "explicacion": "Una línea con la estrategia de esta campaña"
 }

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!instruccion?.trim()) return NextResponse.json({ error: 'instruccion requerida' }, { status: 400 })
 
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       system: `Eres un experto en email marketing para Ventas10x, plataforma SaaS de ventas para Latinoamérica.
 Genera el contenido completo de una campaña. Responde ÚNICAMENTE con JSON válido sin backticks ni texto adicional:

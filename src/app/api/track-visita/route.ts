@@ -71,6 +71,18 @@ export async function POST(req: NextRequest) {
     const ciudad = req.headers.get('x-vercel-ip-city')
       ? decodeURIComponent(req.headers.get('x-vercel-ip-city')!)
       : null
+      // DEBUG temporal - borrar después
+    console.log('[track-visita]', { pais, ciudad, referrer, userAgent: userAgent.slice(0, 80) })
+
+    // Filtrar IPs de Vercel/crawlers (Ashburn = datacenter de Vercel/AWS)
+    if (ciudad === 'Ashburn') {
+      return NextResponse.json({ ok: true, skipped: 'datacenter' })
+    }
+
+    // Filtrar visitas desde el propio dashboard (propietario editando)
+    if (referrer && referrer.includes('ventas10x.co/dashboard')) {
+      return NextResponse.json({ ok: true, skipped: 'owner' })
+    }
 
     // Resolver vendedor_id desde el slug
     const { data: profile } = await supabaseAdmin
@@ -107,7 +119,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Filtrar visitas desde el propio dashboard (propietario editando)
-    if (referrer && referrer.includes('/dashboard')) {
+    if (referrer && referrer.includes('ventas10x.co/dashboard')) {
       return NextResponse.json({ ok: true, skipped: 'owner' })
     }
 

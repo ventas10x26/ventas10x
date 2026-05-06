@@ -34,6 +34,7 @@ type Campana = {
   asunto: string | null
   mensaje_wa: string | null
   cuerpo_email?: string | null
+  imagen_url?: string | null
 }
 
 const ESTADO_COLORS: Record<string, string> = {
@@ -209,6 +210,8 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
   const [mensajeWa, setMensajeWa] = useState('')
   const [programarPara, setProgramarPara] = useState('')
   const [productoId, setProductoId] = useState('')
+  const [imagenUrl, setImagenUrl] = useState('')
+  const [subiendoImagen, setSubiendoImagen] = useState(false)
   const [selContactos, setSelContactos] = useState<string[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -255,6 +258,7 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
         body: JSON.stringify({
           accion: 'crear_campana', nombre, canal, asunto, cuerpo_email: cuerpoEmail,
           mensaje_wa: mensajeWa, producto_id: productoId || null,
+          imagen_url: imagenUrl || null,
           contacto_ids: selContactos, programada_para: programarPara || null,
         }),
       })
@@ -319,9 +323,20 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
     } finally { setImportando(false) }
   }
 
+  const subirImagen = async (file: File) => {
+    setSubiendoImagen(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/dashboard/campanas/upload-imagen', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.ok) setImagenUrl(data.url)
+    } finally { setSubiendoImagen(false) }
+  }
+
   const resetForm = () => {
     setNombre(''); setAsunto(''); setCuerpoEmail(''); setMensajeWa('')
-    setProgramarPara(''); setSelContactos([]); setCanal('ambos'); setProductoId('')
+    setProgramarPara(''); setSelContactos([]); setCanal('ambos'); setProductoId(''); setImagenUrl('')
   }
 
   if (cargando) return (
@@ -552,6 +567,22 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Asunto</label>
                       <input value={asunto} onChange={e => setAsunto(e.target.value)} placeholder="Asunto del email" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Imagen del email (opcional)</label>
+                      {imagenUrl ? (
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                          <img src={imagenUrl} alt="preview" style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0' }} />
+                          <button onClick={() => setImagenUrl('')} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                        </div>
+                      ) : (
+                        <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px', borderRadius: '10px', border: '2px dashed #e2e8f0', cursor: subiendoImagen ? 'default' : 'pointer', background: '#f8fafc' }}>
+                          <span style={{ fontSize: '28px' }}>🖼️</span>
+                          <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>{subiendoImagen ? 'Subiendo...' : 'Haz clic para subir imagen'}</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>JPG, PNG, WEBP · máx 5MB</span>
+                          <input type="file" accept="image/*" style={{ display: 'none' }} disabled={subiendoImagen} onChange={e => { const f = e.target.files?.[0]; if (f) subirImagen(f) }} />
+                        </label>
+                      )}
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '5px' }}>Cuerpo del email</label>

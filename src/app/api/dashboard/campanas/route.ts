@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (accion === 'importar_csv') {
-    const { contactos } = body // array de {nombre, email, whatsapp, empresa}
+    const { contactos } = body
     const rows = contactos.map((c: { nombre?: string; email?: string; whatsapp?: string; empresa?: string }) => ({
       vendedor_id: user.id, ...c, fuente: 'csv'
     }))
@@ -67,13 +67,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (accion === 'crear_campana') {
-    const { nombre, canal, asunto, cuerpo_email, mensaje_wa, producto_id, contacto_ids, programada_para } = body
+    const { nombre, canal, asunto, cuerpo_email, mensaje_wa, producto_id, imagen_url, contacto_ids, programada_para } = body
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: campana, error } = await (supabase as any).from('vendedor_campanas').insert({
       vendedor_id: user.id, nombre, canal,
       asunto, cuerpo_email, mensaje_wa,
       producto_id: producto_id || null,
+      imagen_url: imagen_url || null,
       programada_para: programada_para || null,
       estado: programada_para ? 'programada' : 'borrador',
       total_destinatarios: contacto_ids?.length || 0,
@@ -93,12 +94,12 @@ export async function POST(req: NextRequest) {
       .eq('id', campana_id).eq('vendedor_id', user.id).single()
     if (!campana) return NextResponse.json({ error: 'Campaña no encontrada' }, { status: 404 })
 
-// Cargar contactos — si no vienen ids, usar todos los del vendedor
-const { contacto_ids } = body
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let query = (supabase as any).from('vendedor_contactos').select('*').eq('vendedor_id', user.id)
-if (contacto_ids?.length > 0) query = query.in('id', contacto_ids)
-const { data: contactos } = await query
+    // Cargar contactos — si no vienen ids, usar todos los del vendedor
+    const { contacto_ids } = body
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (supabase as any).from('vendedor_contactos').select('*').eq('vendedor_id', user.id)
+    if (contacto_ids?.length > 0) query = query.in('id', contacto_ids)
+    const { data: contactos } = await query
 
     // Obtener perfil del vendedor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,6 +127,10 @@ const { data: contactos } = await query
               </div>
             </div>` : ''
 
+          const imagenHtml = campana.imagen_url
+            ? `<img src="${campana.imagen_url}" style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin:16px 0;display:block;" alt="imagen campaña"/>`
+            : ''
+
           const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:system-ui,sans-serif;background:#f8fafc;margin:0;padding:0;">
   <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
@@ -135,6 +140,7 @@ const { data: contactos } = await query
     </div>
     <div style="padding:32px;">
       <p style="font-size:16px;color:#374151;margin-bottom:16px;">Hola ${contacto.nombre || 'amigo/a'} 👋</p>
+      ${imagenHtml}
       ${productoHtml}
       <div style="font-size:15px;color:#4b5563;line-height:1.7;white-space:pre-wrap;">${campana.cuerpo_email}</div>
       <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">

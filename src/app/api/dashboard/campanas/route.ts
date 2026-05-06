@@ -93,11 +93,12 @@ export async function POST(req: NextRequest) {
       .eq('id', campana_id).eq('vendedor_id', user.id).single()
     if (!campana) return NextResponse.json({ error: 'Campaña no encontrada' }, { status: 404 })
 
-    // Cargar contactos seleccionados
-    const { contacto_ids } = body
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: contactos } = await (supabase as any).from('vendedor_contactos')
-      .select('*').in('id', contacto_ids || []).eq('vendedor_id', user.id)
+// Cargar contactos — si no vienen ids, usar todos los del vendedor
+const { contacto_ids } = body
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let query = (supabase as any).from('vendedor_contactos').select('*').eq('vendedor_id', user.id)
+if (contacto_ids?.length > 0) query = query.in('id', contacto_ids)
+const { data: contactos } = await query
 
     // Obtener perfil del vendedor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

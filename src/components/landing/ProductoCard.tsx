@@ -60,7 +60,6 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
           background: '#fff',
           border: '1px solid #e5e7eb',
           borderRadius: '14px',
-          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 1px 3px rgba(0,0,0,.05)',

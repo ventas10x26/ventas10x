@@ -114,17 +114,13 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
 
           {producto.descripcion && (
             <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '8px', flex: 1 }}>
-              {/* Texto con clamp o completo */}
-              <div style={{
-                whiteSpace: 'pre-wrap',
-                display: descExpandida ? 'block' : '-webkit-box',
-                WebkitLineClamp: descExpandida ? 'none' : '4',
-                WebkitBoxOrient: 'vertical',
-                overflow: descExpandida ? 'visible' : 'hidden',
-              } as React.CSSProperties}>
-                {renderDescripcion(producto.descripcion)}
+              <div style={{ whiteSpace: 'pre-wrap' }}>
+                {renderDescripcion(
+                  descExpandida
+                    ? producto.descripcion
+                    : producto.descripcion.slice(0, 160) + (descLarga ? '…' : '')
+                )}
               </div>
-              {/* Botón fuera del div con overflow */}
               {descLarga && (
                 <button
                   onClick={e => { e.stopPropagation(); setDescExpandida(v => !v) }}

@@ -161,14 +161,17 @@ ${datosVisitante}
 7. Confirma que ${nombreAsesor} le contactará pronto por WhatsApp y email.
 
 ## REGLA CRÍTICA
-Cuando tengas nombre, WhatsApp Y email del visitante, incluye al FINAL de tu mensaje este JSON (el visitante no lo verá):
+Cuando tengas nombre Y WhatsApp del visitante, incluye INMEDIATAMENTE al FINAL de tu mensaje este JSON (el visitante no lo verá):
 {"accion":"crear_lead","nombre":"...","whatsapp":"...","email":"...","interes":"..."}
 
-Si el visitante no quiere dar email, procede igual con solo nombre y WhatsApp:
+El email es OPCIONAL. Si no lo tienes, usa null:
 {"accion":"crear_lead","nombre":"...","whatsapp":"...","email":null,"interes":"..."}
 
+NO esperes el email para disparar el JSON. Con nombre + WhatsApp es suficiente para crear el lead.
+Después de disparar el JSON puedes seguir preguntando el email si quieres.
+
 Si quiere agendar cita:
-{"accion":"agendar_cita","nombre":"...","whatsapp":"...","email":"...","fecha":"..."}
+{"accion":"agendar_cita","nombre":"...","whatsapp":"...","email":null,"fecha":"..."}
 
 Si se despide sin datos:
 {"accion":"sin_datos"}`

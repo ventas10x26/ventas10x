@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (tipo === 'leads') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any).from('leads')
-      .select('id, nombre, email, whatsapp, etapa, empresa')
+      .select('id, nombre, whatsapp, etapa')
       .eq('vendedor_id', user.id)
       .order('created_at', { ascending: false })
     return NextResponse.json({ leads: data || [] })

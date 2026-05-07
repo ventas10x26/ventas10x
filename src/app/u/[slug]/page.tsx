@@ -156,24 +156,48 @@ export default async function VendedorLandingPage({ params }: Props) {
   > | null
 
   if (!profile) notFound()
+    // ── Tracking de visita directo a Supabase (sin fetch interno) ──
+    try {
+      const { headers } = await import('next/headers')
+      const h = await headers()
+      const ua = h.get('user-agent') || ''
+      const referer = h.get('referer') || ''
+      const xfwd = h.get('x-forwarded-for') || ''
+      const ip = xfwd.split(',')[0]?.trim() || 'unknown'
+      const bots = [/googlebot/i,/bingbot/i,/yandexbot/i,/slackbot/i,/facebookexternalhit/i,/twitterbot/i,/linkedinbot/i,/whatsapp/i,/lighthouse/i,/python-requests/i,/curl/i,/wget/i,/node-fetch/i,/headlesschrome/i]
+      const isBot = !ua || bots.some(p => p.test(ua))
+      const isOwner = referer?.includes('ventas10x.co/dashboard')
+      const isDatacenter = h.get('x-vercel-ip-city') === 'Ashburn'
+      if (!isBot && !isOwner && !isDatacenter) {
+        const crypto = await import('crypto')
+        const salt = process.env.IP_HASH_SALT || 'ventas10x-default-salt'
+        const ipHash = crypto.createHash('sha256').update(ip + salt).digest('hex').slice(0, 32)
+        const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+        const adminSb = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { persistSession: false } }
+        )
+        const hace5min = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: existente } = await (adminSb.from('landing_visitas') as any)
+          .select('id').eq('vendedor_id', profile.id).eq('ip_hash', ipHash)
+          .gte('visitado_at', hace5min).limit(1).maybeSingle()
+        if (!existente) {
+          const ciudad = h.get('x-vercel-ip-city') ? decodeURIComponent(h.get('x-vercel-ip-city')!) : null
+          const pais = h.get('x-vercel-ip-country') || null
+          const ua_lower = ua.toLowerCase()
+          const dispositivo = /ipad|tablet/.test(ua_lower) ? 'tablet' : /mobi|iphone|android/.test(ua_lower) ? 'mobile' : 'desktop'
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (adminSb.from('landing_visitas') as any).insert({
+            vendedor_id: profile.id, slug, ip_hash: ipHash,
+            user_agent: ua.slice(0, 500), pais, ciudad,
+            referrer: referer?.slice(0, 500) || null, dispositivo,
+          })
+        }
+      }
+    } catch { /* silencioso */ }
 
-    // ── Tracking de visita (fire-and-forget, no bloquea render) ──
-    // Solo lo hacemos en el server, no en re-renders del cliente
-    const { headers } = await import('next/headers')
-    const h = await headers()
-    const xfwd = h.get('x-forwarded-for') || ''
-    const referer = h.get('referer') || ''
-    const ua = h.get('user-agent') || ''
-    // No esperamos respuesta - dispara y olvida
-    fetch(`${absoluteUrl('/api/track-visita')}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-forwarded-for': xfwd,
-        'user-agent': ua,
-      },
-      body: JSON.stringify({ slug, referrer: referer }),
-    }).catch(() => {})
 
   const [configRes, productosRes, seccionesRes, botRes, testimoniosRes] = await Promise.all([
     supabase.from('landing_config').select('*').eq('vendedor_id', profile.id).single(),

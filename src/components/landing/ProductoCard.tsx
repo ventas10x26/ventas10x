@@ -50,13 +50,12 @@ function renderDescripcion(texto: string): React.ReactNode {
 
 function DescripcionExpandible({ descripcion, colorAcento }: { descripcion: string; colorAcento: string }) {
   const [expandida, setExpandida] = useState(false)
-  const lineas = descripcion.split('\n')
-  const limite = 4 // máximo 4 líneas colapsado
-  const esCortada = lineas.length > limite
+  const LIMITE = 200
+  const esCortada = descripcion.length > LIMITE
 
   const textoMostrar = expandida || !esCortada
     ? descripcion
-    : lineas.slice(0, limite).join('\n') + '...'
+    : descripcion.slice(0, LIMITE).replace(/\*\*[^*]*$/, '') + '...'
 
   return (
     <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '12px', flex: 1, whiteSpace: 'pre-wrap' }}>

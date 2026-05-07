@@ -20,7 +20,7 @@ export default async function LeadsPage() {
     supabase
       .from('leads')
       .select('*')
-      .eq('org_id', active.org.id)
+      .or(`org_id.eq.${active.org.id},and(vendedor_id.eq.${user.id},org_id.is.null)`)
       .order('created_at', { ascending: false }),
     supabase
       .from('profiles')

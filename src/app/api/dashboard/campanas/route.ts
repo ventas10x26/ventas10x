@@ -20,6 +20,15 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const tipo = searchParams.get('tipo') // 'campanas' | 'contactos'
 
+  if (tipo === 'leads') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).from('leads')
+      .select('id, nombre, email, whatsapp, etapa, empresa')
+      .eq('vendedor_id', user.id)
+      .order('created_at', { ascending: false })
+    return NextResponse.json({ leads: data || [] })
+  }
+
   if (tipo === 'contactos') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any).from('vendedor_contactos')
@@ -146,8 +155,8 @@ export async function POST(req: NextRequest) {
       ${productoHtml}
       <div style="font-size:15px;color:#4b5563;line-height:1.7;white-space:pre-wrap;">${campana.cuerpo_email}</div>
       <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">
-<a href="https://ventas10x.co/api/track/click?c=${campana_id}&ct=${contacto.id}&t=whatsapp&r=${encodeURIComponent(waLink)}" style="padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp</a>
-<a href="https://ventas10x.co/api/track/click?c=${campana_id}&ct=${contacto.id}&t=landing&r=${encodeURIComponent(landingUrl)}" style="padding:12px 24px;background:#FF6B2B;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">Ver mi página →</a>
+        <a href="${waLink}" style="padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp</a>
+        <a href="${landingUrl}" style="padding:12px 24px;background:#FF6B2B;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">Ver mi página →</a>
       </div>
     </div>
     <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">
@@ -158,7 +167,6 @@ export async function POST(req: NextRequest) {
 
           await resend.emails.send({
             from: `${nombreVendedor} <hola@ventas10x.co>`,
-            replyTo: user.email || undefined,
             to: contacto.email,
             subject: campana.asunto || `Mensaje de ${nombreVendedor}`,
             html,

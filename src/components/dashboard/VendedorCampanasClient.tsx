@@ -13,6 +13,15 @@ type Contacto = {
   fuente: string
 }
 
+type Lead = {
+  id: string
+  nombre: string | null
+  email: string | null
+  whatsapp: string | null
+  empresa: string | null
+  etapa: string
+}
+
 type Producto = {
   id: string
   nombre: string
@@ -199,10 +208,9 @@ type Props = {
 export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor, slug: _slug, productos }: Props) {
   const [campanas, setCampanas] = useState<Campana[]>([])
   const [contactos, setContactos] = useState<Contacto[]>([])
-  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-  const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>(
-    params?.get('vista') === 'contactos' ? 'contactos' : 'lista'
-  )
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [fuenteDest, setFuenteDest] = useState<'contactos' | 'leads'>('contactos')
+  const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>('lista')
   const [cargando, setCargando] = useState(true)
 
   // form nueva campaña
@@ -247,13 +255,19 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
     Promise.all([
       fetch('/api/dashboard/campanas').then(r => r.json()),
       fetch('/api/dashboard/campanas?tipo=contactos').then(r => r.json()),
-    ]).then(([c, ct]) => {
+      fetch('/api/dashboard/campanas?tipo=leads').then(r => r.json()),
+    ]).then(([c, ct, ld]) => {
       setCampanas(c.campanas || [])
       setContactos(ct.contactos || [])
+      setLeads(ld.leads || [])
     }).finally(() => setCargando(false))
   }, [])
 
-  const contactosFiltrados = contactos.filter(c => {
+  const listaActiva = fuenteDest === 'leads'
+    ? leads.map(l => ({ id: l.id, nombre: l.nombre, email: l.email, whatsapp: l.whatsapp, empresa: l.empresa, fuente: `pipeline:${l.etapa}` }))
+    : contactos
+
+  const contactosFiltrados = listaActiva.filter(c => {
     const q = busqueda.toLowerCase()
     return [c.nombre, c.email, c.whatsapp, c.empresa].filter(Boolean).join(' ').toLowerCase().includes(q)
   })
@@ -686,8 +700,15 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
                 </div>
               ) : (
                 <>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                    {([{ k: 'contactos', l: `👥 Contactos (${contactos.length})` }, { k: 'leads', l: `🎯 Leads (${leads.length})` }] as const).map(t => (
+                      <button key={t.k} onClick={() => { setFuenteDest(t.k); setSelContactos([]) }} style={{ flex: 1, padding: '7px', borderRadius: '10px', border: '1px solid', borderColor: fuenteDest === t.k ? ORANGE : '#e2e8f0', background: fuenteDest === t.k ? `${ORANGE}10` : '#fff', color: fuenteDest === t.k ? ORANGE : '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                        {t.l}
+                      </button>
+                    ))}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar contacto..." style={{ flex: 1, padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
+                    <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={fuenteDest === 'leads' ? 'Buscar lead...' : 'Buscar contacto...'} style={{ flex: 1, padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
                     <button onClick={toggleTodos} style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                       {selContactos.length === contactosFiltrados.length ? 'Deselec. todos' : 'Sel. todos'}
                     </button>

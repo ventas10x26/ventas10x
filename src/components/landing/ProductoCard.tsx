@@ -48,6 +48,26 @@ function renderDescripcion(texto: string): React.ReactNode {
   })
 }
 
+function DescripcionExpandible({ descripcion, colorAcento }: { descripcion: string; colorAcento: string }) {
+  const [expandida, setExpandida] = useState(false)
+  const limite = 180
+  const esCortada = descripcion.length > limite
+
+  return (
+    <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '12px', flex: 1, whiteSpace: 'pre-wrap' }}>
+      {renderDescripcion(expandida || !esCortada ? descripcion : descripcion.slice(0, limite) + '...')}
+      {esCortada && (
+        <button
+          onClick={e => { e.stopPropagation(); setExpandida(v => !v) }}
+          style={{ display: 'block', marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', color: colorAcento, fontSize: '0.8rem', fontWeight: 700, padding: 0 }}
+        >
+          {expandida ? 'Ver menos ↑' : 'Ver más ↓'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
   const [lightboxAbierto, setLightboxAbierto] = useState(false)
 
@@ -138,16 +158,7 @@ export function ProductoCard({ producto, colorAcento }: ProductoCardProps) {
           </h3>
 
           {producto.descripcion && (
-            <div style={{
-              fontSize: '0.85rem',
-              color: '#64748b',
-              lineHeight: 1.6,
-              marginBottom: '12px',
-              flex: 1,
-              whiteSpace: 'pre-wrap',
-            }}>
-              {renderDescripcion(producto.descripcion)}
-            </div>
+            <DescripcionExpandible descripcion={producto.descripcion} colorAcento={colorAcento} />
           )}
 
           {producto.precio && (

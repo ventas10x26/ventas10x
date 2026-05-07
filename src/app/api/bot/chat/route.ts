@@ -401,6 +401,27 @@ export async function POST(req: NextRequest) {
         })()
       } else {
         leadId = leadExistente?.id ?? null
+        // Notificar al vendedor aunque el lead ya existiera
+        const vendedorNombreR = [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') || 'Asesor'
+        ;(async () => {
+          try {
+            const { data: authUserR } = await supabase.auth.admin.getUserById(perfil.id)
+            const vendedorEmailR = authUserR?.user?.email
+            if (vendedorEmailR) {
+              await resend.emails.send({
+                from: 'Ventas10x <notificaciones@ventas10x.co>',
+                to: vendedorEmailR,
+                subject: `Lead recurrente: ${accion?.nombre ?? 'Visitante'} volvio a contactar`,
+                html: `<p><strong>${accion?.nombre ?? 'Visitante'}</strong> (${accion?.whatsapp}) volvio a contactar.</p><p>Interes: ${accion?.interes ?? '-'}</p>`,
+              })
+            }
+            await notificarLeadPorWhatsApp(
+              { callmebot_apikey: perfil.callmebot_apikey, callmebot_telefono: perfil.callmebot_telefono, notif_whatsapp_activa: perfil.notif_whatsapp_activa },
+              { nombre: accion?.nombre ?? 'Visitante', whatsapp: accion?.whatsapp, interes: accion?.interes, fuente: 'bot_landing' },
+              vendedorNombreR
+            )
+          } catch(e) { console.error('[bot/chat] notif recurrente:', e) }
+        })()
       }
     }
 

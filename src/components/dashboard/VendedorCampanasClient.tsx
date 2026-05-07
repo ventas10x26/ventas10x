@@ -199,7 +199,10 @@ type Props = {
 export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor, slug: _slug, productos }: Props) {
   const [campanas, setCampanas] = useState<Campana[]>([])
   const [contactos, setContactos] = useState<Contacto[]>([])
-  const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>('lista')
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>(
+    params?.get('vista') === 'contactos' ? 'contactos' : 'lista'
+  )
   const [cargando, setCargando] = useState(true)
 
   // form nueva campaña

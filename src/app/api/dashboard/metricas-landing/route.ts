@@ -23,7 +23,7 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: visitas, error } = await (supabase.from('landing_visitas') as any)
       .select('visitado_at, ciudad, pais, referrer, dispositivo')
-      .eq('vendedor_id', (await getActiveOrg())?.org?.owner_id)
+      .eq('vendedor_id', user.id)
       .gte('visitado_at', hace30dias)
       .order('visitado_at', { ascending: false })
 

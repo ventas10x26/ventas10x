@@ -4,13 +4,16 @@ import { useState } from 'react'
 import type { Lead } from '@/types/database'
 
 const ETAPA_LABELS: Record<string, string> = {
-  nuevo: 'Nuevo', contactado: 'Contactado', interesado: 'Interesado', cerrado: 'Cerrado'
+  nuevo: 'Nuevo', contactado: 'Contactado', interesado: 'Interesado',
+  propuesta: 'Propuesta', negociacion: 'Negociación', cerrado: 'Cerrado'
 }
 const ETAPA_COLORS: Record<string, string> = {
-  nuevo: '#888780', contactado: '#185FA5', interesado: '#EF9F27', cerrado: '#3B6D11'
+  nuevo: '#888780', contactado: '#185FA5', interesado: '#EF9F27',
+  propuesta: '#a855f7', negociacion: '#f97316', cerrado: '#3B6D11'
 }
 const ETAPA_BG: Record<string, string> = {
-  nuevo: '#f0f0ee', contactado: '#E6F1FB', interesado: '#FAEEDA', cerrado: '#EAF3DE'
+  nuevo: '#f0f0ee', contactado: '#E6F1FB', interesado: '#FAEEDA',
+  propuesta: '#f3e8ff', negociacion: '#fff7ed', cerrado: '#EAF3DE'
 }
 
 function timeAgo(date: string) {
@@ -24,9 +27,15 @@ function timeAgo(date: string) {
   return `Hace ${d}d`
 }
 
-function exportCSV(leads: Lead[]) {
-  const headers = ['Nombre', 'WhatsApp', 'Interés', 'Etapa', 'Fuente', 'Fecha']
-  const rows = leads.map(l => [l.nombre, l.whatsapp, l.producto || '', l.etapa || 'nuevo', l.fuente || 'landing', new Date(l.created_at).toLocaleDateString('es-CO')])
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function exportCSV(leads: any[]) {
+  const headers = ['Nombre', 'WhatsApp', 'Email', 'Interés', 'Etapa', 'Fuente', 'Fecha']
+  const rows = leads.map(l => [
+    l.nombre, l.whatsapp, l.email || '',
+    l.producto || '', l.etapa || 'nuevo',
+    l.fuente || 'landing',
+    new Date(l.created_at).toLocaleDateString('es-CO')
+  ])
   const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -35,14 +44,16 @@ function exportCSV(leads: Lead[]) {
 }
 
 export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], userId: string }) {
-  const [leads] = useState<Lead[]>(initialLeads)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [leads] = useState<any[]>(initialLeads)
   const [search, setSearch] = useState('')
   const [etapaFilter, setEtapaFilter] = useState('')
-  const [selected, setSelected] = useState<Lead | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selected, setSelected] = useState<any | null>(null)
 
   const filtered = leads.filter(l => {
     const q = search.toLowerCase()
-    const matchSearch = !q || l.nombre.toLowerCase().includes(q) || l.whatsapp.includes(q) || (l.producto || '').toLowerCase().includes(q)
+    const matchSearch = !q || l.nombre.toLowerCase().includes(q) || l.whatsapp.includes(q) || (l.producto || '').toLowerCase().includes(q) || (l.email || '').toLowerCase().includes(q)
     const matchEtapa = !etapaFilter || (l.etapa || 'nuevo') === etapaFilter
     return matchSearch && matchEtapa
   })
@@ -63,6 +74,8 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
     emptyRow: { textAlign: 'center' as const, padding: '3rem', color: '#888780', fontSize: '14px' },
   }
 
+  const etapas = ['nuevo', 'contactado', 'interesado', 'propuesta', 'negociacion', 'cerrado']
+
   return (
     <div style={s.wrap}>
       <div style={s.header}>
@@ -71,23 +84,21 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
           <div style={{ fontSize: '13px', color: '#888780', marginTop: '2px' }}>{filtered.length} de {leads.length} prospectos</div>
         </div>
         <div style={s.controls}>
-          <input placeholder="Buscar nombre, WA o producto..." value={search} onChange={e => setSearch(e.target.value)} style={s.input}/>
+          <input placeholder="Buscar nombre, WA, email o producto..." value={search} onChange={e => setSearch(e.target.value)} style={s.input} />
           <select value={etapaFilter} onChange={e => setEtapaFilter(e.target.value)} style={s.select}>
             <option value="">Todas las etapas</option>
-            <option value="nuevo">Nuevo</option>
-            <option value="contactado">Contactado</option>
-            <option value="interesado">Interesado</option>
-            <option value="cerrado">Cerrado</option>
+            {etapas.map(e => <option key={e} value={e}>{ETAPA_LABELS[e]}</option>)}
           </select>
           <button onClick={() => exportCSV(filtered)} style={s.btnExport}>↓ Exportar CSV</button>
         </div>
       </div>
 
       {/* Stats rápidas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: '10px', marginBottom: '1.25rem' }}>
-        {['nuevo','contactado','interesado','cerrado'].map(e => (
-          <div key={e} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: '10px', padding: '12px 14px' }}>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: ETAPA_COLORS[e] }}>{leads.filter(l => (l.etapa||'nuevo') === e).length}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '10px', marginBottom: '1.25rem' }}>
+        {etapas.map(e => (
+          <div key={e} style={{ background: '#fff', border: '.5px solid rgba(0,0,0,.08)', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer' }}
+            onClick={() => setEtapaFilter(etapaFilter === e ? '' : e)}>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: ETAPA_COLORS[e] }}>{leads.filter(l => (l.etapa || 'nuevo') === e).length}</div>
             <div style={{ fontSize: '11px', color: '#888780', marginTop: '2px' }}>{ETAPA_LABELS[e]}</div>
           </div>
         ))}
@@ -100,6 +111,7 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
               <tr>
                 <th style={s.th}>Nombre</th>
                 <th style={s.th}>WhatsApp</th>
+                <th style={s.th}>Email</th>
                 <th style={s.th}>Interés</th>
                 <th style={s.th}>Etapa</th>
                 <th style={s.th}>Fuente</th>
@@ -109,7 +121,7 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} style={s.emptyRow}>
+                <tr><td colSpan={8} style={s.emptyRow}>
                   {search || etapaFilter ? 'Sin resultados para esta búsqueda' : 'Aún no tienes leads. Comparte tu landing para empezar a recibirlos.'}
                 </td></tr>
               ) : filtered.map(lead => (
@@ -117,24 +129,30 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
                   <td style={s.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#185FA5', color: '#fff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {lead.nombre.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase()}
+                        {lead.nombre.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()}
                       </div>
                       <span style={{ fontWeight: 600 }}>{lead.nombre}</span>
                     </div>
                   </td>
                   <td style={s.td}>
-                    <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                       style={{ color: '#185FA5', textDecoration: 'none', fontWeight: 500 }}
                       onClick={e => e.stopPropagation()}>
                       {lead.whatsapp}
                     </a>
+                  </td>
+                  <td style={{ ...s.td, fontSize: '12px' }}>
+                    {lead.email
+                      ? <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()} style={{ color: '#185FA5', textDecoration: 'none' }}>{lead.email}</a>
+                      : <span style={{ color: '#ccc' }}>—</span>
+                    }
                   </td>
                   <td style={{ ...s.td, color: '#4a4a47' }}>{lead.producto || '—'}</td>
                   <td style={s.td}><span style={s.badge(lead.etapa || 'nuevo')}>{ETAPA_LABELS[lead.etapa || 'nuevo']}</span></td>
                   <td style={{ ...s.td, color: '#888780', fontSize: '12px' }}>{lead.fuente || 'landing'}</td>
                   <td style={{ ...s.td, color: '#888780', fontSize: '12px' }}>{timeAgo(lead.created_at)}</td>
                   <td style={s.td}>
-                    <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                       style={{ background: '#EAF3DE', color: '#3B6D11', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', textDecoration: 'none' }}
                       onClick={e => e.stopPropagation()}>
                       💬 WA
@@ -159,6 +177,7 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
             </div>
             {[
               { l: 'WhatsApp', v: selected.whatsapp },
+              { l: 'Email', v: selected.email || '—' },
               { l: 'Interés', v: selected.producto || '—' },
               { l: 'Etapa', v: ETAPA_LABELS[selected.etapa || 'nuevo'] },
               { l: 'Fuente', v: selected.fuente || 'landing' },
@@ -170,10 +189,18 @@ export function LeadsTable({ initialLeads, userId }: { initialLeads: Lead[], use
                 <span style={{ fontWeight: 500, color: '#1a1a18', textAlign: 'right', maxWidth: '60%' }}>{row.v}</span>
               </div>
             ))}
-            <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'block', textAlign: 'center', marginTop: '1.25rem', padding: '11px', background: '#25D366', color: '#fff', borderRadius: '10px', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}>
-              💬 Abrir en WhatsApp
-            </a>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '1.25rem' }}>
+              <a href={`https://wa.me/${selected.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                style={{ flex: 1, display: 'block', textAlign: 'center', padding: '11px', background: '#25D366', color: '#fff', borderRadius: '10px', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}>
+                💬 WhatsApp
+              </a>
+              {selected.email && (
+                <a href={`mailto:${selected.email}`}
+                  style={{ flex: 1, display: 'block', textAlign: 'center', padding: '11px', background: '#185FA5', color: '#fff', borderRadius: '10px', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}>
+                  ✉️ Email
+                </a>
+              )}
+            </div>
           </div>
         </div>
       )}

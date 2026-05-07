@@ -146,8 +146,8 @@ export async function POST(req: NextRequest) {
       ${productoHtml}
       <div style="font-size:15px;color:#4b5563;line-height:1.7;white-space:pre-wrap;">${campana.cuerpo_email}</div>
       <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;">
-        <a href="${waLink}" style="padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp</a>
-        <a href="${landingUrl}" style="padding:12px 24px;background:#FF6B2B;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">Ver mi página →</a>
+<a href="https://ventas10x.co/api/track/click?c=${campana_id}&ct=${contacto.id}&t=whatsapp&r=${encodeURIComponent(waLink)}" style="padding:12px 24px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">💬 WhatsApp</a>
+<a href="https://ventas10x.co/api/track/click?c=${campana_id}&ct=${contacto.id}&t=landing&r=${encodeURIComponent(landingUrl)}" style="padding:12px 24px;background:#FF6B2B;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">Ver mi página →</a>
       </div>
     </div>
     <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;">

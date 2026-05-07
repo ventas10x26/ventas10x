@@ -78,9 +78,8 @@ function buildSystemPrompt(
   productos: { nombre: string; descripcion?: string | null; precio?: string | null }[],
   config: { titulo?: string | null; subtitulo?: string | null; producto?: string | null } | null,
   bot: Bot | null,
-  convData: { nombre?: string | null; whatsapp?: string | null }
+  convData: { nombre?: string | null; whatsapp?: string | null; email?: string | null }
 ): string {
-  // El bot manda: si tiene nombre/industria/empresa, ESOS van. Si no, fallback al profile.
   const nombreAsesor =
     bot?.nombre?.trim() ||
     [perfil.nombre, perfil.apellido].filter(Boolean).join(' ') ||
@@ -89,7 +88,6 @@ function buildSystemPrompt(
   const industria = (bot?.industria?.trim() || perfil.industria?.trim() || 'default').toLowerCase()
   const tono = bot?.tono?.trim() || 'amigable y profesional'
 
-  // Catálogo: combina la tabla productos + el campo libre del bot si existe
   const catalogoTablaTexto = productos.length > 0
     ? productos.map(p => {
         const precio = p.precio ? ` — ${p.precio}` : ''
@@ -114,6 +112,7 @@ function buildSystemPrompt(
   const datosVisitante = [
     convData.nombre   ? `Nombre: ${convData.nombre}`     : null,
     convData.whatsapp ? `WhatsApp: ${convData.whatsapp}` : null,
+    convData.email    ? `Email: ${convData.email}`        : null,
   ].filter(Boolean).join('\n') || 'Aún desconocidos'
 
   const guiaIndustria: Record<string, string> = {
@@ -134,7 +133,7 @@ function buildSystemPrompt(
     : ''
 
   return `Eres el asistente virtual de ${nombreAsesor} de ${empresa}.
-Tu trabajo: atender visitantes de su landing, responder preguntas del catálogo, calificar prospectos y capturar nombre y WhatsApp.
+Tu trabajo: atender visitantes de su landing, responder preguntas del catálogo, calificar prospectos y capturar nombre, WhatsApp y email.
 
 ## Personalidad y tono
 - Tu tono es: ${tono}.
@@ -158,14 +157,18 @@ ${datosVisitante}
 3. Muestra 1-2 productos/servicios relevantes del catálogo.
 4. Pregunta presupuesto y urgencia (cuando aplique).
 5. Pide nombre y número de WhatsApp para que ${nombreAsesor} le haga seguimiento.
-6. Confirma que ${nombreAsesor} le contactará pronto.
+6. Pide el email para enviarle información detallada por correo también.
+7. Confirma que ${nombreAsesor} le contactará pronto por WhatsApp y email.
 
 ## REGLA CRÍTICA
-Cuando tengas nombre Y WhatsApp del visitante, incluye al FINAL de tu mensaje este JSON (el visitante no lo verá):
-{"accion":"crear_lead","nombre":"...","whatsapp":"...","interes":"..."}
+Cuando tengas nombre, WhatsApp Y email del visitante, incluye al FINAL de tu mensaje este JSON (el visitante no lo verá):
+{"accion":"crear_lead","nombre":"...","whatsapp":"...","email":"...","interes":"..."}
+
+Si el visitante no quiere dar email, procede igual con solo nombre y WhatsApp:
+{"accion":"crear_lead","nombre":"...","whatsapp":"...","email":null,"interes":"..."}
 
 Si quiere agendar cita:
-{"accion":"agendar_cita","nombre":"...","whatsapp":"...","fecha":"..."}
+{"accion":"agendar_cita","nombre":"...","whatsapp":"...","email":"...","fecha":"..."}
 
 Si se despide sin datos:
 {"accion":"sin_datos"}`
@@ -186,7 +189,6 @@ export async function POST(req: NextRequest) {
     }
     const { perfil, productos, config, bot } = contexto
 
-    // Si el bot está marcado como inactivo, responder con un mensaje cordial
     if (bot && bot.activo === false) {
       return NextResponse.json({
         reply: 'En este momento el asistente virtual está pausado. Por favor escríbenos directamente por WhatsApp y te atenderemos pronto.',
@@ -194,11 +196,12 @@ export async function POST(req: NextRequest) {
         lead_creado: false,
         lead_id: null,
         accion: null,
+        datos_lead: null,
       })
     }
 
     let convId = conversacion_id
-    let convData: { nombre?: string | null; whatsapp?: string | null } = {}
+    let convData: { nombre?: string | null; whatsapp?: string | null; email?: string | null } = {}
 
     if (convId) {
       const { data } = await supabase
@@ -275,6 +278,8 @@ export async function POST(req: NextRequest) {
         estado:   'calificado',
       }).eq('id', convId)
 
+      const emailLead = accion.email?.trim() || null
+
       const { data: leadExistente } = await supabase
         .from('leads')
         .select('id')
@@ -294,6 +299,7 @@ export async function POST(req: NextRequest) {
             vendedor_id: perfil.id,
             nombre:      accion.nombre ?? 'Visitante',
             whatsapp:    accion.whatsapp,
+            email:       emailLead,
             producto:    interes || null,
             fuente:      'bot_landing',
             slug_origen: slug,
@@ -385,6 +391,12 @@ export async function POST(req: NextRequest) {
       lead_creado:     !!leadId,
       lead_id:         leadId,
       accion:          accion?.accion ?? null,
+      datos_lead: accion ? {
+        nombre:   accion.nombre   ?? null,
+        whatsapp: accion.whatsapp ?? null,
+        email:    accion.email    ?? null,
+        interes:  accion.interes  ?? null,
+      } : null,
     })
 
   } catch (error) {

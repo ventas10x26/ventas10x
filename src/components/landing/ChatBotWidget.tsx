@@ -51,7 +51,7 @@ export default function ChatBotWidget({
   const [notifBurbuja, setNotifBurbuja] = useState(true)
   const [formVisible, setFormVisible]   = useState(false)
   const [botonesIniciales, setBotonesIniciales] = useState(true)
-  const [leadForm, setLeadForm]         = useState({ nombre: '', whatsapp: '', interes: '' })
+  const [leadForm, setLeadForm]         = useState({ nombre: '', whatsapp: '', email: '', interes: '' })
   const [submitting, setSubmitting]     = useState(false)
   const [formSent, setFormSent]         = useState(false)
   const chatRef  = useRef<HTMLDivElement>(null)
@@ -63,11 +63,7 @@ export default function ChatBotWidget({
       const mensajeInicial = bienvenida?.trim()
         ? bienvenida.trim()
         : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
-      setMensajes([{
-        role: 'assistant',
-        text: mensajeInicial,
-        timestamp: new Date(),
-      }])
+      setMensajes([{ role: 'assistant', text: mensajeInicial, timestamp: new Date() }])
       setBotonesIniciales(true)
     }
     if (abierto) {
@@ -80,9 +76,18 @@ export default function ChatBotWidget({
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
   }, [mensajes, cargando, formVisible, botonesIniciales])
 
-  const mostrarFormulario = useCallback(() => {
+  const mostrarFormulario = useCallback((datosBot?: { nombre?: string; whatsapp?: string; email?: string; interes?: string }) => {
     if (!formVisible && !formSent) {
       setFormVisible(true)
+      // Autocompletar con datos capturados por el bot
+      if (datosBot) {
+        setLeadForm(prev => ({
+          nombre:   datosBot.nombre   || prev.nombre,
+          whatsapp: datosBot.whatsapp || prev.whatsapp,
+          email:    datosBot.email    || prev.email,
+          interes:  datosBot.interes  || prev.interes,
+        }))
+      }
       setMensajes(prev => [...prev, { role: 'form', timestamp: new Date() }])
     }
   }, [formVisible, formSent])
@@ -118,7 +123,7 @@ export default function ChatBotWidget({
 
       const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
       if (data.accion === 'crear_lead' || data.accion === 'agendar_cita' || userMsgCount >= 4) {
-        setTimeout(mostrarFormulario, 600)
+        setTimeout(() => mostrarFormulario(data.datos_lead), 600)
       }
     } catch {
       setMensajes(prev => [...prev, {
@@ -144,6 +149,7 @@ export default function ChatBotWidget({
           slug,
           nombre: leadForm.nombre,
           whatsapp: leadForm.whatsapp,
+          email: leadForm.email || null,
           producto: leadForm.interes,
           fuente: 'bot_landing',
           etapa: 'nuevo',
@@ -177,7 +183,12 @@ export default function ChatBotWidget({
     marginBottom: '6px',
   }
 
-  // Opciones iniciales: campaña primero, luego productos
+  const inputFilledStyle = {
+    ...inputStyle,
+    background: 'rgba(255,255,255,.18)',
+    borderColor: 'rgba(255,255,255,.5)',
+  }
+
   const tieneOpciones = campanaDestacada?.titulo || productosIniciales.length > 0
   const mostrarBotones = botonesIniciales && mensajes.length === 1 && tieneOpciones
 
@@ -228,10 +239,40 @@ export default function ChatBotWidget({
                       <div style={{ background: '#0f1c2e', borderRadius: '14px', padding: '1rem' }}>
                         <div style={{ fontSize: '15px', fontWeight: 700, color: colorAcento, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>CONTÁCTAME AHORA</div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>¿Listo para tu cotización?</div>
-                        <div style={{ fontSize: '15px', color: 'rgba(255,255,255,.6)', marginBottom: '10px' }}>Te respondemos en menos de 30 minutos.</div>
-                        <input style={inputStyle} placeholder="Tu nombre completo" value={leadForm.nombre} onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))} />
-                        <input style={inputStyle} placeholder="Tu WhatsApp (+57 300...)" value={leadForm.whatsapp} onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))} />
-                        <input style={{ ...inputStyle, marginBottom: '10px' }} placeholder="¿Qué te interesa? (opcional)" value={leadForm.interes} onChange={e => setLeadForm(f => ({ ...f, interes: e.target.value }))} />
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)', marginBottom: '12px' }}>Te respondemos en menos de 30 minutos.</div>
+
+                        <input
+                          style={leadForm.nombre ? inputFilledStyle : inputStyle}
+                          placeholder="Tu nombre completo"
+                          value={leadForm.nombre}
+                          onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))}
+                        />
+                        <input
+                          style={leadForm.whatsapp ? inputFilledStyle : inputStyle}
+                          placeholder="Tu WhatsApp (+57 300...)"
+                          value={leadForm.whatsapp}
+                          onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))}
+                        />
+                        <input
+                          style={leadForm.email ? inputFilledStyle : inputStyle}
+                          placeholder="Tu email (opcional)"
+                          type="email"
+                          value={leadForm.email}
+                          onChange={e => setLeadForm(f => ({ ...f, email: e.target.value }))}
+                        />
+                        <input
+                          style={{ ...(leadForm.interes ? inputFilledStyle : inputStyle), marginBottom: '10px' }}
+                          placeholder="¿Qué te interesa? (opcional)"
+                          value={leadForm.interes}
+                          onChange={e => setLeadForm(f => ({ ...f, interes: e.target.value }))}
+                        />
+
+                        {(leadForm.nombre || leadForm.whatsapp || leadForm.email) && (
+                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: '#4ade80' }}>✓</span> Datos completados automáticamente desde el chat
+                          </div>
+                        )}
+
                         <button
                           onClick={submitForm}
                           disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()}
@@ -270,17 +311,12 @@ export default function ChatBotWidget({
               )
             })}
 
-            {/* Botones de selección inicial — DESPUÉS del mensaje de bienvenida */}
             {mostrarBotones && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', animation: 'botFadeUp .3s ease' }}>
                 {campanaDestacada?.titulo && (
                   <button
                     onClick={() => seleccionarOpcion(`Me interesa: ${campanaDestacada.titulo}`)}
-                    style={{
-                      padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`,
-                      background: `${colorAcento}15`, color: colorAcento, fontWeight: 700,
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                    }}
+                    style={{ padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`, background: `${colorAcento}15`, color: colorAcento, fontWeight: 700, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}
                   >
                     🔥 {campanaDestacada.titulo}
                   </button>
@@ -289,22 +325,14 @@ export default function ChatBotWidget({
                   <button
                     key={idx}
                     onClick={() => seleccionarOpcion(`Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`)}
-                    style={{
-                      padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb',
-                      background: '#fff', color: '#0f1c2e', fontWeight: 600,
-                      fontSize: '14px', cursor: 'pointer', textAlign: 'left',
-                    }}
+                    style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#0f1c2e', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}
                   >
                     {p.nombre}{p.precio ? ` — ${p.precio}` : ''}
                   </button>
                 ))}
                 <input
                   placeholder="Estoy interesado en..."
-                  style={{
-                    padding: '10px 14px', borderRadius: '12px',
-                    border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none',
-                    fontFamily: 'inherit',
-                  }}
+                  style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }}
                   onKeyDown={e => {
                     if (e.key === 'Enter') {
                       const val = (e.target as HTMLInputElement).value.trim()

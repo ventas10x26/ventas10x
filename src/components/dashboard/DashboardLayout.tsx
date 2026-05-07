@@ -19,6 +19,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Resumen', icon: '▦' },
+  { href: '/dashboard/metricas', label: 'Métricas', icon: '📊' },
   { href: '/dashboard/leads', label: 'Mis leads', icon: '◎' },
   { href: '/dashboard/pipeline', label: 'Pipeline', icon: '⊟' },
   {

@@ -50,20 +50,24 @@ function renderDescripcion(texto: string): React.ReactNode {
 
 function DescripcionExpandible({ descripcion, colorAcento }: { descripcion: string; colorAcento: string }) {
   const [expandida, setExpandida] = useState(false)
-  const LIMITE = 200
+  const LIMITE = 150
   const esCortada = descripcion.length > LIMITE
 
-  const textoMostrar = expandida || !esCortada
-    ? descripcion
-    : descripcion.slice(0, LIMITE).replace(/\*\*[^*]*$/, '') + '...'
-
   return (
-    <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '12px', flex: 1, whiteSpace: 'pre-wrap' }}>
-      {renderDescripcion(textoMostrar)}
+    <div style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '12px', flex: 1 }}>
+      <div style={{
+        whiteSpace: 'pre-wrap',
+        overflow: expandida ? 'visible' : 'hidden',
+        display: expandida ? 'block' : '-webkit-box',
+        WebkitLineClamp: expandida ? 'unset' : 4,
+        WebkitBoxOrient: 'vertical' as const,
+      }}>
+        {renderDescripcion(descripcion)}
+      </div>
       {esCortada && (
         <button
           onClick={e => { e.stopPropagation(); setExpandida(v => !v) }}
-          style={{ display: 'block', marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', color: colorAcento, fontSize: '0.8rem', fontWeight: 700, padding: 0 }}
+          style={{ display: 'inline-block', marginTop: '4px', background: 'none', border: 'none', cursor: 'pointer', color: colorAcento, fontSize: '0.8rem', fontWeight: 700, padding: 0 }}
         >
           {expandida ? 'Ver menos ↑' : 'Ver más ↓'}
         </button>

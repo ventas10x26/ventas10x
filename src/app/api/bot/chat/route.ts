@@ -385,6 +385,10 @@ export async function POST(req: NextRequest) {
         })()
       } else {
         leadId = leadExistente?.id ?? null
+        // Si el lead ya existe pero no tiene email, actualizarlo
+        if (leadId && emailLead) {
+          await supabase.from('leads').update({ email: emailLead }).eq('id', leadId).is('email', null)
+        }
       }
     }
 

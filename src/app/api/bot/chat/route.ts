@@ -256,12 +256,14 @@ export async function POST(req: NextRequest) {
 
     const rawReply = (response.content[0] as { type: string; text: string }).text
 
-    let replyTexto = rawReply
+    // Limpiar backticks que el modelo a veces agrega alrededor del JSON
+    const cleanReply = rawReply.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+    let replyTexto = cleanReply
     let accion: Record<string, string> | null = null
     let datosCapturados: Record<string, string> | null = null
 
     // Extraer todos los JSONs del reply
-    const jsonMatches = rawReply.match(/\{"accion":.*?\}/g) || []
+    const jsonMatches = cleanReply.match(/\{"accion":.*?\}/g) || []
     for (const match of jsonMatches) {
       try {
         const parsed = JSON.parse(match)
@@ -273,6 +275,8 @@ export async function POST(req: NextRequest) {
         }
       } catch { /* ignorar */ }
     }
+    // Limpiar cualquier backtick residual del texto visible
+    replyTexto = replyTexto.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     // Si no hay accion separada, usar datosCapturados como accion si tiene whatsapp
     if (!accion && datosCapturados?.whatsapp) {
       accion = { ...datosCapturados, accion: 'crear_lead' }

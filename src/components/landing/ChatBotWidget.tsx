@@ -57,6 +57,7 @@ export default function ChatBotWidget({
   const chatRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const sessionId = useRef(getOrCreateSessionId())
+  const datosCapturados = useRef<{ nombre?: string; whatsapp?: string; email?: string; interes?: string }>({})
 
   useEffect(() => {
     if (abierto && mensajes.length === 0) {
@@ -122,10 +123,17 @@ export default function ChatBotWidget({
       }])
 
       const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
+
+      // Acumular datos capturados progresivamente
+      if (data.datos_lead?.nombre) datosCapturados.current.nombre = data.datos_lead.nombre
+      if (data.datos_lead?.whatsapp) datosCapturados.current.whatsapp = data.datos_lead.whatsapp
+      if (data.datos_lead?.email) datosCapturados.current.email = data.datos_lead.email
+      if (data.datos_lead?.interes) datosCapturados.current.interes = data.datos_lead.interes
+
       if (data.accion === 'crear_lead' || data.accion === 'agendar_cita') {
-        setTimeout(() => mostrarFormulario(data.datos_lead), 600)
-      } else if (userMsgCount >= 4) {
-        setTimeout(() => mostrarFormulario(), 600)
+        setTimeout(() => mostrarFormulario({ ...datosCapturados.current, ...data.datos_lead }), 600)
+      } else if (userMsgCount >= 3) {
+        setTimeout(() => mostrarFormulario(datosCapturados.current), 600)
       }
     } catch {
       setMensajes(prev => [...prev, {

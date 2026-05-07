@@ -161,17 +161,18 @@ ${datosVisitante}
 7. Confirma que ${nombreAsesor} le contactará pronto por WhatsApp y email.
 
 ## REGLA CRÍTICA
-Cuando tengas nombre Y WhatsApp del visitante, incluye INMEDIATAMENTE al FINAL de tu mensaje este JSON (el visitante no lo verá):
+En CADA mensaje donde captures datos del visitante, incluye al FINAL este JSON (el visitante no lo verá):
+{"accion":"datos_capturados","nombre":"...","whatsapp":"...","email":"...","interes":"..."}
+
+Usa null para los campos que aún no tengas. Actualiza el JSON en CADA respuesta con los datos más recientes.
+Ejemplo si solo tienes nombre: {"accion":"datos_capturados","nombre":"Ricardo","whatsapp":null,"email":null,"interes":"Nevera LG"}
+Ejemplo con todo: {"accion":"datos_capturados","nombre":"Ricardo","whatsapp":"3001234567","email":"r@gmail.com","interes":"Nevera LG"}
+
+Cuando tengas nombre + WhatsApp (email opcional), también incluye:
 {"accion":"crear_lead","nombre":"...","whatsapp":"...","email":"...","interes":"..."}
 
-El email es OPCIONAL. Si no lo tienes, usa null:
-{"accion":"crear_lead","nombre":"...","whatsapp":"...","email":null,"interes":"..."}
-
-NO esperes el email para disparar el JSON. Con nombre + WhatsApp es suficiente para crear el lead.
-Después de disparar el JSON puedes seguir preguntando el email si quieres.
-
 Si quiere agendar cita:
-{"accion":"agendar_cita","nombre":"...","whatsapp":"...","email":null,"fecha":"..."}
+{"accion":"agendar_cita","nombre":"...","whatsapp":"...","email":"...","fecha":"..."}
 
 Si se despide sin datos:
 {"accion":"sin_datos"}`
@@ -257,13 +258,24 @@ export async function POST(req: NextRequest) {
 
     let replyTexto = rawReply
     let accion: Record<string, string> | null = null
+    let datosCapturados: Record<string, string> | null = null
 
-    const jsonMatch = rawReply.match(/\{"accion":.*?\}/)
-    if (jsonMatch) {
+    // Extraer todos los JSONs del reply
+    const jsonMatches = rawReply.match(/\{"accion":.*?\}/g) || []
+    for (const match of jsonMatches) {
       try {
-        accion = JSON.parse(jsonMatch[0])
-        replyTexto = rawReply.replace(jsonMatch[0], '').trim()
+        const parsed = JSON.parse(match)
+        replyTexto = replyTexto.replace(match, '').trim()
+        if (parsed.accion === 'datos_capturados') {
+          datosCapturados = parsed
+        } else {
+          accion = parsed
+        }
       } catch { /* ignorar */ }
+    }
+    // Si no hay accion separada, usar datosCapturados como accion si tiene whatsapp
+    if (!accion && datosCapturados?.whatsapp) {
+      accion = { ...datosCapturados, accion: 'crear_lead' }
     }
 
     await supabase.from('bot_mensajes').insert({
@@ -385,11 +397,15 @@ export async function POST(req: NextRequest) {
         })()
       } else {
         leadId = leadExistente?.id ?? null
-        // Si el lead ya existe pero no tiene email, actualizarlo
-        if (leadId && emailLead) {
-          await supabase.from('leads').update({ email: emailLead }).eq('id', leadId).is('email', null)
-        }
       }
+    }
+
+    // Combinar datos de accion y datosCapturados para el widget
+    const todosLosDatos = {
+      nombre:   accion?.nombre   ?? datosCapturados?.nombre   ?? null,
+      whatsapp: accion?.whatsapp ?? datosCapturados?.whatsapp ?? null,
+      email:    accion?.email    ?? datosCapturados?.email    ?? null,
+      interes:  accion?.interes  ?? datosCapturados?.interes  ?? null,
     }
 
     return NextResponse.json({
@@ -398,12 +414,7 @@ export async function POST(req: NextRequest) {
       lead_creado:     !!leadId,
       lead_id:         leadId,
       accion:          accion?.accion ?? null,
-      datos_lead: accion ? {
-        nombre:   accion.nombre   ?? null,
-        whatsapp: accion.whatsapp ?? null,
-        email:    accion.email    ?? null,
-        interes:  accion.interes  ?? null,
-      } : null,
+      datos_lead:      todosLosDatos,
     })
 
   } catch (error) {

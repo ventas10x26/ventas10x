@@ -1,6 +1,4 @@
 // Ruta destino: src/app/api/bot-lead/route.ts
-// REEMPLAZA. Email ULTRA disruptivo con mensaje IA + plantillas rápidas.
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
@@ -17,7 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: NextRequest) {
   try {
-    const { bot_id, vendedor_id: rawVendedorId, slug, nombre, whatsapp, producto, fuente, etapa } = await req.json()
+    const { bot_id, vendedor_id: rawVendedorId, slug, nombre, whatsapp, email, producto, fuente, etapa } = await req.json()
 
     let vendedor_id = rawVendedorId
     if (!vendedor_id && slug) {
@@ -29,25 +27,55 @@ export async function POST(req: NextRequest) {
       vendedor_id = profile?.id ?? null
     }
 
-    const { data: lead, error } = await supabase
+    // Verificar si ya existe un lead con este whatsapp para este vendedor
+    const { data: leadExistente } = await supabase
       .from('leads')
-      .insert([{
-        bot_id,
-        vendedor_id,
-        nombre,
-        whatsapp,
-        producto,
-        fuente: fuente || 'bot_ia',
-        etapa: etapa || 'nuevo',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
-      .select()
-      .single()
+      .select('id, email')
+      .eq('vendedor_id', vendedor_id)
+      .eq('whatsapp', whatsapp)
+      .maybeSingle()
+
+    let lead
+    let error
+
+    if (leadExistente) {
+      // Actualizar email si no lo tenía
+      const updateData: Record<string, string> = { updated_at: new Date().toISOString() }
+      if (email && !leadExistente.email) updateData.email = email
+      if (producto) updateData.producto = producto
+
+      const res = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', leadExistente.id)
+        .select()
+        .single()
+      lead = res.data
+      error = res.error
+    } else {
+      const res = await supabase
+        .from('leads')
+        .insert([{
+          bot_id,
+          vendedor_id,
+          nombre,
+          whatsapp,
+          email: email || null,
+          producto,
+          fuente: fuente || 'bot_ia',
+          etapa: etapa || 'nuevo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
+        .select()
+        .single()
+      lead = res.data
+      error = res.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    if (vendedor_id) {
+    if (vendedor_id && !leadExistente) {
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -57,47 +85,33 @@ export async function POST(req: NextRequest) {
 
         const { data: authUser } = await supabase.auth.admin.getUserById(vendedor_id)
         const vendedorEmail = authUser?.user?.email
-
         const vendedorNombre = profile
           ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || 'Asesor'
           : 'Asesor'
 
-        // Generar mensajes IA + enviar notificaciones (no bloquea)
         ;(async () => {
           try {
             const mensajes = await generarMensajesParaLead({
-              nombre,
-              whatsapp,
-              interes: producto,
-              vendedorNombre,
+              nombre, whatsapp, interes: producto, vendedorNombre,
               empresa: profile?.empresa ?? undefined,
               industria: profile?.industria ?? undefined,
             })
 
-            // Email disruptivo
             try {
               if (vendedorEmail) {
                 const { subject, html } = buildEmailLead({
-                  vendedorNombre,
-                  leadNombre: nombre,
-                  leadWhatsApp: whatsapp,
-                  leadInteres: producto,
-                  fuente: fuente || 'bot_ia',
+                  vendedorNombre, leadNombre: nombre, leadWhatsApp: whatsapp,
+                  leadInteres: producto, fuente: fuente || 'bot_ia',
                   mensajePrincipal: mensajes.mensajePrincipal,
                   plantillas: mensajes.plantillas,
                 })
                 await resend.emails.send({
                   from: 'Ventas10x <notificaciones@ventas10x.co>',
-                  to: vendedorEmail,
-                  subject,
-                  html,
+                  to: vendedorEmail, subject, html,
                 })
               }
-            } catch (e) {
-              console.error('bot-lead email error:', e)
-            }
+            } catch (e) { console.error('bot-lead email error:', e) }
 
-            // WhatsApp via CallMeBot (si está configurado)
             try {
               if (profile) {
                 await notificarLeadPorWhatsApp(
@@ -110,12 +124,8 @@ export async function POST(req: NextRequest) {
                   vendedorNombre
                 )
               }
-            } catch (e) {
-              console.error('bot-lead wa error:', e)
-            }
-          } catch (e) {
-            console.error('bot-lead notif error:', e)
-          }
+            } catch (e) { console.error('bot-lead wa error:', e) }
+          } catch (e) { console.error('bot-lead notif error:', e) }
         })()
       } catch (notifError) {
         console.error('bot-lead notif setup error:', notifError)

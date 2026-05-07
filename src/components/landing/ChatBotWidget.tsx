@@ -160,7 +160,7 @@ export default function ChatBotWidget({
           nombre: leadForm.nombre,
           whatsapp: leadForm.whatsapp,
           email: leadForm.email || null,
-          producto: leadForm.interes,
+          producto: leadForm.interes || datosCapturados.current.interes || null,
           fuente: 'bot_landing',
           etapa: 'nuevo',
         }),

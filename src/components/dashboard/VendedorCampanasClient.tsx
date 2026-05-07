@@ -218,6 +218,22 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
   const [enviando, setEnviando] = useState<string | null>(null)
   const [resultado, setResultado] = useState<{ enviados: number; waLinks: string[] } | null>(null)
 
+  // métricas
+  const [campanaSel, setCampanaSel] = useState<string | null>(null)
+  const [clicks, setClicks] = useState<{ tipo: string; created_at: string }[]>([])
+  const [cargandoClicks, setCargandoClicks] = useState(false)
+
+  const verMetricas = async (campanaId: string) => {
+    if (campanaSel === campanaId) { setCampanaSel(null); setClicks([]); return }
+    setCampanaSel(campanaId)
+    setCargandoClicks(true)
+    try {
+      const res = await fetch(`/api/dashboard/campanas/metricas?c=${campanaId}`)
+      const data = await res.json()
+      setClicks(data.clicks || [])
+    } finally { setCargandoClicks(false) }
+  }
+
   // form contacto
   const [formContacto, setFormContacto] = useState({ nombre: '', email: '', whatsapp: '', empresa: '' })
   const [guardandoContacto, setGuardandoContacto] = useState(false)
@@ -506,10 +522,57 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
                   >
                     📋 Duplicar
                   </button>
+                  <button
+                    onClick={() => verMetricas(c.id)}
+                    style={{ padding: '10px 16px', background: campanaSel === c.id ? DARK : '#f1f5f9', color: campanaSel === c.id ? '#fff' : '#374151', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    📊 Métricas
+                  </button>
                   {c.estado !== 'enviada' && (
                     <button onClick={() => enviarCampana(c.id)} disabled={enviando === c.id} style={{ padding: '10px 20px', background: enviando === c.id ? '#e2e8f0' : ORANGE, color: enviando === c.id ? '#94a3b8' : '#fff', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 700, cursor: enviando === c.id ? 'default' : 'pointer' }}>
                       {enviando === c.id ? 'Enviando...' : '🚀 Enviar'}
                     </button>
+                  )}
+                  {campanaSel === c.id && (
+                    <div style={{ width: '100%', marginTop: '16px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>📊 Métricas de clics</div>
+                      {cargandoClicks ? (
+                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>Cargando...</div>
+                      ) : clicks.length === 0 ? (
+                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>Sin clics registrados aún.</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                            {[
+                              { tipo: 'landing', label: '🔗 Ver página', color: '#FF6B2B' },
+                              { tipo: 'whatsapp', label: '💬 WhatsApp', color: '#25D366' },
+                            ].map(t => {
+                              const count = clicks.filter(cl => cl.tipo === t.tipo).length
+                              return (
+                                <div key={t.tipo} style={{ textAlign: 'center', background: '#fff', padding: '16px 24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                  <div style={{ fontSize: '28px', fontWeight: 800, color: t.color }}>{count}</div>
+                                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>{t.label}</div>
+                                </div>
+                              )
+                            })}
+                            <div style={{ textAlign: 'center', background: '#fff', padding: '16px 24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '28px', fontWeight: 800, color: '#3b82f6' }}>{clicks.length}</div>
+                              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Total clics</div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Últimos clics:</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                            {clicks.slice(0, 20).map((cl, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 10px', background: '#fff', borderRadius: '8px', fontSize: '12px' }}>
+                                <span>{cl.tipo === 'landing' ? '🔗' : '💬'}</span>
+                                <span style={{ color: '#64748b' }}>{cl.tipo === 'landing' ? 'Ver página' : 'WhatsApp'}</span>
+                                <span style={{ marginLeft: 'auto', color: '#94a3b8' }}>{new Date(cl.created_at).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

@@ -210,6 +210,7 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
   const [contactos, setContactos] = useState<Contacto[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [fuenteDest, setFuenteDest] = useState<'contactos' | 'leads'>('contactos')
+  const [filtroEtapa, setFiltroEtapa] = useState<string>('todos')
   const [vista, setVista] = useState<'lista' | 'nueva' | 'contactos'>('lista')
   const [cargando, setCargando] = useState(true)
 
@@ -263,8 +264,9 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
     }).finally(() => setCargando(false))
   }, [])
 
+  const leadsFiltrados = filtroEtapa === 'todos' ? leads : leads.filter(l => l.etapa === filtroEtapa)
   const listaActiva = fuenteDest === 'leads'
-    ? leads.map(l => ({ id: l.id, nombre: l.nombre, email: l.email, whatsapp: l.whatsapp, empresa: l.empresa, fuente: `pipeline:${l.etapa}` }))
+    ? leadsFiltrados.map(l => ({ id: l.id, nombre: l.nombre, email: null, whatsapp: l.whatsapp, empresa: null, fuente: `pipeline:${l.etapa}` }))
     : contactos
 
   const contactosFiltrados = listaActiva.filter(c => {
@@ -700,13 +702,31 @@ export function VendedorCampanasClient({ vendedorId: _vendedorId, nombreVendedor
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                     {([{ k: 'contactos', l: `👥 Contactos (${contactos.length})` }, { k: 'leads', l: `🎯 Leads (${leads.length})` }] as const).map(t => (
                       <button key={t.k} onClick={() => { setFuenteDest(t.k); setSelContactos([]) }} style={{ flex: 1, padding: '7px', borderRadius: '10px', border: '1px solid', borderColor: fuenteDest === t.k ? ORANGE : '#e2e8f0', background: fuenteDest === t.k ? `${ORANGE}10` : '#fff', color: fuenteDest === t.k ? ORANGE : '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
                         {t.l}
                       </button>
                     ))}
                   </div>
+                  {fuenteDest === 'leads' && (
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      {[
+                        { k: 'todos', l: '🌐 Todos', color: '#64748b' },
+                        { k: 'nuevo', l: '● Nuevo', color: '#94a3b8' },
+                        { k: 'contactado', l: '● Contactado', color: '#3b82f6' },
+                        { k: 'interesado', l: '● Interesado', color: '#f59e0b' },
+                        { k: 'propuesta', l: '● Propuesta', color: '#a855f7' },
+                        { k: 'negociacion', l: '● Negociación', color: '#f97316' },
+                        { k: 'cerrado', l: '● Cerrado ✓', color: '#22c55e' },
+                      ].map(e => (
+                        <button key={e.k} onClick={() => { setFiltroEtapa(e.k); setSelContactos([]) }}
+                          style={{ padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', border: '1px solid', borderColor: filtroEtapa === e.k ? e.color : '#e2e8f0', background: filtroEtapa === e.k ? e.color : '#fff', color: filtroEtapa === e.k ? '#fff' : '#64748b', transition: 'all .15s' }}>
+                          {e.l} {e.k !== 'todos' ? `(${leads.filter(l => l.etapa === e.k).length})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                     <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={fuenteDest === 'leads' ? 'Buscar lead...' : 'Buscar contacto...'} style={{ flex: 1, padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
                     <button onClick={toggleTodos} style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>

@@ -122,8 +122,10 @@ export default function ChatBotWidget({
       }])
 
       const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
-      if (data.accion === 'crear_lead' || data.accion === 'agendar_cita' || userMsgCount >= 4) {
+      if (data.accion === 'crear_lead' || data.accion === 'agendar_cita') {
         setTimeout(() => mostrarFormulario(data.datos_lead), 600)
+      } else if (userMsgCount >= 4) {
+        setTimeout(() => mostrarFormulario(), 600)
       }
     } catch {
       setMensajes(prev => [...prev, {

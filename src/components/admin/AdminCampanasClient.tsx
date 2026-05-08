@@ -418,7 +418,7 @@ export function AdminCampanasClient({ vendedores, campanasIniciales }: Props) {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '380px', overflowY: 'auto' }}>
                     {vendedoresFiltrados.map(v => {
-                      const nombreV = [v.nombre, v.apellido].filter(Boolean).join(' ') || 'Sin nombre'
+                      const nombreV = [v.nombre, v.apellido].filter(Boolean).join(' ') || v.email?.split('@')[0] || 'Sin nombre'
                       const sel = seleccionados.includes(v.id)
                       return (
                         <div key={v.id} onClick={() => toggleSeleccion(v.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', background: sel ? `${ORANGE}08` : '#f8fafc', border: `1px solid ${sel ? ORANGE + '40' : '#f1f5f9'}` }}>

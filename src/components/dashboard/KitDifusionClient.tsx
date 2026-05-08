@@ -915,15 +915,17 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
             </div>
             <button
               onClick={async () => {
-                let canvas = canvasRef.current
-                if (!canvas) return
-                const isEmpty = canvas.width === 0 || canvas.toDataURL().length < 1000
-                if (isEmpty) {
-                  await generarImagen()
-                  await new Promise(r => setTimeout(r, 300))
-                  canvas = canvasRef.current
-                  if (!canvas) return
+                // Crear canvas en memoria (no depende de la tab Historia estar montada)
+                const canvas = document.createElement('canvas')
+                canvas.width = 1080
+                canvas.height = 1920
+                const ctx = canvas.getContext('2d')
+                if (!ctx) return
+                let avatarImg: HTMLImageElement | null = null
+                if (avatarUrl) {
+                  try { avatarImg = await loadImage(avatarUrl) } catch {}
                 }
+                await drawImageEstatica(ctx, avatarImg)
                 canvas.toBlob(async (blob) => {
                   if (!blob) return
                   const file = new File([blob], `ventas10x-${slug}.png`, { type: 'image/png' })
@@ -938,7 +940,7 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
                     } else {
                       // Desktop: descargar imagen + copiar copy + abrir Instagram Web
                       const link = document.createElement('a')
-                      link.href = canvas!.toDataURL('image/png')
+                      link.href = canvas.toDataURL('image/png')
                       link.download = `ventas10x-${slug}.png`
                       link.click()
                       try {

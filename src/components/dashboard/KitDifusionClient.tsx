@@ -233,7 +233,29 @@ function AgenteKitIA({
 
 type ImagenItem = { url: string; nombre: string }
 
-function PublicarInstagramBtn({ copy }: { copy: string }) {
+function PublicarInstagramBtn({ copy, disabled = false }: { copy: string; disabled?: boolean }) {
+  if (disabled) {
+    return (
+      <button
+        disabled
+        title="Próximamente: integración directa con Instagram. Por ahora usa Compartir."
+        style={{
+          padding: '10px 16px',
+          borderRadius: '12px',
+          background: '#e2e8f0',
+          color: '#94a3b8',
+          border: 'none',
+          fontWeight: 600,
+          fontSize: '13px',
+          cursor: 'not-allowed',
+          opacity: 0.7,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        🔒 Publicar en IG · Próximamente
+      </button>
+    )
+  }
   const [estado, setEstado] = useState<'idle' | 'modal' | 'publicando' | 'ok' | 'error'>('idle')
   const [imagenUrl, setImagenUrl] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
@@ -891,7 +913,41 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
             <div style={{ flex: 1, background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#7c3aed' }}>
               Copia el copy y pegalo como descripcion de tu historia o post.
             </div>
-            <PublicarInstagramBtn copy={copiesIg[idxCopy]} />
+            <button
+              onClick={async () => {
+                const canvas = canvasRef.current
+                if (!canvas) {
+                  alert('Genera primero la imagen en la tab Historia (📸)')
+                  return
+                }
+                canvas.toBlob(async (blob) => {
+                  if (!blob) return
+                  const file = new File([blob], `ventas10x-${slug}.png`, { type: 'image/png' })
+                  const textoCompartir = `${copiesIg[idxCopy]}\n\nhttps://${landingUrl}`
+                  try {
+                    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+                      await navigator.share({
+                        files: [file],
+                        title: `${nombre}${empresa ? ` · ${empresa}` : ''}`,
+                        text: textoCompartir,
+                      })
+                    } else {
+                      const link = document.createElement('a')
+                      link.href = canvas.toDataURL('image/png')
+                      link.download = `ventas10x-${slug}.png`
+                      link.click()
+                      alert('Imagen descargada. Abre Instagram en tu celular y sube la imagen como historia o post.')
+                    }
+                  } catch {
+                    // Usuario canceló el share o error silencioso
+                  }
+                }, 'image/png')
+              }}
+              style={{ padding: '10px 16px', borderRadius: '12px', background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)', color: '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(139,92,246,.3)' }}
+            >
+              📤 Compartir
+            </button>
+            <PublicarInstagramBtn copy={copiesIg[idxCopy]} disabled={true} />
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             {copiesIg.map((_, i) => (

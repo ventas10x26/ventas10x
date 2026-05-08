@@ -231,10 +231,39 @@ function AgenteKitIA({
   )
 }
 
+type ImagenItem = { url: string; nombre: string }
+
 function PublicarInstagramBtn({ copy }: { copy: string }) {
   const [estado, setEstado] = useState<'idle' | 'modal' | 'publicando' | 'ok' | 'error'>('idle')
   const [imagenUrl, setImagenUrl] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [tabImg, setTabImg] = useState<'catalogo' | 'banco' | 'url'>('catalogo')
+  const [imagenes, setImagenes] = useState<ImagenItem[]>([])
+  const [cargandoImgs, setCargandoImgs] = useState(false)
+
+  const cargarImagenes = async (tab: 'catalogo' | 'banco' | 'url') => {
+    setTabImg(tab)
+    if (tab === 'url') return
+    setCargandoImgs(true)
+    try {
+      if (tab === 'catalogo') {
+        const res = await fetch('/api/productos')
+        const data = await res.json()
+        const imgs: ImagenItem[] = []
+        ;(data.productos || []).forEach((p: { nombre: string; imagen_principal: string | null; imagenes_adicionales: string[] | null }) => {
+          if (p.imagen_principal) imgs.push({ url: p.imagen_principal, nombre: p.nombre })
+          ;(p.imagenes_adicionales || []).forEach((u: string) => imgs.push({ url: u, nombre: p.nombre }))
+        })
+        setImagenes(imgs)
+      } else {
+        const res = await fetch('/api/banco-imagenes')
+        const data = await res.json()
+        setImagenes((data.imagenes || []).map((img: { url: string; prompt?: string; nombre?: string }) => ({ url: img.url, nombre: img.prompt || img.nombre || 'Imagen IA' })))
+      }
+    } finally { setCargandoImgs(false) }
+  }
+
+  const abrirModal = () => { setEstado('modal'); cargarImagenes('catalogo') }
 
   const publicar = async () => {
     if (!imagenUrl.trim()) return
@@ -246,81 +275,79 @@ function PublicarInstagramBtn({ copy }: { copy: string }) {
         body: JSON.stringify({ imagen_url: imagenUrl, caption: copy }),
       })
       const data = await res.json()
-      if (data.ok) {
-        setEstado('ok')
-        setTimeout(() => setEstado('idle'), 3000)
-      } else {
-        setErrorMsg(data.error || 'Error publicando')
-        setEstado('error')
-      }
-    } catch {
-      setEstado('error')
-      setErrorMsg('Error de conexión')
-    }
+      if (data.ok) { setEstado('ok'); setTimeout(() => setEstado('idle'), 3000) }
+      else { setErrorMsg(data.error || 'Error publicando'); setEstado('error') }
+    } catch { setEstado('error'); setErrorMsg('Error de conexion') }
   }
 
   if (estado === 'ok') return (
     <div style={{ padding: '10px 16px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', fontSize: '13px', color: '#15803d', fontWeight: 600 }}>
-      ✅ Publicado en Instagram
+      Publicado en Instagram
     </div>
   )
 
   return (
     <>
-      <button
-        onClick={() => setEstado('modal')}
-        style={{ padding: '10px 16px', borderRadius: '12px', background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)', color: '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-      >
-        📷 Publicar en Instagram
+      <button onClick={abrirModal} style={{ padding: '10px 16px', borderRadius: '12px', background: '#833ab4', color: '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        Publicar en Instagram
       </button>
 
       {(estado === 'modal' || estado === 'publicando' || estado === 'error') && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
           onClick={() => setEstado('idle')}>
-          <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '480px' }}
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>📷 Publicar en Instagram</div>
-              <button onClick={() => setEstado('idle')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>Publicar en Instagram</div>
+              <button onClick={() => setEstado('idle')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>x</button>
             </div>
 
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>URL de la imagen (del catálogo o banco IA)</div>
-            <input
-              value={imagenUrl}
-              onChange={e => setImagenUrl(e.target.value)}
-              placeholder="https://..."
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '12px' }}
-            />
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+              {([['catalogo', 'Catalogo'], ['banco', 'Banco IA'], ['url', 'URL manual']] as const).map(([k, l]) => (
+                <button key={k} onClick={() => cargarImagenes(k)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', background: tabImg === k ? '#8b5cf6' : '#f1f5f9', color: tabImg === k ? '#fff' : '#64748b' }}>{l}</button>
+              ))}
+            </div>
 
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>Caption</div>
-            <textarea
-              value={copy}
-              readOnly
-              rows={5}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', fontFamily: 'inherit', resize: 'none', background: '#f8fafc', boxSizing: 'border-box', marginBottom: '16px' }}
-            />
+            {tabImg === 'url' ? (
+              <input value={imagenUrl} onChange={e => setImagenUrl(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '12px' }} />
+            ) : cargandoImgs ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px', marginBottom: '12px' }}>Cargando imagenes...</div>
+            ) : imagenes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '13px', marginBottom: '12px' }}>Sin imagenes disponibles</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', maxHeight: '200px', overflowY: 'auto', marginBottom: '12px' }}>
+                {imagenes.map((img, i) => (
+                  <div key={i} onClick={() => setImagenUrl(img.url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', border: imagenUrl === img.url ? '2px solid #8b5cf6' : '2px solid transparent' }}>
+                    <img src={img.url} alt={img.nombre} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {imagenUrl && (
+              <div style={{ fontSize: '12px', color: '#8b5cf6', marginBottom: '8px', fontWeight: 600 }}>
+                Imagen seleccionada
+              </div>
+            )}
+
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>Caption</div>
+            <textarea value={copy} readOnly rows={4} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', fontFamily: 'inherit', resize: 'none', background: '#f8fafc', boxSizing: 'border-box', marginBottom: '14px' }} />
 
             {estado === 'error' && (
               <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', fontSize: '13px', color: '#dc2626', marginBottom: '12px' }}>
-                ⚠️ {errorMsg}
+                {errorMsg}
               </div>
             )}
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setEstado('idle')} style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#f1f5f9', color: '#374151', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={publicar}
-                disabled={estado === 'publicando' || !imagenUrl.trim()}
-                style={{ flex: 2, padding: '11px', borderRadius: '10px', background: estado === 'publicando' || !imagenUrl.trim() ? '#e2e8f0' : 'linear-gradient(135deg, #833ab4, #fd1d1d)', color: estado === 'publicando' || !imagenUrl.trim() ? '#94a3b8' : '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: estado === 'publicando' || !imagenUrl.trim() ? 'default' : 'pointer' }}
-              >
-                {estado === 'publicando' ? 'Publicando...' : '📷 Publicar ahora'}
+              <button onClick={() => setEstado('idle')} style={{ flex: 1, padding: '11px', borderRadius: '10px', background: '#f1f5f9', color: '#374151', border: 'none', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={publicar} disabled={estado === 'publicando' || !imagenUrl.trim()} style={{ flex: 2, padding: '11px', borderRadius: '10px', background: estado === 'publicando' || !imagenUrl.trim() ? '#e2e8f0' : '#833ab4', color: estado === 'publicando' || !imagenUrl.trim() ? '#94a3b8' : '#fff', border: 'none', fontWeight: 700, fontSize: '13px', cursor: estado === 'publicando' || !imagenUrl.trim() ? 'default' : 'pointer' }}>
+                {estado === 'publicando' ? 'Publicando...' : 'Publicar ahora'}
               </button>
             </div>
 
-            <div style={{ marginTop: '14px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', fontSize: '12px', color: '#92400e' }}>
-              ⚠️ Requiere cuenta de Instagram Business conectada. <a href="/api/instagram/auth" style={{ color: '#d97706', fontWeight: 600 }}>Conectar Instagram →</a>
+            <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', fontSize: '12px', color: '#92400e' }}>
+              Requiere cuenta de Instagram Business. <a href="/api/instagram/auth" style={{ color: '#d97706', fontWeight: 600 }}>Conectar Instagram</a>
             </div>
           </div>
         </div>

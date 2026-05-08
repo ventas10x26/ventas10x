@@ -54,7 +54,7 @@ export default async function AdminPagosPage() {
     return {
       ...pago,
       vendedor_nombre: profile
-        ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || profile.email?.split('@')[0] || 'Sin nombre'
+        ? [profile.nombre, profile.apellido].filter(Boolean).join(' ') || 'Sin nombre'
         : 'Vendedor desconocido',
       vendedor_empresa: profile?.empresa || null,
       vendedor_slug: profile?.slug || null,

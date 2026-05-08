@@ -177,7 +177,7 @@ export function EquipoClient() {
         <div className="divide-y divide-gray-100">
           {miembros.map((m) => {
             const nombre = m.profile
-              ? [m.profile.nombre, m.profile.apellido].filter(Boolean).join(' ').trim() || m.profile.slug || m.profile.email?.split('@')[0] || 'Sin nombre'
+              ? [m.profile.nombre, m.profile.apellido].filter(Boolean).join(' ').trim() || m.profile.slug || 'Sin nombre'
               : 'Sin perfil'
             const initials = nombre.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
             const colors = ROL_COLORS[m.rol]

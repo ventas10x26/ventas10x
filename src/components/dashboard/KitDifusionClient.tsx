@@ -936,11 +936,16 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
                         text: textoCompartir,
                       })
                     } else {
+                      // Desktop: descargar imagen + copiar copy + abrir Instagram Web
                       const link = document.createElement('a')
                       link.href = canvas!.toDataURL('image/png')
                       link.download = `ventas10x-${slug}.png`
                       link.click()
-                      alert('Imagen descargada. Abre Instagram en tu celular y sube la imagen como historia o post.')
+                      try {
+                        await navigator.clipboard.writeText(textoCompartir)
+                      } catch {}
+                      window.open('https://www.instagram.com/', '_blank')
+                      alert('✅ Imagen descargada y copy copiado al portapapeles.\n\nInstagram se abrió en otra pestaña. Sube la imagen y pega el copy con Ctrl+V.')
                     }
                   } catch {
                     // Usuario canceló el share o error silencioso

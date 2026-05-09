@@ -1,6 +1,6 @@
 // Ruta destino: src/components/dashboard/KitDifusionClient.tsx
 'use client'
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 
 const ORANGE = '#FF6B2B'
 const DARK = '#0b1120'
@@ -127,6 +127,17 @@ type KitIA = {
   cuerpo_email: string
   estrategia: { dia: string; hora: string; formato: string; tip: string }[]
   hashtags: string[]
+  estrategia_id?: string
+  created_at?: string
+}
+
+type HistorialItem = {
+  id: string
+  instruccion: string
+  industria: string | null
+  activa: boolean
+  created_at: string
+  total_dias_estrategia: number
 }
 
 function AgenteKitIA({
@@ -395,6 +406,9 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
   const [copiesEmail, setCopiesEmail] = useState(COPIES_EMAIL(nombre, slug, empresa, titulo))
   const [estrategia, setEstrategia] = useState<{ dia: string; hora: string; formato: string; tip: string }[]>([])
   const [hashtags, setHashtags] = useState<string[]>([])
+  const [historial, setHistorial] = useState<HistorialItem[]>([])
+  const [estrategiaActivaId, setEstrategiaActivaId] = useState<string | null>(null)
+  const [activandoId, setActivandoId] = useState<string | null>(null)
 
   const landingUrl = `ventas10x.co/u/${slug}`
 
@@ -406,6 +420,66 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
     }
     if (kit.estrategia?.length) setEstrategia(kit.estrategia)
     if (kit.hashtags?.length) setHashtags(kit.hashtags)
+    if (kit.estrategia_id) {
+      setEstrategiaActivaId(kit.estrategia_id)
+      // Recargar historial para reflejar la nueva activa
+      cargarHistorial()
+    }
+  }
+
+  // Cargar historial al montar
+  const cargarHistorial = async () => {
+    try {
+      const res = await fetch('/api/dashboard/kit-difusion-historial')
+      const data = await res.json()
+      if (data.ok) {
+        setHistorial(data.historial || [])
+        // Si hay activa, aplicarla a las tabs
+        if (data.activa) {
+          handleKitIA({
+            copies_wa: data.activa.copies_wa,
+            copies_ig: data.activa.copies_ig,
+            asunto_email: data.activa.asunto_email || '',
+            cuerpo_email: data.activa.cuerpo_email || '',
+            hashtags: data.activa.hashtags || [],
+            estrategia: data.activa.estrategia || [],
+          })
+          setEstrategiaActivaId(data.activa.id)
+        }
+      }
+    } catch (e) {
+      console.error('cargar historial:', e)
+    }
+  }
+
+  useEffect(() => {
+    cargarHistorial()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const activarEstrategia = async (id: string) => {
+    if (activandoId) return
+    setActivandoId(id)
+    try {
+      const res = await fetch(`/api/dashboard/kit-difusion-historial/${id}/activar`, { method: 'POST' })
+      const data = await res.json()
+      if (data.ok && data.estrategia) {
+        handleKitIA({
+          copies_wa: data.estrategia.copies_wa,
+          copies_ig: data.estrategia.copies_ig,
+          asunto_email: data.estrategia.asunto_email || '',
+          cuerpo_email: data.estrategia.cuerpo_email || '',
+          hashtags: data.estrategia.hashtags || [],
+          estrategia: data.estrategia.estrategia || [],
+        })
+        setEstrategiaActivaId(data.estrategia.id)
+        await cargarHistorial()
+      }
+    } catch (e) {
+      console.error('activar estrategia:', e)
+    } finally {
+      setActivandoId(null)
+    }
   }
 
   // ── Dibuja un frame del canvas ──
@@ -779,6 +853,32 @@ export function KitDifusionClient({ nombre, empresa, industria, slug, colorAcent
 
       {/* Agente IA */}
       <AgenteKitIA nombre={nombre} empresa={empresa} industria={industria} slug={slug} colorAcento={colorAcento} onApply={handleKitIA} />
+
+      {/* Historial de estrategias */}
+      {historial.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '14px 18px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>📚 Estrategias anteriores</div>
+            <select
+              value={estrategiaActivaId || ''}
+              onChange={e => e.target.value && activarEstrategia(e.target.value)}
+              disabled={!!activandoId}
+              style={{ flex: 1, minWidth: '240px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', color: '#374151', background: '#f8fafc', cursor: activandoId ? 'default' : 'pointer', fontFamily: 'inherit' }}
+            >
+              {!estrategiaActivaId && <option value="">Selecciona una estrategia anterior...</option>}
+              {historial.map(h => {
+                const fecha = new Date(h.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+                const label = `${h.activa ? '✓ ' : ''}${fecha} · ${h.instruccion.slice(0, 50)}${h.instruccion.length > 50 ? '...' : ''}`
+                return <option key={h.id} value={h.id}>{label}</option>
+              })}
+            </select>
+            {activandoId && <span style={{ fontSize: '12px', color: '#94a3b8' }}>Cargando...</span>}
+          </div>
+          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+            {historial.length} estrategia{historial.length !== 1 ? 's' : ''} guardada{historial.length !== 1 ? 's' : ''} · La activa se aplica automaticamente al abrir el Kit
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>

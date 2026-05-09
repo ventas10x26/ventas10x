@@ -17,3 +17,6 @@ yarn-debug.log*
 .DS_Store
 .vercel
 .env*.local
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo

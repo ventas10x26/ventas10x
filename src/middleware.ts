@@ -19,7 +19,8 @@ export async function middleware(request: NextRequest) {
   // Detectar si es dominio de Pulse Motor
   const isPulseMotor =
     hostname.includes('pulsemotor.co') ||
-    hostname.includes('pulsemotor.vercel.app')
+    hostname.includes('pulsemotor.vercel.app') ||
+    hostname.includes('pulsemotor.localhost')
 
   // ─── Ruta Pulse Motor ─────────────────────────────────────
   if (isPulseMotor) {

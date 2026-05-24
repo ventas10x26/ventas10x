@@ -7,9 +7,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { buildResponderSystemPrompt, type PulseAgentMetadata } from '@/lib/pulse-agent'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 // Mini-base de conocimiento de modelos KIA top en Colombia
 const PERFILES_MODELO: Record<string, string> = {
@@ -65,6 +73,25 @@ export async function POST(
     const vendedorConcesionario =
       (user.user_metadata?.pulse_concesionario as string) || ''
 
+    // Configuración personalizada del agente (onboarding / centro de entrenamiento)
+    let agentMeta: PulseAgentMetadata | null = null
+    if (user.email) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: waitRow } = await (supabaseAdmin.from('pulse_waitlist') as any)
+        .select('metadata')
+        .ilike('email', user.email.trim())
+        .maybeSingle()
+      if (waitRow?.metadata && typeof waitRow.metadata === 'object') {
+        agentMeta = waitRow.metadata as PulseAgentMetadata
+      }
+    }
+
+    const systemPrompt = buildResponderSystemPrompt(
+      agentMeta,
+      vendedorNombre,
+      vendedorMarca || 'KIA'
+    )
+
     // Detectar modelo y obtener su perfil
     const modeloLower = (lead.modelo || '').toLowerCase()
     let perfilModelo = ''
@@ -79,25 +106,7 @@ export async function POST(
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 800,
-      system: `Eres un experto en redacción de mensajes de WhatsApp para vendedores de concesionarios automotrices en Colombia.
-
-Tu tarea: redactar un mensaje de respuesta al cliente que el VENDEDOR pueda enviar tal cual.
-
-REGLAS CRÍTICAS:
-1. Escribís EN NOMBRE DEL VENDEDOR (primera persona). NUNCA digas "soy una IA" ni nada similar.
-2. Tono cercano, profesional, colombiano. Cero formalidad excesiva.
-3. Máximo 4 líneas / 280 caracteres. WhatsApp es directo.
-4. Empezá saludando al cliente por su nombre.
-5. Mencioná el modelo específico que pidió.
-6. Cerrá con UNA pregunta concreta que invite a responder (no más de una).
-7. Cero emojis excesivos. Máximo 1-2.
-8. NO inventes precios, fechas ni promociones específicas.
-9. Tuteo informal colombiano (vos en Antioquia, tú en costa, "tú/usted" en Cali según contexto).
-
-Responde ÚNICAMENTE con JSON sin backticks:
-{
-  "mensaje": "el texto del mensaje listo para enviar"
-}`,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',

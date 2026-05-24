@@ -6,9 +6,27 @@
 
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
-type Paso = 1 | 2 | 3 | 'analizando' | 'exito'
+const VOZ_MIN_CARACTERES = 40
+const VOZ_MIN_SEGUNDOS = 8
+
+function limpiarTranscripcion(texto: string): string {
+  return texto
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b(\w+)(\s+\1\b)+/gi, '$1')
+}
+
+type Paso = 1 | 2 | 3 | 'voz' | 'analizando' | 'exito'
+
+type AgentConfig = {
+  perfil: string
+  especializacion: string
+  propuesta_valor: string
+  primer_mensaje: string
+  agent_id?: string | null
+}
 
 export default function OnboardingDemo() {
   const [paso, setPaso] = useState<Paso>(1)
@@ -17,64 +35,217 @@ export default function OnboardingDemo() {
   const [nombre, setNombre] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [email, setEmail] = useState('')
-  
-  // Estados para grabación de voz
-  const [grabando, setGrabando] = useState(false)
+  const [agentConfig, setAgentConfig] = useState<AgentConfig | null>(null)
+  const [configError, setConfigError] = useState('')
+
+  // Paso exclusivo: entrenamiento de voz del asesor
+  const [muestraVoz, setMuestraVoz] = useState('')
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [duracionVoz, setDuracionVoz] = useState(0)
+  const [grabandoEntrenamiento, setGrabandoEntrenamiento] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
+  const recognitionEntrenamientoRef = useRef<SpeechRecognition | null>(null)
+  const muestraVozRef = useRef(muestraVoz)
+  const duracionVozRef = useRef(0)
+  const timerVozRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const grabandoEntrenamientoRef = useRef(false)
+  const transcriptFinalRef = useRef('')
+  const transcriptInterimRef = useRef('')
+
+  useEffect(() => {
+    grabandoEntrenamientoRef.current = grabandoEntrenamiento
+  }, [grabandoEntrenamiento])
+
+  useEffect(() => {
+    muestraVozRef.current = muestraVoz
+  }, [muestraVoz])
+
+  const vozListaParaActivar = useMemo(() => {
+    const texto = muestraVoz.trim()
+    return texto.length >= VOZ_MIN_CARACTERES || duracionVoz >= VOZ_MIN_SEGUNDOS
+  }, [muestraVoz, duracionVoz])
+
   const [vozTranscrita, setVozTranscrita] = useState('')
-  const [grabacionLista, setGrabacionLista] = useState(false)
-  const recognitionRef = useRef<any>(null)
+  const [transcripcionFallo, setTranscripcionFallo] = useState(false)
 
-  // Iniciar grabación de voz
-  const iniciarGrabacion = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.')
-      return
+  const aplicarTranscripcionDesdeRefs = useCallback(() => {
+    const texto = limpiarTranscripcion(
+      `${transcriptFinalRef.current} ${transcriptInterimRef.current}`.trim()
+    )
+    if (texto) {
+      setMuestraVoz(texto)
+      muestraVozRef.current = texto
+      setTranscripcionFallo(false)
     }
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'es-CO'
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.maxAlternatives = 1
-
-    let finalTranscript = respuesta2
-
-    recognition.onresult = (event: any) => {
-      let interimTranscript = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript
-        if (event.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + t
-          setRespuesta2(finalTranscript)
-        } else {
-          interimTranscript = t
-        }
-      }
-      setVozTranscrita(interimTranscript)
-    }
-
-    recognition.onend = () => {
-      setGrabando(false)
-      setVozTranscrita('')
-      setGrabacionLista(finalTranscript.trim().length > 0)
-    }
-
-    recognition.onerror = () => {
-      setGrabando(false)
-      setVozTranscrita('')
-    }
-
-    recognitionRef.current = recognition
-    recognition.start()
-    setGrabando(true)
-    setGrabacionLista(false)
-  }, [respuesta2])
-
-  const detenerGrabacion = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
+    setVozTranscrita(transcriptInterimRef.current)
+    return texto
   }, [])
+
+  const detenerEntrenamientoVoz = useCallback(() => {
+    grabandoEntrenamientoRef.current = false
+    setGrabandoEntrenamiento(false)
+
+    if (timerVozRef.current) {
+      clearInterval(timerVozRef.current)
+      timerVozRef.current = null
+    }
+
+    if (recognitionEntrenamientoRef.current) {
+      try {
+        recognitionEntrenamientoRef.current.stop()
+      } catch {
+        /* ya detenido */
+      }
+    }
+
+    // Dar tiempo al navegador para emitir resultados finales antes de cortar el micrófono
+    window.setTimeout(() => {
+      const texto = aplicarTranscripcionDesdeRefs()
+      if (!texto) setTranscripcionFallo(true)
+
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
+      }
+      setVozTranscrita('')
+    }, 600)
+  }, [aplicarTranscripcionDesdeRefs])
+
+  const iniciarEntrenamientoVoz = useCallback(async () => {
+    try {
+      transcriptFinalRef.current = ''
+      transcriptInterimRef.current = ''
+      setMuestraVoz('')
+      setVozTranscrita('')
+      setTranscripcionFallo(false)
+      muestraVozRef.current = ''
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      audioChunksRef.current = []
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setAudioUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev)
+          return URL.createObjectURL(blob)
+        })
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+
+      const SpeechRecognitionCtor =
+        window.SpeechRecognition || window.webkitSpeechRecognition
+
+      if (!SpeechRecognitionCtor) {
+        setTranscripcionFallo(true)
+      } else {
+        const recognition = new SpeechRecognitionCtor()
+        recognition.lang = 'es-CO'
+        recognition.continuous = true
+        recognition.interimResults = true
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let finalPart = ''
+          let interimPart = ''
+          for (let i = 0; i < event.results.length; i++) {
+            const t = event.results[i][0].transcript
+            if (event.results[i].isFinal) finalPart += `${t} `
+            else interimPart += t
+          }
+          transcriptFinalRef.current = limpiarTranscripcion(finalPart)
+          transcriptInterimRef.current = interimPart
+          aplicarTranscripcionDesdeRefs()
+        }
+
+        recognition.onend = () => {
+          if (!grabandoEntrenamientoRef.current) {
+            aplicarTranscripcionDesdeRefs()
+            return
+          }
+          // Chrome corta el reconocimiento tras pausas; reiniciar mientras sigue la grabación
+          try {
+            recognition.start()
+          } catch {
+            /* ignorar si ya está activo */
+          }
+        }
+
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          const err = event.error
+          if (err === 'no-speech' || err === 'aborted') return
+          if (grabandoEntrenamientoRef.current) {
+            try {
+              recognition.start()
+            } catch {
+              /* ignorar */
+            }
+          }
+        }
+
+        recognitionEntrenamientoRef.current = recognition
+        recognition.start()
+      }
+
+      duracionVozRef.current = 0
+      setDuracionVoz(0)
+      timerVozRef.current = setInterval(() => {
+        duracionVozRef.current += 1
+        setDuracionVoz(duracionVozRef.current)
+      }, 1000)
+      grabandoEntrenamientoRef.current = true
+      setGrabandoEntrenamiento(true)
+    } catch {
+      alert('Necesitamos acceso a tu micrófono. Permítelo en el navegador e intenta de nuevo.')
+    }
+  }, [aplicarTranscripcionDesdeRefs])
+
+  const activarAsistente = useCallback(async () => {
+    setConfigError('')
+    setPaso('analizando')
+    try {
+      const res = await fetch('/api/pulse/onboarding/configure-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          whatsapp: whatsapp.trim(),
+          email: email.trim(),
+          estilo_venta: respuesta1.trim(),
+          obstaculo: respuesta2.trim(),
+          muestra_voz: muestraVoz.trim(),
+          duracion_voz_seg: duracionVoz,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'No pudimos configurar el asistente.')
+      }
+      setAgentConfig({
+        perfil: data.perfil,
+        especializacion: data.especializacion,
+        propuesta_valor: data.propuesta_valor,
+        primer_mensaje: data.primer_mensaje,
+        agent_id: data.agent_id,
+      })
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pulse_onboarding_email', email.trim().toLowerCase())
+      }
+      setPaso('exito')
+    } catch (e) {
+      setPaso('voz')
+      setConfigError(e instanceof Error ? e.message : 'No pudimos configurar el asistente. Intenta de nuevo.')
+    }
+  }, [nombre, whatsapp, email, respuesta1, respuesta2, muestraVoz, duracionVoz])
 
   // Estados para simulación de IA
   const [loadingText, setLoadingText] = useState('Cargando catálogo actual de modelos nuevos KIA (Picanto, K3, Sportage, Niro, EV6)...')
@@ -86,6 +257,7 @@ export default function OnboardingDemo() {
         'Modelando fichas técnicas y equipamientos de la gama KIA...',
         'Diseñando tu flujo de seguimiento inteligente de KIA Crédito...',
         'Optimizando motor de respuestas para carros nuevos KIA...',
+        'Entrenando el tono de tu voz en el agente de IA...',
         'Activando tu asistente Speed-to-Lead exclusivo para asesores KIA...'
       ]
       let currentIdx = 0
@@ -96,26 +268,30 @@ export default function OnboardingDemo() {
         }
       }, 1300)
 
-      const timeout = setTimeout(() => {
-        setPaso('exito')
-      }, 6500)
-
-      return () => {
-        clearInterval(interval)
-        clearTimeout(timeout)
-      }
+      return () => clearInterval(interval)
     }
   }, [paso])
 
   // Lógica para calcular porcentaje de progreso de barra superior
+  const getPasoIndice = (): number | null => {
+    if (paso === 'voz') return 4
+    if (typeof paso === 'number') return paso
+    return null
+  }
+
   const getProgressPercentage = () => {
     switch (paso) {
-      case 1: return 20
-      case 2: return 60
-      case 3: return 100
+      case 1: return 25
+      case 2: return 50
+      case 3: return 75
+      case 'voz': return 100
       default: return 100
     }
   }
+
+  const guionVozEntrenamiento = nombre.trim()
+    ? `Hola, soy ${nombre.split(' ')[0]}. Soy asesor de ventas KIA. Así le hablo a un cliente cuando le interesa un carro nuevo: primero le pregunto para qué lo necesita, le explico los equipamientos que más le sirven y le ofrezco simular la cuota con KIA Crédito. Mi meta es responderle al instante y cerrar la venta.`
+    : 'Hola, soy asesor de ventas KIA. Así le hablo a un cliente cuando le interesa un carro nuevo: primero le pregunto para qué lo necesita, le explico equipamientos y simulo la cuota con KIA Crédito.'
 
   // Generar dinámicamente el carro KIA sugerido o mencionado de su portafolio actual
   const getVehiculoKIASugerido = () => {
@@ -601,10 +777,10 @@ export default function OnboardingDemo() {
           </div>
 
           {/* Estado de pasos en la parte superior derecha */}
-          {typeof paso === 'number' && (
+          {getPasoIndice() !== null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#4b5563', letterSpacing: '1px' }}>
-                PASO {paso} <span style={{ color: '#374151' }}>DE 3</span>
+                PASO {getPasoIndice()} <span style={{ color: '#374151' }}>DE 4</span>
               </span>
               
               {/* Barra de progreso visual con punto amarillo brillante */}
@@ -763,7 +939,7 @@ export default function OnboardingDemo() {
                       y tu forma única de negociar.
                     </p>
                     <p className="voice-body">
-                      Este asistente aprende cómo <strong style={{ color: '#e5e7eb' }}>tú hablas, argumentas y cierras</strong> ventas de carros nuevos KIA — no usa guiones genéricos ni respuestas automatizadas planas. Cada mensaje que envíe a tus leads sonará exactamente como si lo hubieras escrito tú.
+                      Este asistente aprende cómo <strong style={{ color: '#e5e7eb' }}>tú hablas, argumentas y cierras</strong> ventas de carros nuevos KIA. En el <strong style={{ color: '#f97316' }}>paso 4 exclusivo</strong> grabarás tu voz para entrenar el tono del agente.
                     </p>
                     <span className="voice-mono-tag">Sin comportamientos generalizados</span>
                   </div>
@@ -1097,6 +1273,12 @@ export default function OnboardingDemo() {
                   </div>
                 </div>
 
+                {configError && (
+                  <p style={{ fontSize: '13px', color: '#f87171', margin: 0 }}>
+                    {configError}
+                  </p>
+                )}
+
                 {/* Botones de navegación */}
                 <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
                   <button
@@ -1120,7 +1302,10 @@ export default function OnboardingDemo() {
                   </button>
 
                   <button
-                    onClick={() => setPaso('analizando')}
+                    onClick={() => {
+                      setConfigError('')
+                      setPaso('voz')
+                    }}
                     disabled={!nombre.trim() || !whatsapp.trim() || !email.trim()}
                     className="yellow-btn"
                     style={{
@@ -1140,10 +1325,218 @@ export default function OnboardingDemo() {
                       fontFamily: 'inherit',
                     }}
                   >
-                    Activar Asistente Pulse KIA 🚀
+                    Entrenar mi voz — Paso exclusivo 🎙️
                   </button>
                 </div>
 
+              </div>
+            )}
+
+            {/* ──────── PASO 4 EXCLUSIVO: ENTRENAMIENTO DE VOZ ──────── */}
+            {paso === 'voz' && (
+              <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    letterSpacing: '1px',
+                  }}>
+                    PASO EXCLUSIVO · ENTRENAMIENTO DE VOZ
+                  </span>
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#facc15',
+                    backgroundColor: 'rgba(250, 204, 21, 0.1)',
+                    border: '1px solid rgba(250, 204, 21, 0.25)',
+                    padding: '5px 12px',
+                    borderRadius: '999px',
+                    letterSpacing: '1px',
+                  }}>
+                    CLON DE TONO IA KIA ⚡
+                  </span>
+                </div>
+
+                <h1
+                  className="serif-title"
+                  style={{
+                    fontSize: 'clamp(30px, 5vw, 48px)',
+                    fontWeight: 400,
+                    lineHeight: '1.15',
+                    letterSpacing: '-1px',
+                    margin: '0',
+                    color: '#ffffff',
+                  }}
+                >
+                  Graba tu voz para <span style={{ color: '#f97316', fontStyle: 'italic' }}>entrenar</span> al agente
+                </h1>
+
+                <p style={{ fontSize: '15px', color: '#9ca3af', lineHeight: '1.65', margin: 0, maxWidth: '580px' }}>
+                  Lee el guion en voz alta (o improvisa con tu estilo). La IA captura tu tono, ritmo y forma de cerrar ventas KIA para que cada mensaje de WhatsApp suene como tú.
+                </p>
+
+                <div
+                  style={{
+                    backgroundColor: 'rgba(3, 7, 18, 0.7)',
+                    border: '1px solid #1e293b',
+                    borderRadius: '14px',
+                    padding: '18px',
+                  }}
+                >
+                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#f97316', letterSpacing: '1px' }}>
+                    GUION SUGERIDO (30–45 SEG)
+                  </span>
+                  <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', margin: '10px 0 0' }}>
+                    {guionVozEntrenamiento}
+                  </p>
+                </div>
+
+                <div
+                  className={`voice-rec-banner${grabandoEntrenamiento ? ' is-recording' : ''}${vozListaParaActivar ? ' is-done' : ''}`}
+                >
+                  <div className="rec-top-row">
+                    <button
+                      type="button"
+                      className={`rec-mic-btn${grabandoEntrenamiento ? ' recording' : ''}${vozListaParaActivar ? ' done' : ''}`}
+                      onClick={() => (grabandoEntrenamiento ? detenerEntrenamientoVoz() : iniciarEntrenamientoVoz())}
+                      aria-label={grabandoEntrenamiento ? 'Detener entrenamiento de voz' : 'Iniciar grabación de voz'}
+                    >
+                      {grabandoEntrenamiento ? '⏹' : vozListaParaActivar ? '✓' : '🎙️'}
+                    </button>
+                    <div className="rec-label-col">
+                      <span className="rec-eyebrow">
+                        {grabandoEntrenamiento ? `GRABANDO · ${duracionVoz}s` : 'ENTRENAMIENTO DE VOZ DEL ASESOR'}
+                      </span>
+                      <span className="rec-title">
+                        {grabandoEntrenamiento ? 'Habla ahora — entrenando tu agente…' : 'Pulsa para grabar tu muestra de voz'}
+                      </span>
+                      <span className="rec-subtitle">
+                        {grabandoEntrenamiento
+                          ? (vozTranscrita || 'Capturando audio y transcribiendo tu tono…')
+                          : `Mínimo ~${VOZ_MIN_SEGUNDOS} s o una frase completa. Chrome/Edge con micrófono.`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {grabandoEntrenamiento && (
+                    <button
+                      type="button"
+                      onClick={detenerEntrenamientoVoz}
+                      style={{
+                        alignSelf: 'flex-start',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(239,68,68,0.5)',
+                        background: 'rgba(239,68,68,0.15)',
+                        color: '#fca5a5',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Finalizar grabación
+                    </button>
+                  )}
+                </div>
+
+                {(muestraVoz.trim().length > 0 || audioUrl) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {audioUrl && (
+                      <audio controls src={audioUrl} style={{ width: '100%', borderRadius: '10px' }} />
+                    )}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#9ca3af', marginBottom: '8px' }}>
+                        Transcripción de tu voz (editable)
+                      </label>
+                      {transcripcionFallo && !muestraVoz.trim() && (
+                        <p style={{ fontSize: '12px', color: '#fbbf24', margin: '0 0 8px' }}>
+                          No detectamos texto automático. Escribe tu guion abajo o vuelve a grabar en Chrome/Edge.
+                        </p>
+                      )}
+                      <textarea
+                        className="custom-textarea"
+                        value={muestraVoz}
+                        placeholder="Aquí aparecerá lo que digas al grabar…"
+                        onChange={(e) => {
+                          const limpio = limpiarTranscripcion(e.target.value)
+                          setMuestraVoz(limpio)
+                          muestraVozRef.current = limpio
+                          if (limpio) setTranscripcionFallo(false)
+                        }}
+                        rows={4}
+                        style={{
+                          width: '100%',
+                          padding: '16px',
+                          borderRadius: '12px',
+                          border: '1px solid #1e293b',
+                          backgroundColor: 'rgba(3, 7, 18, 0.6)',
+                          color: '#ffffff',
+                          fontSize: '14px',
+                          lineHeight: '1.5',
+                          fontFamily: 'inherit',
+                          outline: 'none',
+                          resize: 'vertical',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {configError && (
+                  <p style={{ fontSize: '13px', color: '#f87171', margin: 0 }}>{configError}</p>
+                )}
+
+                <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaso(3)}
+                    style={{
+                      padding: '16px 28px',
+                      borderRadius: '14px',
+                      border: '1px solid #1e293b',
+                      backgroundColor: 'transparent',
+                      color: '#9ca3af',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    type="button"
+                    onClick={activarAsistente}
+                    disabled={!vozListaParaActivar}
+                    className="yellow-btn"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '16px 36px',
+                      borderRadius: '14px',
+                      border: 'none',
+                      backgroundColor: '#f97316',
+                      color: '#ffffff',
+                      fontSize: '15px',
+                      fontWeight: 800,
+                      cursor: !vozListaParaActivar ? 'not-allowed' : 'pointer',
+                      opacity: !vozListaParaActivar ? 0.4 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Activar Asistente Pulse KIA 🚀
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1182,6 +1575,11 @@ export default function OnboardingDemo() {
                   </h1>
                   <p style={{ fontSize: '15px', color: '#9ca3af', maxWidth: '500px', margin: '0 auto' }}>
                     Hola <strong>{nombre.split(' ')[0]}</strong>, hemos configurado tu motor Speed-to-Lead con foco exclusivo en carros nuevos KIA y todo su portafolio actual.
+                    {vozListaParaActivar && (
+                      <span style={{ display: 'block', marginTop: '8px', color: '#4ade80', fontSize: '13px', fontWeight: 700 }}>
+                        ✓ Voz del asesor capturada y entrenada en el agente
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -1207,7 +1605,7 @@ export default function OnboardingDemo() {
                         PERFIL PROFESIONAL DETECTADO
                       </span>
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
-                        Asesor de Ventas KIA 🚗
+                        {agentConfig?.perfil ?? 'Asesor de Ventas KIA 🚗'}
                       </span>
                     </div>
 
@@ -1217,7 +1615,7 @@ export default function OnboardingDemo() {
                         ESPECIALIZACIÓN DE NEGOCIO IA
                       </span>
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
-                        {getVehiculoKIASugerido()}
+                        {agentConfig?.especializacion ?? getVehiculoKIASugerido()}
                       </span>
                     </div>
 
@@ -1229,7 +1627,8 @@ export default function OnboardingDemo() {
                       PROPUESTA DE VALOR DE TU ASISTENTE KIA
                     </span>
                     <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', margin: '0' }}>
-                      Cerrar el 100% de tus leads de carros nuevos KIA en menos de 30 segundos por WhatsApp, resolver consultas sobre fichas técnicas del portafolio actual (Sportage, Niro Híbrido, Picanto, K3) y simular financiaciones con KIA Crédito.
+                      {agentConfig?.propuesta_valor ??
+                        'Cerrar el 100% de tus leads de carros nuevos KIA en menos de 30 segundos por WhatsApp, resolver consultas sobre fichas técnicas del portafolio actual (Sportage, Niro Híbrido, Picanto, K3) y simular financiaciones con KIA Crédito.'}
                     </p>
                   </div>
 
@@ -1256,18 +1655,19 @@ export default function OnboardingDemo() {
                       <span style={{ position: 'absolute', top: '10px', right: '12px', fontSize: '10px', color: '#f97316', fontWeight: 700, textTransform: 'uppercase' }}>
                         Pulse KIA IA
                       </span>
-                      &quot;¡Hola! Soy el asistente virtual de {nombre.split(' ')[0]}. Vi que estabas interesado en cotizar un nuevo KIA de nuestro catálogo actual. Te puedo enviar la ficha técnica o simular tu financiamiento con KIA Crédito al instante. ¿Te gustaría agendar un test drive esta semana? 🚗💨&quot;
+                      &quot;{agentConfig?.primer_mensaje ??
+                        `¡Hola! Soy el asistente virtual de ${nombre.split(' ')[0]}. Vi que estabas interesado en cotizar un nuevo KIA de nuestro catálogo actual. Te puedo enviar la ficha técnica o simular tu financiamiento con KIA Crédito al instante. ¿Te gustaría agendar un test drive esta semana? 🚗💨`}&quot;
                     </div>
                   </div>
 
                 </div>
 
                 {/* Acciones del Dashboard */}
-                <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                   <button
                     className="yellow-btn"
                     style={{
-                      flex: 1,
+                      width: '100%',
                       padding: '16px 24px',
                       borderRadius: '12px',
                       border: 'none',
@@ -1279,46 +1679,78 @@ export default function OnboardingDemo() {
                       fontFamily: 'inherit',
                     }}
                     onClick={() => {
-                      const message = encodeURIComponent(`¡Hola! Acabo de activar mi asistente exclusivo de KIA. Mi nombre es ${nombre} y quiero probar la velocidad de respuesta de mi nuevo asistente de IA.`);
-                      window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
+                      window.location.href = '/pulse/agente?from=onboarding'
                     }}
                   >
-                    Probar Asistente en mi WhatsApp 📲
+                    Entrenar y personalizar mi agente 🤖
                   </button>
 
-                  <button
-                    style={{
-                      flex: 1,
-                      padding: '16px 24px',
-                      borderRadius: '12px',
-                      border: '1px solid #1e293b',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      color: '#ffffff',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f97316'; e.currentTarget.style.backgroundColor = 'rgba(249, 115, 22, 0.05)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'; }}
-                    onClick={() => {
-                      window.location.href = '/pulse/dashboard';
-                    }}
-                  >
-                    Ir al Dashboard de Leads 📊
-                  </button>
+                  <div style={{ display: 'flex', gap: '16px', width: '100%' }}>
+                    <button
+                      className="yellow-btn"
+                      style={{
+                        flex: 1,
+                        padding: '16px 24px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        backgroundColor: 'rgba(249, 115, 22, 0.35)',
+                        color: '#ffffff',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                      onClick={() => {
+                        const texto =
+                          agentConfig?.primer_mensaje ||
+                          `¡Hola! Acabo de activar mi asistente exclusivo de KIA. Mi nombre es ${nombre} y quiero probar la velocidad de respuesta de mi nuevo asistente de IA.`
+                        const message = encodeURIComponent(texto)
+                        window.open(`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}?text=${message}`, '_blank')
+                      }}
+                    >
+                      Probar en WhatsApp 📲
+                    </button>
+
+                    <button
+                      style={{
+                        flex: 1,
+                        padding: '16px 24px',
+                        borderRadius: '12px',
+                        border: '1px solid #1e293b',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        color: '#ffffff',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f97316'; e.currentTarget.style.backgroundColor = 'rgba(249, 115, 22, 0.05)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'; }}
+                      onClick={() => {
+                        window.location.href = '/pulse/dashboard'
+                      }}
+                    >
+                      Dashboard de Leads 📊
+                    </button>
+                  </div>
                 </div>
 
                 {/* Botón para reiniciar */}
                 <button
                   onClick={() => {
-                    setRespuesta1('');
-                    setRespuesta2('');
-                    setNombre('');
-                    setWhatsapp('');
-                    setEmail('');
-                    setPaso(1);
+                    setRespuesta1('')
+                    setRespuesta2('')
+                    setNombre('')
+                    setWhatsapp('')
+                    setEmail('')
+                    setMuestraVoz('')
+                    setDuracionVoz(0)
+                    if (audioUrl) URL.revokeObjectURL(audioUrl)
+                    setAudioUrl(null)
+                    setAgentConfig(null)
+                    setConfigError('')
+                    setPaso(1)
                   }}
                   style={{
                     alignSelf: 'center',

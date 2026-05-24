@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
   { href: '/pulse/dashboard', label: 'Inicio',    icon: '🏠', match: ['/pulse/dashboard'] },
+  { href: '/pulse/agente',    label: 'Mi agente', icon: '🤖', match: ['/pulse/agente'] },
   { href: '/pulse/pipeline',  label: 'Pipeline',  icon: '🎯', match: ['/pulse/pipeline'] },
   { href: '/pulse/metricas',  label: 'Métricas',  icon: '📊', match: ['/pulse/metricas'] },
   { href: '/pulse/perfil',    label: 'Mi cuenta', icon: '👤', match: ['/pulse/perfil'] },

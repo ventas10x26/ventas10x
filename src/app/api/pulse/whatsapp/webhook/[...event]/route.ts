@@ -28,36 +28,50 @@ async function enviarMensaje(instanceName: string, remoteJid: string, mensaje: s
 
 async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt: string; nombre: string }> {
   try {
+    // Reconstruir email desde instanceName (slug inverso)
+    // ricaza81_at_gmail_com → ricaza81@gmail.com
+    const emailGuess = instanceName
+      .replace('_at_', '@')
+      .replace(/_([^_]+)$/, '.$1')
+      .replace(/_/g, '.')
+      .replace(/\.([^.]+)@/, '_$1@') // restaurar guiones bajos antes del @
+
+    console.log('[webhook] buscando agente para instance:', instanceName, 'email guess:', emailGuess)
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabaseAdmin.from('pulse_waitlist') as any)
       .select('nombre, metadata')
-      .limit(100)
+      .ilike('email', emailGuess)
+      .maybeSingle()
 
-    if (!data) return { systemPrompt: '', nombre: 'el asesor' }
+    if (!data) {
+      console.log('[webhook] no encontrado por email, buscando cualquier agente con agent_config')
+      // Fallback: buscar cualquier agente con system_prompt
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: fallback } = await (supabaseAdmin.from('pulse_waitlist') as any)
+        .select('nombre, metadata')
+        .not('metadata->agent_config', 'is', null)
+        .limit(1)
+        .maybeSingle()
 
-    // Buscar por slug del email
-    const row = data.find((r: { nombre: string; metadata: Record<string, unknown> }) => {
-      const email = r.metadata?.whatsapp_instance_name || ''
-      if (email === instanceName) return true
-      // También intentar reconstruir desde el email
-      const emailGuess = Object.keys(r.metadata || {}).find(k => k === 'whatsapp')
-      return !!emailGuess
-    })
+      if (!fallback) return { systemPrompt: '', nombre: 'el asesor' }
 
-    // Si no hay match exacto, tomar el primero que tenga agent_config
-    const agente = row || data.find((r: { metadata: Record<string, unknown> }) => {
-      const cfg = r.metadata?.agent_config as Record<string, unknown> | undefined
-      return !!cfg?.system_prompt
-    })
+      const cfg = fallback.metadata?.agent_config as Record<string, unknown> | undefined
+      console.log('[webhook] usando fallback agente:', fallback.nombre)
+      return {
+        systemPrompt: String(cfg?.system_prompt || ''),
+        nombre: fallback.nombre || 'el asesor',
+      }
+    }
 
-    if (!agente) return { systemPrompt: '', nombre: 'el asesor' }
-
-    const cfg = agente.metadata?.agent_config as Record<string, unknown> | undefined
+    const cfg = data.metadata?.agent_config as Record<string, unknown> | undefined
+    console.log('[webhook] agente encontrado:', data.nombre, 'system_prompt length:', String(cfg?.system_prompt || '').length)
     return {
       systemPrompt: String(cfg?.system_prompt || ''),
-      nombre: agente.nombre || 'el asesor',
+      nombre: data.nombre || 'el asesor',
     }
-  } catch {
+  } catch (e) {
+    console.error('[webhook] obtenerSystemPrompt error:', e)
     return { systemPrompt: '', nombre: 'el asesor' }
   }
 }

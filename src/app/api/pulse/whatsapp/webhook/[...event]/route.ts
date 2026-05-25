@@ -84,9 +84,9 @@ async function generarRespuesta(
 ): Promise<string | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null
   try {
-    const { anthropic, CLAUDE_MODEL } = await import('@/lib/anthropic')
+    const { anthropic } = await import('@/lib/anthropic')
     const msg = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 250,
       system: systemPrompt
         ? `${systemPrompt}

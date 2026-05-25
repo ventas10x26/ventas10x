@@ -28,13 +28,11 @@ async function enviarMensaje(instanceName: string, remoteJid: string, mensaje: s
 
 async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt: string; nombre: string }> {
   try {
-    // Reconstruir email desde instanceName (slug inverso)
-    // ricaza81_at_gmail_com → ricaza81@gmail.com
     const emailGuess = instanceName
       .replace('_at_', '@')
       .replace(/_([^_]+)$/, '.$1')
       .replace(/_/g, '.')
-      .replace(/\.([^.]+)@/, '_$1@') // restaurar guiones bajos antes del @
+      .replace(/\.([^.]+)@/, '_$1@')
 
     console.log('[webhook] buscando agente para instance:', instanceName, 'email guess:', emailGuess)
 
@@ -46,7 +44,6 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
 
     if (!data) {
       console.log('[webhook] no encontrado por email, buscando cualquier agente con agent_config')
-      // Fallback: buscar cualquier agente con system_prompt
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: fallback } = await (supabaseAdmin.from('pulse_waitlist') as any)
         .select('nombre, metadata')
@@ -85,6 +82,20 @@ async function generarRespuesta(
   if (!process.env.ANTHROPIC_API_KEY) return null
   try {
     const { anthropic } = await import('@/lib/anthropic')
+
+    // Sanitizar historial: Anthropic rechaza 400 si hay roles consecutivos iguales
+    const historialLimpio: Array<{ role: 'user' | 'assistant'; content: string }> = []
+    for (const turn of historial.slice(-6)) {
+      const ultimo = historialLimpio[historialLimpio.length - 1]
+      if (ultimo && ultimo.role === turn.role) continue
+      historialLimpio.push(turn)
+    }
+
+    // El array de messages debe terminar en 'assistant' antes del nuevo 'user'
+    if (historialLimpio[historialLimpio.length - 1]?.role === 'user') {
+      historialLimpio.pop()
+    }
+
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 250,
@@ -100,7 +111,7 @@ REGLAS:
 - Si quieren más info, ofrece enviar ficha técnica`
         : `Eres el asistente de ventas de ${nombre}, asesor KIA. Responde en español colombiano, de forma natural y cercana. Máximo 2-3 oraciones.`,
       messages: [
-        ...historial.slice(-6),
+        ...historialLimpio,
         { role: 'user', content: texto },
       ],
     })
@@ -123,7 +134,6 @@ export async function POST(
     const eventPath = event?.join('/') || ''
     console.log(`[webhook] POST /${eventPath}`)
 
-    // Solo procesar mensajes — ignorar otros eventos
     if (!eventPath.includes('messages-upsert') && !eventPath.includes('messages_upsert')) {
       return NextResponse.json({ ok: true, ignored: true })
     }
@@ -131,17 +141,15 @@ export async function POST(
     const body = await req.json()
     console.log('[webhook] body keys:', Object.keys(body))
 
-    // Evolution API v2 estructura: { data: { key, message, ... } } o array
     const instanceName = body.instance || body.instanceName || eventPath.split('/')[0] || ''
 
-    // Los mensajes pueden venir en diferentes estructuras
     let msgs: unknown[] = []
     if (Array.isArray(body.data)) {
       msgs = body.data
     } else if (body.data?.messages) {
       msgs = body.data.messages
     } else if (body.data?.key) {
-      msgs = [body.data] // un solo mensaje
+      msgs = [body.data]
     } else if (body.messages) {
       msgs = body.messages
     }
@@ -152,14 +160,11 @@ export async function POST(
       const m = msg as Record<string, unknown>
       const key = m.key as Record<string, unknown>
 
-      // Ignorar mensajes propios
       if (key?.fromMe) continue
 
-      // Ignorar grupos
       const remoteJid = String(key?.remoteJid || '')
       if (remoteJid.includes('@g.us')) continue
 
-      // Extraer texto
       const message = m.message as Record<string, unknown>
       const texto = String(
         message?.conversation ||
@@ -172,14 +177,11 @@ export async function POST(
 
       console.log(`[webhook] mensaje de ${remoteJid}: "${texto}"`)
 
-      // Obtener config del agente
       const { systemPrompt, nombre } = await obtenerSystemPrompt(instanceName)
 
-      // Historial
       const chatKey = `${instanceName}:${remoteJid}`
       const historial = chatHistory.get(chatKey) || []
 
-      // Generar respuesta
       const respuesta = await generarRespuesta(texto, systemPrompt, nombre, historial)
 
       if (respuesta) {
@@ -187,7 +189,6 @@ export async function POST(
         historial.push({ role: 'assistant', content: respuesta })
         chatHistory.set(chatKey, historial.slice(-10))
 
-        // Delay natural
         await new Promise(r => setTimeout(r, 1000 + Math.random() * 800))
 
         await enviarMensaje(instanceName, remoteJid, respuesta)
@@ -198,7 +199,7 @@ export async function POST(
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[webhook] error:', e)
-    return NextResponse.json({ ok: true }) // siempre 200
+    return NextResponse.json({ ok: true })
   }
 }
 

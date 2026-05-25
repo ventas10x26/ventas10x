@@ -8,7 +8,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 const FROM = 'Pulse Motor <agente@ventas10x.co>'
 
-function htmlEmail(nombre: string, primerNombre: string) {
+function htmlEmail(nombre: string, primerNombre: string, emailTrim: string) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
       from: FROM,
       to: [email.trim().toLowerCase()],
       subject: `${primerNombre}, tu agente KIA ya está entrenado ⚡`,
-      html: htmlEmail(nombre.trim(), primerNombre),
+      html: htmlEmail(nombre.trim(), primerNombre, email.trim().toLowerCase()),
     })
 
     if (error) {

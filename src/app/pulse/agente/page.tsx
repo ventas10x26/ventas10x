@@ -8,6 +8,7 @@ import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { PulseVozRecorder } from '@/components/pulse/PulseVozRecorder'
 import type { PulseAgenteDTO } from '@/lib/pulse-agent'
 import { PulseAudioLogs } from '@/components/pulse/PulseAudioLogs'
+import { PulseWhatsappConnect } from '@/components/pulse/PulseWhatsappConnect'
 
 const EMPTY: PulseAgenteDTO = {
   agent_id: null, email: '', nombre: '', whatsapp: '',
@@ -303,6 +304,14 @@ export default function PulseAgentePage() {
 
             {tab === 'avanzado' && (
               <>
+                <PulseWhatsappConnect
+                  email={form.email}
+                  onConnected={(phone) => {
+                    patch({ whatsapp: phone })
+                    setMensaje('✓ WhatsApp conectado — el bot ya responde automáticamente')
+                  }}
+                />
+
                 <Section title="Datos de contacto">
                   <div style={{ display: 'grid', gap: 12 }}>
                     <div>

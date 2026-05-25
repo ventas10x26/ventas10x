@@ -31,22 +31,45 @@ export async function GET(req: NextRequest) {
 
   const instanceName = slugEmail(email)
 
-  // Verificar si la instancia existe
-  const { ok, data } = await evoFetch(`/instance/fetchInstances?instanceName=${instanceName}`)
+  // fetchInstances sin filtro trae todos — buscar el que coincide
+  const { ok, data } = await evoFetch('/instance/fetchInstances')
 
-  if (!ok || !data || (Array.isArray(data) && data.length === 0)) {
+  if (!ok || !data) {
     return NextResponse.json({ connected: false, status: 'no_instance', instanceName })
   }
 
-  const instance = Array.isArray(data) ? data[0] : data
-  const state = instance?.instance?.state || instance?.state || 'unknown'
+  const instances = Array.isArray(data) ? data : [data]
+  const instance = instances.find((i: Record<string, unknown>) =>
+    i.name === instanceName ||
+    (i.instance as Record<string, unknown>)?.instanceName === instanceName
+  )
+
+  if (!instance) {
+    return NextResponse.json({ connected: false, status: 'no_instance', instanceName })
+  }
+
+  // El estado puede venir en diferentes rutas según la versión de Evolution API
+  const state = (instance.instance as Record<string, unknown>)?.state ||
+    instance.connectionStatus ||
+    instance.state || 'unknown'
+
+  const profileName = (instance.instance as Record<string, unknown>)?.profileName ||
+    instance.profileName || null
+  const ownerJid = (instance.instance as Record<string, unknown>)?.ownerJid ||
+    instance.ownerJid || null
 
   if (state === 'open') {
-    return NextResponse.json({ connected: true, status: 'connected', instanceName, phone: instance?.instance?.profileName })
+    return NextResponse.json({
+      connected: true,
+      status: 'connected',
+      instanceName,
+      phone: ownerJid?.replace('@s.whatsapp.net', '') || profileName,
+      profileName,
+    })
   }
 
   // Si no está conectado, obtener QR
-  if (state === 'connecting' || state === 'close') {
+  if (state === 'connecting' || state === 'close' || state === 'unknown') {
     const { data: qrData } = await evoFetch(`/instance/connect/${instanceName}`)
     return NextResponse.json({
       connected: false,

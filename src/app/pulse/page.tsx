@@ -181,7 +181,7 @@ export default function PulseMotorLanding() {
             🚗 Para vendedores de concesionario automotriz
           </div>
 
-          <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 800, lineHeight: '1.08', letterSpacing: '-1px', margin: '0 0 24px' }}>
+          <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 400, lineHeight: '1.08', letterSpacing: '-1px', margin: '0 0 24px' }}>
             Responde a tus leads en<br />
             <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>30 segundos</span>, aunque estés ocupado.
           </h1>

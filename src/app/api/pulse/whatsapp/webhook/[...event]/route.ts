@@ -45,14 +45,16 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
     })
 
     // Si no hay match exacto, tomar el primero que tenga agent_config
-    const agente = row || data.find((r: { metadata: Record<string, unknown> }) =>
-      r.metadata?.agent_config?.system_prompt
-    )
+    const agente = row || data.find((r: { metadata: Record<string, unknown> }) => {
+      const cfg = r.metadata?.agent_config as Record<string, unknown> | undefined
+      return !!cfg?.system_prompt
+    })
 
     if (!agente) return { systemPrompt: '', nombre: 'el asesor' }
 
+    const cfg = agente.metadata?.agent_config as Record<string, unknown> | undefined
     return {
-      systemPrompt: agente.metadata?.agent_config?.system_prompt || '',
+      systemPrompt: String(cfg?.system_prompt || ''),
       nombre: agente.nombre || 'el asesor',
     }
   } catch {

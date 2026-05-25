@@ -100,10 +100,11 @@ const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content:
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { event: string[] } }
+  context: { params: Promise<{ event: string[] }> }
 ) {
   try {
-    const eventPath = params.event?.join('/') || ''
+    const { event } = await context.params
+    const eventPath = event?.join('/') || ''
     console.log(`[webhook] POST /${eventPath}`)
 
     // Solo procesar mensajes — ignorar otros eventos

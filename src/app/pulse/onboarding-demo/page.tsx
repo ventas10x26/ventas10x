@@ -63,6 +63,34 @@ export default function OnboardingDemo() {
   useEffect(() => { grabandoEntrenamientoRef.current = grabandoEntrenamiento }, [grabandoEntrenamiento])
   useEffect(() => { muestraVozRef.current = muestraVoz }, [muestraVoz])
 
+  // Pre-llenar nombre y email desde Supabase Auth (Google) o sessionStorage (landing)
+  useEffect(() => {
+    const prefill = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data } = await supabase.auth.getUser()
+        if (data.user) {
+          const fullName =
+            (data.user.user_metadata?.full_name as string) ||
+            (data.user.user_metadata?.name as string) || ''
+          if (fullName) setNombre((prev) => prev || fullName)
+          if (data.user.email) setEmail((prev) => prev || data.user!.email!)
+          return
+        }
+      } catch { /* ignorar */ }
+      // Fallback sessionStorage (viene del landing sin login)
+      if (typeof window !== 'undefined') {
+        const sEmail = sessionStorage.getItem('pulse_onboarding_email') || ''
+        const sNombre = sessionStorage.getItem('pulse_onboarding_nombre') || ''
+        if (sEmail) setEmail((prev) => prev || sEmail)
+        if (sNombre) setNombre((prev) => prev || sNombre)
+      }
+    }
+    prefill()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const vozListaParaActivar = useMemo(() => {
     return muestraVoz.trim().length >= VOZ_MIN_CARACTERES || duracionVoz >= VOZ_MIN_SEGUNDOS
   }, [muestraVoz, duracionVoz])
@@ -383,19 +411,42 @@ export default function OnboardingDemo() {
                   Te enviaremos la simulación entrenada con todo el portafolio KIA directamente a tu WhatsApp.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px', letterSpacing: '0.3px' }}>Nombre Completo</label>
-                    <input type="text" className="ob-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Alexander Garavito" style={inputBase} />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>WhatsApp (con código)</label>
-                      <input type="tel" className="ob-input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+57 312 345 6789" style={inputBase} />
+                  {/* Nombre: editable solo si no viene pre-llenado */}
+                  {nombre ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(14,165,233,0.2)', background: 'rgba(14,165,233,0.05)' }}>
+                      <span style={{ fontSize: '18px' }}>👤</span>
+                      <div>
+                        <span style={{ fontSize: '11px', color: C.blue, fontWeight: 600, display: 'block', marginBottom: '2px' }}>NOMBRE</span>
+                        <span style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{nombre}</span>
+                      </div>
                     </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px', letterSpacing: '0.3px' }}>Nombre Completo</label>
+                      <input type="text" className="ob-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Alexander Garavito" style={inputBase} />
+                    </div>
+                  )}
+
+                  {/* Email: editable solo si no viene pre-llenado */}
+                  {email ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(14,165,233,0.2)', background: 'rgba(14,165,233,0.05)' }}>
+                      <span style={{ fontSize: '18px' }}>✉️</span>
+                      <div>
+                        <span style={{ fontSize: '11px', color: C.blue, fontWeight: 600, display: 'block', marginBottom: '2px' }}>CORREO</span>
+                        <span style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{email}</span>
+                      </div>
+                    </div>
+                  ) : (
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Correo Corporativo</label>
                       <input type="email" className="ob-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@concesionariokia.com" style={inputBase} />
                     </div>
+                  )}
+
+                  {/* WhatsApp: siempre editable */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>WhatsApp (con código de país)</label>
+                    <input type="tel" className="ob-input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+57 312 345 6789" style={inputBase} autoFocus />
                   </div>
                 </div>
                 {configError && <p style={{ fontSize: '13px', color: '#f87171', margin: 0 }}>{configError}</p>}

@@ -174,8 +174,8 @@ export async function POST(req: NextRequest) {
 
     const { id: agentId, esNuevo } = await persistirWaitlist(emailTrim, nombreTrim, metadata)
 
-    // ── Email de bienvenida: solo en el primer onboarding con voz ──
-    if (esNuevo && (textoVozOk || duracionOk)) {
+    // ── Email de bienvenida: siempre que haya voz grabada ──
+    if (textoVozOk || duracionOk) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
       dispararEmailBienvenida(emailTrim, nombreTrim, appUrl)
     }

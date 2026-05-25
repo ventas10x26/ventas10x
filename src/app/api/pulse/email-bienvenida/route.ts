@@ -52,7 +52,7 @@ function htmlEmail(nombre: string, primerNombre: string) {
               <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
                 <tr>
                   <td style="background:linear-gradient(135deg,#0ea5e9,#059669);border-radius:10px;padding:14px 28px;">
-                    <a href="https://pulsemotor.co/pulse/agente" style="color:#fff;font-size:15px;font-weight:700;text-decoration:none;">Entrenar más mi agente →</a>
+                    <a href="https://pulsemotor.co/pulse/agente?email=${encodeURIComponent(emailTrim)}" style="color:#fff;font-size:15px;font-weight:700;text-decoration:none;">Entrenar más mi agente →</a>
                   </td>
                 </tr>
               </table>
@@ -157,7 +157,7 @@ function htmlEmail(nombre: string, primerNombre: string) {
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:12px 24px;">
-                    <a href="https://pulsemotor.co/pulse/agente?tab=voz" style="color:#7dd3fc;font-size:14px;font-weight:600;text-decoration:none;">🎙️ Grabar nueva muestra de voz →</a>
+                    <a href="https://pulsemotor.co/pulse/agente?tab=voz&email=${encodeURIComponent(emailTrim)}" style="color:#7dd3fc;font-size:14px;font-weight:600;text-decoration:none;">🎙️ Grabar nueva muestra de voz →</a>
                   </td>
                 </tr>
               </table>

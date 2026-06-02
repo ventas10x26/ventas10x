@@ -96,6 +96,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
+    // Validar que el lead tenga teléfono
+    if (!lead.telefono) {
+      console.log("[trigger] lead sin teléfono, omitiendo:", lead_id)
+      return NextResponse.json({ ok: true, skipped: true, reason: "sin telefono" })
+    }
+
     // 2. Obtener email del vendedor desde auth.users
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(lead.vendedor_id)
     const email = userData?.user?.email

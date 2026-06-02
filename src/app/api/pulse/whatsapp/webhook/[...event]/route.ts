@@ -132,9 +132,16 @@ export async function POST(
   try {
     const { event } = await context.params
     const eventPath = event?.join('/') || ''
-    console.log(`[webhook] POST /${eventPath}`)
+    const nxtPevent = req.nextUrl.searchParams.get('nxtPevent') || ''
+    console.log(`[webhook] POST /${eventPath} nxtPevent=${nxtPevent}`)
 
-    if (!eventPath.includes('messages-upsert') && !eventPath.includes('messages_upsert')) {
+    const isMessagesUpsert =
+      eventPath.includes('messages-upsert') ||
+      eventPath.includes('messages_upsert') ||
+      nxtPevent.includes('messages-upsert') ||
+      nxtPevent.includes('messages_upsert')
+
+    if (!isMessagesUpsert) {
       return NextResponse.json({ ok: true, ignored: true })
     }
 

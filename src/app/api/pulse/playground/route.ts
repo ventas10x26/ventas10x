@@ -15,29 +15,46 @@ let catalogoCache: string | null = null
 let catalogoCacheTime = 0
 const CACHE_TTL = 60 * 60 * 1000
 
-async function obtenerCatalogo(): Promise<string> {
+type VehiculoCatalogo = {
+  linea: string
+  año: number
+  version: string
+  precio: number
+  trans: string
+  comb: string
+  specs: string
+  bono: number
+  colores: string
+  ficha: string
+}
+
+let vehiculosCache: VehiculoCatalogo[] = []
+
+async function obtenerCatalogo(): Promise<{ texto: string; vehiculos: VehiculoCatalogo[] }> {
   const ahora = Date.now()
-  if (catalogoCache && ahora - catalogoCacheTime < CACHE_TTL) return catalogoCache
+  if (catalogoCache && ahora - catalogoCacheTime < CACHE_TTL) {
+    return { texto: catalogoCache, vehiculos: vehiculosCache }
+  }
 
   try {
     const res = await fetch(CSV_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } })
     if (!res.ok) throw new Error(`CSV ${res.status}`)
     const csv = await res.text()
-    const texto = parsearCSV(csv)
+    const { texto, vehiculos } = parsearCSV(csv)
     catalogoCache = texto
+    vehiculosCache = vehiculos
     catalogoCacheTime = ahora
-    return texto
+    return { texto, vehiculos }
   } catch (e) {
     console.error('[playground] catalogo error:', e)
-    return ''
+    return { texto: '', vehiculos: [] }
   }
 }
 
-function parsearCSV(csv: string): string {
+function parsearCSV(csv: string): { texto: string; vehiculos: VehiculoCatalogo[] } {
   const lineas = csv.trim().split('\n')
-  if (lineas.length < 2) return ''
+  if (lineas.length < 2) return { texto: '', vehiculos: [] }
 
-  // Detectar separador
   const primera = lineas[0]
   const sep = primera.includes('\t') ? '\t' : ','
   const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
@@ -55,11 +72,9 @@ function parsearCSV(csv: string): string {
     bono: cols.findIndex(c => c.includes('bono') && c.includes('monetario')),
     colores: cols.findIndex(c => c.includes('color')),
     ficha: cols.findIndex(c => c.includes('ficha')),
-    tipo: cols.findIndex(c => c.includes('tipo')),
   }
 
-  type V = { linea: string; año: number; version: string; precio: number; trans: string; comb: string; specs: string; bono: number; colores: string; ficha: string; tipo: string }
-  const vehiculos: V[] = []
+  const vehiculos: VehiculoCatalogo[] = []
 
   for (let i = 1; i < lineas.length; i++) {
     const cells = lineas[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
@@ -78,12 +93,10 @@ function parsearCSV(csv: string): string {
       bono: parseInt(cells[idx.bono]?.replace(/\D/g, '') || '0'),
       colores: cells[idx.colores] || '',
       ficha: cells[idx.ficha] || '',
-      tipo: cells[idx.tipo] || '',
     })
   }
 
-  // Agrupar por línea
-  const porLinea = vehiculos.reduce<Record<string, V[]>>((acc, v) => {
+  const porLinea = vehiculos.reduce<Record<string, VehiculoCatalogo[]>>((acc, v) => {
     const k = v.linea.toUpperCase()
     if (!acc[k]) acc[k] = []
     acc[k].push(v)
@@ -101,7 +114,91 @@ function parsearCSV(csv: string): string {
     }
   }
 
-  return bloques.join('\n')
+  return { texto: bloques.join('\n'), vehiculos }
+}
+
+// Detectar si el mensaje es una solicitud de simulación de crédito
+function esSimulacionCredito(mensaje: string): boolean {
+  const lower = mensaje.toLowerCase()
+  return (
+    (lower.includes('inicial') || lower.includes('cuota') || lower.includes('financiar') || lower.includes('crédito') || lower.includes('credito') || lower.includes('plazo') || lower.includes('meses')) &&
+    (lower.includes('inicial') || lower.includes('millones') || lower.includes('plazo') || lower.includes('meses'))
+  )
+}
+
+// Extraer datos de simulación del mensaje y del historial
+function extraerDatosSimulacion(mensaje: string, historial: Array<{ role: string; content: string }>, vehiculos: VehiculoCatalogo[]): {
+  modelo: VehiculoCatalogo | null
+  inicial: number
+  plazo: number
+} | null {
+  // Combinar historial + mensaje para buscar datos
+  const textoCompleto = [...historial.map(h => h.content), mensaje].join(' ').toLowerCase()
+
+  // Buscar inicial
+  const inicialMatch = textoCompleto.match(/(\d+)\s*m(?:illones?)?(?:\s+de\s+inicial|\s+inicial)/i) ||
+    textoCompleto.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
+    textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i)
+  const inicial = inicialMatch ? parseInt(inicialMatch[1]) * 1_000_000 : 0
+
+  // Buscar plazo
+  const plazoMatch = textoCompleto.match(/(\d+)\s*meses/i) ||
+    textoCompleto.match(/plazo\s+(?:de\s+)?(\d+)/i) ||
+    textoCompleto.match(/a\s+(\d+)\s+meses/i)
+  const plazo = plazoMatch ? parseInt(plazoMatch[1]) : 0
+
+  // Buscar modelo en vehiculos
+  let modeloEncontrado: VehiculoCatalogo | null = null
+  for (const v of vehiculos) {
+    const nombreCompleto = `${v.linea} ${v.version} ${v.año}`.toLowerCase()
+    const lineaLower = v.linea.toLowerCase()
+    const versionLower = v.version.toLowerCase()
+    if (
+      textoCompleto.includes(lineaLower) &&
+      (textoCompleto.includes(versionLower) || textoCompleto.includes(v.año.toString()))
+    ) {
+      modeloEncontrado = v
+      break
+    }
+    // Match solo por línea si no hay versión específica
+    if (textoCompleto.includes(lineaLower) && !modeloEncontrado) {
+      modeloEncontrado = v
+    }
+  }
+
+  if (!inicial && !plazo && !modeloEncontrado) return null
+  return { modelo: modeloEncontrado, inicial, plazo }
+}
+
+// Formatear simulación de crédito con saltos de línea reales
+function formatearSimulacion(datos: { modelo: VehiculoCatalogo | null; inicial: number; plazo: number }): string {
+  const { modelo, inicial, plazo } = datos
+  if (!modelo || !inicial || !plazo) return ''
+
+  const precioLista = modelo.precio
+  const bono = modelo.bono || 0
+  const precioNeto = precioLista - bono
+  const montoFinanciar = precioNeto - inicial
+  if (montoFinanciar <= 0) return ''
+
+  const tasaMensual = 0.018
+  const cuota = Math.round((montoFinanciar * tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1))
+
+  const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
+
+  return [
+    `Simulación KIA Crédito`,
+    `Modelo: KIA ${modelo.linea} ${modelo.version} ${modelo.año}`,
+    `Precio lista: ${fmt(precioLista)}`,
+    bono > 0 ? `Bono: ${fmt(bono)}` : null,
+    bono > 0 ? `Precio neto: ${fmt(precioNeto)}` : null,
+    `Inicial: ${fmt(inicial)}`,
+    `Monto a financiar: ${fmt(montoFinanciar)}`,
+    `Plazo: ${plazo} meses`,
+    `Cuota aprox: ${fmt(cuota)}/mes`,
+    `Tasa ref: 1.8% mensual`,
+    `Nota: cuota exacta la confirma el banco`,
+  ].filter(Boolean).join('\n')
 }
 
 async function obtenerConfigAgente(email: string): Promise<{ systemPrompt: string; nombre: string }> {
@@ -127,55 +224,47 @@ async function obtenerConfigAgente(email: string): Promise<{ systemPrompt: strin
 export async function POST(req: NextRequest) {
   try {
     const { mensaje, historial, email, systemPromptOverride } = await req.json()
-
-    if (!mensaje?.trim()) {
-      return NextResponse.json({ error: 'mensaje requerido' }, { status: 400 })
-    }
+    if (!mensaje?.trim()) return NextResponse.json({ error: 'mensaje requerido' }, { status: 400 })
 
     const agenteEmail = email || 'ricaza81@gmail.com'
     const { systemPrompt: systemPromptDB, nombre } = await obtenerConfigAgente(agenteEmail)
-    const catalogo = await obtenerCatalogo()
+    const { texto: catalogo, vehiculos } = await obtenerCatalogo()
     const systemPrompt = systemPromptOverride ?? systemPromptDB
 
-    // Sanitizar historial — idéntico al webhook
+    // Sanitizar historial
     const historialLimpio: Array<{ role: 'user' | 'assistant'; content: string }> = []
     for (const turn of (historial || []).slice(-6)) {
       const ultimo = historialLimpio[historialLimpio.length - 1]
       if (ultimo && ultimo.role === turn.role) continue
       historialLimpio.push(turn)
     }
-    if (historialLimpio[historialLimpio.length - 1]?.role === 'user') {
-      historialLimpio.pop()
+    if (historialLimpio[historialLimpio.length - 1]?.role === 'user') historialLimpio.pop()
+
+    // Detectar simulación de crédito — formatear en el servidor, no en Claude
+    let simulacionFormateada: string | null = null
+    if (esSimulacionCredito(mensaje) && vehiculos.length > 0) {
+      const datos = extraerDatosSimulacion(mensaje, historial || [], vehiculos)
+      if (datos?.modelo && datos.inicial > 0 && datos.plazo > 0) {
+        simulacionFormateada = formatearSimulacion(datos)
+      }
     }
 
     const { anthropic } = await import('@/lib/anthropic')
 
-    // System prompt IDÉNTICO al webhook + catálogo inyectado
     const systemFinal = `${systemPrompt || `Eres el asistente de ventas de ${nombre}, asesor KIA.`}
 
 ${catalogo}
 
 REGLAS ESTRICTAS:
 - Responde en español colombiano, tono cercano y natural
-- Respuestas cortas (2-3 oraciones) EXCEPTO cuando hagas simulaciones de crédito
-- No uses asteriscos ni markdown en ningún caso
+- Máximo 2-3 oraciones — esto es WhatsApp
+- No uses asteriscos ni markdown
 - Suena como ${nombre}, no como un bot
 - USA SOLO los precios del catálogo — NUNCA inventes precios, tasas ni fechas
 - Si preguntan precio: da el precio exacto del catálogo incluyendo bono si aplica
-- Si mencionan inicial + plazo: calcula cuota = (precio_neto - inicial) / plazo * 1.018 y RESPONDE OBLIGATORIAMENTE en este formato exacto con cada dato en su propia línea:
-Modelo: [nombre completo]
-Precio lista: $[X]M
-Bono: $[X]M
-Precio neto: $[X]M
-Inicial: $[X]M
-Monto a financiar: $[X]M
-Plazo: [X] meses
-Cuota aprox: $[X]/mes
-Tasa ref: 1.8% mensual
-Nota: cuota exacta la confirma el banco
-- Si quieren ficha técnica: comparte el enlace exacto del catálogo
+- Si preguntan por ficha técnica: comparte el enlace exacto del catálogo
 - Si el modelo no está en el catálogo: di "ese modelo lo verifico y te confirmo"
-- NUNCA uses asteriscos, guiones decorativos ni markdown`
+${simulacionFormateada ? '- La simulación de crédito ya fue calculada por el sistema — agrégala al final de tu respuesta tal como viene, sin modificarla' : '- Si mencionan inicial + plazo: di que vas a hacer la simulación con KIA Crédito y pide confirmar el modelo exacto si no lo tienes claro'}`
 
     const startTime = Date.now()
 
@@ -190,7 +279,14 @@ Nota: cuota exacta la confirma el banco
     })
 
     const latencia = Date.now() - startTime
-    const respuesta = msg.content[0].type === 'text' ? msg.content[0].text : null
+    let respuesta = msg.content[0].type === 'text' ? msg.content[0].text : ''
+
+    // Inyectar simulación formateada al final si existe
+    if (simulacionFormateada) {
+      // Remover cualquier intento de Claude de hacer la simulación
+      respuesta = respuesta.replace(/simulaci[oó]n[\s\S]*?banco[^\n]*/gi, '').trim()
+      respuesta = `${respuesta}\n\n${simulacionFormateada}`
+    }
 
     return NextResponse.json({
       ok: true,
@@ -198,6 +294,7 @@ Nota: cuota exacta la confirma el banco
       nombre,
       systemPrompt: systemPromptDB,
       catalogoCargado: catalogo.length > 0,
+      esSimulacion: !!simulacionFormateada,
       meta: {
         modelo: 'claude-haiku-4-5-20251001',
         latencia_ms: latencia,

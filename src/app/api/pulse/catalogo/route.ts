@@ -149,4 +149,4 @@ export async function GET() {
 }
 
 // Exportar para uso interno
-export { obtenerCatalogo }
+// obtenerCatalogo disponible solo internamente

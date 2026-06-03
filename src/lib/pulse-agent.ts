@@ -151,6 +151,7 @@ export function dtoToMetadata(
     manejo_objeciones: dto.manejo_objeciones ?? prev.manejo_objeciones,
     respuestas_tipo: dto.respuestas_tipo ?? prev.respuestas_tipo,
     agent_config: cfg,
+    bot_activo: dto.bot_activo !== undefined ? dto.bot_activo : prev.bot_activo,
     updated_at: new Date().toISOString(),
   }
 }

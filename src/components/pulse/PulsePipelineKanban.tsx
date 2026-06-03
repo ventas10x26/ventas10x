@@ -1,20 +1,9 @@
 // Ruta destino: src/components/pulse/PulsePipelineKanban.tsx
-//
-// Kanban de leads para Pulse Motor.
-// Adaptado del PipelineKanban.tsx de Ventas10x:
-// - Tabla: pulse_leads (no leads)
-// - Campo: estado (no etapa)
-// - Endpoint: /api/pulse/leads/[id] (no /api/leads/[id])
-// - 6 estados: Nuevo → Contactado → Interesado → Test Drive → Cerrado / Perdido
-// - Sin tracking de actividades (lo agregamos en Pack 5)
 
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
-// =====================================================
-// TIPOS
-// =====================================================
 export type PulseLead = {
   id: string
   nombre: string | null
@@ -40,9 +29,6 @@ const ESTADOS = [
   { key: 'perdido',     label: 'Perdido',     color: '#ef4444', emoji: '❌' },
 ]
 
-// =====================================================
-// HELPERS
-// =====================================================
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const m = Math.floor(diff / 60000)
@@ -61,7 +47,7 @@ function scoreColor(score: number | null): { bg: string; text: string } {
   return { bg: 'rgba(148,163,184,0.15)', text: '#94a3b8' }
 }
 
-async function updateLeadAPI(id: string, data: Record<string, string | null>) {
+async function updateLeadAPI(id: string, data: Record<string, string | null | number>) {
   const res = await fetch(`/api/pulse/leads/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -74,9 +60,6 @@ async function updateLeadAPI(id: string, data: Record<string, string | null>) {
   return res.json()
 }
 
-// =====================================================
-// COMPONENTE PRINCIPAL
-// =====================================================
 interface Props {
   initialLeads: PulseLead[]
   userId: string
@@ -88,13 +71,8 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null)
-
-  // Modal de detalle
   const [leadDetalle, setLeadDetalle] = useState<PulseLead | null>(null)
 
-  // =====================================================
-  // DRAG & DROP
-  // =====================================================
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     setDraggingId(leadId)
     e.dataTransfer.effectAllowed = 'move'
@@ -109,27 +87,15 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     e.preventDefault()
     if (!draggingId) return
     const lead = leads.find(l => l.id === draggingId)
-    if (!lead || lead.estado === estadoKey) {
-      setDraggingId(null)
-      return
-    }
+    if (!lead || lead.estado === estadoKey) { setDraggingId(null); return }
 
-    // Optimistic update
     const prev = leads
     const updates: Record<string, string | null> = { estado: estadoKey }
-    
-    // Si pasa a "contactado" y no tiene timestamp, lo marcamos automáticamente
     if (estadoKey === 'contactado' && !lead.contactado_at) {
       updates.contactado_at = new Date().toISOString()
     }
-    
-    setLeads(ls => ls.map(l => 
-      l.id === draggingId 
-        ? { ...l, estado: estadoKey, ...(updates.contactado_at ? { contactado_at: updates.contactado_at } : {}) }
-        : l
-    ))
+    setLeads(ls => ls.map(l => l.id === draggingId ? { ...l, ...updates } : l))
     setDraggingId(null)
-
     try {
       await updateLeadAPI(draggingId, updates)
       onLeadUpdated?.()
@@ -140,25 +106,15 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     }
   }
 
-  // =====================================================
-  // CAMBIO DE ESTADO DESDE EL MODAL
-  // =====================================================
   const cambiarEstadoDesdeDetalle = useCallback(async (estado: string) => {
     if (!leadDetalle) return
     const prev = leads
     const updates: Record<string, string | null> = { estado }
-    
     if (estado === 'contactado' && !leadDetalle.contactado_at) {
       updates.contactado_at = new Date().toISOString()
     }
-    
-    setLeads(ls => ls.map(l => 
-      l.id === leadDetalle.id 
-        ? { ...l, estado, ...(updates.contactado_at ? { contactado_at: updates.contactado_at } : {}) }
-        : l
-    ))
-    setLeadDetalle(ld => ld ? { ...ld, estado, ...(updates.contactado_at ? { contactado_at: updates.contactado_at } : {}) } : ld)
-    
+    setLeads(ls => ls.map(l => l.id === leadDetalle.id ? { ...l, ...updates } : l))
+    setLeadDetalle(ld => ld ? { ...ld, ...updates } : ld)
     try {
       await updateLeadAPI(leadDetalle.id, updates)
       onLeadUpdated?.()
@@ -169,41 +125,28 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     }
   }, [leadDetalle, leads, onLeadUpdated])
 
-  // =====================================================
-  // FILTROS
-  // =====================================================
-  const leadsFiltrados = leads.filter(l => {
-    if (filtroEstado && l.estado !== filtroEstado) return false
-    return true
-  })
+  // Actualizar lead en lista local después de editar en modal
+  const handleLeadEditado = useCallback((leadActualizado: PulseLead) => {
+    setLeads(ls => ls.map(l => l.id === leadActualizado.id ? leadActualizado : l))
+  }, [])
 
+  const leadsFiltrados = leads.filter(l => !filtroEstado || l.estado === filtroEstado)
   const conteoEstados = leads.reduce<Record<string, number>>((acc, l) => {
     acc[l.estado] = (acc[l.estado] || 0) + 1
     return acc
   }, {})
 
-  // =====================================================
-  // MÉTRICAS GENERALES
-  // =====================================================
   const totalLeads = leads.length
   const cerrados = conteoEstados['cerrado'] || 0
   const perdidos = conteoEstados['perdido'] || 0
   const tasaConversion = totalLeads > 0 ? Math.round((cerrados / totalLeads) * 100) : 0
 
-  // =====================================================
-  // RENDER
-  // =====================================================
   return (
     <div style={{ width: '100%', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header con métricas */}
       <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px' }}>
-            Pipeline de leads
-          </h2>
-          <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
-            Arrastrá tarjetas entre columnas o clickeá para ver el detalle
-          </p>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px' }}>Pipeline de leads</h2>
+          <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>Arrastrá tarjetas entre columnas o clickeá para ver el detalle</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <MetricaMini label="Total" valor={totalLeads.toString()} color="#fff" />
@@ -213,106 +156,45 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
         </div>
       </div>
 
-      {/* Filtros */}
       {totalLeads > 0 && (
         <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>FILTROS:</span>
-          <FiltroChip
-            label="Todos"
-            count={totalLeads}
-            active={filtroEstado === null}
-            onClick={() => setFiltroEstado(null)}
-            color="#94a3b8"
-          />
+          <FiltroChip label="Todos" count={totalLeads} active={filtroEstado === null} onClick={() => setFiltroEstado(null)} color="#94a3b8" />
           {ESTADOS.map(e => {
             const count = conteoEstados[e.key] || 0
             if (count === 0) return null
-            return (
-              <FiltroChip
-                key={e.key}
-                label={e.label}
-                count={count}
-                active={filtroEstado === e.key}
-                onClick={() => setFiltroEstado(filtroEstado === e.key ? null : e.key)}
-                color={e.color}
-              />
-            )
+            return <FiltroChip key={e.key} label={e.label} count={count} active={filtroEstado === e.key} onClick={() => setFiltroEstado(filtroEstado === e.key ? null : e.key)} color={e.color} />
           })}
         </div>
       )}
 
-      {/* Error toast */}
       {error && (
-        <div style={{ marginBottom: '12px', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#fca5a5' }}>
+        <div style={{ marginBottom: '12px', padding: '10px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', fontSize: '13px', color: '#fca5a5' }}>
           ⚠️ {error}
         </div>
       )}
 
-      {/* Kanban columnas */}
       <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px' }}>
         {ESTADOS.map(estado => {
           const leadsDeColumna = leadsFiltrados.filter(l => l.estado === estado.key)
           return (
-            <div
-              key={estado.key}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, estado.key)}
-              style={{
-                flex: '0 0 280px',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '12px',
-                padding: '12px',
-                minHeight: '300px',
-              }}
-            >
-              {/* Header columna */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '12px',
-                paddingBottom: '10px',
-                borderBottom: `2px solid ${estado.color}22`,
-              }}>
+            <div key={estado.key} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, estado.key)}
+              style={{ flex: '0 0 280px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', minHeight: '300px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '10px', borderBottom: `2px solid ${estado.color}22` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>{estado.emoji}</span>
                   <strong style={{ fontSize: '13px', color: estado.color }}>{estado.label}</strong>
                 </div>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  padding: '2px 7px',
-                  borderRadius: '999px',
-                  background: `${estado.color}22`,
-                  color: estado.color,
-                }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', background: `${estado.color}22`, color: estado.color }}>
                   {leadsDeColumna.length}
                 </span>
               </div>
-
-              {/* Cards */}
               {leadsDeColumna.length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '24px 12px',
-                  fontSize: '11px',
-                  color: '#475569',
-                  border: '1px dashed rgba(255,255,255,0.06)',
-                  borderRadius: '8px',
-                }}>
-                  Sin leads
-                </div>
+                <div style={{ textAlign: 'center', padding: '24px 12px', fontSize: '11px', color: '#475569', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '8px' }}>Sin leads</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {leadsDeColumna.map(lead => (
-                    <LeadCard
-                      key={lead.id}
-                      lead={lead}
-                      onDragStart={(e) => handleDragStart(e, lead.id)}
-                      onClick={() => setLeadDetalle(lead)}
-                      isDragging={draggingId === lead.id}
-                    />
+                    <LeadCard key={lead.id} lead={lead} onDragStart={(e) => handleDragStart(e, lead.id)} onClick={() => setLeadDetalle(lead)} isDragging={draggingId === lead.id} />
                   ))}
                 </div>
               )}
@@ -321,32 +203,21 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
         })}
       </div>
 
-      {/* Modal detalle */}
       {leadDetalle && (
         <ModalDetalleLead
           lead={leadDetalle}
           onClose={() => setLeadDetalle(null)}
           onCambiarEstado={cambiarEstadoDesdeDetalle}
+          onLeadEditado={handleLeadEditado}
         />
       )}
     </div>
   )
 }
 
-// =====================================================
-// SUB-COMPONENTES
-// =====================================================
-
 function MetricaMini({ label, valor, color }: { label: string; valor: string; color: string }) {
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '10px',
-      padding: '8px 12px',
-      minWidth: '70px',
-      textAlign: 'center',
-    }}>
+    <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '8px 12px', minWidth: '70px', textAlign: 'center' }}>
       <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '2px' }}>{label}</div>
       <div style={{ fontSize: '18px', fontWeight: 800, color }}>{valor}</div>
     </div>
@@ -355,20 +226,7 @@ function MetricaMini({ label, valor, color }: { label: string; valor: string; co
 
 function FiltroChip({ label, count, active, onClick, color }: { label: string; count: number; active: boolean; onClick: () => void; color: string }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '5px 10px',
-        borderRadius: '999px',
-        border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`,
-        background: active ? `${color}22` : 'transparent',
-        color: active ? color : '#94a3b8',
-        fontSize: '11px',
-        fontWeight: 600,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-      }}
-    >
+    <button onClick={onClick} style={{ padding: '5px 10px', borderRadius: '999px', border: `1px solid ${active ? color : 'rgba(255,255,255,0.08)'}`, background: active ? `${color}22` : 'transparent', color: active ? color : '#94a3b8', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
       {label} · {count}
     </button>
   )
@@ -377,50 +235,22 @@ function FiltroChip({ label, count, active, onClick, color }: { label: string; c
 function LeadCard({ lead, onDragStart, onClick, isDragging }: { lead: PulseLead; onDragStart: (e: React.DragEvent) => void; onClick: () => void; isDragging: boolean }) {
   const sc = scoreColor(lead.score)
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onClick={onClick}
-      style={{
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: '10px',
-        padding: '10px 12px',
-        cursor: 'pointer',
-        opacity: isDragging ? 0.4 : 1,
-        transition: 'opacity 0.15s, border-color 0.15s',
-      }}
+    <div draggable onDragStart={onDragStart} onClick={onClick}
+      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 12px', cursor: 'pointer', opacity: isDragging ? 0.4 : 1, transition: 'opacity 0.15s, border-color 0.15s' }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)')}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-    >
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
         <strong style={{ fontSize: '13px', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {lead.nombre || '⚠️ Sin clasificar'}
         </strong>
         {lead.score !== null && (
-          <span style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            padding: '2px 6px',
-            borderRadius: '999px',
-            background: sc.bg,
-            color: sc.text,
-            flexShrink: 0,
-          }}>
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px', background: sc.bg, color: sc.text, flexShrink: 0 }}>
             {lead.score}/10
           </span>
         )}
       </div>
-      {lead.modelo && (
-        <div style={{ fontSize: '11px', color: '#fdba74', marginBottom: '4px' }}>
-          🚗 {lead.modelo}
-        </div>
-      )}
-      {lead.telefono && (
-        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
-          📱 {lead.telefono}
-        </div>
-      )}
+      {lead.modelo && <div style={{ fontSize: '11px', color: '#fdba74', marginBottom: '4px' }}>🚗 {lead.modelo}</div>}
+      {lead.telefono && <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>📱 {lead.telefono}</div>}
       <div style={{ fontSize: '10px', color: '#64748b', marginTop: '6px' }}>
         {timeAgo(lead.created_at)}
         {lead.urgencia === 'alta' && <span style={{ marginLeft: '6px', color: '#fca5a5' }}>🔥 urgente</span>}
@@ -429,10 +259,93 @@ function LeadCard({ lead, onDragStart, onClick, isDragging }: { lead: PulseLead;
   )
 }
 
-function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead; onClose: () => void; onCambiarEstado: (estado: string) => void }) {
+// =====================================================
+// CAMPO EDITABLE INLINE
+// =====================================================
+function CampoEditable({
+  valor, placeholder, onGuardar, fontSize = '20px', fontWeight = 800, color = '#fff'
+}: {
+  valor: string | null
+  placeholder: string
+  onGuardar: (nuevoValor: string) => void
+  fontSize?: string
+  fontWeight?: number
+  color?: string
+}) {
+  const [editando, setEditando] = useState(false)
+  const [texto, setTexto] = useState(valor || '')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { if (editando) inputRef.current?.focus() }, [editando])
+
+  const guardar = () => {
+    setEditando(false)
+    if (texto.trim() !== (valor || '')) onGuardar(texto.trim())
+  }
+
+  if (editando) {
+    return (
+      <input
+        ref={inputRef}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={guardar}
+        onKeyDown={(e) => { if (e.key === 'Enter') guardar(); if (e.key === 'Escape') { setTexto(valor || ''); setEditando(false) } }}
+        style={{
+          fontSize, fontWeight, color, background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(249,115,22,0.6)', borderRadius: '6px',
+          padding: '2px 8px', outline: 'none', fontFamily: 'inherit', width: '100%',
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      onClick={() => setEditando(true)}
+      title="Clic para editar"
+      style={{
+        fontSize, fontWeight, color, cursor: 'text',
+        borderBottom: '1px dashed rgba(255,255,255,0.2)',
+        display: 'inline-block', minWidth: '80px',
+        padding: '2px 0',
+      }}
+    >
+      {valor || <span style={{ color: '#64748b', fontStyle: 'italic' }}>{placeholder}</span>}
+      <span style={{ fontSize: '11px', color: '#475569', marginLeft: '6px' }}>✏️</span>
+    </div>
+  )
+}
+
+// =====================================================
+// MODAL DETALLE
+// =====================================================
+function ModalDetalleLead({
+  lead, onClose, onCambiarEstado, onLeadEditado
+}: {
+  lead: PulseLead
+  onClose: () => void
+  onCambiarEstado: (estado: string) => void
+  onLeadEditado: (lead: PulseLead) => void
+}) {
   const [procesandoIA, setProcesandoIA] = useState<'clasificar' | 'responder' | null>(null)
   const [leadActual, setLeadActual] = useState(lead)
   const [mensajeEditable, setMensajeEditable] = useState(lead.mensaje_ia || '')
+  const [guardando, setGuardando] = useState(false)
+
+  const actualizarCampo = async (campo: string, valor: string) => {
+    const nuevoLead = { ...leadActual, [campo]: valor }
+    setLeadActual(nuevoLead)
+    onLeadEditado(nuevoLead)
+    setGuardando(true)
+    try {
+      await updateLeadAPI(leadActual.id, { [campo]: valor })
+    } catch (e) {
+      console.error('Error guardando campo:', e)
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const clasificar = async () => {
     setProcesandoIA('clasificar')
@@ -441,12 +354,10 @@ function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead;
       const data = await res.json()
       if (data.ok && data.lead) {
         setLeadActual(data.lead)
+        onLeadEditado(data.lead)
       }
-    } catch (e) {
-      console.error('clasificar:', e)
-    } finally {
-      setProcesandoIA(null)
-    }
+    } catch (e) { console.error('clasificar:', e) }
+    finally { setProcesandoIA(null) }
   }
 
   const generarMensaje = async () => {
@@ -458,65 +369,52 @@ function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead;
         setMensajeEditable(data.mensaje)
         setLeadActual({ ...leadActual, mensaje_ia: data.mensaje })
       }
-    } catch (e) {
-      console.error('responder:', e)
-    } finally {
-      setProcesandoIA(null)
-    }
+    } catch (e) { console.error('responder:', e) }
+    finally { setProcesandoIA(null) }
   }
 
   const enviarWhatsApp = () => {
-    if (!leadActual.telefono) {
-      alert('Este lead no tiene teléfono.')
-      return
-    }
+    if (!leadActual.telefono) { alert('Este lead no tiene teléfono.'); return }
     const numero = leadActual.telefono.replace(/[^\d+]/g, '').replace(/^\+/, '')
     const msg = encodeURIComponent(mensajeEditable || leadActual.mensaje_ia || '')
     window.open(`https://wa.me/${numero}?text=${msg}`, '_blank')
-    // Marcar como contactado automáticamente
-    if (leadActual.estado === 'nuevo') {
-      onCambiarEstado('contactado')
-    }
+    if (leadActual.estado === 'nuevo') onCambiarEstado('contactado')
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.7)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        zIndex: 50,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#1e293b',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
-          padding: '24px',
-          maxWidth: '640px',
-          width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Header */}
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', maxWidth: '640px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+
+        {/* Header con campos editables */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <div>
-            <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 4px' }}>
-              {leadActual.nombre || '⚠️ Lead sin clasificar'}
-            </h3>
-            {leadActual.modelo && (
-              <p style={{ fontSize: '13px', color: '#fdba74', margin: 0 }}>
-                🚗 {leadActual.modelo} · {leadActual.telefono || 'sin teléfono'}
-              </p>
-            )}
+          <div style={{ flex: 1, marginRight: '12px' }}>
+            <CampoEditable
+              valor={leadActual.nombre}
+              placeholder="Sin nombre"
+              onGuardar={(v) => actualizarCampo('nombre', v)}
+              fontSize="20px"
+              fontWeight={800}
+            />
+            {guardando && <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '8px' }}>Guardando...</span>}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <CampoEditable
+                valor={leadActual.modelo}
+                placeholder="Modelo"
+                onGuardar={(v) => actualizarCampo('modelo', v)}
+                fontSize="13px"
+                fontWeight={500}
+                color="#fdba74"
+              />
+              <span style={{ color: '#475569' }}>·</span>
+              <CampoEditable
+                valor={leadActual.telefono}
+                placeholder="Teléfono"
+                onGuardar={(v) => actualizarCampo('telefono', v)}
+                fontSize="13px"
+                fontWeight={500}
+                color="#94a3b8"
+              />
+            </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer', padding: '0 4px' }}>×</button>
         </div>
@@ -526,22 +424,8 @@ function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead;
           <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Cambiar estado:</div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {ESTADOS.map(e => (
-              <button
-                key={e.key}
-                onClick={() => onCambiarEstado(e.key)}
-                disabled={leadActual.estado === e.key}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  border: leadActual.estado === e.key ? `1px solid ${e.color}` : '1px solid rgba(255,255,255,0.08)',
-                  background: leadActual.estado === e.key ? `${e.color}22` : 'transparent',
-                  color: leadActual.estado === e.key ? e.color : '#cbd5e1',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  cursor: leadActual.estado === e.key ? 'default' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
+              <button key={e.key} onClick={() => onCambiarEstado(e.key)} disabled={leadActual.estado === e.key}
+                style={{ padding: '6px 10px', borderRadius: '8px', border: leadActual.estado === e.key ? `1px solid ${e.color}` : '1px solid rgba(255,255,255,0.08)', background: leadActual.estado === e.key ? `${e.color}22` : 'transparent', color: leadActual.estado === e.key ? e.color : '#cbd5e1', fontSize: '11px', fontWeight: 600, cursor: leadActual.estado === e.key ? 'default' : 'pointer', fontFamily: 'inherit' }}>
                 {e.emoji} {e.label}
               </button>
             ))}
@@ -570,34 +454,15 @@ function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead;
         {leadActual.mensaje_ia && (
           <>
             <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Mensaje listo para enviar:</div>
-            <textarea
-              value={mensajeEditable}
-              onChange={(e) => setMensajeEditable(e.target.value)}
-              rows={5}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(0,0,0,0.3)',
-                color: '#fff',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                resize: 'vertical',
-                boxSizing: 'border-box',
-                marginBottom: '12px',
-              }}
-            />
+            <textarea value={mensajeEditable} onChange={(e) => setMensajeEditable(e.target.value)} rows={5}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '12px' }} />
             <div style={{ display: 'flex', gap: '8px' }}>
               {leadActual.telefono && (
                 <button onClick={enviarWhatsApp} style={{ ...btnPrimaryStyle, flex: 1, background: '#25D366', marginBottom: 0 }}>
                   📤 Enviar por WhatsApp
                 </button>
               )}
-              <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnSecondaryStyle}>
-                🔄 Regenerar
-              </button>
+              <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnSecondaryStyle}>🔄 Regenerar</button>
             </div>
           </>
         )}
@@ -607,26 +472,13 @@ function ModalDetalleLead({ lead, onClose, onCambiarEstado }: { lead: PulseLead;
 }
 
 const btnPrimaryStyle: React.CSSProperties = {
-  padding: '11px 16px',
-  borderRadius: '10px',
-  border: 'none',
-  background: 'linear-gradient(135deg, #f97316, #ea580c)',
-  color: '#fff',
-  fontSize: '14px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  width: '100%',
-  marginBottom: '12px',
+  padding: '11px 16px', borderRadius: '10px', border: 'none',
+  background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff',
+  fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  width: '100%', marginBottom: '12px',
 }
 
 const btnSecondaryStyle: React.CSSProperties = {
-  padding: '11px 16px',
-  borderRadius: '10px',
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'transparent',
-  color: '#94a3b8',
-  fontSize: '13px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
+  padding: '11px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)',
+  background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
 }

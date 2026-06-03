@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ connected: false, status: 'no_instance', instanceName })
   }
 
+  console.log('[instance GET] raw data:', JSON.stringify(data))
   const state = data?.instance?.state || data?.state || 'unknown'
   const ownerJid = data?.instance?.ownerJid || data?.ownerJid || null
   const profileName = data?.instance?.profileName || data?.profileName || null

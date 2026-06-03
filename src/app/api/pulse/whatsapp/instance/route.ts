@@ -79,11 +79,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ connected: false, status: 'no_instance', instanceName })
   }
 
-  console.log('[instance GET] raw data:', JSON.stringify(data))
   const state = data?.instance?.state || data?.state || 'unknown'
-  const ownerJid = data?.instance?.ownerJid || data?.ownerJid || null
-  const profileName = data?.instance?.profileName || data?.profileName || null
-  const phone = ownerJid?.replace('@s.whatsapp.net', '') || profileName || null
+  let ownerJid = data?.instance?.ownerJid || data?.ownerJid || null
+  let profileName = data?.instance?.profileName || data?.profileName || null
+
+  // Si no trajo ownerJid, intentar con fetchInstances singular
+  if (state === 'open' && !ownerJid) {
+    const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${instanceName}`)
+    ownerJid = fetchData?.instance?.ownerJid || fetchData?.ownerJid || null
+    profileName = fetchData?.instance?.profileName || fetchData?.profileName || profileName
+    console.log('[instance GET] fetchInstances data:', JSON.stringify(fetchData))
+  }
+
+  // Si aún no hay ownerJid, leer el número guardado en pulse_waitlist
+  let phone = ownerJid?.replace('@s.whatsapp.net', '') || profileName || null
+  if (state === 'open' && !phone) {
+    const { data: wlRow } = await (supabaseAdmin.from('pulse_waitlist') as any)
+      .select('metadata')
+      .ilike('email', email)
+      .maybeSingle()
+    const savedPhone = wlRow?.metadata?.whatsapp
+    if (savedPhone) phone = savedPhone
+    console.log('[instance GET] phone desde pulse_waitlist:', phone)
+  }
 
   if (state === 'open') {
     // Persistir número automáticamente al detectar conexión

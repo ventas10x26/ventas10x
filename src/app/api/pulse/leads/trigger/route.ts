@@ -169,35 +169,33 @@ export async function POST(req: NextRequest) {
     const nombreAsesor = profile?.nombre || 'el asesor'
     const whatsappVendedor = profile?.whatsapp || null
 
-    // 4. Verificar bot_activo en pulse_waitlist
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: agenteRow } = await (supabaseAdmin.from('pulse_waitlist') as any)
-      .select('metadata')
-      .ilike('email', email)
-      .maybeSingle()
-
+    // 4. Verificar bot_activo — buscar por número WhatsApp del vendedor (fuente de verdad)
     let botActivo = true
-    if (agenteRow) {
-      botActivo = agenteRow.metadata?.bot_activo !== false
-    } else if (whatsappVendedor) {
-      const numeroCorto = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
+    if (whatsappVendedor) {
+      const numeroCorto = whatsappVendedor.replace(/[^\d]/g, '').replace(/^57/, '')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
         .select('metadata')
         .not('metadata', 'is', null)
       if (rows && Array.isArray(rows)) {
-        for (const row of rows) {
-          const whatsapp = String(row.metadata?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
-          if (whatsapp && whatsapp === numeroCorto) {
-            botActivo = row.metadata?.bot_activo !== false
-            break
-          }
-        }
+        // Buscar TODOS los registros con ese número y si ALGUNO tiene bot_activo=false, respetar
+        const matches = rows.filter((row: Record<string, unknown>) => {
+          const meta = row.metadata as Record<string, unknown>
+          const w = String(meta?.whatsapp || '').replace(/[^\d]/g, '').replace(/^57/, '')
+          return w && w === numeroCorto
+        })
+        // Si hay algún registro con bot_activo explícitamente false, el bot está inactivo
+        const hayInactivo = matches.some((row: Record<string, unknown>) => {
+          const meta = row.metadata as Record<string, unknown>
+          return meta?.bot_activo === false
+        })
+        if (hayInactivo) botActivo = false
+        console.log('[trigger] matches por whatsapp:', matches.length, 'botActivo:', botActivo)
       }
     }
 
     if (!botActivo) {
-      console.log('[trigger] bot INACTIVO para vendedor:', email, '— no se envía mensaje')
+      console.log('[trigger] bot INACTIVO — no se envía mensaje al lead:', lead_id)
       return NextResponse.json({ ok: true, skipped: true, reason: 'bot_inactivo' })
     }
 

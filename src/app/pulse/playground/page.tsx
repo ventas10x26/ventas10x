@@ -50,6 +50,7 @@ export default function PlaygroundPage() {
   const [ultimaMeta, setUltimaMeta] = useState<Meta | null>(null)
   const [totalTokens, setTotalTokens] = useState(0)
   const [panelAbierto, setPanelAbierto] = useState(true)
+  const [catalogoCargado, setCatalogoCargado] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -84,6 +85,7 @@ export default function PlaygroundPage() {
       const data = await res.json()
 
       if (data.ok && data.respuesta) {
+        if (data.catalogoCargado) setCatalogoCargado(true)
         setMensajes([
           ...historialActual,
           {
@@ -181,6 +183,11 @@ export default function PlaygroundPage() {
               <div>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>🧪 Playground — Agente WhatsApp</span>
                 <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>Comportamiento idéntico al bot real</span>
+              {catalogoCargado && (
+                <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}>
+                  📋 Catálogo KIA cargado
+                </span>
+              )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

@@ -39,6 +39,7 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
     const res = await fetch(CSV_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } })
     if (!res.ok) return []
     const csv = await res.text()
+    console.log('[webhook] csv cols:', csv.split('\n')[0].slice(0, 300))
     const vehiculos = parsearCSVMedia(csv)
     catalogoCache = vehiculos
     catalogoCacheTime = ahora

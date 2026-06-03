@@ -10,13 +10,12 @@ const supabaseAdmin = createAdmin(
 
 const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
-const DEFAULT_INSTANCE = 'ricaza81_at_gmail_com'
 
 function emailToInstance(email: string): string {
   return email.replace('@', '_at_').replace(/\./g, '_')
 }
 
-async function resolverInstancia(email: string, whatsappVendedor: string | null): Promise<string> {
+async function resolverInstancia(email: string, whatsappVendedor: string | null): Promise<string | null> {
   try {
     // 1. Intentar con el email directo
     const instanceGuess = emailToInstance(email)
@@ -31,28 +30,42 @@ async function resolverInstancia(email: string, whatsappVendedor: string | null)
       }
     }
 
-    // 2. Match por número de teléfono del vendedor
-    if (whatsappVendedor) {
-      const numeroNormalizado = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
-      const defaultRes = await fetch(`${EVO_URL}/instance/connectionState/${DEFAULT_INSTANCE}`, {
-        headers: { apikey: EVO_KEY },
-      })
-      if (defaultRes.ok) {
-        const defaultData = await defaultRes.json()
-        const ownerJid = String(defaultData?.instance?.ownerJid || '')
-        if (ownerJid.includes(numeroNormalizado)) {
-          console.log('[trigger] instancia default coincide con teléfono del vendedor')
-          return DEFAULT_INSTANCE
+    // 2. Buscar entre todas las instancias
+    const resAll = await fetch(`${EVO_URL}/instance/fetchInstances`, {
+      headers: { apikey: EVO_KEY },
+    })
+    if (resAll.ok) {
+      const instancias = await resAll.json()
+      const arr = Array.isArray(instancias) ? instancias : []
+
+      // 2a. Match por número de teléfono del vendedor
+      if (whatsappVendedor) {
+        const numeroNormalizado = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
+        for (const inst of arr) {
+          const ownerJid = String(inst?.instance?.ownerJid || inst?.ownerJid || '')
+          if (ownerJid.includes(numeroNormalizado)) {
+            console.log('[trigger] instancia encontrada por teléfono:', inst.name)
+            return String(inst.name)
+          }
+        }
+      }
+
+      // 2b. Fallback: primera instancia con state open
+      for (const inst of arr) {
+        const state = inst?.instance?.state || inst?.state
+        if (state === 'open') {
+          console.log('[trigger] fallback primera instancia conectada:', inst.name)
+          return String(inst.name)
         }
       }
     }
+
+    console.error('[trigger] no se encontró instancia conectada para:', email)
+    return null
   } catch (e) {
     console.error('[trigger] resolverInstancia error:', e)
+    return null
   }
-
-  // Fallback: instancia principal hardcodeada
-  console.log('[trigger] usando instancia hardcodeada por defecto:', DEFAULT_INSTANCE)
-  return DEFAULT_INSTANCE
 }
 
 async function generarMensajeInicial(
@@ -105,6 +118,9 @@ async function enviarWhatsApp(instanceName: string, telefono: string, mensaje: s
   return res.json()
 }
 
+const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
+chatHistory // evitar warning unused
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -153,8 +169,45 @@ export async function POST(req: NextRequest) {
     const nombreAsesor = profile?.nombre || 'el asesor'
     const whatsappVendedor = profile?.whatsapp || null
 
-    // 4. Resolver instancia
+    // 4. Verificar bot_activo en pulse_waitlist
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: agenteRow } = await (supabaseAdmin.from('pulse_waitlist') as any)
+      .select('metadata')
+      .ilike('email', email)
+      .maybeSingle()
+
+    let botActivo = true
+    if (agenteRow) {
+      botActivo = agenteRow.metadata?.bot_activo !== false
+    } else if (whatsappVendedor) {
+      const numeroCorto = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
+        .select('metadata')
+        .not('metadata', 'is', null)
+      if (rows && Array.isArray(rows)) {
+        for (const row of rows) {
+          const whatsapp = String(row.metadata?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
+          if (whatsapp && whatsapp === numeroCorto) {
+            botActivo = row.metadata?.bot_activo !== false
+            break
+          }
+        }
+      }
+    }
+
+    if (!botActivo) {
+      console.log('[trigger] bot INACTIVO para vendedor:', email, '— no se envía mensaje')
+      return NextResponse.json({ ok: true, skipped: true, reason: 'bot_inactivo' })
+    }
+
+    // 5. Resolver instancia de Evolution API
     const instanceName = await resolverInstancia(email, whatsappVendedor)
+    if (!instanceName) {
+      console.error('[trigger] no se pudo resolver instancia para:', email)
+      return NextResponse.json({ error: 'No hay instancia WhatsApp conectada' }, { status: 400 })
+    }
+
     console.log('[trigger] usando instancia:', instanceName)
 
     // 5. Generar mensaje

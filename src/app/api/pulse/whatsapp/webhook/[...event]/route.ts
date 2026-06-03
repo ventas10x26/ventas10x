@@ -24,15 +24,69 @@ async function enviarMensaje(instanceName: string, remoteJid: string, mensaje: s
   }
 }
 
-async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
+async function obtenerConfigAgente(instanceName: string): Promise<{
+  systemPrompt: string
+  nombre: string
+  botActivo: boolean
+}> {
+  const defaultResult = { systemPrompt: '', nombre: 'el asesor', botActivo: true }
+
   try {
+    // 1. Obtener el número de teléfono de la instancia desde Evolution API
+    let telefonoInstancia: string | null = null
+    try {
+      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, {
+        headers: { apikey: EVO_KEY },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // ownerJid = "573004339418@s.whatsapp.net"
+        const ownerJid = String(data?.instance?.ownerJid || '')
+        const match = ownerJid.match(/^(\d+)@/)
+        if (match) telefonoInstancia = match[1] // "573004339418"
+      }
+    } catch (e) {
+      console.error('[webhook] no pudo obtener ownerJid:', e)
+    }
+
+    console.log('[webhook] telefonoInstancia:', telefonoInstancia)
+
+    // 2. Buscar en pulse_waitlist por número de teléfono (en metadata->whatsapp)
+    if (telefonoInstancia) {
+      // Normalizar: sin 57 al inicio para comparar
+      const numeroCorto = telefonoInstancia.replace(/^57/, '')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
+        .select('nombre, metadata')
+        .not('metadata', 'is', null)
+
+      if (rows && Array.isArray(rows)) {
+        for (const row of rows) {
+          const meta = row.metadata as Record<string, unknown>
+          const whatsapp = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
+          if (whatsapp && whatsapp === numeroCorto) {
+            const cfg = meta?.agent_config as Record<string, unknown> | undefined
+            const botActivo = meta?.bot_activo !== false
+            console.log('[webhook] agente encontrado por teléfono:', row.nombre, 'bot_activo:', botActivo)
+            return {
+              systemPrompt: String(cfg?.system_prompt || ''),
+              nombre: row.nombre || 'el asesor',
+              botActivo,
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Fallback por email reconstruido desde instanceName
     const emailGuess = instanceName
       .replace('_at_', '@')
       .replace(/_([^_]+)$/, '.$1')
       .replace(/_/g, '.')
       .replace(/\.([^.]+)@/, '_$1@')
 
-    console.log('[webhook] buscando agente para instance:', instanceName, 'email guess:', emailGuess)
+    console.log('[webhook] fallback email guess:', emailGuess)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabaseAdmin.from('pulse_waitlist') as any)
@@ -40,20 +94,29 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
       .ilike('email', emailGuess)
       .maybeSingle()
 
-    if (!data) {
-      console.log('[webhook] no encontrado por email, buscando fallback')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: fallback } = await (supabaseAdmin.from('pulse_waitlist') as any)
-        .select('nombre, metadata')
-        .not('metadata->agent_config', 'is', null)
-        .limit(1)
-        .maybeSingle()
+    if (data) {
+      const cfg = data.metadata?.agent_config as Record<string, unknown> | undefined
+      const botActivo = data.metadata?.bot_activo !== false
+      console.log('[webhook] agente por email:', data.nombre, 'bot_activo:', botActivo)
+      return {
+        systemPrompt: String(cfg?.system_prompt || ''),
+        nombre: data.nombre || 'el asesor',
+        botActivo,
+      }
+    }
 
-      if (!fallback) return { systemPrompt: '', nombre: 'el asesor', botActivo: true }
+    // 4. Último fallback: cualquier agente con agent_config
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: fallback } = await (supabaseAdmin.from('pulse_waitlist') as any)
+      .select('nombre, metadata')
+      .not('metadata->agent_config', 'is', null)
+      .limit(1)
+      .maybeSingle()
 
+    if (fallback) {
       const cfg = fallback.metadata?.agent_config as Record<string, unknown> | undefined
       const botActivo = fallback.metadata?.bot_activo !== false
-      console.log('[webhook] fallback agente:', fallback.nombre, 'bot_activo:', botActivo)
+      console.log('[webhook] fallback genérico:', fallback.nombre, 'bot_activo:', botActivo)
       return {
         systemPrompt: String(cfg?.system_prompt || ''),
         nombre: fallback.nombre || 'el asesor',
@@ -61,17 +124,10 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
       }
     }
 
-    const cfg = data.metadata?.agent_config as Record<string, unknown> | undefined
-    const botActivo = data.metadata?.bot_activo !== false // default true si no existe
-    console.log('[webhook] agente encontrado:', data.nombre, 'bot_activo:', botActivo)
-    return {
-      systemPrompt: String(cfg?.system_prompt || ''),
-      nombre: data.nombre || 'el asesor',
-      botActivo,
-    }
+    return defaultResult
   } catch (e) {
-    console.error('[webhook] obtenerSystemPrompt error:', e)
-    return { systemPrompt: '', nombre: 'el asesor', botActivo: true }
+    console.error('[webhook] obtenerConfigAgente error:', e)
+    return defaultResult
   }
 }
 
@@ -146,28 +202,21 @@ export async function POST(
     }
 
     const body = await req.json()
-    console.log('[webhook] body keys:', Object.keys(body))
-
     const instanceName = body.instance || body.instanceName || eventPath.split('/')[0] || ''
 
     let msgs: unknown[] = []
-    if (Array.isArray(body.data)) {
-      msgs = body.data
-    } else if (body.data?.messages) {
-      msgs = body.data.messages
-    } else if (body.data?.key) {
-      msgs = [body.data]
-    } else if (body.messages) {
-      msgs = body.messages
-    }
+    if (Array.isArray(body.data)) msgs = body.data
+    else if (body.data?.messages) msgs = body.data.messages
+    else if (body.data?.key) msgs = [body.data]
+    else if (body.messages) msgs = body.messages
 
     console.log(`[webhook] instance: ${instanceName}, msgs: ${msgs.length}`)
 
-    // Verificar bot_activo ANTES de procesar mensajes
-    const { systemPrompt, nombre, botActivo } = await obtenerSystemPrompt(instanceName)
+    // Obtener config del agente incluyendo bot_activo
+    const { systemPrompt, nombre, botActivo } = await obtenerConfigAgente(instanceName)
 
     if (!botActivo) {
-      console.log('[webhook] bot INACTIVO para instancia:', instanceName, '— mensaje ignorado')
+      console.log('[webhook] bot INACTIVO para instancia:', instanceName, '— ignorando mensajes')
       return NextResponse.json({ ok: true, paused: true })
     }
 

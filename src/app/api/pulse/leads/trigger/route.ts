@@ -1,6 +1,4 @@
 // src/app/api/pulse/leads/trigger/route.ts
-// Recibe un lead_id, genera mensaje personalizado y lo envía por WhatsApp
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 
@@ -14,8 +12,60 @@ const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 
 function emailToInstance(email: string): string {
-  // ricaza81@gmail.com → ricaza81_at_gmail_com
   return email.replace('@', '_at_').replace(/\./g, '_')
+}
+
+async function resolverInstancia(email: string, whatsappVendedor: string | null): Promise<string | null> {
+  try {
+    // 1. Intentar con el email directo
+    const instanceGuess = emailToInstance(email)
+    const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceGuess}`, {
+      headers: { apikey: EVO_KEY },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data?.instance?.state === 'open') {
+        console.log('[trigger] instancia encontrada por email:', instanceGuess)
+        return instanceGuess
+      }
+    }
+
+    // 2. Buscar entre todas las instancias
+    const resAll = await fetch(`${EVO_URL}/instance/fetchInstances`, {
+      headers: { apikey: EVO_KEY },
+    })
+    if (resAll.ok) {
+      const instancias = await resAll.json()
+      const arr = Array.isArray(instancias) ? instancias : []
+
+      // 2a. Match por número de teléfono del vendedor
+      if (whatsappVendedor) {
+        const numeroNormalizado = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
+        for (const inst of arr) {
+          const ownerJid = String(inst?.instance?.ownerJid || inst?.ownerJid || '')
+          if (ownerJid.includes(numeroNormalizado)) {
+            console.log('[trigger] instancia encontrada por teléfono:', inst.name)
+            return String(inst.name)
+          }
+        }
+      }
+
+      // 2b. Fallback: primera instancia con state open
+      for (const inst of arr) {
+        const state = inst?.instance?.state || inst?.state
+        if (state === 'open') {
+          console.log('[trigger] fallback primera instancia conectada:', inst.name)
+          return String(inst.name)
+        }
+      }
+    }
+
+    console.error('[trigger] no se encontró instancia conectada para:', email)
+    return null
+  } catch (e) {
+    console.error('[trigger] resolverInstancia error:', e)
+    return null
+  }
 }
 
 async function generarMensajeInicial(
@@ -29,7 +79,7 @@ async function generarMensajeInicial(
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 150,
-      system: `Eres ${nombreAsesor}, asesor KIA. Escribe UN primer mensaje de WhatsApp para contactar a un lead que acaba de llegar. 
+      system: `Eres ${nombreAsesor}, asesor KIA. Escribe UN primer mensaje de WhatsApp para contactar a un lead que acaba de llegar.
 REGLAS:
 - Saluda por nombre
 - Menciona el modelo de interés de forma natural
@@ -52,7 +102,6 @@ REGLAS:
 }
 
 async function enviarWhatsApp(instanceName: string, telefono: string, mensaje: string) {
-  // Normalizar teléfono: asegurar que tenga 57 al inicio
   const numero = telefono.startsWith('+') ? telefono.slice(1) : telefono
   const numeroFinal = numero.startsWith('57') ? numero : `57${numero}`
 
@@ -69,16 +118,18 @@ async function enviarWhatsApp(instanceName: string, telefono: string, mensaje: s
   return res.json()
 }
 
+const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
+chatHistory // evitar warning unused
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    // Acepta tanto { lead_id } directo como el payload nativo de Supabase { record: { id } }
     const lead_id = body.lead_id || body.record?.id
     if (!lead_id) return NextResponse.json({ error: 'lead_id requerido' }, { status: 400 })
 
     console.log('[trigger] procesando lead:', lead_id)
 
-    // 1. Obtener el lead con datos del vendedor
+    // 1. Obtener el lead
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('pulse_leads')
       .select('*')
@@ -90,19 +141,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Lead no encontrado' }, { status: 404 })
     }
 
-    // Evitar doble envío
     if (lead.mensaje_enviado) {
       console.log('[trigger] mensaje ya enviado para lead:', lead_id)
       return NextResponse.json({ ok: true, skipped: true })
     }
 
-    // Validar que el lead tenga teléfono
     if (!lead.telefono) {
-      console.log("[trigger] lead sin teléfono, omitiendo:", lead_id)
-      return NextResponse.json({ ok: true, skipped: true, reason: "sin telefono" })
+      console.log('[trigger] lead sin teléfono, omitiendo:', lead_id)
+      return NextResponse.json({ ok: true, skipped: true, reason: 'sin telefono' })
     }
 
-    // 2. Obtener email del vendedor desde auth.users
+    // 2. Obtener email del vendedor
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(lead.vendedor_id)
     const email = userData?.user?.email
     if (!email) {
@@ -110,29 +159,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Vendedor sin email' }, { status: 400 })
     }
 
-    // 3. Obtener nombre del asesor desde profiles
+    // 3. Obtener perfil del asesor
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('nombre')
+      .select('nombre, whatsapp')
       .eq('id', lead.vendedor_id)
       .maybeSingle()
 
     const nombreAsesor = profile?.nombre || 'el asesor'
-    const instanceName = emailToInstance(email)
+    const whatsappVendedor = profile?.whatsapp || null
 
-    console.log('[trigger] vendedor:', email, '→ instance:', instanceName)
+    // 4. Resolver instancia de Evolution API
+    const instanceName = await resolverInstancia(email, whatsappVendedor)
+    if (!instanceName) {
+      console.error('[trigger] no se pudo resolver instancia para:', email)
+      return NextResponse.json({ error: 'No hay instancia WhatsApp conectada' }, { status: 400 })
+    }
 
-    // 4. Generar mensaje (usar mensaje_ia si ya existe, si no generar uno)
+    console.log('[trigger] usando instancia:', instanceName)
+
+    // 5. Generar mensaje
     const mensaje = lead.mensaje_ia?.trim()
       ? lead.mensaje_ia
       : await generarMensajeInicial(lead.nombre, lead.modelo || 'KIA', lead.texto_origen || '', nombreAsesor)
 
     console.log('[trigger] mensaje:', mensaje.slice(0, 80))
 
-    // 5. Enviar WhatsApp
+    // 6. Enviar WhatsApp
     await enviarWhatsApp(instanceName, lead.telefono, mensaje)
 
-    // 6. Actualizar lead: enviado + estado contactado
+    // 7. Actualizar lead
     await supabaseAdmin
       .from('pulse_leads')
       .update({
@@ -153,7 +209,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Endpoint GET para pruebas manuales: /api/pulse/leads/trigger?lead_id=xxx
 export async function GET(req: NextRequest) {
   const lead_id = req.nextUrl.searchParams.get('lead_id')
   if (!lead_id) return NextResponse.json({ error: 'lead_id requerido' })

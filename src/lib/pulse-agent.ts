@@ -39,6 +39,7 @@ export type PulseAgentMetadata = {
   voz_historial?: PulseVozMuestra[]
   configured_at?: string
   updated_at?: string
+  bot_activo?: boolean
 }
 
 export function slugEmailParaStorage(email: string): string {
@@ -72,6 +73,7 @@ export type PulseAgenteDTO = {
   configured_at: string | null
   updated_at: string | null
   voz_historial: PulseVozMuestraPublica[]
+  bot_activo: boolean
 }
 
 const DEFAULT_CONFIG: PulseAgentConfig = {
@@ -106,6 +108,7 @@ export function metadataToDTO(
     duracion_voz_seg: meta.duracion_voz_seg ?? null,
     manejo_objeciones: meta.manejo_objeciones || '',
     respuestas_tipo: meta.respuestas_tipo || '',
+    bot_activo: meta.bot_activo !== false,
     perfil: cfg.perfil,
     especializacion: cfg.especializacion,
     propuesta_valor: cfg.propuesta_valor,

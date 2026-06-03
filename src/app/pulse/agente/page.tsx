@@ -16,6 +16,7 @@ const EMPTY: PulseAgenteDTO = {
   manejo_objeciones: '', respuestas_tipo: '', voz_historial: [],
   perfil: '', especializacion: '', propuesta_valor: '', primer_mensaje: '',
   system_prompt: '', configured_at: null, updated_at: null,
+  bot_activo: true,
 }
 
 const inputStyle: CSSProperties = {
@@ -85,7 +86,6 @@ export default function PulseAgentePage() {
 
   useEffect(() => {
     const init = async () => {
-      // ── Leer parámetros de URL (?email=, ?tab=, ?from=) ──
       const params = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search)
         : new URLSearchParams()
@@ -94,14 +94,12 @@ export default function PulseAgentePage() {
       const urlTab = params.get('tab') as typeof tab | null
       const fromOnboarding = params.get('from') === 'onboarding'
 
-      // Activar tab correcto desde URL
       if (urlTab && ['voz', 'comportamiento', 'mensajes', 'avanzado'].includes(urlTab)) {
         setTab(urlTab)
       } else if (fromOnboarding) {
         setTab('voz')
       }
 
-      // ── Resolver email: Auth > URL > sessionStorage ──
       const { data: { user: authUser } } = await supabase.auth.getUser()
       let email = ''
 
@@ -112,15 +110,11 @@ export default function PulseAgentePage() {
           nombre: (authUser.user_metadata?.full_name as string) || authUser.email.split('@')[0],
         })
       } else {
-        // Sin sesión Auth — usar ?email= de URL o sessionStorage
         const stored = typeof window !== 'undefined'
           ? sessionStorage.getItem('pulse_onboarding_email')
           : null
         email = urlEmail || stored || ''
-
-        // Persistir en sessionStorage para navegación interna
         if (urlEmail) sessionStorage.setItem('pulse_onboarding_email', urlEmail)
-
         setUser(email ? { email, nombre: email.split('@')[0] } : null)
       }
 
@@ -304,6 +298,72 @@ export default function PulseAgentePage() {
 
             {tab === 'avanzado' && (
               <>
+                {/* ── TOGGLE BOT ACTIVO ── */}
+                <section style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid #1e293b', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 4px', color: '#fff' }}>
+                        Bot WhatsApp
+                      </h2>
+                      <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                        {form.bot_activo
+                          ? '🟢 Activo — el agente responde mensajes automáticamente'
+                          : '⚪ Inactivo — los mensajes llegan sin respuesta automática'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nuevoValor = !form.bot_activo
+                        patch({ bot_activo: nuevoValor })
+                        try {
+                          const res = await fetch('/api/pulse/agente', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...form, bot_activo: nuevoValor }),
+                          })
+                          const data = await res.json()
+                          if (!res.ok || !data.ok) throw new Error(data.error)
+                          setForm(data.agente)
+                          setMensaje(nuevoValor ? '✓ Bot activado' : '✓ Bot desactivado')
+                          setTimeout(() => setMensaje(''), 2500)
+                        } catch (e) {
+                          patch({ bot_activo: !nuevoValor })
+                          setError(e instanceof Error ? e.message : 'Error al guardar')
+                        }
+                      }}
+                      style={{
+                        position: 'relative',
+                        width: 52,
+                        height: 28,
+                        borderRadius: 999,
+                        border: 'none',
+                        background: form.bot_activo
+                          ? 'linear-gradient(135deg, #f97316, #ea580c)'
+                          : 'rgba(51,65,85,0.8)',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                        flexShrink: 0,
+                        padding: 0,
+                      }}
+                      aria-label={form.bot_activo ? 'Desactivar bot' : 'Activar bot'}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: 3,
+                        left: form.bot_activo ? 27 : 3,
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: '#fff',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        transition: 'left 0.2s',
+                        display: 'block',
+                      }} />
+                    </button>
+                  </div>
+                </section>
+
                 <PulseWhatsappConnect
                   email={form.email}
                   onConnected={(phone) => {

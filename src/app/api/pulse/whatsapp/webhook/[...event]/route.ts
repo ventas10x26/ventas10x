@@ -1,6 +1,4 @@
 // src/app/api/pulse/whatsapp/webhook/[...event]/route.ts
-// Evolution API v2 llama a /webhook/{instanceName}/{event}
-// Esta route catch-all captura cualquier sub-path
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
@@ -26,7 +24,7 @@ async function enviarMensaje(instanceName: string, remoteJid: string, mensaje: s
   }
 }
 
-async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt: string; nombre: string }> {
+async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
   try {
     const emailGuess = instanceName
       .replace('_at_', '@')
@@ -43,7 +41,7 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
       .maybeSingle()
 
     if (!data) {
-      console.log('[webhook] no encontrado por email, buscando cualquier agente con agent_config')
+      console.log('[webhook] no encontrado por email, buscando fallback')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: fallback } = await (supabaseAdmin.from('pulse_waitlist') as any)
         .select('nombre, metadata')
@@ -51,25 +49,29 @@ async function obtenerSystemPrompt(instanceName: string): Promise<{ systemPrompt
         .limit(1)
         .maybeSingle()
 
-      if (!fallback) return { systemPrompt: '', nombre: 'el asesor' }
+      if (!fallback) return { systemPrompt: '', nombre: 'el asesor', botActivo: true }
 
       const cfg = fallback.metadata?.agent_config as Record<string, unknown> | undefined
-      console.log('[webhook] usando fallback agente:', fallback.nombre)
+      const botActivo = fallback.metadata?.bot_activo !== false
+      console.log('[webhook] fallback agente:', fallback.nombre, 'bot_activo:', botActivo)
       return {
         systemPrompt: String(cfg?.system_prompt || ''),
         nombre: fallback.nombre || 'el asesor',
+        botActivo,
       }
     }
 
     const cfg = data.metadata?.agent_config as Record<string, unknown> | undefined
-    console.log('[webhook] agente encontrado:', data.nombre, 'system_prompt length:', String(cfg?.system_prompt || '').length)
+    const botActivo = data.metadata?.bot_activo !== false // default true si no existe
+    console.log('[webhook] agente encontrado:', data.nombre, 'bot_activo:', botActivo)
     return {
       systemPrompt: String(cfg?.system_prompt || ''),
       nombre: data.nombre || 'el asesor',
+      botActivo,
     }
   } catch (e) {
     console.error('[webhook] obtenerSystemPrompt error:', e)
-    return { systemPrompt: '', nombre: 'el asesor' }
+    return { systemPrompt: '', nombre: 'el asesor', botActivo: true }
   }
 }
 
@@ -83,15 +85,12 @@ async function generarRespuesta(
   try {
     const { anthropic } = await import('@/lib/anthropic')
 
-    // Sanitizar historial: Anthropic rechaza 400 si hay roles consecutivos iguales
     const historialLimpio: Array<{ role: 'user' | 'assistant'; content: string }> = []
     for (const turn of historial.slice(-6)) {
       const ultimo = historialLimpio[historialLimpio.length - 1]
       if (ultimo && ultimo.role === turn.role) continue
       historialLimpio.push(turn)
     }
-
-    // El array de messages debe terminar en 'assistant' antes del nuevo 'user'
     if (historialLimpio[historialLimpio.length - 1]?.role === 'user') {
       historialLimpio.pop()
     }
@@ -102,14 +101,16 @@ async function generarRespuesta(
       system: systemPrompt
         ? `${systemPrompt}
 
-REGLAS:
+REGLAS ESTRICTAS:
 - Responde en español colombiano, tono cercano y natural
 - Máximo 2-3 oraciones — esto es WhatsApp
 - No uses asteriscos ni markdown
 - Suena como ${nombre}, no como un bot
-- Si preguntan precio, ofrece simular cuota con KIA Crédito
-- Si quieren más info, ofrece enviar ficha técnica`
-        : `Eres el asistente de ventas de ${nombre}, asesor KIA. Responde en español colombiano, de forma natural y cercana. Máximo 2-3 oraciones.`,
+- NUNCA inventes datos: ciudad, precios exactos, tasas, fechas de entrega
+- Si no sabes algo con certeza, di "te confirmo ese dato" o "déjame verificar"
+- Si mencionan inicial + crédito + plazo: di que vas a simular la cuota con KIA Crédito y pide confirmar el modelo exacto
+- Si quieren ver el carro: ofrece enviar la foto y el enlace del concesionario`
+        : `Eres el asistente de ventas de ${nombre}, asesor KIA. Responde en español colombiano, de forma natural y cercana. Máximo 2-3 oraciones. NUNCA inventes datos que no te hayan dado.`,
       messages: [
         ...historialLimpio,
         { role: 'user', content: texto },
@@ -122,7 +123,6 @@ REGLAS:
   }
 }
 
-// Historial en memoria por conversación
 const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
 
 export async function POST(
@@ -163,6 +163,14 @@ export async function POST(
 
     console.log(`[webhook] instance: ${instanceName}, msgs: ${msgs.length}`)
 
+    // Verificar bot_activo ANTES de procesar mensajes
+    const { systemPrompt, nombre, botActivo } = await obtenerSystemPrompt(instanceName)
+
+    if (!botActivo) {
+      console.log('[webhook] bot INACTIVO para instancia:', instanceName, '— mensaje ignorado')
+      return NextResponse.json({ ok: true, paused: true })
+    }
+
     for (const msg of msgs) {
       const m = msg as Record<string, unknown>
       const key = m.key as Record<string, unknown>
@@ -183,8 +191,6 @@ export async function POST(
       if (!texto) continue
 
       console.log(`[webhook] mensaje de ${remoteJid}: "${texto}"`)
-
-      const { systemPrompt, nombre } = await obtenerSystemPrompt(instanceName)
 
       const chatKey = `${instanceName}:${remoteJid}`
       const historial = chatHistory.get(chatKey) || []

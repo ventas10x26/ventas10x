@@ -22,7 +22,7 @@ const SYSTEM_PROMPT_DEFAULT = `Eres el asistente de ventas de Carlos Sanabria, a
 
 const REGLAS = `REGLAS ESTRICTAS:
 - Responde en español colombiano, tono cercano y natural
-- Máximo 2-3 oraciones — esto es WhatsApp
+- Máximo 2-3 oraciones para respuestas normales. EXCEPCIÓN: simulaciones de crédito usan salto de línea por cada dato, sin asteriscos
 - No uses asteriscos ni markdown
 - Suena como el asesor, no como un bot
 - NUNCA inventes datos: ciudad, precios exactos, tasas, fechas de entrega

@@ -503,7 +503,7 @@ async function generarRespuesta(
 ${catalogoTexto}
 
 IDENTIDAD:
-Eres un asesor KIA experto, humano y cercano. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.
+Eres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del concesionario, dirección ni datos que no estén en el catálogo. Si no sabes la dirección exacta, di "en el concesionario" solamente. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.
 
 TU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.
 
@@ -626,8 +626,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       // Solo aplicar si el historial reciente incluye oferta de test drive
       const historialReciente = historial.slice(-4).map(h => h.content).join(' ').toLowerCase()
       const hayOfertaTestDrive = historialReciente.includes('test drive') || historialReciente.includes('agendar')
+      
+      // No activar si ya hay un día acordado — evita reiniciar flujo con "si" de confirmación
+      const diasSemana = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado']
+      const yaHayDiaAcordado = diasSemana.some(d => historialReciente.includes(d))
 
-      if (hayOfertaTestDrive && esConfirmacionTestDrive) {
+      if (hayOfertaTestDrive && esConfirmacionTestDrive && !yaHayDiaAcordado) {
         await new Promise(r => setTimeout(r, 800))
         await enviarTexto(instanceName, remoteJid,
           `¡Perfecto, te espero en el concesionario! 🤝 ¿Qué día de esta semana te viene mejor para el test drive?`)
@@ -713,7 +717,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const historialTexto = nuevoHistorial.map(h => h.content).join(' ').toLowerCase()
       const tieneDia = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'].some(d => historialTexto.includes(d))
       const tieneHora = /\d{1,2}\s*(pm|am)|en la tarde|en la mañana|2pm|3pm|4pm|10am|11am/.test(historialTexto)
-      const citaYaRegistrada = historialTexto.includes('está anotado') || historialTexto.includes('esta anotado') || historialTexto.includes('confirmado')
+      const citaYaRegistrada = 
+        historialTexto.includes('está anotado') || 
+        historialTexto.includes('esta anotado') ||
+        historialTexto.includes('te esperamos') ||
+        historialTexto.includes('te espero') ||
+        historialTexto.includes('queda confirmado') ||
+        historialTexto.includes('quedamos') ||
+        historialTexto.includes('listo, el') ||
+        historialTexto.includes('perfecto, el')
       if (tieneDia && tieneHora && !citaYaRegistrada) {
         const { dia, hora } = extraerDiaHora(nuevoHistorial)
         if (dia && hora) {
@@ -776,5 +788,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v16' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v17' })
 }

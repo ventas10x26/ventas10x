@@ -1,5 +1,5 @@
 // src/app/api/pulse/whatsapp/webhook/[...event]/route.ts
-// v4 — historial persistente en Supabase
+// v5 — aliases detección + modelo persistido entre requests
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
@@ -156,15 +156,35 @@ function parsearCSV(csv: string): VehiculoMedia[] {
 
 // ── DETECCIÓN Y CÁLCULO ───────────────────────────────────────────────────────
 
+// FIX v5: Aliases — palabras que el cliente dice → fragmento real en v.linea del CSV
+// El CSV usa "NEW PICANTO", "NEW SORENTO", "NEW STONIC" pero el cliente dice solo el nombre
+const ALIASES_MODELO: Record<string, string> = {
+  'picanto': 'new picanto',
+  'sorento': 'new sorento',
+  'stonic': 'new stonic',
+}
+
 function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
   const lower = textoCompleto.toLowerCase()
+
+  // Expandir aliases antes de comparar
+  let textoExpandido = lower
+  for (const [alias, real] of Object.entries(ALIASES_MODELO)) {
+    if (lower.includes(alias) && !lower.includes(real)) {
+      textoExpandido = textoExpandido.replace(new RegExp(alias, 'g'), real)
+    }
+  }
+
   // Match exacto línea + versión
   for (const v of vehiculos) {
-    if (lower.includes(v.linea.toLowerCase()) && lower.includes(v.version.toLowerCase())) return v
+    if (
+      textoExpandido.includes(v.linea.toLowerCase()) &&
+      textoExpandido.includes(v.version.toLowerCase())
+    ) return v
   }
   // Match solo línea
   for (const v of vehiculos) {
-    if (lower.includes(v.linea.toLowerCase())) return v
+    if (textoExpandido.includes(v.linea.toLowerCase())) return v
   }
   return null
 }
@@ -325,11 +345,12 @@ REGLAS — SEGUIR EN ORDEN:
 1. Español colombiano, tono cercano y natural
 2. Máximo 2-3 oraciones — esto es WhatsApp
 3. NUNCA asteriscos, negritas ni markdown
-4. USA SOLO precios del catálogo
-5. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — la simulación se entrega automáticamente
-6. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo)
-7. NUNCA menciones que envías fotos — se envían automáticamente
-8. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento`,
+4. USA SOLO precios del catálogo — NUNCA inventes precios
+5. Si el modelo que menciona el cliente no está en el catálogo, di que no tienes ese modelo disponible actualmente
+6. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — la simulación se entrega automáticamente
+7. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo)
+8. NUNCA menciones que envías fotos o fichas — se envían automáticamente sin anunciarlo
+9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento`,
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -394,13 +415,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 
       // Leer conversación persistida desde Supabase
       const conv = await leerConversacion(instanceName, remoteJid)
-      const { historial, mediaEnviada } = conv
+      // FIX v5: recuperar también el modelo ya identificado en requests anteriores
+      const { historial, mediaEnviada, modeloDetectado: modeloPersistido } = conv
 
       // Texto completo = historial + mensaje actual para detección
       const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
 
-      // Detectar modelo (en texto actual O en historial)
-      const modeloDetectado = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
+      // FIX v5: detectar por texto expandido con aliases, o recuperar el modelo persistido
+      const modeloDetectadoPorTexto = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
+      const modeloDetectado = modeloDetectadoPorTexto
+        ?? (modeloPersistido ? vehiculos.find(v => v.linea === modeloPersistido) ?? null : null)
+
       const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
 
       // Extraer inicial y plazo del historial completo
@@ -426,14 +451,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const nuevaMediaEnviada = [...mediaEnviada]
       if (modeloDetectado && esPrimera) nuevaMediaEnviada.push(modeloDetectado.linea)
 
-      // Persistir en Supabase
-      await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloDetectado?.linea || null, nuevaMediaEnviada)
+      // FIX v5: preservar modelo persistido si el request actual no lo detectó por texto
+      const modeloAGuardar = modeloDetectado?.linea || modeloPersistido || null
+      await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloAGuardar, nuevaMediaEnviada)
 
       // Enviar respuesta conversacional
       if (respuesta) {
         await new Promise(r => setTimeout(r, 800 + Math.random() * 500))
         await enviarTexto(instanceName, remoteJid, respuesta)
-        console.log(`[webhook] texto: "${respuesta.slice(0, 60)}"`)
+        console.log(`[webhook] texto enviado: "${respuesta.slice(0, 60)}"`)
       }
 
       // Enviar simulación de crédito
@@ -464,5 +490,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v4' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v5' })
 }

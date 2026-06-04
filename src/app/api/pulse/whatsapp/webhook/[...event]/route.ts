@@ -469,8 +469,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
         const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
         if (w && w === corto) {
           const cfg = meta?.agent_config as Record<string, unknown> | undefined
-          // Leer bot_activo explícitamente — false en BD debe bloquear el bot
-          const botActivoMatch = meta?.bot_activo === false ? false : true
+          // Leer bot_activo — JSONB puede devolver boolean false o string "false"
+          const botActivoMatch = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
+          console.log('[webhook] botActivo match:', botActivoMatch, '| raw:', meta?.bot_activo)
           return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: botActivoMatch }
         }
       }
@@ -479,8 +480,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
       const meta = row.metadata as Record<string, unknown>
       if (meta?.agent_config) {
         const cfg = meta.agent_config as Record<string, unknown>
-        // Leer bot_activo explícitamente — false en BD debe bloquear el bot
-        const botActivo = meta?.bot_activo === true || meta?.bot_activo === undefined ? true : false
+        // Leer bot_activo — JSONB puede devolver boolean false o string "false"
+        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
+        console.log('[webhook] botActivo fallback:', botActivo, '| raw:', meta?.bot_activo)
         return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
       }
     }
@@ -836,5 +838,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v22' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v23' })
 }

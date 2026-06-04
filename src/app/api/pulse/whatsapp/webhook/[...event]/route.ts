@@ -628,6 +628,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
+      // GUARDIA: solo responder a números que sean leads registrados en pulse_leads
+      // Evita que el bot responda a contactos normales de WhatsApp del asesor
+      const telefonoRaw = remoteJid.replace('@s.whatsapp.net', '').replace(/^57/, '')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: leadCheck } = await (supabaseAdmin.from('pulse_leads') as any)
+        .select('id')
+        .or(`telefono.ilike.%${telefonoRaw}%,telefono.ilike.%57${telefonoRaw}%`)
+        .limit(1)
+        .maybeSingle()
+      if (!leadCheck) {
+        console.log(`[webhook] IGNORADO — no es lead registrado: ${telefonoRaw}`)
+        continue
+      }
+
       // Leer conversación ANTES de la detección de botones (necesitamos historial)
       const conv = await leerConversacion(instanceName, remoteJid)
       const { historial, mediaEnviada, modeloDetectado: modeloPersistido } = conv
@@ -818,5 +832,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v20' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v21' })
 }

@@ -245,6 +245,9 @@ async function generarRespuesta(
     }
     if (historialLimpio[historialLimpio.length - 1]?.role === 'user') historialLimpio.pop()
 
+    // Extraer datos del historial para dar contexto al bot
+    const historialTexto = historialLimpio.map(h => `${h.role === 'user' ? 'Cliente' : 'Asesor'}: ${h.content}`).join('\n')
+
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 250,
@@ -252,14 +255,20 @@ async function generarRespuesta(
 
 ${catalogoTexto}
 
-REGLAS ESTRICTAS:
-- Responde en español colombiano, tono cercano y natural
-- Máximo 2-3 oraciones — esto es WhatsApp
-- No uses asteriscos ni markdown
-- Suena como ${nombre}, no como un bot
-- USA SOLO los precios del catálogo — NUNCA inventes precios, tasas ni fechas
-- Si no sabes algo con certeza, di "te confirmo ese dato"
-- No menciones que envías fotos o fichas — ya se envían automáticamente`,
+REGLAS ESTRICTAS — LEER ANTES DE RESPONDER:
+1. Responde en español colombiano, tono cercano y natural
+2. Máximo 2-3 oraciones — esto es WhatsApp
+3. NUNCA uses asteriscos, negritas ni markdown
+4. Suena como ${nombre}, no como un bot
+5. USA SOLO precios del catálogo — NUNCA inventes precios, tasas, plazos ni datos
+6. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — si no sabes, di "déjame verificar ese dato"
+7. NUNCA preguntes datos que el cliente YA mencionó en la conversación (modelo, ciudad, inicial, plazo)
+8. NUNCA digas que vas a enviar fotos — ya se envían automáticamente
+9. Si el cliente menciona modelo + inicial + plazo: la simulación ya se calcula automáticamente, NO la prometas ni la calcules tú
+10. Revisa SIEMPRE el historial antes de responder para no repetir preguntas
+
+HISTORIAL DE LA CONVERSACIÓN:
+${historialTexto || 'Sin historial previo'}`,
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null

@@ -105,6 +105,30 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   }
 }
 
+// Parser CSV que respeta comas dentro de comillas (RFC 4180)
+// Necesario porque el catálogo tiene celdas como: "1.0L 66HP, Transmision de 5 Velocidades"
+// que desplazan los índices si se usa split(',') simple
+function parsearLineaCSV(linea: string, sep: string): string[] {
+  if (sep === '\t') return linea.split('\t').map(c => c.trim().replace(/^"|"$/g, ''))
+  const cells: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < linea.length; i++) {
+    const ch = linea[i]
+    if (ch === '"') {
+      if (inQuotes && linea[i + 1] === '"') { current += '"'; i++ } // escaped quote
+      else { inQuotes = !inQuotes }
+    } else if (ch === ',' && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  cells.push(current.trim())
+  return cells
+}
+
 function parsearCSV(csv: string): VehiculoMedia[] {
   const lineas = csv.trim().split('\n')
   if (lineas.length < 2) return []
@@ -113,8 +137,8 @@ function parsearCSV(csv: string): VehiculoMedia[] {
   const sepTab = primera.split('\t').length
   const sepComa = primera.split(',').length
   const sep = sepTab > sepComa ? '\t' : ','
-  const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
 
+  const cols = parsearLineaCSV(primera, sep).map(h => h.toLowerCase())
   console.log('[webhook] sep:', sep === '\t' ? 'TAB' : 'COMA', '| total cols:', cols.length)
 
   const idx = {
@@ -135,7 +159,7 @@ function parsearCSV(csv: string): VehiculoMedia[] {
 
   const vehiculos: VehiculoMedia[] = []
   for (let i = 1; i < lineas.length; i++) {
-    const cells = lineas[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
+    const cells = parsearLineaCSV(lineas[i], sep)
     if (!cells[idx.linea]) continue
     if (cells[idx.activo]?.toUpperCase() === 'FALSE') continue
     if (cells[idx.activaV]?.toUpperCase() === 'FALSE') continue

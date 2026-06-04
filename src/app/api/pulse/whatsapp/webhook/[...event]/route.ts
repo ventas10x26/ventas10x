@@ -448,9 +448,38 @@ async function enviarFicha(instanceName: string, remoteJid: string, url: string,
 async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
   const def = { systemPrompt: '', nombre: 'el asesor', botActivo: false }
   try {
+    // Convertir instanceName a email: "ricaza81_at_gmail_com" → "ricaza81@gmail.com"
+    // Formato: todo antes de "_at_" es el usuario, todo después es el dominio con "_" → "."
+    const partes = instanceName.split('_at_')
+    const emailFromInstance = partes.length === 2
+      ? `${partes[0]}@${partes[1].replace(/_/g, '.')}`
+      : null
+    console.log('[webhook] emailFromInstance:', emailFromInstance)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
+      .select('email, nombre, metadata')
+      .not('metadata', 'is', null)
+    if (!rows || !Array.isArray(rows)) return def
+
+    // PRIORIDAD 1: match exacto por email derivado del instanceName
+    if (emailFromInstance) {
+      const rowExacto = rows.find((r: Record<string, unknown>) =>
+        String(r.email || '').toLowerCase() === emailFromInstance.toLowerCase()
+      )
+      if (rowExacto) {
+        const meta = rowExacto.metadata as Record<string, unknown>
+        const cfg = meta?.agent_config as Record<string, unknown> | undefined
+        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
+        console.log('[webhook] config por email exacto:', emailFromInstance, '| botActivo:', botActivo)
+        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: rowExacto.nombre || 'el asesor', botActivo }
+      }
+    }
+
+    // PRIORIDAD 2: match por teléfono de la instancia (Evolution API)
     let telefonoInstancia: string | null = null
     try {
-      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers: { apikey: EVO_KEY } })
+      const res = await fetch(\`\${EVO_URL}/instance/connectionState/\${instanceName}\`, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
         const match = String(data?.instance?.ownerJid || '').match(/^(\d+)@/)
@@ -458,54 +487,25 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
       }
     } catch { /* continuar */ }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any).select('email, nombre, metadata').not('metadata', 'is', null)
-    if (!rows || !Array.isArray(rows)) return def
-
     if (telefonoInstancia) {
       const corto = telefonoInstancia.replace(/^57/, '')
+      // Buscar row cuyo email también hace match con instanceName (evitar duplicados de teléfono)
       for (const row of rows) {
+        const rowEmail = String((row as Record<string, unknown>).email || '').toLowerCase()
         const meta = row.metadata as Record<string, unknown>
         const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
-        if (w && w === corto) {
+        // Solo usar este row si el email también coincide con el instanceName
+        const emailCoincide = emailFromInstance && rowEmail === emailFromInstance.toLowerCase()
+        if (w && w === corto && emailCoincide) {
           const cfg = meta?.agent_config as Record<string, unknown> | undefined
-          // Leer bot_activo — JSONB puede devolver boolean false o string "false"
-          const botActivoMatch = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-          console.log('[webhook] botActivo match:', botActivoMatch, '| raw:', meta?.bot_activo)
-          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: botActivoMatch }
+          const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
+          console.log('[webhook] config por tel+email:', rowEmail, '| botActivo:', botActivo)
+          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
         }
       }
     }
-    // Intentar match por instanceName — formato: "email_at_domain_com"
-    // ricaza81_at_gmail_com → ricaza81@gmail.com
-    const emailDesdeInstance = instanceName
-      .replace(/_at_/, '@')
-      .replace(/_([^_]+)$/, '.$1')
-      .replace(/_/g, '.')
-      // Fix: solo reemplazar el primer grupo correctamente
-    // Buscar por email derivado del instanceName
-    for (const row of rows) {
-      const rowEmail = String((row as Record<string, unknown>).email || '').toLowerCase()
-      const instanceEmail = instanceName.replace('_at_', '@').replace(/_/g, '.').toLowerCase()
-      const esMatch = rowEmail && (rowEmail === instanceEmail || instanceEmail.includes(rowEmail.split('@')[0]))
-      const meta = row.metadata as Record<string, unknown>
-      if (esMatch && meta?.agent_config) {
-        const cfg = meta.agent_config as Record<string, unknown>
-        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-        console.log('[webhook] botActivo by instance email:', botActivo, '| raw:', meta?.bot_activo, '| email:', rowEmail)
-        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
-      }
-    }
-    // Último fallback: primer row con agent_config
-    for (const row of rows) {
-      const meta = row.metadata as Record<string, unknown>
-      if (meta?.agent_config) {
-        const cfg = meta.agent_config as Record<string, unknown>
-        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-        console.log('[webhook] botActivo last fallback:', botActivo, '| raw:', meta?.bot_activo)
-        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
-      }
-    }
+
+    console.log('[webhook] no se encontró config para instanceName:', instanceName)
     return def
   } catch (e) {
     console.error('[webhook] obtenerConfigAgente error:', e)
@@ -858,5 +858,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v24' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v25' })
 }

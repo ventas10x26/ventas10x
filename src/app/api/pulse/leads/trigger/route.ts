@@ -185,7 +185,11 @@ async function inicializarConversacion(
         // Guardar el mensaje inicial del asesor como contexto del asistente
         historial: [{ role: 'assistant', content: mensajeInicial }],
         // Guardar el modelo detectado desde el lead — evita que el bot pregunte cuál modelo
-        modelo_detectado: modelo.toUpperCase(),
+        // Normalizar aliases: "Picanto" → "NEW PICANTO", etc. para coincidir con el CSV
+        modelo_detectado: modelo.toUpperCase()
+          .replace(/^PICANTO\b/, 'NEW PICANTO')
+          .replace(/^SORENTO\b/, 'NEW SORENTO')
+          .replace(/^STONIC\b/, 'NEW STONIC'),
         media_enviada: [],
         updated_at: new Date().toISOString(),
       }, { onConflict: 'instance_name,remote_jid' })

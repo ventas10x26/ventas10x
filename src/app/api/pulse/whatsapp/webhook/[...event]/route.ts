@@ -223,29 +223,42 @@ function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): Vehi
 }
 
 function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number } {
-  // Patrones explícitos con contexto
-  const inicialMatch =
-    textoCompleto.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?inicial/i) ||
-    textoCompleto.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
-    textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i) ||
-    textoCompleto.match(/inicial[:\s]+\$?(\d+[\.,]?\d*)\s*m/i) ||
-    // "doy 30M", "tengo 30M", "con 30M", "son 30M", número seguido de M sin contexto explícito
-    textoCompleto.match(/(?:doy|tengo|con|son|inicial\s+de)\s+(\d+)\s*m(?:illones?)?/i) ||
-    // Solo "30M" o "30 millones" como mensaje corto (<=10 chars limpio)
-    (textoCompleto.trim().replace(/[^\d]/g, '').length <= 4 &&
-     textoCompleto.match(/^\s*(\d+)\s*m(?:illones?)?\s*$/i)) || null
-  const inicial = inicialMatch ? parseInt(inicialMatch[1].replace(/\./g, '')) * 1_000_000 : 0
+  const t = textoCompleto
 
+  // ── INICIAL ──────────────────────────────────────────────────────────────
+  const inicialMatch =
+    t.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?(?:cuota\s+)?inicial/i) ||
+    t.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
+    t.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i) ||
+    t.match(/inicial[:\s]+\$?(\d+[\.,]?\d*)\s*m/i) ||
+    t.match(/(\d+)\s*m(?:illones?)?\s+(?:de\s+)?entrada/i) ||
+    t.match(/entrada\s+(?:de\s+)?(\d+)\s*m/i) ||
+    t.match(/cuota\s+inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
+    t.match(/(?:doy|tengo|pongo|pago|pagar|dar)\s+(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:inicial|entrada|cuota)/i) ||
+    t.match(/(?:doy|tengo|pongo)\s+(\d+)\s*m(?:illones?)?/i) ||
+    t.match(/con\s+(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:inicial|entrada)/i) ||
+    // "68M de inicial", "68M inicial", "68M de cuota inicial"
+    t.match(/(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:cuota\s+)?inicial/i) ||
+    // Mensaje corto solo número M
+    (t.trim().replace(/[^\d]/g, '').length <= 4 && t.match(/^\s*(\d+)\s*m(?:illones?)?\s*$/i)) || null
+
+  const inicial = inicialMatch ? parseInt(inicialMatch[1].replace(/[.,]/g, '')) * 1_000_000 : 0
+
+  // ── PLAZO ─────────────────────────────────────────────────────────────────
   const plazoMatch =
-    textoCompleto.match(/(\d+)\s*meses/i) ||
-    textoCompleto.match(/a\s+(\d+)\s+meses/i) ||
-    textoCompleto.match(/plazo\s+(?:de\s+)?(\d+)/i) ||
-    // Solo número entre 12-120 como mensaje corto (plazo en meses)
-    (textoCompleto.trim().match(/^\s*(\d+)\s*$/) &&
-     parseInt(textoCompleto.trim()) >= 12 &&
-     parseInt(textoCompleto.trim()) <= 120
-       ? textoCompleto.trim().match(/^\s*(\d+)\s*$/) : null)
-  const plazo = plazoMatch ? parseInt(plazoMatch[1]) : 0
+    t.match(/(\d+)\s*meses/i) ||
+    t.match(/a\s+(\d+)\s+meses/i) ||
+    t.match(/plazo\s+(?:de\s+)?(\d+)/i) ||
+    t.match(/financiar\s+(?:a\s+)?(\d+)/i) ||
+    t.match(/cuotas?\s+(?:de\s+)?(\d+)\s*meses/i) ||
+    // Número solo entre 12–120 como mensaje corto
+    (t.trim().match(/^\s*(\d+)\s*$/) &&
+     parseInt(t.trim()) >= 12 && parseInt(t.trim()) <= 120
+       ? t.trim().match(/^\s*(\d+)\s*$/) : null)
+  
+  // Si el cliente pide crédito sin especificar plazo → usar 60 meses por defecto
+  const quiereCredito = /cr[eé]dito|financiar|financiamiento|cuota|mensualidad|saldo en cr/i.test(t)
+  const plazo = plazoMatch ? parseInt(plazoMatch[1]) : (inicial > 0 && quiereCredito ? 60 : 0)
 
   return { inicial, plazo }
 }
@@ -536,6 +549,13 @@ ESTRATEGIA DE CONVERSACIÓN:
 4. SIEMPRE termina con una pregunta que avance hacia el test drive
 5. Si el cliente duda o compara con otra marca: valida su proceso, destaca 1 diferencial KIA y propón el test drive como la forma de decidir con seguridad
 
+PRIORIDADES EN CADA MENSAJE — SEGUIR ESTE ORDEN:
+- Si el cliente mencionó inicial o crédito → confirma que la simulación está siendo procesada, NO hagas otra pregunta
+- Si el cliente preguntó algo concreto → responde ESO primero, luego avanza
+- NUNCA desvíes la conversación cuando el cliente ya mostró intención de compra
+- Quien controla la pregunta, controla la negociación — haz UNA sola pregunta por mensaje, siempre orientada al siguiente paso
+- Si ya tienes modelo + inicial → el siguiente paso es siempre el test drive, no más preguntas de producto
+
 PREGUNTAS DE CIERRE (rotar según contexto):
 - "¿Cuándo te gustaría venir a conocerlo en persona?"
 - "¿Tienes 30 minutos esta semana para probarlo en la carretera?"
@@ -798,5 +818,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v19' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v20' })
 }

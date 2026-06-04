@@ -32,6 +32,8 @@ export async function middleware(request: NextRequest) {
     // Excluir rutas de API y assets
     if (
       pathname.startsWith('/api/pulse') ||
+      pathname.startsWith('/api/bot') ||
+      pathname.startsWith('/api/bot-lead') ||
       pathname.startsWith('/_next') ||
       pathname.startsWith('/favicon') ||
       pathname.includes('.')

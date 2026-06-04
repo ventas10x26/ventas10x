@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
     let error
 
     if (leadExistente) {
-      // Actualizar email si no lo tenía
       const updateData: Record<string, string> = { updated_at: new Date().toISOString() }
       if (email && !leadExistente.email) updateData.email = email
       if (producto) updateData.producto = producto
@@ -132,41 +131,53 @@ export async function POST(req: NextRequest) {
       }
 
       // ── INTEGRACIÓN PULSE MOTOR ─────────────────────────────────────────────
-      // Crear lead en pulse_leads y disparar agente WhatsApp
       try {
         const telefonoLimpio = whatsapp.replace(/\D/g, '').replace(/^0+/, '')
         const textoOrigen = [nombre, whatsapp, producto].filter(Boolean).join(', ')
 
-        const { data: pulseLead, error: pulseError } = await supabase
-          .from('pulse_leads')
-          .insert([{
-            vendedor_id,
-            nombre,
-            telefono: telefonoLimpio,
-            modelo: producto || null,
-            texto_origen: textoOrigen,
-            canal: 'landing',
-            estado: 'nuevo',
-            score: 7,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }])
-          .select('id')
+        // Obtener org_id del vendedor dinámicamente
+        const { data: orgMember } = await supabase
+          .from('org_members')
+          .select('org_id')
+          .eq('user_id', vendedor_id)
+          .limit(1)
           .single()
+        const orgId = orgMember?.org_id || null
 
-        if (pulseError) {
-          console.error('[bot-lead] pulse_leads insert error:', JSON.stringify(pulseError))
-        } else if (pulseLead?.id) {
-          console.log('[bot-lead] pulse_leads creado:', pulseLead.id)
-          // Disparar agente WhatsApp (fire-and-forget)
-          const baseUrl = 'https://pulsemotor.co'
-          fetch(`${baseUrl}/api/pulse/leads/trigger`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lead_id: pulseLead.id }),
-          })
-            .then(r => console.log('[bot-lead] pulse trigger status:', r.status))
-            .catch(e => console.error('[bot-lead] pulse trigger error:', e))
+        if (!orgId) {
+          console.warn('[bot-lead] vendedor sin org_id — omitiendo pulse_leads:', vendedor_id)
+        } else {
+          const { data: pulseLead, error: pulseError } = await supabase
+            .from('pulse_leads')
+            .insert([{
+              vendedor_id,
+              org_id: orgId,
+              nombre,
+              telefono: telefonoLimpio,
+              modelo: producto || null,
+              texto_origen: textoOrigen,
+              canal: 'landing',
+              estado: 'nuevo',
+              score: 7,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }])
+            .select('id')
+            .single()
+
+          if (pulseError) {
+            console.error('[bot-lead] pulse_leads insert error:', JSON.stringify(pulseError))
+          } else if (pulseLead?.id) {
+            console.log('[bot-lead] pulse_leads creado:', pulseLead.id)
+            // Disparar agente WhatsApp (fire-and-forget)
+            fetch('https://pulsemotor.co/api/pulse/leads/trigger', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lead_id: pulseLead.id }),
+            })
+              .then(r => console.log('[bot-lead] pulse trigger status:', r.status))
+              .catch(e => console.error('[bot-lead] pulse trigger error:', e))
+          }
         }
       } catch (e) {
         console.error('[bot-lead] pulse integration error:', e)

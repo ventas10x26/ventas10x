@@ -130,18 +130,19 @@ export async function POST(req: NextRequest) {
       } catch (notifError) {
         console.error('bot-lead notif setup error:', notifError)
       }
-    }
 
-    // ── INTEGRACIÓN PULSE MOTOR ──────────────────────────────────────────────
-    if (vendedor_id && !leadExistente) {
+      // ── INTEGRACIÓN PULSE MOTOR ─────────────────────────────────────────────
+      // Crear lead en pulse_leads y disparar agente WhatsApp
       try {
+        const telefonoLimpio = whatsapp.replace(/\D/g, '').replace(/^0+/, '')
         const textoOrigen = [nombre, whatsapp, producto].filter(Boolean).join(', ')
-        const { data: pulseLead } = await supabase
+
+        const { data: pulseLead, error: pulseError } = await supabase
           .from('pulse_leads')
           .insert([{
             vendedor_id,
             nombre,
-            telefono: whatsapp.replace(/\D/g, '').replace(/^0+/, ''),
+            telefono: telefonoLimpio,
             modelo: producto || null,
             texto_origen: textoOrigen,
             canal: 'landing',
@@ -153,20 +154,25 @@ export async function POST(req: NextRequest) {
           .select('id')
           .single()
 
-        if (pulseLead?.id) {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
+        if (pulseError) {
+          console.error('[bot-lead] pulse_leads insert error:', JSON.stringify(pulseError))
+        } else if (pulseLead?.id) {
+          console.log('[bot-lead] pulse_leads creado:', pulseLead.id)
+          // Disparar agente WhatsApp (fire-and-forget)
+          const baseUrl = 'https://pulsemotor.co'
           fetch(`${baseUrl}/api/pulse/leads/trigger`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lead_id: pulseLead.id }),
-          }).catch(e => console.error('pulse trigger error:', e))
-          console.log('[bot-lead] pulse trigger disparado:', pulseLead.id)
+          })
+            .then(r => console.log('[bot-lead] pulse trigger status:', r.status))
+            .catch(e => console.error('[bot-lead] pulse trigger error:', e))
         }
       } catch (e) {
         console.error('[bot-lead] pulse integration error:', e)
       }
+      // ── FIN INTEGRACIÓN PULSE MOTOR ─────────────────────────────────────────
     }
-    // ── FIN INTEGRACIÓN PULSE ────────────────────────────────────────────────
 
     return NextResponse.json({ success: true, lead })
   } catch (error) {

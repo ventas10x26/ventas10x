@@ -272,6 +272,91 @@ function calcularSimulacion(modelo: VehiculoMedia, inicial: number, plazo: numbe
   ].filter(Boolean).join('\n')
 }
 
+// ── CITAS ────────────────────────────────────────────────────────────────────
+
+async function registrarCita(
+  remoteJid: string,
+  instanceName: string,
+  diaTexto: string,
+  horaTexto: string
+): Promise<void> {
+  try {
+    // Buscar el lead por remoteJid (teléfono)
+    const telefono = remoteJid.replace('@s.whatsapp.net', '').replace(/^57/, '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: leads } = await (supabaseAdmin.from('pulse_leads') as any)
+      .select('id, vendedor_id, nombre')
+      .or(`telefono.ilike.%${telefono}%`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    const lead = leads?.[0]
+    if (!lead) { console.log('[cita] lead no encontrado para:', telefono); return }
+
+    // Insertar cita
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin.from('pulse_citas') as any)
+      .upsert({
+        lead_id: lead.id,
+        vendedor_id: lead.vendedor_id,
+        remote_jid: remoteJid,
+        dia_texto: diaTexto,
+        hora_texto: horaTexto,
+        estado: 'pendiente',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'lead_id' })
+
+    // Mover lead a estado test_drive
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin.from('pulse_leads') as any)
+      .update({ estado: 'test_drive', updated_at: new Date().toISOString() })
+      .eq('id', lead.id)
+
+    // Notificar al asesor por WhatsApp
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('whatsapp, nombre')
+      .eq('id', lead.vendedor_id)
+      .maybeSingle()
+
+    if (profile?.whatsapp) {
+      const numAsesor = profile.whatsapp.replace(/\D/g, '').replace(/^57/, '')
+      const msgAsesor = `🗓️ Test Drive agendado
+Lead: ${lead.nombre}
+Día: ${diaTexto}
+Hora: ${horaTexto}
+Teléfono: +57${telefono}`
+      await fetch(`${process.env.EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY! },
+        body: JSON.stringify({ number: `57${numAsesor}`, text: msgAsesor }),
+      })
+      console.log('[cita] asesor notificado:', profile.nombre)
+    }
+
+    console.log('[cita] ✅ registrada — lead:', lead.nombre, '|', diaTexto, horaTexto)
+  } catch (e) {
+    console.error('[cita] error:', e)
+  }
+}
+
+function extraerDiaHora(historial: { role: string; content: string }[]): { dia: string; hora: string } {
+  const textoHistorial = historial.map(h => h.content).join(' ').toLowerCase()
+
+  const dias = ['lunes', 'martes', 'miércoles', 'miercoles', 'jueves', 'viernes', 'sábado', 'sabado', 'domingo']
+  const dia = dias.find(d => textoHistorial.includes(d)) || ''
+
+  const horaMatch =
+    textoHistorial.match(/(\d{1,2})\s*(?:pm|am)/i) ||
+    textoHistorial.match(/(\d{1,2})\s*(?:de la tarde|de la mañana)/i)
+  const hora = horaMatch ? horaMatch[0] : (
+    textoHistorial.includes('mañana') ? 'en la mañana' :
+    textoHistorial.includes('tarde') ? 'en la tarde' : ''
+  )
+
+  return { dia, hora }
+}
+
 // ── EVOLUTION API ─────────────────────────────────────────────────────────────
 
 async function enviarTexto(instanceName: string, remoteJid: string, mensaje: string) {
@@ -624,6 +709,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const modeloAGuardar = modeloKeyActual || modeloPersistido || null
       await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloAGuardar, nuevaMediaEnviada)
 
+      // Detectar cita confirmada — cuando el historial tiene día + hora acordados
+      const historialTexto = nuevoHistorial.map(h => h.content).join(' ').toLowerCase()
+      const tieneDia = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'].some(d => historialTexto.includes(d))
+      const tieneHora = /\d{1,2}\s*(pm|am)|en la tarde|en la mañana|2pm|3pm|4pm|10am|11am/.test(historialTexto)
+      const citaYaRegistrada = historialTexto.includes('está anotado') || historialTexto.includes('esta anotado') || historialTexto.includes('confirmado')
+      if (tieneDia && tieneHora && !citaYaRegistrada) {
+        const { dia, hora } = extraerDiaHora(nuevoHistorial)
+        if (dia && hora) {
+          await registrarCita(remoteJid, instanceName, dia, hora)
+          console.log('[webhook] cita detectada y registrada:', dia, hora)
+        }
+      }
+
       // Enviar respuesta conversacional
       if (respuesta) {
         await new Promise(r => setTimeout(r, 800 + Math.random() * 500))
@@ -678,5 +776,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v15' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v16' })
 }

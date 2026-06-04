@@ -497,28 +497,64 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
-      // Si tocó "Sí quiero agendar Test Drive" → respuesta especial
-      if (btnId === 'btn_test_drive_si') {
+      // Leer conversación ANTES de la detección de botones (necesitamos historial)
+      const conv = await leerConversacion(instanceName, remoteJid)
+      const { historial, mediaEnviada, modeloDetectado: modeloPersistido } = conv
+
+      // Detectar respuesta a botones de test drive — nativo (btnId) o texto plano (fallback)
+      const textoLower = texto.toLowerCase().trim()
+      const esConfirmacionTestDrive = 
+        btnId === 'btn_test_drive_si' ||
+        textoLower === '1' || textoLower === '1.' ||
+        textoLower === 'si' || textoLower === 'sí' ||
+        textoLower === 'sí, quiero agendar' || textoLower === 'si, quiero agendar' ||
+        textoLower.includes('quiero agendar')
+      const esNegacionTestDrive =
+        btnId === 'btn_test_drive_no' ||
+        textoLower === '2' || textoLower === '2.' ||
+        textoLower === 'aún no me decido' || textoLower === 'aun no me decido' ||
+        textoLower === 'no' || textoLower === 'todavía no' || textoLower === 'todavia no'
+
+      // Solo aplicar si el historial reciente incluye oferta de test drive
+      const historialReciente = historial.slice(-4).map(h => h.content).join(' ').toLowerCase()
+      const hayOfertaTestDrive = historialReciente.includes('test drive') || historialReciente.includes('agendar')
+
+      if (hayOfertaTestDrive && esConfirmacionTestDrive) {
         await new Promise(r => setTimeout(r, 800))
         await enviarTexto(instanceName, remoteJid,
-          `¡Perfecto! Me alegra mucho. Te voy a pasar con ${nombre} para coordinar el día y hora que mejor te quede. Nos vemos pronto en el concesionario. 🤝`)
-        console.log('[webhook] lead agendó test drive')
+          `¡Perfecto, te espero en el concesionario! 🤝 ¿Qué día de esta semana te viene mejor para el test drive?`)
+        // Guardar en historial
+        await guardarConversacion(instanceName, remoteJid, [
+          ...historial,
+          { role: 'user', content: texto },
+          { role: 'assistant', content: `¡Perfecto, te espero en el concesionario! ¿Qué día te viene mejor?` },
+        ], modeloKeyActual || modeloPersistido || null, mediaEnviada)
+        console.log('[webhook] lead confirmó test drive')
         continue
       }
-      if (btnId === 'btn_test_drive_no') {
+      if (hayOfertaTestDrive && esNegacionTestDrive) {
         await new Promise(r => setTimeout(r, 800))
         await enviarTexto(instanceName, remoteJid,
-          `Tranquilo, no hay afán. ¿Hay algo más que quieras saber del vehículo para terminar de decidirte?`)
-        console.log('[webhook] lead no se decide aún')
+          `Sin afán, cuando quieras. ¿Hay algo más del vehículo que quieras conocer para terminar de decidirte?`)
+        await guardarConversacion(instanceName, remoteJid, [
+          ...historial,
+          { role: 'user', content: texto },
+          { role: 'assistant', content: `Sin afán. ¿Hay algo más que quieras conocer?` },
+        ], modeloKeyActual || modeloPersistido || null, mediaEnviada)
+        console.log('[webhook] lead no se decide')
         continue
       }
 
       console.log(`[webhook] mensaje: "${texto}"`)
 
-      // Leer conversación persistida desde Supabase
-      const conv = await leerConversacion(instanceName, remoteJid)
-      // FIX v5: recuperar también el modelo ya identificado en requests anteriores
-      const { historial, mediaEnviada, modeloDetectado: modeloPersistido } = conv
+      // TEST TEMPORAL — responde a "test_botones" con botones de prueba
+      if (texto.trim().toLowerCase() === 'test_botones') {
+        await enviarBotonesTestDrive(instanceName, remoteJid, 'KIA NEW PICANTO VIBRANT 2027')
+        console.log('[webhook] test botones enviado')
+        continue
+      }
+
+      // conversación ya leída arriba antes de detección de botones
 
       // Texto completo = historial + mensaje actual para detección
       const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
@@ -607,6 +643,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       }
     }
 
+    // ── TEST TEMPORAL BOTONES — eliminar después de verificar ──
+    // Envía "test_botones" por WhatsApp para probar si Evolution soporta botones nativos
+    // Si llegan botones tocables → ✅ funcionan. Si llega texto 1️⃣/2️⃣ → usar otro endpoint.
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[webhook] error:', e)
@@ -615,5 +655,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v13' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v14-test' })
 }

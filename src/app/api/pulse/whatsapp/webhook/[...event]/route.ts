@@ -497,7 +497,7 @@ async function generarRespuesta(
 
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 250,
+      max_tokens: 400,
       system: `${systemPrompt || `Eres el asistente de ventas de ${nombre}, asesor KIA.`}
 
 ${catalogoTexto}
@@ -508,8 +508,11 @@ Eres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del conce
 TU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.
 
 FORMATO — SIN EXCEPCIÓN:
-- Máximo 2-3 oraciones por mensaje — esto es WhatsApp
-- CERO asteriscos, negritas, markdown, listas con guiones o numeradas
+- Máximo 2-3 oraciones por mensaje — esto es WhatsApp, no un catálogo
+- CERO asteriscos (*), CERO negritas, CERO markdown, CERO listas con guiones o numeradas
+- Si hay varias versiones: menciona máximo 2, la más económica y la más popular, en prosa natural
+- Ejemplo CORRECTO: "Tenemos el Sportage desde 127M neto en versión Desire, y el más pedido es el Vibrant a 144M."
+- Ejemplo INCORRECTO: "*Sportage 2026:* • Desire: $129M • Vibrant: $145M"
 - Tono cálido, directo, colombiano — nunca robótico ni corporativo
 
 SOBRE PRECIOS Y DATOS TÉCNICOS:
@@ -519,8 +522,8 @@ SOBRE PRECIOS Y DATOS TÉCNICOS:
 - NUNCA digas "te confirmo", "voy a consultar" ni "déjame verificar"
 
 SOBRE FOTOS, FICHAS Y SIMULACIONES:
-- NUNCA menciones que envías fotos, fichas o simulaciones — llegan automáticamente por otro canal
-- Si el cliente pregunta por la cuota: di que la simulación está siendo procesada y llegará en un momento
+- NUNCA menciones fotos, fichas ni simulaciones en tu respuesta — ni que las envías, ni que están llegando, ni que van por otro lado
+- Si el cliente pregunta por la cuota: di únicamente "la simulación ya está siendo procesada y te llega en un momento" — nada más
 
 SOBRE FINANCIAMIENTO:
 - NUNCA menciones "KIA Crédito", "KIA Financia" ni "KIA Financial"
@@ -788,5 +791,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v17' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v18' })
 }

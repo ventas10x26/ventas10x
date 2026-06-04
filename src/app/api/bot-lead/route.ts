@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
               telefono: telefonoLimpio,
               modelo: producto || null,
               texto_origen: textoOrigen,
-              canal: 'otro',
+              canal: 'otros',
               estado: 'nuevo',
               score: 7,
               created_at: new Date().toISOString(),

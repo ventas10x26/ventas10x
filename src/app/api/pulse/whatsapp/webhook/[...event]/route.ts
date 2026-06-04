@@ -238,7 +238,7 @@ function calcularSimulacion(modelo: VehiculoMedia, inicial: number, plazo: numbe
   const cuota = Math.round((monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1))
   const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
   return [
-    'Simulación KIA Crédito',
+    'Simulación financiamiento bancario',
     `Modelo: KIA ${modelo.linea} ${modelo.version} ${modelo.año}`,
     `Precio lista: ${fmt(modelo.precio)}`,
     modelo.bono > 0 ? `Bono: ${fmt(modelo.bono)}` : null,
@@ -247,7 +247,7 @@ function calcularSimulacion(modelo: VehiculoMedia, inicial: number, plazo: numbe
     `Monto a financiar: ${fmt(monto)}`,
     `Plazo: ${plazo} meses`,
     `Cuota aprox: ${fmt(cuota)}/mes`,
-    `Tasa ref: 1.8% mensual`,
+    `Tasa ref: 1.8% mensual (referencia — varía según banco)`,
     `Nota: cuota exacta la confirma el banco`,
   ].filter(Boolean).join('\n')
 }
@@ -523,7 +523,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         // Mensaje de seguimiento tras enviar catálogo completo — invitar al siguiente paso
         await new Promise(r => setTimeout(r, 1500))
         const msgSeguimiento = await generarRespuesta(
-          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: simular la cuota con KIA Crédito, agendar un test drive o resolver cualquier duda.',
+          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: simular la cuota con diferentes bancos, agendar un test drive o resolver cualquier duda.',
           systemPrompt, nombre, nuevoHistorial, catalogoTexto
         )
         if (msgSeguimiento) {
@@ -542,5 +542,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v8' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v9' })
 }

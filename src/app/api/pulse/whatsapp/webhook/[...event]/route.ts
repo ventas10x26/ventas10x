@@ -105,41 +105,47 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   }
 }
 
-// Parser CSV que respeta comas dentro de comillas (RFC 4180)
-// Necesario porque el catálogo tiene celdas como: "1.0L 66HP, Transmision de 5 Velocidades"
-// que desplazan los índices si se usa split(',') simple
-function parsearLineaCSV(linea: string, sep: string): string[] {
-  if (sep === '\t') return linea.split('\t').map(c => c.trim().replace(/^"|"$/g, ''))
-  const cells: string[] = []
-  let current = ''
+// Parser CSV completo RFC 4180 — maneja:
+// 1. Comas dentro de celdas entre comillas: "1.0L 66HP, Transmision de 5 Velocidades"
+// 2. Saltos de línea dentro de celdas: descripciones multilínea del NEW STONIC
+function parsearCSV(csv: string): VehiculoMedia[] {
+  // Tokenizar caracter a caracter respetando comillas y saltos de línea dentro de celdas
+  const filas: string[][] = []
+  let filaActual: string[] = []
+  let celda = ''
   let inQuotes = false
-  for (let i = 0; i < linea.length; i++) {
-    const ch = linea[i]
+
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i]
+    const siguiente = csv[i + 1]
+
     if (ch === '"') {
-      if (inQuotes && linea[i + 1] === '"') { current += '"'; i++ } // escaped quote
+      if (inQuotes && siguiente === '"') { celda += '"'; i++ } // comilla escapada ""
       else { inQuotes = !inQuotes }
     } else if (ch === ',' && !inQuotes) {
-      cells.push(current.trim())
-      current = ''
+      filaActual.push(celda.trim())
+      celda = ''
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && siguiente === '\n') i++ // CRLF
+      filaActual.push(celda.trim())
+      if (filaActual.some(c => c !== '')) filas.push(filaActual)
+      filaActual = []
+      celda = ''
     } else {
-      current += ch
+      celda += ch
     }
   }
-  cells.push(current.trim())
-  return cells
-}
+  // última celda/fila
+  if (celda.trim() || filaActual.length > 0) {
+    filaActual.push(celda.trim())
+    if (filaActual.some(c => c !== '')) filas.push(filaActual)
+  }
 
-function parsearCSV(csv: string): VehiculoMedia[] {
-  const lineas = csv.trim().split('\n')
-  if (lineas.length < 2) return []
+  if (filas.length < 2) return []
 
-  const primera = lineas[0]
-  const sepTab = primera.split('\t').length
-  const sepComa = primera.split(',').length
-  const sep = sepTab > sepComa ? '\t' : ','
-
-  const cols = parsearLineaCSV(primera, sep).map(h => h.toLowerCase())
-  console.log('[webhook] sep:', sep === '\t' ? 'TAB' : 'COMA', '| total cols:', cols.length)
+  const cols = filas[0].map(h => h.toLowerCase())
+  const sep = 'COMA' // siempre coma en Google Sheets CSV
+  console.log('[webhook] sep:', sep, '| total cols:', cols.length)
 
   const idx = {
     linea: cols.findIndex(c => c.includes('línea') || c === 'linea'),
@@ -158,11 +164,14 @@ function parsearCSV(csv: string): VehiculoMedia[] {
   console.log('[webhook] idx: linea=' + idx.linea + ' imagen=' + idx.imagen + ' ficha=' + idx.ficha)
 
   const vehiculos: VehiculoMedia[] = []
-  for (let i = 1; i < lineas.length; i++) {
-    const cells = parsearLineaCSV(lineas[i], sep)
+  for (let i = 1; i < filas.length; i++) {
+    const cells = filas[i]
     if (!cells[idx.linea]) continue
     if (cells[idx.activo]?.toUpperCase() === 'FALSE') continue
     if (cells[idx.activaV]?.toUpperCase() === 'FALSE') continue
+    const imagenUrl = idx.imagen >= 0 ? (cells[idx.imagen] || '') : ''
+    // Validar que imagen_url sea imagen real (no PDF)
+    if (imagenUrl && imagenUrl.toLowerCase().endsWith('.pdf')) continue
     vehiculos.push({
       linea: cells[idx.linea] || '',
       version: cells[idx.version] || '',
@@ -170,7 +179,7 @@ function parsearCSV(csv: string): VehiculoMedia[] {
       precio: parseInt(cells[idx.precio]?.replace(/\D/g, '') || '0'),
       bono: parseInt(cells[idx.bono]?.replace(/\D/g, '') || '0'),
       fichaTecnica: cells[idx.ficha] || '',
-      imagenUrl: idx.imagen >= 0 ? (cells[idx.imagen] || '') : '',
+      imagenUrl,
       specs: cells[idx.specs] || '',
       combustible: cells[idx.comb] || '',
     })
@@ -542,5 +551,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v9' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v10' })
 }

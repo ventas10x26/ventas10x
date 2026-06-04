@@ -17,7 +17,6 @@ function emailToInstance(email: string): string {
 
 async function resolverInstancia(email: string, whatsappVendedor: string | null): Promise<string | null> {
   try {
-    // 1. Intentar con el email directo
     const instanceGuess = emailToInstance(email)
     const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceGuess}`, {
       headers: { apikey: EVO_KEY },
@@ -30,10 +29,8 @@ async function resolverInstancia(email: string, whatsappVendedor: string | null)
       }
     }
 
-    // 2. Match por número de teléfono via connectionState
     if (whatsappVendedor) {
       const numeroNormalizado = whatsappVendedor.replace(/\D/g, '').replace(/^57/, '')
-      // Intentar con el slug del número directo
       const instancePorNumero = `57${numeroNormalizado}`
       const resNum = await fetch(`${EVO_URL}/instance/connectionState/${instancePorNumero}`, {
         headers: { apikey: EVO_KEY },
@@ -47,7 +44,6 @@ async function resolverInstancia(email: string, whatsappVendedor: string | null)
       }
     }
 
-    // 3. Fallback hardcodeado: instancia principal conocida
     const defaultInstance = 'ricaza81_at_gmail_com'
     const resDefault = await fetch(`${EVO_URL}/instance/connectionState/${defaultInstance}`, {
       headers: { apikey: EVO_KEY },
@@ -130,7 +126,6 @@ async function verificarBotActivo(whatsappVendedor: string | null, emailVendedor
       return false
     }
 
-    // Buscar por número de WhatsApp primero (más confiable)
     if (whatsappVendedor) {
       const numeroCorto = whatsappVendedor.replace(/[^\d]/g, '').replace(/^57/, '')
       const matchesPorNumero = rows.filter((row: Record<string, unknown>) => {
@@ -149,7 +144,6 @@ async function verificarBotActivo(whatsappVendedor: string | null, emailVendedor
       }
     }
 
-    // Fallback: buscar por email
     const matchPorEmail = rows.find((row: Record<string, unknown>) =>
       String(row.email || '').toLowerCase() === emailVendedor.toLowerCase()
     )
@@ -161,13 +155,45 @@ async function verificarBotActivo(whatsappVendedor: string | null, emailVendedor
       return activo
     }
 
-    // No hay registro en pulse_waitlist para este vendedor — no enviar
     console.log('[trigger] vendedor sin registro en pulse_waitlist:', emailVendedor, '— bot inactivo')
     return false
 
   } catch (e) {
     console.error('[trigger] verificarBotActivo error:', e)
     return false
+  }
+}
+
+// FIX: inicializar conversación en Supabase con el modelo del lead
+// para que cuando el cliente responda, el webhook ya tenga el contexto
+async function inicializarConversacion(
+  instanceName: string,
+  telefono: string,
+  modelo: string,
+  mensajeInicial: string
+): Promise<void> {
+  try {
+    const numero = telefono.startsWith('+') ? telefono.slice(1) : telefono
+    const numeroFinal = numero.startsWith('57') ? numero : `57${numero}`
+    const remoteJid = `${numeroFinal}@s.whatsapp.net`
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin.from('pulse_conversaciones') as any)
+      .upsert({
+        instance_name: instanceName,
+        remote_jid: remoteJid,
+        // Guardar el mensaje inicial del asesor como contexto del asistente
+        historial: [{ role: 'assistant', content: mensajeInicial }],
+        // Guardar el modelo detectado desde el lead — evita que el bot pregunte cuál modelo
+        modelo_detectado: modelo.toUpperCase(),
+        media_enviada: [],
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'instance_name,remote_jid' })
+
+    console.log('[trigger] conversación inicializada — remoteJid:', remoteJid, '| modelo:', modelo)
+  } catch (e) {
+    console.error('[trigger] inicializarConversacion error:', e)
+    // No es crítico — el webhook puede funcionar sin esto
   }
 }
 
@@ -219,7 +245,7 @@ export async function POST(req: NextRequest) {
     const nombreAsesor = profile?.nombre || 'el asesor'
     const whatsappVendedor = profile?.whatsapp || null
 
-    // 4. Verificar bot_activo — fuente de verdad: pulse_waitlist
+    // 4. Verificar bot_activo
     const botActivo = await verificarBotActivo(whatsappVendedor, email)
     if (!botActivo) {
       console.log('[trigger] bot INACTIVO o sin configuración — omitiendo lead:', lead_id)
@@ -245,7 +271,13 @@ export async function POST(req: NextRequest) {
     // 7. Enviar WhatsApp
     await enviarWhatsApp(instanceName, lead.telefono, mensaje)
 
-    // 8. Actualizar lead
+    // 8. FIX: Inicializar conversación en Supabase con modelo del lead
+    // Esto evita que el bot pregunte "¿qué modelo te interesa?" cuando el cliente responda
+    if (lead.modelo) {
+      await inicializarConversacion(instanceName, lead.telefono, lead.modelo, mensaje)
+    }
+
+    // 9. Actualizar lead
     await supabaseAdmin
       .from('pulse_leads')
       .update({

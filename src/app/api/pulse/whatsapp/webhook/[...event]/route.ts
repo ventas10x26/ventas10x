@@ -528,7 +528,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
           ...historial,
           { role: 'user', content: texto },
           { role: 'assistant', content: `¡Perfecto, te espero en el concesionario! ¿Qué día te viene mejor?` },
-        ], modeloKeyActual || modeloPersistido || null, mediaEnviada)
+        ], modeloPersistido || null, mediaEnviada)
         console.log('[webhook] lead confirmó test drive')
         continue
       }
@@ -540,7 +540,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
           ...historial,
           { role: 'user', content: texto },
           { role: 'assistant', content: `Sin afán. ¿Hay algo más que quieras conocer?` },
-        ], modeloKeyActual || modeloPersistido || null, mediaEnviada)
+        ], modeloPersistido || null, mediaEnviada)
         console.log('[webhook] lead no se decide')
         continue
       }

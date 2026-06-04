@@ -284,6 +284,38 @@ async function enviarTexto(instanceName: string, remoteJid: string, mensaje: str
   } catch (e) { console.error('[webhook] enviarTexto error:', e) }
 }
 
+async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, nombreModelo: string) {
+  try {
+    console.log('[webhook] enviando botones test drive')
+    const res = await fetch(`${EVO_URL}/message/sendButtons/${instanceName}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+      body: JSON.stringify({
+        number: remoteJid,
+        title: '¿Quieres conocerlo en persona?',
+        description: `Te espero en el concesionario para que pruebes el ${nombreModelo} y lo sientas tú mismo.`,
+        footer: 'KIA Colombia',
+        buttons: [
+          { buttonId: 'btn_test_drive_si', buttonText: { displayText: '✅ Sí, quiero agendar Test Drive' }, type: 1 },
+          { buttonId: 'btn_test_drive_no', buttonText: { displayText: '🤔 Aún no me decido' }, type: 1 },
+        ],
+      }),
+    })
+    console.log('[webhook] botones status:', res.status)
+    if (!res.ok) {
+      // Fallback a texto si botones no están soportados en esta versión de Evolution
+      const err = await res.text()
+      console.log('[webhook] botones fallback a texto, error:', err.slice(0, 100))
+      await enviarTexto(instanceName, remoteJid,
+        `¿Te gustaría agendar un Test Drive del ${nombreModelo}?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido`)
+    }
+  } catch (e) {
+    console.error('[webhook] enviarBotonesTestDrive error:', e)
+    await enviarTexto(instanceName, remoteJid,
+      `¿Te gustaría agendar un Test Drive del ${nombreModelo}?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido`)
+  }
+}
+
 async function enviarImagen(instanceName: string, remoteJid: string, url: string, caption: string) {
   try {
     console.log('[webhook] enviando imagen:', url.slice(0, 80))
@@ -453,12 +485,33 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (remoteJid.includes('@g.us')) continue
 
       const message = m.message as Record<string, unknown>
+      // Detectar respuesta a botones (buttonsResponseMessage)
+      const btnResponse = message?.buttonsResponseMessage as Record<string, unknown> | undefined
+      const btnId = String(btnResponse?.selectedButtonId || '')
+      const btnText = String(btnResponse?.selectedDisplayText || '')
       const texto = String(
+        btnText ||
         message?.conversation ||
         (message?.extendedTextMessage as Record<string, unknown>)?.text ||
         (message?.imageMessage as Record<string, unknown>)?.caption || ''
       ).trim()
       if (!texto) continue
+
+      // Si tocó "Sí quiero agendar Test Drive" → respuesta especial
+      if (btnId === 'btn_test_drive_si') {
+        await new Promise(r => setTimeout(r, 800))
+        await enviarTexto(instanceName, remoteJid,
+          `¡Perfecto! Me alegra mucho. Te voy a pasar con ${nombre} para coordinar el día y hora que mejor te quede. Nos vemos pronto en el concesionario. 🤝`)
+        console.log('[webhook] lead agendó test drive')
+        continue
+      }
+      if (btnId === 'btn_test_drive_no') {
+        await new Promise(r => setTimeout(r, 800))
+        await enviarTexto(instanceName, remoteJid,
+          `Tranquilo, no hay afán. ¿Hay algo más que quieras saber del vehículo para terminar de decidirte?`)
+        console.log('[webhook] lead no se decide aún')
+        continue
+      }
 
       console.log(`[webhook] mensaje: "${texto}"`)
 
@@ -525,17 +578,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         await enviarTexto(instanceName, remoteJid, simulacion)
         console.log('[webhook] simulacion enviada')
 
-        // Seguimiento tras simulación — invitar a test drive o visita
+        // Botones de agendamiento tras simulación
         await new Promise(r => setTimeout(r, 1800))
-        const msgPostSimulacion = await generarRespuesta(
-          'Acabas de enviarle al cliente la simulación de crédito con la cuota mensual. Ahora envía un mensaje corto y humano (máximo 2 oraciones) invitándolo a dar el siguiente paso concreto: agendar un test drive, visitar el concesionario, o preguntar si quiere explorar otro plazo o inicial. Termina con una pregunta directa.',
-          systemPrompt, nombre, nuevoHistorial, catalogoTexto
-        )
-        if (msgPostSimulacion) {
-          await new Promise(r => setTimeout(r, 500))
-          await enviarTexto(instanceName, remoteJid, msgPostSimulacion)
-          console.log('[webhook] seguimiento post-simulacion enviado:', msgPostSimulacion.slice(0, 60))
-        }
+        const nombreModelo = modeloDetectado
+          ? `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
+          : 'el vehículo'
+        await enviarBotonesTestDrive(instanceName, remoteJid, nombreModelo)
       }
 
       // Enviar imagen (primera mención del modelo)
@@ -549,15 +597,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
 
-        // Mensaje de seguimiento tras enviar catálogo completo — invitar al siguiente paso
+        // Botones de agendamiento tras enviar catálogo completo
         await new Promise(r => setTimeout(r, 1500))
-        const msgSeguimiento = await generarRespuesta(
-          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: ver las alternativas de crédito con diferentes bancos, agendar un test drive o resolver cualquier duda.',
-          systemPrompt, nombre, nuevoHistorial, catalogoTexto
-        )
-        if (msgSeguimiento) {
+        const nombreModeloFicha = modeloDetectado
+          ? `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
+          : 'el vehículo'
+        await enviarBotonesTestDrive(instanceName, remoteJid, nombreModeloFicha)
+        if (false) { // bloque legacy — mantener estructura
           await new Promise(r => setTimeout(r, 500))
-          await enviarTexto(instanceName, remoteJid, msgSeguimiento)
+          await enviarTexto(instanceName, remoteJid, '')
           console.log('[webhook] seguimiento enviado:', msgSeguimiento.slice(0, 60))
         }
       }
@@ -571,5 +619,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v12' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v13' })
 }

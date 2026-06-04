@@ -223,17 +223,28 @@ function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): Vehi
 }
 
 function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number } {
+  // Patrones explícitos con contexto
   const inicialMatch =
     textoCompleto.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?inicial/i) ||
     textoCompleto.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
     textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i) ||
-    textoCompleto.match(/inicial[:\s]+\$?(\d+[\.,]?\d*)\s*m/i)
+    textoCompleto.match(/inicial[:\s]+\$?(\d+[\.,]?\d*)\s*m/i) ||
+    // "doy 30M", "tengo 30M", "con 30M", "son 30M", número seguido de M sin contexto explícito
+    textoCompleto.match(/(?:doy|tengo|con|son|inicial\s+de)\s+(\d+)\s*m(?:illones?)?/i) ||
+    // Solo "30M" o "30 millones" como mensaje corto (<=10 chars limpio)
+    (textoCompleto.trim().replace(/[^\d]/g, '').length <= 4 &&
+     textoCompleto.match(/^\s*(\d+)\s*m(?:illones?)?\s*$/i)) || null
   const inicial = inicialMatch ? parseInt(inicialMatch[1].replace(/\./g, '')) * 1_000_000 : 0
 
   const plazoMatch =
     textoCompleto.match(/(\d+)\s*meses/i) ||
     textoCompleto.match(/a\s+(\d+)\s+meses/i) ||
-    textoCompleto.match(/plazo\s+(?:de\s+)?(\d+)/i)
+    textoCompleto.match(/plazo\s+(?:de\s+)?(\d+)/i) ||
+    // Solo número entre 12-120 como mensaje corto (plazo en meses)
+    (textoCompleto.trim().match(/^\s*(\d+)\s*$/) &&
+     parseInt(textoCompleto.trim()) >= 12 &&
+     parseInt(textoCompleto.trim()) <= 120
+       ? textoCompleto.trim().match(/^\s*(\d+)\s*$/) : null)
   const plazo = plazoMatch ? parseInt(plazoMatch[1]) : 0
 
   return { inicial, plazo }
@@ -382,13 +393,13 @@ REGLAS — SEGUIR EN ORDEN:
 5. Si el modelo no está en el catálogo, di que no lo tienes disponible actualmente y ofrece una alternativa
 6. NUNCA digas "te confirmo con finanzas", "voy a consultar" ni "déjame verificar" — responde directo
 7. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo, presupuesto)
-8. NUNCA menciones que envías fotos o fichas — se envían automáticamente sin anunciarlo
-9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento
-10. SIEMPRE termina tu mensaje con una pregunta que avance el proceso de venta — nunca dejes un mensaje sin pregunta
-11. PROHIBIDO mencionar "alternativas de crédito con diferentes bancos" o "KIA Financia" — SIEMPRE di "alternativas de crédito con diferentes bancos" o "opciones de financiamiento bancario"
-11. Ejemplos de preguntas de cierre: "¿Cuándo te gustaría conocerlo en persona?", "¿Te agendamos un test drive esta semana?", "¿Quieres que revisemos otras opciones de plazo?", "¿Tienes alguna duda sobre el financiamiento?"
-12. Después de enviar simulación: pregunta por test drive o visita al concesionario
-13. El objetivo es avanzar hacia la cita o el cierre — cada mensaje debe acercar al cliente un paso más`,
+8. NUNCA digas "las fotos están en camino", "ya te mando las fotos", "te envío la ficha" — las fotos y fichas se envían automáticamente por otro sistema, TÚ NUNCA las mencionas
+9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento — NUNCA calcules ni menciones cuotas tú mismo
+10. SIEMPRE termina tu mensaje con una pregunta que avance el proceso — nunca dejes un mensaje sin pregunta de cierre
+11. PROHIBIDO: "KIA Crédito", "KIA Financia", "KIA Financial" — SIEMPRE usa "alternativas de crédito con diferentes bancos" o "financiamiento bancario"
+12. Ejemplos de preguntas de cierre: "¿Cuándo te gustaría conocerlo en persona?", "¿Te agendamos un test drive esta semana?", "¿Quieres explorar otro plazo?", "¿Tienes dudas sobre el financiamiento?"
+13. Después de recibir inicial y plazo: di solo que la simulación está siendo procesada y pregunta por test drive
+14. El objetivo es avanzar hacia la cita o el cierre — cada mensaje debe acercar al cliente un paso más`,
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -461,8 +472,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 
       // FIX v5: detectar por texto expandido con aliases, o recuperar el modelo persistido
       const modeloDetectadoPorTexto = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
-      const modeloDetectado = modeloDetectadoPorTexto
-        ?? (modeloPersistido ? vehiculos.find(v => v.linea === modeloPersistido) ?? null : null)
+      // Recuperar modelo persistido: formato puede ser "LINEA|||VERSION" o solo "LINEA"
+      const modeloDetectado = modeloDetectadoPorTexto ?? (() => {
+        if (!modeloPersistido) return null
+        if (modeloPersistido.includes('|||')) {
+          const [linea, version] = modeloPersistido.split('|||')
+          return vehiculos.find(v => v.linea === linea && v.version === version) ?? null
+        }
+        return vehiculos.find(v => v.linea === modeloPersistido) ?? null
+      })()
 
       const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
 
@@ -489,8 +507,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const nuevaMediaEnviada = [...mediaEnviada]
       if (modeloDetectado && esPrimera) nuevaMediaEnviada.push(modeloDetectado.linea)
 
-      // FIX v5: preservar modelo persistido si el request actual no lo detectó por texto
-      const modeloAGuardar = modeloDetectado?.linea || modeloPersistido || null
+      // Preservar modelo persistido — guardar linea+version para match exacto posterior
+      const modeloKeyActual = modeloDetectado ? `${modeloDetectado.linea}|||${modeloDetectado.version}` : null
+      const modeloAGuardar = modeloKeyActual || modeloPersistido || null
       await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloAGuardar, nuevaMediaEnviada)
 
       // Enviar respuesta conversacional
@@ -552,5 +571,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v11' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v12' })
 }

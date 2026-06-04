@@ -20,6 +20,11 @@ export type PulseLead = {
   created_at: string
 }
 
+type MensajeChat = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 const ESTADOS = [
   { key: 'nuevo',       label: 'Nuevo',       color: '#f97316', emoji: '⚡' },
   { key: 'contactado',  label: 'Contactado',  color: '#3b82f6', emoji: '💬' },
@@ -125,7 +130,6 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     }
   }, [leadDetalle, leads, onLeadUpdated])
 
-  // Actualizar lead en lista local después de editar en modal
   const handleLeadEditado = useCallback((leadActualizado: PulseLead) => {
     setLeads(ls => ls.map(l => l.id === leadActualizado.id ? leadActualizado : l))
   }, [])
@@ -259,9 +263,6 @@ function LeadCard({ lead, onDragStart, onClick, isDragging }: { lead: PulseLead;
   )
 }
 
-// =====================================================
-// CAMPO EDITABLE INLINE
-// =====================================================
 function CampoEditable({
   valor, placeholder, onGuardar, fontSize = '20px', fontWeight = 800, color = '#fff'
 }: {
@@ -301,18 +302,103 @@ function CampoEditable({
   }
 
   return (
-    <div
-      onClick={() => setEditando(true)}
-      title="Clic para editar"
-      style={{
-        fontSize, fontWeight, color, cursor: 'text',
-        borderBottom: '1px dashed rgba(255,255,255,0.2)',
-        display: 'inline-block', minWidth: '80px',
-        padding: '2px 0',
-      }}
-    >
+    <div onClick={() => setEditando(true)} title="Clic para editar"
+      style={{ fontSize, fontWeight, color, cursor: 'text', borderBottom: '1px dashed rgba(255,255,255,0.2)', display: 'inline-block', minWidth: '80px', padding: '2px 0' }}>
       {valor || <span style={{ color: '#64748b', fontStyle: 'italic' }}>{placeholder}</span>}
       <span style={{ fontSize: '11px', color: '#475569', marginLeft: '6px' }}>✏️</span>
+    </div>
+  )
+}
+
+// =====================================================
+// CHAT WHATSAPP — log de conversación
+// =====================================================
+function ChatConversacion({ telefono }: { telefono: string | null }) {
+  const [mensajes, setMensajes] = useState<MensajeChat[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!telefono) { setCargando(false); return }
+    const tel = telefono.replace(/\D/g, '').replace(/^57/, '')
+    fetch(`/api/pulse/conversacion?telefono=${tel}`)
+      .then(r => r.json())
+      .then(data => {
+        setMensajes(data.historial || [])
+        setCargando(false)
+      })
+      .catch(() => { setError('No se pudo cargar la conversación'); setCargando(false) })
+  }, [telefono])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [mensajes])
+
+  if (cargando) return (
+    <div style={{ textAlign: 'center', padding: '32px', color: '#64748b', fontSize: '13px' }}>
+      Cargando conversación...
+    </div>
+  )
+
+  if (error) return (
+    <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: '13px' }}>
+      {error}
+    </div>
+  )
+
+  if (mensajes.length === 0) return (
+    <div style={{ textAlign: 'center', padding: '32px', color: '#475569', fontSize: '13px' }}>
+      Sin conversación registrada aún
+    </div>
+  )
+
+  return (
+    <div style={{
+      background: 'rgba(0,0,0,0.3)',
+      borderRadius: '12px',
+      padding: '12px',
+      maxHeight: '380px',
+      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    }}>
+      {mensajes.map((msg, i) => {
+        const esBot = msg.role === 'assistant'
+        return (
+          <div key={i} style={{
+            display: 'flex',
+            justifyContent: esBot ? 'flex-start' : 'flex-end',
+          }}>
+            <div style={{
+              maxWidth: '80%',
+              padding: '8px 12px',
+              borderRadius: esBot ? '4px 12px 12px 12px' : '12px 4px 12px 12px',
+              background: esBot ? 'rgba(255,255,255,0.08)' : 'rgba(37,211,102,0.15)',
+              border: esBot ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(37,211,102,0.25)',
+              fontSize: '13px',
+              lineHeight: '1.5',
+              color: esBot ? '#cbd5e1' : '#d1fae5',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}>
+              {!esBot && (
+                <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700, marginBottom: '3px' }}>
+                  Lead
+                </div>
+              )}
+              {esBot && (
+                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginBottom: '3px' }}>
+                  🤖 Bot
+                </div>
+              )}
+              {msg.content}
+            </div>
+          </div>
+        )
+      })}
+      <div ref={bottomRef} />
     </div>
   )
 }
@@ -332,6 +418,7 @@ function ModalDetalleLead({
   const [leadActual, setLeadActual] = useState(lead)
   const [mensajeEditable, setMensajeEditable] = useState(lead.mensaje_ia || '')
   const [guardando, setGuardando] = useState(false)
+  const [tabActiva, setTabActiva] = useState<'info' | 'chat'>('info')
 
   const actualizarCampo = async (campo: string, valor: string) => {
     const nuevoLead = { ...leadActual, [campo]: valor }
@@ -382,89 +469,97 @@ function ModalDetalleLead({
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', maxWidth: '640px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
 
-        {/* Header con campos editables */}
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
           <div style={{ flex: 1, marginRight: '12px' }}>
-            <CampoEditable
-              valor={leadActual.nombre}
-              placeholder="Sin nombre"
-              onGuardar={(v) => actualizarCampo('nombre', v)}
-              fontSize="20px"
-              fontWeight={800}
-            />
+            <CampoEditable valor={leadActual.nombre} placeholder="Sin nombre" onGuardar={(v) => actualizarCampo('nombre', v)} fontSize="20px" fontWeight={800} />
             {guardando && <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '8px' }}>Guardando...</span>}
             <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <CampoEditable
-                valor={leadActual.modelo}
-                placeholder="Modelo"
-                onGuardar={(v) => actualizarCampo('modelo', v)}
-                fontSize="13px"
-                fontWeight={500}
-                color="#fdba74"
-              />
+              <CampoEditable valor={leadActual.modelo} placeholder="Modelo" onGuardar={(v) => actualizarCampo('modelo', v)} fontSize="13px" fontWeight={500} color="#fdba74" />
               <span style={{ color: '#475569' }}>·</span>
-              <CampoEditable
-                valor={leadActual.telefono}
-                placeholder="Teléfono"
-                onGuardar={(v) => actualizarCampo('telefono', v)}
-                fontSize="13px"
-                fontWeight={500}
-                color="#94a3b8"
-              />
+              <CampoEditable valor={leadActual.telefono} placeholder="Teléfono" onGuardar={(v) => actualizarCampo('telefono', v)} fontSize="13px" fontWeight={500} color="#94a3b8" />
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer', padding: '0 4px' }}>×</button>
         </div>
 
-        {/* Cambiar estado */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Cambiar estado:</div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {ESTADOS.map(e => (
-              <button key={e.key} onClick={() => onCambiarEstado(e.key)} disabled={leadActual.estado === e.key}
-                style={{ padding: '6px 10px', borderRadius: '8px', border: leadActual.estado === e.key ? `1px solid ${e.color}` : '1px solid rgba(255,255,255,0.08)', background: leadActual.estado === e.key ? `${e.color}22` : 'transparent', color: leadActual.estado === e.key ? e.color : '#cbd5e1', fontSize: '11px', fontWeight: 600, cursor: leadActual.estado === e.key ? 'default' : 'pointer', fontFamily: 'inherit' }}>
-                {e.emoji} {e.label}
-              </button>
-            ))}
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0' }}>
+          {[
+            { key: 'info', label: '📋 Info' },
+            { key: 'chat', label: '💬 Conversación WhatsApp' },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setTabActiva(tab.key as 'info' | 'chat')}
+              style={{
+                padding: '8px 14px', border: 'none', borderRadius: '8px 8px 0 0',
+                background: tabActiva === tab.key ? 'rgba(255,255,255,0.08)' : 'transparent',
+                color: tabActiva === tab.key ? '#fff' : '#64748b',
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                borderBottom: tabActiva === tab.key ? '2px solid #f97316' : '2px solid transparent',
+              }}>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Texto origen */}
-        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px', borderLeft: '3px solid #f97316' }}>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>Texto original del lead</div>
-          <p style={{ fontSize: '13px', color: '#cbd5e1', margin: 0, lineHeight: '1.5' }}>{leadActual.texto_origen}</p>
-        </div>
-
-        {/* Acciones IA */}
-        {!leadActual.nombre && (
-          <button onClick={clasificar} disabled={!!procesandoIA} style={btnPrimaryStyle}>
-            {procesandoIA === 'clasificar' ? '🔮 Clasificando con IA...' : '🔮 Clasificar lead con IA'}
-          </button>
-        )}
-
-        {leadActual.nombre && !leadActual.mensaje_ia && (
-          <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnPrimaryStyle}>
-            {procesandoIA === 'responder' ? '✍️ Generando...' : '✍️ Generar mensaje WhatsApp con IA'}
-          </button>
-        )}
-
-        {leadActual.mensaje_ia && (
+        {/* Tab: Info */}
+        {tabActiva === 'info' && (
           <>
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Mensaje listo para enviar:</div>
-            <textarea value={mensajeEditable} onChange={(e) => setMensajeEditable(e.target.value)} rows={5}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '12px' }} />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {leadActual.telefono && (
-                <button onClick={enviarWhatsApp} style={{ ...btnPrimaryStyle, flex: 1, background: '#25D366', marginBottom: 0 }}>
-                  📤 Enviar por WhatsApp
-                </button>
-              )}
-              <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnSecondaryStyle}>🔄 Regenerar</button>
+            {/* Cambiar estado */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Cambiar estado:</div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {ESTADOS.map(e => (
+                  <button key={e.key} onClick={() => onCambiarEstado(e.key)} disabled={leadActual.estado === e.key}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: leadActual.estado === e.key ? `1px solid ${e.color}` : '1px solid rgba(255,255,255,0.08)', background: leadActual.estado === e.key ? `${e.color}22` : 'transparent', color: leadActual.estado === e.key ? e.color : '#cbd5e1', fontSize: '11px', fontWeight: 600, cursor: leadActual.estado === e.key ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+                    {e.emoji} {e.label}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Texto origen */}
+            <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px', borderLeft: '3px solid #f97316' }}>
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px', fontWeight: 600 }}>Texto original del lead</div>
+              <p style={{ fontSize: '13px', color: '#cbd5e1', margin: 0, lineHeight: '1.5' }}>{leadActual.texto_origen}</p>
+            </div>
+
+            {!leadActual.nombre && (
+              <button onClick={clasificar} disabled={!!procesandoIA} style={btnPrimaryStyle}>
+                {procesandoIA === 'clasificar' ? '🔮 Clasificando con IA...' : '🔮 Clasificar lead con IA'}
+              </button>
+            )}
+
+            {leadActual.nombre && !leadActual.mensaje_ia && (
+              <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnPrimaryStyle}>
+                {procesandoIA === 'responder' ? '✍️ Generando...' : '✍️ Generar mensaje WhatsApp con IA'}
+              </button>
+            )}
+
+            {leadActual.mensaje_ia && (
+              <>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>Mensaje listo para enviar:</div>
+                <textarea value={mensajeEditable} onChange={(e) => setMensajeEditable(e.target.value)} rows={5}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '12px' }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {leadActual.telefono && (
+                    <button onClick={enviarWhatsApp} style={{ ...btnPrimaryStyle, flex: 1, background: '#25D366', marginBottom: 0 }}>
+                      📤 Enviar por WhatsApp
+                    </button>
+                  )}
+                  <button onClick={generarMensaje} disabled={!!procesandoIA} style={btnSecondaryStyle}>🔄 Regenerar</button>
+                </div>
+              </>
+            )}
           </>
+        )}
+
+        {/* Tab: Chat */}
+        {tabActiva === 'chat' && (
+          <ChatConversacion telefono={leadActual.telefono} />
         )}
       </div>
     </div>

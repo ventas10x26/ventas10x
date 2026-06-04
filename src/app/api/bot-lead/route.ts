@@ -132,6 +132,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── INTEGRACIÓN PULSE MOTOR ──────────────────────────────────────────────
+    if (vendedor_id && !leadExistente) {
+      try {
+        const textoOrigen = [nombre, whatsapp, producto].filter(Boolean).join(', ')
+        const { data: pulseLead } = await supabase
+          .from('pulse_leads')
+          .insert([{
+            vendedor_id,
+            nombre,
+            telefono: whatsapp.replace(/\D/g, '').replace(/^0+/, ''),
+            modelo: producto || null,
+            texto_origen: textoOrigen,
+            canal: 'landing',
+            estado: 'nuevo',
+            score: 7,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }])
+          .select('id')
+          .single()
+
+        if (pulseLead?.id) {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
+          fetch(`${baseUrl}/api/pulse/leads/trigger`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lead_id: pulseLead.id }),
+          }).catch(e => console.error('pulse trigger error:', e))
+          console.log('[bot-lead] pulse trigger disparado:', pulseLead.id)
+        }
+      } catch (e) {
+        console.error('[bot-lead] pulse integration error:', e)
+      }
+    }
+    // ── FIN INTEGRACIÓN PULSE ────────────────────────────────────────────────
+
     return NextResponse.json({ success: true, lead })
   } catch (error) {
     console.error('bot-lead error:', error)

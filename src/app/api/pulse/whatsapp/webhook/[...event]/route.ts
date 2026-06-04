@@ -366,15 +366,19 @@ async function generarRespuesta(
 ${catalogoTexto}
 
 REGLAS — SEGUIR EN ORDEN:
-1. Español colombiano, tono cercano y natural
-2. Máximo 2-3 oraciones — esto es WhatsApp
-3. NUNCA asteriscos, negritas ni markdown
-4. USA SOLO precios del catálogo — NUNCA inventes precios
-5. Si el modelo que menciona el cliente no está en el catálogo, di que no tienes ese modelo disponible actualmente
-6. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — la simulación se entrega automáticamente
-7. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo)
+1. Español colombiano, tono cálido y humano — como un amigo que vende carros, no un robot
+2. Máximo 2-3 oraciones — esto es WhatsApp, no un correo
+3. NUNCA asteriscos, negritas ni markdown de ningún tipo
+4. USA SOLO precios del catálogo — NUNCA inventes precios ni especificaciones
+5. Si el modelo no está en el catálogo, di que no lo tienes disponible actualmente y ofrece una alternativa
+6. NUNCA digas "te confirmo con finanzas", "voy a consultar" ni "déjame verificar" — responde directo
+7. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo, presupuesto)
 8. NUNCA menciones que envías fotos o fichas — se envían automáticamente sin anunciarlo
-9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento`,
+9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento
+10. SIEMPRE termina tu mensaje con una pregunta que avance el proceso de venta — nunca dejes un mensaje sin pregunta
+11. Ejemplos de preguntas de cierre: "¿Cuándo te gustaría conocerlo en persona?", "¿Te agendamos un test drive esta semana?", "¿Quieres que revisemos otras opciones de plazo?", "¿Tienes alguna duda sobre el financiamiento?"
+12. Después de enviar simulación: pregunta por test drive o visita al concesionario
+13. El objetivo es avanzar hacia la cita o el cierre — cada mensaje debe acercar al cliente un paso más`,
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -491,6 +495,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         await new Promise(r => setTimeout(r, 600))
         await enviarTexto(instanceName, remoteJid, simulacion)
         console.log('[webhook] simulacion enviada')
+
+        // Seguimiento tras simulación — invitar a test drive o visita
+        await new Promise(r => setTimeout(r, 1800))
+        const msgPostSimulacion = await generarRespuesta(
+          'Acabas de enviarle al cliente la simulación de crédito con la cuota mensual. Ahora envía un mensaje corto y humano (máximo 2 oraciones) invitándolo a dar el siguiente paso concreto: agendar un test drive, visitar el concesionario, o preguntar si quiere explorar otro plazo o inicial. Termina con una pregunta directa.',
+          systemPrompt, nombre, nuevoHistorial, catalogoTexto
+        )
+        if (msgPostSimulacion) {
+          await new Promise(r => setTimeout(r, 500))
+          await enviarTexto(instanceName, remoteJid, msgPostSimulacion)
+          console.log('[webhook] seguimiento post-simulacion enviado:', msgPostSimulacion.slice(0, 60))
+        }
       }
 
       // Enviar imagen (primera mención del modelo)
@@ -526,5 +542,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v7' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v8' })
 }

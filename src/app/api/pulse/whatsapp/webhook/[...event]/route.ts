@@ -459,7 +459,7 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
     } catch { /* continuar */ }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any).select('nombre, metadata').not('metadata', 'is', null)
+    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any).select('email, nombre, metadata').not('metadata', 'is', null)
     if (!rows || !Array.isArray(rows)) return def
 
     if (telefonoInstancia) {
@@ -476,13 +476,33 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
         }
       }
     }
+    // Intentar match por instanceName — formato: "email_at_domain_com"
+    // ricaza81_at_gmail_com → ricaza81@gmail.com
+    const emailDesdeInstance = instanceName
+      .replace(/_at_/, '@')
+      .replace(/_([^_]+)$/, '.$1')
+      .replace(/_/g, '.')
+      // Fix: solo reemplazar el primer grupo correctamente
+    // Buscar por email derivado del instanceName
+    for (const row of rows) {
+      const rowEmail = String((row as Record<string, unknown>).email || '').toLowerCase()
+      const instanceEmail = instanceName.replace('_at_', '@').replace(/_/g, '.').toLowerCase()
+      const esMatch = rowEmail && (rowEmail === instanceEmail || instanceEmail.includes(rowEmail.split('@')[0]))
+      const meta = row.metadata as Record<string, unknown>
+      if (esMatch && meta?.agent_config) {
+        const cfg = meta.agent_config as Record<string, unknown>
+        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
+        console.log('[webhook] botActivo by instance email:', botActivo, '| raw:', meta?.bot_activo, '| email:', rowEmail)
+        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
+      }
+    }
+    // Último fallback: primer row con agent_config
     for (const row of rows) {
       const meta = row.metadata as Record<string, unknown>
       if (meta?.agent_config) {
         const cfg = meta.agent_config as Record<string, unknown>
-        // Leer bot_activo — JSONB puede devolver boolean false o string "false"
         const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-        console.log('[webhook] botActivo fallback:', botActivo, '| raw:', meta?.bot_activo)
+        console.log('[webhook] botActivo last fallback:', botActivo, '| raw:', meta?.bot_activo)
         return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
       }
     }
@@ -838,5 +858,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v23' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v24' })
 }

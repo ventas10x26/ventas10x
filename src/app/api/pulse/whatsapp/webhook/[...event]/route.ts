@@ -385,6 +385,7 @@ REGLAS — SEGUIR EN ORDEN:
 8. NUNCA menciones que envías fotos o fichas — se envían automáticamente sin anunciarlo
 9. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento
 10. SIEMPRE termina tu mensaje con una pregunta que avance el proceso de venta — nunca dejes un mensaje sin pregunta
+11. PROHIBIDO mencionar "alternativas de crédito con diferentes bancos" o "KIA Financia" — SIEMPRE di "alternativas de crédito con diferentes bancos" o "opciones de financiamiento bancario"
 11. Ejemplos de preguntas de cierre: "¿Cuándo te gustaría conocerlo en persona?", "¿Te agendamos un test drive esta semana?", "¿Quieres que revisemos otras opciones de plazo?", "¿Tienes alguna duda sobre el financiamiento?"
 12. Después de enviar simulación: pregunta por test drive o visita al concesionario
 13. El objetivo es avanzar hacia la cita o el cierre — cada mensaje debe acercar al cliente un paso más`,
@@ -532,7 +533,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         // Mensaje de seguimiento tras enviar catálogo completo — invitar al siguiente paso
         await new Promise(r => setTimeout(r, 1500))
         const msgSeguimiento = await generarRespuesta(
-          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: simular la cuota con diferentes bancos, agendar un test drive o resolver cualquier duda.',
+          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: ver las alternativas de crédito con diferentes bancos, agendar un test drive o resolver cualquier duda.',
           systemPrompt, nombre, nuevoHistorial, catalogoTexto
         )
         if (msgSeguimiento) {
@@ -551,5 +552,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v10' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v11' })
 }

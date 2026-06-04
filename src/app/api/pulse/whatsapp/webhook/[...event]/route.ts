@@ -1,5 +1,4 @@
 // src/app/api/pulse/whatsapp/webhook/[...event]/route.ts
-// Versión con envío automático de imagen + ficha técnica al mencionar un modelo
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
@@ -14,7 +13,6 @@ const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTej36IuFT6HGZGKUvHGlestv9Ro1qyKXuZ88poK_diUl_6vOiU_QBKhBV7UGSUq7c3Z9g40pPtPNYr/pub?output=csv'
 
-// Cache catálogo
 let catalogoCache: VehiculoMedia[] = []
 let catalogoCacheTime = 0
 const CACHE_TTL = 60 * 60 * 1000
@@ -34,13 +32,13 @@ type VehiculoMedia = {
 async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   const ahora = Date.now()
   if (catalogoCache.length > 0 && ahora - catalogoCacheTime < CACHE_TTL) return catalogoCache
-
   try {
     const res = await fetch(CSV_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-    if (!res.ok) return []
+    if (!res.ok) { console.error('[webhook] CSV error:', res.status); return [] }
     const csv = await res.text()
-    console.log('[webhook] csv cols:', csv.split('\n')[0].slice(0, 300))
+    console.log('[webhook] CSV primera linea:', csv.split('\n')[0].slice(0, 300))
     const vehiculos = parsearCSVMedia(csv)
+    console.log('[webhook] vehiculos parseados:', vehiculos.length)
     catalogoCache = vehiculos
     catalogoCacheTime = ahora
     return vehiculos
@@ -55,8 +53,12 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
   if (lineas.length < 2) return []
 
   const primera = lineas[0]
-  const sep = primera.includes('\t') ? '\t' : ','
-  const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
+  // Detectar separador: tab o coma
+  const sep = primera.split('\t').length > primera.split(',').length ? '\t' : ','
+  const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase().trim())
+
+  console.log('[webhook] separador:', sep === '\t' ? 'TAB' : 'COMA', '| columnas:', cols.length)
+  console.log('[webhook] cols:', cols.slice(0, 22).join(' | '))
 
   const idx = {
     linea: cols.findIndex(c => c.includes('línea') || c === 'linea'),
@@ -71,6 +73,8 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
     specs: cols.findIndex(c => c.includes('especif') || c.includes('otras')),
     comb: cols.findIndex(c => c.includes('combustible')),
   }
+
+  console.log('[webhook] idx imagen:', idx.imagen, '| idx ficha:', idx.ficha, '| idx linea:', idx.linea)
 
   const vehiculos: VehiculoMedia[] = []
   for (let i = 1; i < lineas.length; i++) {
@@ -94,45 +98,48 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
   return vehiculos
 }
 
-// Detectar modelo mencionado en el texto
 function detectarModelo(texto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
   const lower = texto.toLowerCase()
-  
-  // Buscar por línea + versión
   for (const v of vehiculos) {
     const linea = v.linea.toLowerCase()
     const version = v.version.toLowerCase()
     if (lower.includes(linea) && lower.includes(version)) return v
   }
-  
-  // Buscar solo por línea
   for (const v of vehiculos) {
-    const linea = v.linea.toLowerCase()
-    if (lower.includes(linea)) return v
+    if (lower.includes(v.linea.toLowerCase())) return v
   }
-  
   return null
 }
 
-// Detectar si el mensaje pide imagen o ficha
-function pideFicha(texto: string): boolean {
-  const lower = texto.toLowerCase()
-  return lower.includes('ficha') || lower.includes('especificaci') || lower.includes('técnica') || lower.includes('tecnica')
+function extraerDatosCredito(texto: string, historial: Array<{ role: string; content: string }>): { inicial: number; plazo: number } {
+  const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
+
+  const inicialMatch =
+    textoCompleto.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?inicial/i) ||
+    textoCompleto.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
+    textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i)
+  const inicial = inicialMatch ? parseInt(inicialMatch[1]) * 1_000_000 : 0
+
+  const plazoMatch =
+    textoCompleto.match(/(\d+)\s*meses/i) ||
+    textoCompleto.match(/a\s+(\d+)\s+meses/i) ||
+    textoCompleto.match(/plazo\s+(?:de\s+)?(\d+)/i)
+  const plazo = plazoMatch ? parseInt(plazoMatch[1]) : 0
+
+  return { inicial, plazo }
 }
 
-function pideImagen(texto: string): boolean {
-  const lower = texto.toLowerCase()
-  return lower.includes('foto') || lower.includes('imagen') || lower.includes('ver') || lower.includes('manda') || lower.includes('muestra') || lower.includes('cómo es') || lower.includes('como es')
+function calcularCuota(precioNeto: number, inicial: number, plazo: number): number {
+  const monto = precioNeto - inicial
+  if (monto <= 0 || plazo <= 0) return 0
+  const tasa = 0.018
+  return Math.round((monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1))
 }
 
-function esPrimeraMencionModelo(texto: string, historial: Array<{ role: string; content: string }>, vehiculos: VehiculoMedia[]): boolean {
-  // Si el modelo no fue mencionado antes en el historial, es la primera vez
-  const modelo = detectarModelo(texto, vehiculos)
-  if (!modelo) return false
-  
-  const linea = modelo.linea.toLowerCase()
-  const historialTexto = historial.map(h => h.content).join(' ').toLowerCase()
-  return !historialTexto.includes(linea)
+function esSimulacion(texto: string): boolean {
+  const lower = texto.toLowerCase()
+  return (lower.includes('meses') || lower.includes('plazo') || lower.includes('cuota') || lower.includes('credito') || lower.includes('crédito') || lower.includes('financiar')) &&
+    (lower.includes('inicial') || lower.includes('millones') || lower.includes('meses'))
 }
 
 async function enviarTexto(instanceName: string, remoteJid: string, mensaje: string) {
@@ -142,34 +149,25 @@ async function enviarTexto(instanceName: string, remoteJid: string, mensaje: str
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({ number: remoteJid, text: mensaje }),
     })
-  } catch (e) {
-    console.error('[webhook] enviarTexto error:', e)
-  }
+  } catch (e) { console.error('[webhook] enviarTexto error:', e) }
 }
 
 async function enviarImagen(instanceName: string, remoteJid: string, imagenUrl: string, caption: string) {
   try {
+    console.log('[webhook] enviando imagen:', imagenUrl.slice(0, 60))
     const res = await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-      body: JSON.stringify({
-        number: remoteJid,
-        mediatype: 'image',
-        media: imagenUrl,
-        caption,
-      }),
+      body: JSON.stringify({ number: remoteJid, mediatype: 'image', media: imagenUrl, caption }),
     })
-    if (!res.ok) {
-      const err = await res.text()
-      console.error('[webhook] enviarImagen error:', res.status, err)
-    }
-  } catch (e) {
-    console.error('[webhook] enviarImagen error:', e)
-  }
+    const data = await res.json()
+    console.log('[webhook] enviarImagen resultado:', res.status, JSON.stringify(data).slice(0, 100))
+  } catch (e) { console.error('[webhook] enviarImagen error:', e) }
 }
 
-async function enviarDocumento(instanceName: string, remoteJid: string, url: string, nombre: string) {
+async function enviarFicha(instanceName: string, remoteJid: string, url: string, linea: string, año: number) {
   try {
+    console.log('[webhook] enviando ficha:', url.slice(0, 60))
     await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
@@ -177,28 +175,19 @@ async function enviarDocumento(instanceName: string, remoteJid: string, url: str
         number: remoteJid,
         mediatype: 'document',
         media: url,
-        fileName: nombre,
-        caption: `Ficha técnica ${nombre}`,
+        fileName: `Ficha_KIA_${linea}_${año}.pdf`,
+        caption: `Ficha técnica KIA ${linea} ${año}`,
       }),
     })
-  } catch (e) {
-    console.error('[webhook] enviarDocumento error:', e)
-  }
+  } catch (e) { console.error('[webhook] enviarFicha error:', e) }
 }
 
-async function obtenerConfigAgente(instanceName: string): Promise<{
-  systemPrompt: string
-  nombre: string
-  botActivo: boolean
-}> {
+async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
   const defaultResult = { systemPrompt: '', nombre: 'el asesor', botActivo: true }
   try {
-    // Obtener número de la instancia
     let telefonoInstancia: string | null = null
     try {
-      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, {
-        headers: { apikey: EVO_KEY },
-      })
+      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
         const ownerJid = String(data?.instance?.ownerJid || '')
@@ -208,12 +197,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{
     } catch { /* continuar */ }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
-      .select('nombre, metadata')
-      .not('metadata', 'is', null)
+    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any).select('nombre, metadata').not('metadata', 'is', null)
 
     if (rows && Array.isArray(rows)) {
-      // Buscar por número
       if (telefonoInstancia) {
         const numeroCorto = telefonoInstancia.replace(/^57/, '')
         for (const row of rows) {
@@ -221,25 +207,15 @@ async function obtenerConfigAgente(instanceName: string): Promise<{
           const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
           if (w && w === numeroCorto) {
             const cfg = meta?.agent_config as Record<string, unknown> | undefined
-            return {
-              systemPrompt: String(cfg?.system_prompt || ''),
-              nombre: row.nombre || 'el asesor',
-              botActivo: meta?.bot_activo !== false,
-            }
+            return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
           }
         }
       }
-
-      // Fallback: primer registro con agent_config
       for (const row of rows) {
         const meta = row.metadata as Record<string, unknown>
         if (meta?.agent_config) {
           const cfg = meta.agent_config as Record<string, unknown>
-          return {
-            systemPrompt: String(cfg?.system_prompt || ''),
-            nombre: row.nombre || 'el asesor',
-            botActivo: meta?.bot_activo !== false,
-          }
+          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
         }
       }
     }
@@ -269,7 +245,10 @@ async function generarRespuesta(
     }
     if (historialLimpio[historialLimpio.length - 1]?.role === 'user') historialLimpio.pop()
 
-    const systemFinal = `${systemPrompt || `Eres el asistente de ventas de ${nombre}, asesor KIA.`}
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 250,
+      system: `${systemPrompt || `Eres el asistente de ventas de ${nombre}, asesor KIA.`}
 
 ${catalogoTexto}
 
@@ -279,18 +258,9 @@ REGLAS ESTRICTAS:
 - No uses asteriscos ni markdown
 - Suena como ${nombre}, no como un bot
 - USA SOLO los precios del catálogo — NUNCA inventes precios, tasas ni fechas
-- Si no sabes algo con certeza, di "te confirmo ese dato" o "déjame verificar"
-- Si mencionan inicial + crédito + plazo: confirma el modelo y di que vas a simular con KIA Crédito
-- No menciones que vas a enviar imagen o ficha — ya se envían automáticamente`
-
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 250,
-      system: systemFinal,
-      messages: [
-        ...historialLimpio,
-        { role: 'user', content: texto },
-      ],
+- Si no sabes algo con certeza, di "te confirmo ese dato"
+- No menciones que envías fotos o fichas — ya se envían automáticamente`,
+      messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
   } catch (e) {
@@ -300,13 +270,9 @@ REGLAS ESTRICTAS:
 }
 
 const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
-// Rastrear si ya enviamos media por conversación+modelo para no repetir
 const mediaEnviada = new Map<string, Set<string>>()
 
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ event: string[] }> }
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ event: string[] }> }) {
   try {
     const { event } = await context.params
     const eventPath = event?.join('/') || ''
@@ -330,26 +296,20 @@ export async function POST(
     console.log(`[webhook] instance: ${instanceName}, msgs: ${msgs.length}`)
 
     const { systemPrompt, nombre, botActivo } = await obtenerConfigAgente(instanceName)
+    if (!botActivo) { console.log('[webhook] bot INACTIVO'); return NextResponse.json({ ok: true, paused: true }) }
 
-    if (!botActivo) {
-      console.log('[webhook] bot INACTIVO:', instanceName)
-      return NextResponse.json({ ok: true, paused: true })
-    }
-
-    // Cargar catálogo
     const vehiculos = await obtenerCatalogo()
     const catalogoTexto = vehiculos.length > 0
       ? '=== CATÁLOGO KIA ===\n' + vehiculos.map(v => {
-          const p = v.precio > 0 ? `$${(v.precio / 1000000).toFixed(1)}M` : ''
-          const b = v.bono > 0 ? ` (bono $${(v.bono / 1000000).toFixed(1)}M)` : ''
-          return `- KIA ${v.linea} ${v.version} ${v.año}: ${p}${b} | ${v.combustible} | ${v.specs}`
+          const p = v.precio > 0 ? `$${(v.precio / 1_000_000).toFixed(1)}M` : ''
+          const b = v.bono > 0 ? ` (bono $${(v.bono / 1_000_000).toFixed(1)}M, neto $${((v.precio - v.bono) / 1_000_000).toFixed(1)}M)` : ''
+          return `KIA ${v.linea} ${v.version} ${v.año}: ${p}${b} | ${v.combustible} | ${v.specs}`
         }).join('\n')
       : ''
 
     for (const msg of msgs) {
       const m = msg as Record<string, unknown>
       const key = m.key as Record<string, unknown>
-
       if (key?.fromMe) continue
       const remoteJid = String(key?.remoteJid || '')
       if (remoteJid.includes('@g.us')) continue
@@ -358,10 +318,8 @@ export async function POST(
       const texto = String(
         message?.conversation ||
         (message?.extendedTextMessage as Record<string, unknown>)?.text ||
-        (message?.imageMessage as Record<string, unknown>)?.caption ||
-        ''
+        (message?.imageMessage as Record<string, unknown>)?.caption || ''
       ).trim()
-
       if (!texto) continue
 
       console.log(`[webhook] mensaje de ${remoteJid}: "${texto}"`)
@@ -369,7 +327,38 @@ export async function POST(
       const chatKey = `${instanceName}:${remoteJid}`
       const historial = chatHistory.get(chatKey) || []
 
-      // Generar respuesta de texto
+      // Detectar modelo mencionado
+      const modeloDetectado = vehiculos.length > 0 ? detectarModelo(texto, vehiculos) : null
+      const mediaYaEnviada = mediaEnviada.get(chatKey) || new Set()
+      const esPrimera = modeloDetectado ? !mediaYaEnviada.has(modeloDetectado.linea) : false
+
+      // Detectar si tiene datos para simular crédito
+      let simulacion: string | null = null
+      if (esSimulacion(texto) && modeloDetectado) {
+        const { inicial, plazo } = extraerDatosCredito(texto, historial)
+        if (inicial > 0 && plazo > 0) {
+          const precioNeto = modeloDetectado.precio - modeloDetectado.bono
+          const cuota = calcularCuota(precioNeto, inicial, plazo)
+          if (cuota > 0) {
+            const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
+            simulacion = [
+              `Simulación KIA Crédito`,
+              `Modelo: KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`,
+              `Precio lista: ${fmt(modeloDetectado.precio)}`,
+              modeloDetectado.bono > 0 ? `Bono: ${fmt(modeloDetectado.bono)}` : null,
+              modeloDetectado.bono > 0 ? `Precio neto: ${fmt(precioNeto)}` : null,
+              `Inicial: ${fmt(inicial)}`,
+              `Monto a financiar: ${fmt(precioNeto - inicial)}`,
+              `Plazo: ${plazo} meses`,
+              `Cuota aprox: ${fmt(cuota)}/mes`,
+              `Tasa ref: 1.8% mensual`,
+              `Nota: cuota exacta la confirma el banco`,
+            ].filter(Boolean).join('\n')
+          }
+        }
+      }
+
+      // Generar respuesta conversacional
       const respuesta = await generarRespuesta(texto, systemPrompt, nombre, historial, catalogoTexto)
 
       if (respuesta) {
@@ -377,43 +366,34 @@ export async function POST(
         historial.push({ role: 'assistant', content: respuesta })
         chatHistory.set(chatKey, historial.slice(-10))
 
-        await new Promise(r => setTimeout(r, 1000 + Math.random() * 800))
+        await new Promise(r => setTimeout(r, 800 + Math.random() * 600))
         await enviarTexto(instanceName, remoteJid, respuesta)
-        console.log(`[webhook] respondido: "${respuesta.slice(0, 60)}..."`)
+        console.log(`[webhook] texto enviado: "${respuesta.slice(0, 60)}"`)
       }
 
-      // Enviar imagen + ficha automáticamente si hay modelo mencionado
-      if (vehiculos.length > 0) {
-        const modeloDetectado = detectarModelo(texto, vehiculos)
+      // Enviar simulación si existe
+      if (simulacion) {
+        await new Promise(r => setTimeout(r, 600))
+        await enviarTexto(instanceName, remoteJid, simulacion)
+        console.log('[webhook] simulacion enviada')
+      }
 
-        if (modeloDetectado) {
-          const mediaKey = `${chatKey}:${modeloDetectado.linea}`
-          const mediaYaEnviada = mediaEnviada.get(chatKey) || new Set()
-          const esPrimera = !mediaYaEnviada.has(modeloDetectado.linea)
-          const quereFicha = pideFicha(texto)
-          const quereImagen = pideImagen(texto)
+      // Enviar imagen en primera mención
+      if (modeloDetectado && esPrimera && modeloDetectado.imagenUrl) {
+        await new Promise(r => setTimeout(r, 800))
+        await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl, `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`)
+      }
 
-          // Enviar imagen: primera mención O cuando la pide explícitamente
-          if (modeloDetectado.imagenUrl && (esPrimera || quereImagen)) {
-            await new Promise(r => setTimeout(r, 800))
-            const caption = `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
-            await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl, caption)
-            console.log(`[webhook] imagen enviada: ${modeloDetectado.linea}`)
-          }
+      // Enviar ficha en primera mención
+      if (modeloDetectado && esPrimera && modeloDetectado.fichaTecnica) {
+        await new Promise(r => setTimeout(r, 600))
+        await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
+      }
 
-          // Enviar ficha: primera mención O cuando la pide explícitamente
-          if (modeloDetectado.fichaTecnica && (esPrimera || quereFicha)) {
-            await new Promise(r => setTimeout(r, 600))
-            const nombreFicha = `Ficha_KIA_${modeloDetectado.linea}_${modeloDetectado.año}.pdf`
-            await enviarDocumento(instanceName, remoteJid, modeloDetectado.fichaTecnica, nombreFicha)
-            console.log(`[webhook] ficha enviada: ${modeloDetectado.linea}`)
-          }
-
-          // Marcar modelo como ya enviado
-          mediaYaEnviada.add(modeloDetectado.linea)
-          mediaEnviada.set(chatKey, mediaYaEnviada)
-          void mediaKey
-        }
+      // Marcar modelo como enviado
+      if (modeloDetectado && esPrimera) {
+        mediaYaEnviada.add(modeloDetectado.linea)
+        mediaEnviada.set(chatKey, mediaYaEnviada)
       }
     }
 

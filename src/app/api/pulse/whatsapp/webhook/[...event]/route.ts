@@ -503,6 +503,18 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (modeloDetectado && esPrimera && modeloDetectado.fichaTecnica) {
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
+
+        // Mensaje de seguimiento tras enviar catálogo completo — invitar al siguiente paso
+        await new Promise(r => setTimeout(r, 1500))
+        const msgSeguimiento = await generarRespuesta(
+          'El cliente acaba de recibir la foto y ficha técnica del vehículo. Envía un mensaje corto (máximo 2 oraciones) invitándolo a dar el siguiente paso: simular la cuota con KIA Crédito, agendar un test drive o resolver cualquier duda.',
+          systemPrompt, nombre, nuevoHistorial, catalogoTexto
+        )
+        if (msgSeguimiento) {
+          await new Promise(r => setTimeout(r, 500))
+          await enviarTexto(instanceName, remoteJid, msgSeguimiento)
+          console.log('[webhook] seguimiento enviado:', msgSeguimiento.slice(0, 60))
+        }
       }
     }
 
@@ -514,5 +526,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v5' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v7' })
 }

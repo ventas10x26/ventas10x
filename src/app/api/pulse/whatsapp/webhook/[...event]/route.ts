@@ -603,11 +603,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
           ? `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
           : 'el vehículo'
         await enviarBotonesTestDrive(instanceName, remoteJid, nombreModeloFicha)
-        if (false) { // bloque legacy — mantener estructura
-          await new Promise(r => setTimeout(r, 500))
-          await enviarTexto(instanceName, remoteJid, '')
-          console.log('[webhook] seguimiento enviado:', msgSeguimiento.slice(0, 60))
-        }
+
       }
     }
 

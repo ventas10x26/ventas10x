@@ -62,7 +62,13 @@ export default function PulsePipelinePage() {
         body: JSON.stringify({ texto_origen: textoNuevoLead.trim(), canal: 'otro' }),
       })
       const data = await res.json()
-      if (data.ok) {
+      if (data.ok && data.lead?.id) {
+        // Disparar el agente WhatsApp automáticamente
+        fetch('/api/pulse/leads/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lead_id: data.lead.id }),
+        }).catch(e => console.error('trigger error:', e))
         setTextoNuevoLead('')
         setShowNuevoLead(false)
         await cargarLeads()

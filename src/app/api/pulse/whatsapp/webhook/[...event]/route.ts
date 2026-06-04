@@ -446,7 +446,7 @@ async function enviarFicha(instanceName: string, remoteJid: string, url: string,
 // ── CONFIG AGENTE ─────────────────────────────────────────────────────────────
 
 async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
-  const def = { systemPrompt: '', nombre: 'el asesor', botActivo: true }
+  const def = { systemPrompt: '', nombre: 'el asesor', botActivo: false }
   try {
     let telefonoInstancia: string | null = null
     try {
@@ -469,7 +469,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
         const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
         if (w && w === corto) {
           const cfg = meta?.agent_config as Record<string, unknown> | undefined
-          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
+          // Leer bot_activo explícitamente — false en BD debe bloquear el bot
+          const botActivoMatch = meta?.bot_activo === false ? false : true
+          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: botActivoMatch }
         }
       }
     }
@@ -477,7 +479,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
       const meta = row.metadata as Record<string, unknown>
       if (meta?.agent_config) {
         const cfg = meta.agent_config as Record<string, unknown>
-        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
+        // Leer bot_activo explícitamente — false en BD debe bloquear el bot
+        const botActivo = meta?.bot_activo === true || meta?.bot_activo === undefined ? true : false
+        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
       }
     }
     return def
@@ -832,5 +836,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v21' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v22' })
 }

@@ -1,4 +1,5 @@
 // src/app/api/pulse/whatsapp/webhook/[...event]/route.ts
+// v4 — historial persistente en Supabase
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
@@ -13,6 +14,7 @@ const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTej36IuFT6HGZGKUvHGlestv9Ro1qyKXuZ88poK_diUl_6vOiU_QBKhBV7UGSUq7c3Z9g40pPtPNYr/pub?output=csv'
 
+// Cache del catálogo (válido dentro de la misma instancia de Vercel)
 let catalogoCache: VehiculoMedia[] = []
 let catalogoCacheTime = 0
 const CACHE_TTL = 60 * 60 * 1000
@@ -29,6 +31,60 @@ type VehiculoMedia = {
   combustible: string
 }
 
+type MensajeHistorial = { role: 'user' | 'assistant'; content: string }
+
+// ── SUPABASE: leer/escribir conversación ─────────────────────────────────────
+
+async function leerConversacion(instanceName: string, remoteJid: string): Promise<{
+  historial: MensajeHistorial[]
+  modeloDetectado: string | null
+  mediaEnviada: string[]
+}> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabaseAdmin.from('pulse_conversaciones') as any)
+      .select('historial, modelo_detectado, media_enviada')
+      .eq('instance_name', instanceName)
+      .eq('remote_jid', remoteJid)
+      .maybeSingle()
+
+    if (!data) return { historial: [], modeloDetectado: null, mediaEnviada: [] }
+    return {
+      historial: (data.historial as MensajeHistorial[]) || [],
+      modeloDetectado: data.modelo_detectado || null,
+      mediaEnviada: (data.media_enviada as string[]) || [],
+    }
+  } catch (e) {
+    console.error('[webhook] leerConversacion error:', e)
+    return { historial: [], modeloDetectado: null, mediaEnviada: [] }
+  }
+}
+
+async function guardarConversacion(
+  instanceName: string,
+  remoteJid: string,
+  historial: MensajeHistorial[],
+  modeloDetectado: string | null,
+  mediaEnviada: string[]
+) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin.from('pulse_conversaciones') as any)
+      .upsert({
+        instance_name: instanceName,
+        remote_jid: remoteJid,
+        historial: historial.slice(-12), // máximo 12 mensajes
+        modelo_detectado: modeloDetectado,
+        media_enviada: mediaEnviada,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'instance_name,remote_jid' })
+  } catch (e) {
+    console.error('[webhook] guardarConversacion error:', e)
+  }
+}
+
+// ── CATÁLOGO ─────────────────────────────────────────────────────────────────
+
 async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   const ahora = Date.now()
   if (catalogoCache.length > 0 && ahora - catalogoCacheTime < CACHE_TTL) return catalogoCache
@@ -36,9 +92,10 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
     const res = await fetch(CSV_URL, { headers: { 'User-Agent': 'Mozilla/5.0' } })
     if (!res.ok) { console.error('[webhook] CSV error:', res.status); return [] }
     const csv = await res.text()
-    console.log('[webhook] CSV primera linea:', csv.split('\n')[0].slice(0, 300))
-    const vehiculos = parsearCSVMedia(csv)
-    console.log('[webhook] vehiculos parseados:', vehiculos.length)
+    const primera = csv.split('\n')[0]
+    console.log('[webhook] CSV cols:', primera.slice(0, 200))
+    const vehiculos = parsearCSV(csv)
+    console.log('[webhook] vehiculos:', vehiculos.length, '| con imagen:', vehiculos.filter(v => v.imagenUrl).length)
     catalogoCache = vehiculos
     catalogoCacheTime = ahora
     return vehiculos
@@ -48,17 +105,17 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   }
 }
 
-function parsearCSVMedia(csv: string): VehiculoMedia[] {
+function parsearCSV(csv: string): VehiculoMedia[] {
   const lineas = csv.trim().split('\n')
   if (lineas.length < 2) return []
 
   const primera = lineas[0]
-  // Detectar separador: tab o coma
-  const sep = primera.split('\t').length > primera.split(',').length ? '\t' : ','
-  const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase().trim())
+  const sepTab = primera.split('\t').length
+  const sepComa = primera.split(',').length
+  const sep = sepTab > sepComa ? '\t' : ','
+  const cols = primera.split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase())
 
-  console.log('[webhook] separador:', sep === '\t' ? 'TAB' : 'COMA', '| columnas:', cols.length)
-  console.log('[webhook] cols:', cols.slice(0, 22).join(' | '))
+  console.log('[webhook] sep:', sep === '\t' ? 'TAB' : 'COMA', '| total cols:', cols.length)
 
   const idx = {
     linea: cols.findIndex(c => c.includes('línea') || c === 'linea'),
@@ -69,12 +126,12 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
     precio: cols.findIndex(c => c.includes('precio')),
     bono: cols.findIndex(c => c.includes('bono') && c.includes('monetario')),
     ficha: cols.findIndex(c => c.includes('ficha')),
-    imagen: cols.findIndex(c => c.includes('imagen') || c.includes('image') || c.includes('foto')),
+    imagen: cols.findIndex(c => c.includes('imagen') || c.includes('foto')),
     specs: cols.findIndex(c => c.includes('especif') || c.includes('otras')),
     comb: cols.findIndex(c => c.includes('combustible')),
   }
 
-  console.log('[webhook] idx imagen:', idx.imagen, '| idx ficha:', idx.ficha, '| idx linea:', idx.linea)
+  console.log('[webhook] idx: linea=' + idx.linea + ' imagen=' + idx.imagen + ' ficha=' + idx.ficha)
 
   const vehiculos: VehiculoMedia[] = []
   for (let i = 1; i < lineas.length; i++) {
@@ -82,7 +139,6 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
     if (!cells[idx.linea]) continue
     if (cells[idx.activo]?.toUpperCase() === 'FALSE') continue
     if (cells[idx.activaV]?.toUpperCase() === 'FALSE') continue
-
     vehiculos.push({
       linea: cells[idx.linea] || '',
       version: cells[idx.version] || '',
@@ -98,27 +154,28 @@ function parsearCSVMedia(csv: string): VehiculoMedia[] {
   return vehiculos
 }
 
-function detectarModelo(texto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
-  const lower = texto.toLowerCase()
+// ── DETECCIÓN Y CÁLCULO ───────────────────────────────────────────────────────
+
+function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
+  const lower = textoCompleto.toLowerCase()
+  // Match exacto línea + versión
   for (const v of vehiculos) {
-    const linea = v.linea.toLowerCase()
-    const version = v.version.toLowerCase()
-    if (lower.includes(linea) && lower.includes(version)) return v
+    if (lower.includes(v.linea.toLowerCase()) && lower.includes(v.version.toLowerCase())) return v
   }
+  // Match solo línea
   for (const v of vehiculos) {
     if (lower.includes(v.linea.toLowerCase())) return v
   }
   return null
 }
 
-function extraerDatosCredito(texto: string, historial: Array<{ role: string; content: string }>): { inicial: number; plazo: number } {
-  const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
-
+function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number } {
   const inicialMatch =
     textoCompleto.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?inicial/i) ||
     textoCompleto.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
-    textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i)
-  const inicial = inicialMatch ? parseInt(inicialMatch[1]) * 1_000_000 : 0
+    textoCompleto.match(/(\d+)\s*m\s+(?:de\s+)?inicial/i) ||
+    textoCompleto.match(/inicial[:\s]+\$?(\d+[\.,]?\d*)\s*m/i)
+  const inicial = inicialMatch ? parseInt(inicialMatch[1].replace(/\./g, '')) * 1_000_000 : 0
 
   const plazoMatch =
     textoCompleto.match(/(\d+)\s*meses/i) ||
@@ -129,18 +186,29 @@ function extraerDatosCredito(texto: string, historial: Array<{ role: string; con
   return { inicial, plazo }
 }
 
-function calcularCuota(precioNeto: number, inicial: number, plazo: number): number {
+function calcularSimulacion(modelo: VehiculoMedia, inicial: number, plazo: number): string | null {
+  const precioNeto = modelo.precio - modelo.bono
   const monto = precioNeto - inicial
-  if (monto <= 0 || plazo <= 0) return 0
+  if (monto <= 0 || plazo <= 0) return null
   const tasa = 0.018
-  return Math.round((monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1))
+  const cuota = Math.round((monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1))
+  const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
+  return [
+    'Simulación KIA Crédito',
+    `Modelo: KIA ${modelo.linea} ${modelo.version} ${modelo.año}`,
+    `Precio lista: ${fmt(modelo.precio)}`,
+    modelo.bono > 0 ? `Bono: ${fmt(modelo.bono)}` : null,
+    modelo.bono > 0 ? `Precio neto: ${fmt(precioNeto)}` : null,
+    `Inicial: ${fmt(inicial)}`,
+    `Monto a financiar: ${fmt(monto)}`,
+    `Plazo: ${plazo} meses`,
+    `Cuota aprox: ${fmt(cuota)}/mes`,
+    `Tasa ref: 1.8% mensual`,
+    `Nota: cuota exacta la confirma el banco`,
+  ].filter(Boolean).join('\n')
 }
 
-function esSimulacion(texto: string): boolean {
-  const lower = texto.toLowerCase()
-  return (lower.includes('meses') || lower.includes('plazo') || lower.includes('cuota') || lower.includes('credito') || lower.includes('crédito') || lower.includes('financiar')) &&
-    (lower.includes('inicial') || lower.includes('millones') || lower.includes('meses'))
-}
+// ── EVOLUTION API ─────────────────────────────────────────────────────────────
 
 async function enviarTexto(instanceName: string, remoteJid: string, mensaje: string) {
   try {
@@ -152,22 +220,21 @@ async function enviarTexto(instanceName: string, remoteJid: string, mensaje: str
   } catch (e) { console.error('[webhook] enviarTexto error:', e) }
 }
 
-async function enviarImagen(instanceName: string, remoteJid: string, imagenUrl: string, caption: string) {
+async function enviarImagen(instanceName: string, remoteJid: string, url: string, caption: string) {
   try {
-    console.log('[webhook] enviando imagen:', imagenUrl.slice(0, 60))
+    console.log('[webhook] enviando imagen:', url.slice(0, 80))
     const res = await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-      body: JSON.stringify({ number: remoteJid, mediatype: 'image', media: imagenUrl, caption }),
+      body: JSON.stringify({ number: remoteJid, mediatype: 'image', media: url, caption }),
     })
-    const data = await res.json()
-    console.log('[webhook] enviarImagen resultado:', res.status, JSON.stringify(data).slice(0, 100))
+    console.log('[webhook] imagen status:', res.status)
   } catch (e) { console.error('[webhook] enviarImagen error:', e) }
 }
 
 async function enviarFicha(instanceName: string, remoteJid: string, url: string, linea: string, año: number) {
   try {
-    console.log('[webhook] enviando ficha:', url.slice(0, 60))
+    console.log('[webhook] enviando ficha:', url.slice(0, 80))
     await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
@@ -182,71 +249,70 @@ async function enviarFicha(instanceName: string, remoteJid: string, url: string,
   } catch (e) { console.error('[webhook] enviarFicha error:', e) }
 }
 
+// ── CONFIG AGENTE ─────────────────────────────────────────────────────────────
+
 async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
-  const defaultResult = { systemPrompt: '', nombre: 'el asesor', botActivo: true }
+  const def = { systemPrompt: '', nombre: 'el asesor', botActivo: true }
   try {
     let telefonoInstancia: string | null = null
     try {
       const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
-        const ownerJid = String(data?.instance?.ownerJid || '')
-        const match = ownerJid.match(/^(\d+)@/)
+        const match = String(data?.instance?.ownerJid || '').match(/^(\d+)@/)
         if (match) telefonoInstancia = match[1]
       }
     } catch { /* continuar */ }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any).select('nombre, metadata').not('metadata', 'is', null)
+    if (!rows || !Array.isArray(rows)) return def
 
-    if (rows && Array.isArray(rows)) {
-      if (telefonoInstancia) {
-        const numeroCorto = telefonoInstancia.replace(/^57/, '')
-        for (const row of rows) {
-          const meta = row.metadata as Record<string, unknown>
-          const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
-          if (w && w === numeroCorto) {
-            const cfg = meta?.agent_config as Record<string, unknown> | undefined
-            return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
-          }
-        }
-      }
+    if (telefonoInstancia) {
+      const corto = telefonoInstancia.replace(/^57/, '')
       for (const row of rows) {
         const meta = row.metadata as Record<string, unknown>
-        if (meta?.agent_config) {
-          const cfg = meta.agent_config as Record<string, unknown>
+        const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
+        if (w && w === corto) {
+          const cfg = meta?.agent_config as Record<string, unknown> | undefined
           return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
         }
       }
     }
-    return defaultResult
+    for (const row of rows) {
+      const meta = row.metadata as Record<string, unknown>
+      if (meta?.agent_config) {
+        const cfg = meta.agent_config as Record<string, unknown>
+        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo: meta?.bot_activo !== false }
+      }
+    }
+    return def
   } catch (e) {
     console.error('[webhook] obtenerConfigAgente error:', e)
-    return defaultResult
+    return def
   }
 }
+
+// ── ANTHROPIC ─────────────────────────────────────────────────────────────────
 
 async function generarRespuesta(
   texto: string,
   systemPrompt: string,
   nombre: string,
-  historial: Array<{ role: 'user' | 'assistant'; content: string }>,
+  historial: MensajeHistorial[],
   catalogoTexto: string
 ): Promise<string | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null
   try {
     const { anthropic } = await import('@/lib/anthropic')
 
-    const historialLimpio: Array<{ role: 'user' | 'assistant'; content: string }> = []
-    for (const turn of historial.slice(-6)) {
+    const historialLimpio: MensajeHistorial[] = []
+    for (const turn of historial.slice(-8)) {
       const ultimo = historialLimpio[historialLimpio.length - 1]
       if (ultimo && ultimo.role === turn.role) continue
       historialLimpio.push(turn)
     }
     if (historialLimpio[historialLimpio.length - 1]?.role === 'user') historialLimpio.pop()
-
-    // Extraer datos del historial para dar contexto al bot
-    const historialTexto = historialLimpio.map(h => `${h.role === 'user' ? 'Cliente' : 'Asesor'}: ${h.content}`).join('\n')
 
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -255,20 +321,15 @@ async function generarRespuesta(
 
 ${catalogoTexto}
 
-REGLAS ESTRICTAS — LEER ANTES DE RESPONDER:
-1. Responde en español colombiano, tono cercano y natural
+REGLAS — SEGUIR EN ORDEN:
+1. Español colombiano, tono cercano y natural
 2. Máximo 2-3 oraciones — esto es WhatsApp
-3. NUNCA uses asteriscos, negritas ni markdown
-4. Suena como ${nombre}, no como un bot
-5. USA SOLO precios del catálogo — NUNCA inventes precios, tasas, plazos ni datos
-6. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — si no sabes, di "déjame verificar ese dato"
-7. NUNCA preguntes datos que el cliente YA mencionó en la conversación (modelo, ciudad, inicial, plazo)
-8. NUNCA digas que vas a enviar fotos — ya se envían automáticamente
-9. Si el cliente menciona modelo + inicial + plazo: la simulación ya se calcula automáticamente, NO la prometas ni la calcules tú
-10. Revisa SIEMPRE el historial antes de responder para no repetir preguntas
-
-HISTORIAL DE LA CONVERSACIÓN:
-${historialTexto || 'Sin historial previo'}`,
+3. NUNCA asteriscos, negritas ni markdown
+4. USA SOLO precios del catálogo
+5. NUNCA digas "te confirmo con finanzas" ni "voy a consultar" — la simulación se entrega automáticamente
+6. NUNCA preguntes datos que el cliente ya mencionó (modelo, ciudad, inicial, plazo)
+7. NUNCA menciones que envías fotos — se envían automáticamente
+8. Si el cliente pregunta por cuota o crédito: di que la simulación ya está siendo calculada y llegará en un momento`,
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -278,8 +339,7 @@ ${historialTexto || 'Sin historial previo'}`,
   }
 }
 
-const chatHistory = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
-const mediaEnviada = new Map<string, Set<string>>()
+// ── MAIN HANDLER ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest, context: { params: Promise<{ event: string[] }> }) {
   try {
@@ -287,11 +347,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     const eventPath = event?.join('/') || ''
     const nxtPevent = req.nextUrl.searchParams.get('nxtPevent') || ''
 
-    const isMessagesUpsert =
+    const isUpsert =
       eventPath.includes('messages-upsert') || eventPath.includes('messages_upsert') ||
       nxtPevent.includes('messages-upsert') || nxtPevent.includes('messages_upsert')
-
-    if (!isMessagesUpsert) return NextResponse.json({ ok: true, ignored: true })
+    if (!isUpsert) return NextResponse.json({ ok: true, ignored: true })
 
     const body = await req.json()
     const instanceName = body.instance || body.instanceName || eventPath.split('/')[0] || ''
@@ -310,7 +369,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     const vehiculos = await obtenerCatalogo()
     const catalogoTexto = vehiculos.length > 0
       ? '=== CATÁLOGO KIA ===\n' + vehiculos.map(v => {
-          const p = v.precio > 0 ? `$${(v.precio / 1_000_000).toFixed(1)}M` : ''
+          const p = `$${(v.precio / 1_000_000).toFixed(1)}M`
           const b = v.bono > 0 ? ` (bono $${(v.bono / 1_000_000).toFixed(1)}M, neto $${((v.precio - v.bono) / 1_000_000).toFixed(1)}M)` : ''
           return `KIA ${v.linea} ${v.version} ${v.año}: ${p}${b} | ${v.combustible} | ${v.specs}`
         }).join('\n')
@@ -331,78 +390,69 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
-      console.log(`[webhook] mensaje de ${remoteJid}: "${texto}"`)
+      console.log(`[webhook] mensaje: "${texto}"`)
 
-      const chatKey = `${instanceName}:${remoteJid}`
-      const historial = chatHistory.get(chatKey) || []
+      // Leer conversación persistida desde Supabase
+      const conv = await leerConversacion(instanceName, remoteJid)
+      const { historial, mediaEnviada } = conv
 
-      // Detectar modelo mencionado
-      const modeloDetectado = vehiculos.length > 0 ? detectarModelo(texto, vehiculos) : null
-      const mediaYaEnviada = mediaEnviada.get(chatKey) || new Set()
-      const esPrimera = modeloDetectado ? !mediaYaEnviada.has(modeloDetectado.linea) : false
+      // Texto completo = historial + mensaje actual para detección
+      const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
 
-      // Detectar si tiene datos para simular crédito
+      // Detectar modelo (en texto actual O en historial)
+      const modeloDetectado = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
+      const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
+
+      // Extraer inicial y plazo del historial completo
+      const { inicial, plazo } = extraerNumeros(textoCompleto)
+      console.log(`[webhook] modelo: ${modeloDetectado?.linea || 'ninguno'} | inicial: ${inicial} | plazo: ${plazo}`)
+
+      // Calcular simulación si hay suficientes datos
       let simulacion: string | null = null
-      if (esSimulacion(texto) && modeloDetectado) {
-        const { inicial, plazo } = extraerDatosCredito(texto, historial)
-        if (inicial > 0 && plazo > 0) {
-          const precioNeto = modeloDetectado.precio - modeloDetectado.bono
-          const cuota = calcularCuota(precioNeto, inicial, plazo)
-          if (cuota > 0) {
-            const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
-            simulacion = [
-              `Simulación KIA Crédito`,
-              `Modelo: KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`,
-              `Precio lista: ${fmt(modeloDetectado.precio)}`,
-              modeloDetectado.bono > 0 ? `Bono: ${fmt(modeloDetectado.bono)}` : null,
-              modeloDetectado.bono > 0 ? `Precio neto: ${fmt(precioNeto)}` : null,
-              `Inicial: ${fmt(inicial)}`,
-              `Monto a financiar: ${fmt(precioNeto - inicial)}`,
-              `Plazo: ${plazo} meses`,
-              `Cuota aprox: ${fmt(cuota)}/mes`,
-              `Tasa ref: 1.8% mensual`,
-              `Nota: cuota exacta la confirma el banco`,
-            ].filter(Boolean).join('\n')
-          }
-        }
+      if (modeloDetectado && inicial > 0 && plazo > 0) {
+        simulacion = calcularSimulacion(modeloDetectado, inicial, plazo)
+        console.log('[webhook] simulacion calculada:', simulacion ? 'SI' : 'NO')
       }
 
       // Generar respuesta conversacional
       const respuesta = await generarRespuesta(texto, systemPrompt, nombre, historial, catalogoTexto)
 
-      if (respuesta) {
-        historial.push({ role: 'user', content: texto })
-        historial.push({ role: 'assistant', content: respuesta })
-        chatHistory.set(chatKey, historial.slice(-10))
+      // Actualizar historial
+      const nuevoHistorial: MensajeHistorial[] = [
+        ...historial,
+        { role: 'user', content: texto },
+        ...(respuesta ? [{ role: 'assistant' as const, content: respuesta }] : []),
+      ]
+      const nuevaMediaEnviada = [...mediaEnviada]
+      if (modeloDetectado && esPrimera) nuevaMediaEnviada.push(modeloDetectado.linea)
 
-        await new Promise(r => setTimeout(r, 800 + Math.random() * 600))
+      // Persistir en Supabase
+      await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloDetectado?.linea || null, nuevaMediaEnviada)
+
+      // Enviar respuesta conversacional
+      if (respuesta) {
+        await new Promise(r => setTimeout(r, 800 + Math.random() * 500))
         await enviarTexto(instanceName, remoteJid, respuesta)
-        console.log(`[webhook] texto enviado: "${respuesta.slice(0, 60)}"`)
+        console.log(`[webhook] texto: "${respuesta.slice(0, 60)}"`)
       }
 
-      // Enviar simulación si existe
+      // Enviar simulación de crédito
       if (simulacion) {
         await new Promise(r => setTimeout(r, 600))
         await enviarTexto(instanceName, remoteJid, simulacion)
         console.log('[webhook] simulacion enviada')
       }
 
-      // Enviar imagen en primera mención
+      // Enviar imagen (primera mención del modelo)
       if (modeloDetectado && esPrimera && modeloDetectado.imagenUrl) {
         await new Promise(r => setTimeout(r, 800))
         await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl, `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`)
       }
 
-      // Enviar ficha en primera mención
+      // Enviar ficha técnica (primera mención del modelo)
       if (modeloDetectado && esPrimera && modeloDetectado.fichaTecnica) {
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
-      }
-
-      // Marcar modelo como enviado
-      if (modeloDetectado && esPrimera) {
-        mediaYaEnviada.add(modeloDetectado.linea)
-        mediaEnviada.set(chatKey, mediaYaEnviada)
       }
     }
 
@@ -414,5 +464,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v4' })
 }

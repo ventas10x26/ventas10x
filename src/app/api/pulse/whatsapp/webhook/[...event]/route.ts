@@ -676,14 +676,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 
       // FIX v5: detectar por texto expandido con aliases, o recuperar el modelo persistido
       const modeloDetectadoPorTexto = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
-      // Recuperar modelo persistido: formato puede ser "LINEA|||VERSION" o solo "LINEA"
+      // Recuperar modelo persistido: formato puede ser "LINEA|||VERSION" o solo "LINEA" (legacy)
       const modeloDetectado = modeloDetectadoPorTexto ?? (() => {
         if (!modeloPersistido) return null
         if (modeloPersistido.includes('|||')) {
           const [linea, version] = modeloPersistido.split('|||')
-          return vehiculos.find(v => v.linea === linea && v.version === version) ?? null
+          // Match exacto primero, luego fallback por includes
+          return vehiculos.find(v => v.linea === linea && v.version === version)
+            ?? vehiculos.find(v => v.linea === linea)
+            ?? null
         }
-        return vehiculos.find(v => v.linea === modeloPersistido) ?? null
+        // Legacy: solo línea — usar includes para tolerar diferencias de nombre
+        return vehiculos.find(v => v.linea === modeloPersistido)
+          ?? vehiculos.find(v => v.linea.includes(modeloPersistido) || modeloPersistido.includes(v.linea))
+          ?? null
       })()
 
       const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
@@ -720,20 +726,21 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const historialTexto = nuevoHistorial.map(h => h.content).join(' ').toLowerCase()
       const tieneDia = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'].some(d => historialTexto.includes(d))
       const tieneHora = /\d{1,2}\s*(pm|am)|en la tarde|en la mañana|2pm|3pm|4pm|10am|11am/.test(historialTexto)
-      const citaYaRegistrada = 
-        historialTexto.includes('está anotado') || 
-        historialTexto.includes('esta anotado') ||
-        historialTexto.includes('te esperamos') ||
-        historialTexto.includes('te espero') ||
-        historialTexto.includes('queda confirmado') ||
-        historialTexto.includes('quedamos') ||
-        historialTexto.includes('listo, el') ||
-        historialTexto.includes('perfecto, el')
-      if (tieneDia && tieneHora && !citaYaRegistrada) {
-        const { dia, hora } = extraerDiaHora(nuevoHistorial)
-        if (dia && hora) {
-          await registrarCita(remoteJid, instanceName, dia, hora)
-          console.log('[webhook] cita detectada y registrada:', dia, hora)
+      // Verificar si ya existe cita en BD para no duplicar
+      if (tieneDia && tieneHora) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: citaExistente } = await (supabaseAdmin.from('pulse_citas') as any)
+          .select('id')
+          .eq('remote_jid', remoteJid)
+          .maybeSingle()
+        if (!citaExistente) {
+          const { dia, hora } = extraerDiaHora(nuevoHistorial)
+          if (dia && hora) {
+            await registrarCita(remoteJid, instanceName, dia, hora)
+            console.log('[webhook] cita detectada y registrada:', dia, hora)
+          }
+        } else {
+          console.log('[webhook] cita ya existe en BD — skip')
         }
       }
 
@@ -791,5 +798,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v18' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v19' })
 }

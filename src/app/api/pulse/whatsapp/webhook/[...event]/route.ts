@@ -479,7 +479,7 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
     // PRIORIDAD 2: match por teléfono de la instancia (Evolution API)
     let telefonoInstancia: string | null = null
     try {
-      const res = await fetch(\`\${EVO_URL}/instance/connectionState/\${instanceName}\`, { headers: { apikey: EVO_KEY } })
+      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
         const match = String(data?.instance?.ownerJid || '').match(/^(\d+)@/)

@@ -62,16 +62,20 @@ export default function PulsePipelinePage() {
         body: JSON.stringify({ texto_origen: textoNuevoLead.trim(), canal: 'otro' }),
       })
       const data = await res.json()
-      if (data.ok && data.lead?.id) {
-        // Disparar el agente WhatsApp automáticamente
-        fetch('/api/pulse/leads/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lead_id: data.lead.id }),
-        }).catch(e => console.error('trigger error:', e))
+      if (data.ok) {
         setTextoNuevoLead('')
         setShowNuevoLead(false)
         await cargarLeads()
+        // Disparar trigger después de cerrar modal
+        if (data.lead?.id) {
+          setTimeout(() => {
+            fetch('/api/pulse/leads/trigger', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lead_id: data.lead.id }),
+            }).catch(e => console.error('trigger error:', e))
+          }, 500)
+        }
       }
     } catch (e) {
       console.error('crear lead:', e)

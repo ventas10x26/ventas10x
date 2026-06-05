@@ -54,6 +54,11 @@ export default function ChatBotWidget({
   const [leadForm, setLeadForm]         = useState({ nombre: '', whatsapp: '', email: '', interes: '' })
   const [submitting, setSubmitting]     = useState(false)
   const [formSent, setFormSent]         = useState(false)
+  // Vapi voice
+  const [vapiActivo, setVapiActivo]     = useState(false)
+  const [vapiCargando, setVapiCargando] = useState(false)
+  const vapiRef = useRef<any>(null)
+
   const chatRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const sessionId = useRef(getOrCreateSessionId())
@@ -66,6 +71,8 @@ export default function ChatBotWidget({
         : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
       setMensajes([{ role: 'assistant', text: mensajeInicial, timestamp: new Date() }])
       setBotonesIniciales(true)
+      // Auto-disparar saludo de voz al abrir por primera vez
+      setTimeout(() => { iniciarVoz() }, 1500)
     }
     if (abierto) {
       setNotifBurbuja(false)
@@ -77,10 +84,66 @@ export default function ChatBotWidget({
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
   }, [mensajes, cargando, formVisible, botonesIniciales])
 
+  // Limpiar Vapi al desmontar
+  useEffect(() => {
+    return () => {
+      if (vapiRef.current) { try { vapiRef.current.stop() } catch {} }
+    }
+  }, [])
+
+  async function iniciarVoz() {
+    if (vapiActivo) {
+      if (vapiRef.current) { try { vapiRef.current.stop() } catch {} }
+      vapiRef.current = null
+      setVapiActivo(false)
+      setVapiCargando(false)
+      return
+    }
+    try {
+      setVapiCargando(true)
+      const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY
+      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID
+      if (!publicKey || !assistantId) {
+        console.error('[vapi] keys no configuradas')
+        setVapiCargando(false)
+        return
+      }
+      const { default: Vapi } = await import('@vapi-ai/web')
+      const vapi = new Vapi(publicKey)
+      vapiRef.current = vapi
+
+      vapi.on('call-start', () => {
+        setVapiActivo(true)
+        setVapiCargando(false)
+      })
+      vapi.on('call-end', () => {
+        vapiRef.current = null
+        setVapiActivo(false)
+        setVapiCargando(false)
+      })
+      vapi.on('error', (e: any) => {
+        console.error('[vapi] error:', e)
+        vapiRef.current = null
+        setVapiActivo(false)
+        setVapiCargando(false)
+      })
+
+      await vapi.start(assistantId, {
+        variableValues: {
+          nombre_asesor: nombreAsesor,
+          concesionario: nombreAsesor,
+        },
+      })
+    } catch (e) {
+      console.error('[vapi] error iniciando:', e)
+      setVapiActivo(false)
+      setVapiCargando(false)
+    }
+  }
+
   const mostrarFormulario = useCallback((datosBot?: { nombre?: string; whatsapp?: string; email?: string; interes?: string }) => {
     if (!formVisible && !formSent) {
       setFormVisible(true)
-      // Autocompletar con datos capturados por el bot
       if (datosBot) {
         setLeadForm(prev => ({
           nombre:   datosBot.nombre   || prev.nombre,
@@ -124,7 +187,6 @@ export default function ChatBotWidget({
 
       const userMsgCount = mensajes.filter(m => m.role === 'user').length + 1
 
-      // Acumular datos capturados progresivamente
       if (data.datos_lead?.nombre) datosCapturados.current.nombre = data.datos_lead.nombre
       if (data.datos_lead?.whatsapp) datosCapturados.current.whatsapp = data.datos_lead.whatsapp
       if (data.datos_lead?.email) datosCapturados.current.email = data.datos_lead.email
@@ -250,43 +312,16 @@ export default function ChatBotWidget({
                         <div style={{ fontSize: '15px', fontWeight: 700, color: colorAcento, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>CONTÁCTAME AHORA</div>
                         <div style={{ fontSize: '15px', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>¿Listo para tu cotización?</div>
                         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)', marginBottom: '12px' }}>Te respondemos en menos de 30 minutos.</div>
-
-                        <input
-                          style={leadForm.nombre ? inputFilledStyle : inputStyle}
-                          placeholder="Tu nombre completo"
-                          value={leadForm.nombre}
-                          onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))}
-                        />
-                        <input
-                          style={leadForm.whatsapp ? inputFilledStyle : inputStyle}
-                          placeholder="Tu WhatsApp (+57 300...)"
-                          value={leadForm.whatsapp}
-                          onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))}
-                        />
-                        <input
-                          style={leadForm.email ? inputFilledStyle : inputStyle}
-                          placeholder="Tu email (opcional)"
-                          type="email"
-                          value={leadForm.email}
-                          onChange={e => setLeadForm(f => ({ ...f, email: e.target.value }))}
-                        />
-                        <input
-                          style={{ ...(leadForm.interes ? inputFilledStyle : inputStyle), marginBottom: '10px' }}
-                          placeholder="¿Qué te interesa? (opcional)"
-                          value={leadForm.interes}
-                          onChange={e => setLeadForm(f => ({ ...f, interes: e.target.value }))}
-                        />
-
+                        <input style={leadForm.nombre ? inputFilledStyle : inputStyle} placeholder="Tu nombre completo" value={leadForm.nombre} onChange={e => setLeadForm(f => ({ ...f, nombre: e.target.value }))} />
+                        <input style={leadForm.whatsapp ? inputFilledStyle : inputStyle} placeholder="Tu WhatsApp (+57 300...)" value={leadForm.whatsapp} onChange={e => setLeadForm(f => ({ ...f, whatsapp: e.target.value }))} />
+                        <input style={leadForm.email ? inputFilledStyle : inputStyle} placeholder="Tu email (opcional)" type="email" value={leadForm.email} onChange={e => setLeadForm(f => ({ ...f, email: e.target.value }))} />
+                        <input style={{ ...(leadForm.interes ? inputFilledStyle : inputStyle), marginBottom: '10px' }} placeholder="¿Qué te interesa? (opcional)" value={leadForm.interes} onChange={e => setLeadForm(f => ({ ...f, interes: e.target.value }))} />
                         {(leadForm.nombre || leadForm.whatsapp || leadForm.email) && (
                           <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span style={{ color: '#4ade80' }}>✓</span> Datos completados automáticamente desde el chat
                           </div>
                         )}
-
-                        <button
-                          onClick={submitForm}
-                          disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()}
-                          style={{ width: '100%', background: colorAcento, color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: submitting ? .7 : 1 }}>
+                        <button onClick={submitForm} disabled={submitting || !leadForm.nombre.trim() || !leadForm.whatsapp.trim()} style={{ width: '100%', background: colorAcento, color: '#fff', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: submitting ? .7 : 1 }}>
                           {submitting ? 'Enviando...' : 'Solicitar cotización →'}
                         </button>
                       </div>
@@ -324,19 +359,12 @@ export default function ChatBotWidget({
             {mostrarBotones && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', animation: 'botFadeUp .3s ease' }}>
                 {campanaDestacada?.titulo && (
-                  <button
-                    onClick={() => seleccionarOpcion(`Me interesa: ${campanaDestacada.titulo}`)}
-                    style={{ padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`, background: `${colorAcento}15`, color: colorAcento, fontWeight: 700, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}
-                  >
+                  <button onClick={() => seleccionarOpcion(`Me interesa: ${campanaDestacada.titulo}`)} style={{ padding: '10px 14px', borderRadius: '12px', border: `2px solid ${colorAcento}`, background: `${colorAcento}15`, color: colorAcento, fontWeight: 700, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
                     🔥 {campanaDestacada.titulo}
                   </button>
                 )}
                 {productosIniciales.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => seleccionarOpcion(`Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`)}
-                    style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#0f1c2e', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}
-                  >
+                  <button key={idx} onClick={() => seleccionarOpcion(`Me interesa: ${p.nombre}${p.precio ? ` (${p.precio})` : ''}`)} style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff', color: '#0f1c2e', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
                     {p.nombre}{p.precio ? ` — ${p.precio}` : ''}
                   </button>
                 ))}
@@ -364,7 +392,7 @@ export default function ChatBotWidget({
             )}
           </div>
 
-          {/* Input */}
+          {/* Input con botón de voz */}
           <div style={{ padding: '12px 14px', background: '#fff', borderTop: '1px solid rgba(0,0,0,0.07)', display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               ref={inputRef}
@@ -375,7 +403,33 @@ export default function ChatBotWidget({
               disabled={cargando}
               style={{ flex: 1, padding: '10px 14px', borderRadius: 100, border: '1px solid rgba(0,0,0,0.12)', fontSize: 15, outline: 'none', background: cargando ? '#f5f5f5' : '#fff', color: '#222', fontFamily: 'Inter, sans-serif' }}
             />
-            <button onClick={() => enviar()} disabled={cargando || !input.trim()} style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: !input.trim() || cargando ? '#e5e7eb' : colorAcento, border: 'none', cursor: !input.trim() || cargando ? 'default' : 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}>
+            {/* Botón de voz Vapi */}
+            <button
+              onClick={iniciarVoz}
+              disabled={vapiCargando}
+              title={vapiActivo ? 'Colgar llamada' : 'Escuchar saludo de voz'}
+              style={{
+                width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                background: vapiActivo ? '#ef4444' : vapiCargando ? '#e5e7eb' : colorAcento,
+                border: 'none',
+                cursor: vapiCargando ? 'default' : 'pointer',
+                color: '#fff', fontSize: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background .2s',
+                animation: vapiActivo ? 'botPulse 1.5s infinite' : 'none',
+                boxShadow: vapiActivo ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none',
+              }}
+            >
+              {vapiCargando ? (
+                <span style={{ width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'botTyping-spin 0.8s linear infinite' }} />
+              ) : vapiActivo ? '📵' : '🎤'}
+            </button>
+            {/* Botón enviar */}
+            <button
+              onClick={() => enviar()}
+              disabled={cargando || !input.trim()}
+              style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: !input.trim() || cargando ? '#e5e7eb' : colorAcento, border: 'none', cursor: !input.trim() || cargando ? 'default' : 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}
+            >
               ➤
             </button>
           </div>
@@ -404,6 +458,7 @@ export default function ChatBotWidget({
         @keyframes botFadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
         @keyframes botTyping { 0%,60%,100% { transform:translateY(0); opacity:.4; } 30% { transform:translateY(-4px); opacity:1; } }
         @keyframes botPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.2); } }
+        @keyframes botPulse-ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
       `}</style>
     </div>
   )

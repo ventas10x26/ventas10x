@@ -10,7 +10,6 @@ import ChatBotWidget from '@/components/landing/ChatBotWidget'
 import { SeccionRenderer } from '@/components/landing-sections/SeccionRenderer'
 import type { LandingSeccion } from '@/types/secciones'
 import { SEO_CONFIG, absoluteUrl } from '@/lib/seo-config'
-import ClientVoiceWidget from '@/components/pulse/ClientVoiceWidget'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -378,7 +377,6 @@ export default async function VendedorLandingPage({ params }: Props) {
         productosIniciales={productos.slice(0, 3).map(p => ({ nombre: p.nombre, precio: p.precio }))}
         campanaDestacada={secciones.find(s => s.tipo === 'campana' && s.activa) ?? null}
       />
-      <ClientVoiceWidget slug={slug} nombreAsesor={nombreBot} />
     </>
   )
 }

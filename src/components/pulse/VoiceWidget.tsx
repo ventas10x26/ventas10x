@@ -1,7 +1,7 @@
 'use client'
 // Ruta destino: src/components/pulse/VoiceWidget.tsx
 // Widget de voz bidireccional con ElevenLabs Conversational AI
-// Se embebe en ventas10x.co/u/[slug]
+// Conexión directa (agente público) — sin token firmado
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
@@ -12,6 +12,8 @@ interface Props {
   nombreAsesor?: string
   colorPrimario?: string
 }
+
+const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || ''
 
 export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colorPrimario = '#0ea5e9' }: Props) {
   const [estado, setEstado] = useState<EstadoConexion>('idle')
@@ -29,7 +31,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
   const audioQueueRef = useRef<AudioBuffer[]>([])
   const isPlayingRef = useRef(false)
 
-  // Limpiar al desmontar
   useEffect(() => {
     return () => { desconectar() }
   }, [])
@@ -52,7 +53,7 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
   }, [])
 
   async function reproducirAudio(base64: string) {
-    if (!audioCtxRef.current) return
+    if (!audioCtxRef.current || !base64) return
     try {
       const bytes = atob(base64)
       const buffer = new Uint8Array(bytes.length)
@@ -85,102 +86,94 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
       setTranscript('')
       setRespuesta('')
 
-      // 1. Obtener token firmado + variables del asesor
-      const tokenRes = await fetch('/api/pulse/voice/token?slug=' + slug)
-      if (!tokenRes.ok) throw new Error('Error obteniendo token')
-      const { signed_url, variables } = await tokenRes.json()
+      const agentId = AGENT_ID
+      if (!agentId) throw new Error('Agent ID no configurado')
 
-      // 2. Inicializar AudioContext
-      audioCtxRef.current = new AudioContext({ sampleRate: 16000 })
-
-      // 3. Capturar micrófono
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        }
-      })
-      streamRef.current = stream
-
-      // 4. Conectar WebSocket a ElevenLabs
-      const ws = new WebSocket(signed_url)
+      // Conexión directa a ElevenLabs (agente público)
+      const wsUrl = 'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=' + agentId
+      const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
-      ws.onopen = () => {
-        setEstado('activo')
+      audioCtxRef.current = new AudioContext({ sampleRate: 16000 })
 
-        // Enviar variables del asesor al inicio
+      ws.onopen = async () => {
+        // Enviar variables dinámicas del asesor
         ws.send(JSON.stringify({
           type: 'conversation_initiation_client_data',
-          dynamic_variables: variables,
+          dynamic_variables: {
+            nombre_asesor: nombreAsesor,
+            modelo_interes: '',
+          },
         }))
 
-        // Iniciar timer de duración
-        timerRef.current = setInterval(() => {
-          setDuracion(d => d + 1)
-        }, 1000)
+        // Capturar micrófono
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+          })
+          streamRef.current = stream
 
-        // Configurar captura de audio
-        const source = audioCtxRef.current!.createMediaStreamSource(stream)
-        const analyser = audioCtxRef.current!.createAnalyser()
-        analyser.fftSize = 256
-        analyserRef.current = analyser
-        source.connect(analyser)
+          setEstado('activo')
 
-        const processor = audioCtxRef.current!.createScriptProcessor(4096, 1, 1)
-        processorRef.current = processor
-        analyser.connect(processor)
-        processor.connect(audioCtxRef.current!.destination)
+          timerRef.current = setInterval(() => setDuracion(d => d + 1), 1000)
 
-        processor.onaudioprocess = (e) => {
-          if (ws.readyState !== WebSocket.OPEN) return
+          const source = audioCtxRef.current!.createMediaStreamSource(stream)
+          const analyser = audioCtxRef.current!.createAnalyser()
+          analyser.fftSize = 256
+          analyserRef.current = analyser
+          source.connect(analyser)
 
-          // Calcular volumen para animación
-          const data = new Uint8Array(analyser.frequencyBinCount)
-          analyser.getByteFrequencyData(data)
-          const avg = data.reduce((a, b) => a + b, 0) / data.length
-          setVolumen(avg / 128)
+          const processor = audioCtxRef.current!.createScriptProcessor(4096, 1, 1)
+          processorRef.current = processor
+          analyser.connect(processor)
+          processor.connect(audioCtxRef.current!.destination)
 
-          // Enviar audio PCM16 al WebSocket
-          const input = e.inputBuffer.getChannelData(0)
-          const pcm = new Int16Array(input.length)
-          for (let i = 0; i < input.length; i++) {
-            pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32768))
+          processor.onaudioprocess = (e) => {
+            if (ws.readyState !== WebSocket.OPEN) return
+
+            const data = new Uint8Array(analyser.frequencyBinCount)
+            analyser.getByteFrequencyData(data)
+            const avg = data.reduce((a, b) => a + b, 0) / data.length
+            setVolumen(avg / 128)
+
+            const input = e.inputBuffer.getChannelData(0)
+            const pcm = new Int16Array(input.length)
+            for (let i = 0; i < input.length; i++) {
+              pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32768))
+            }
+            const bytes = new Uint8Array(pcm.buffer)
+            let binary = ''
+            for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+            ws.send(JSON.stringify({ user_audio_chunk: btoa(binary) }))
           }
-          const bytes = new Uint8Array(pcm.buffer)
-          let binary = ''
-          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-          ws.send(JSON.stringify({
-            user_audio_chunk: btoa(binary),
-          }))
+        } catch (micError) {
+          console.error('[voice] error micrófono:', micError)
+          setEstado('error')
+          setTimeout(() => setEstado('idle'), 3000)
         }
       }
 
       ws.onmessage = async (event) => {
         try {
           const msg = JSON.parse(event.data)
-
           if (msg.type === 'audio') {
-            await reproducirAudio(msg.audio_event?.audio_base_64 || msg.audio || '')
+            await reproducirAudio(msg.audio_event?.audio_base_64 || '')
           }
-
           if (msg.type === 'transcript' || msg.type === 'user_transcript') {
             setTranscript(msg.transcript?.text || msg.user_transcription_event?.user_transcript || '')
           }
-
           if (msg.type === 'agent_response') {
             setRespuesta(msg.agent_response_event?.agent_response || '')
           }
         } catch (e) {
-          console.error('[voice] error procesando mensaje:', e)
+          console.error('[voice] error mensaje:', e)
         }
       }
 
       ws.onerror = (e) => {
         console.error('[voice] WebSocket error:', e)
         setEstado('error')
+        setTimeout(() => setEstado('idle'), 3000)
       }
 
       ws.onclose = () => {
@@ -204,8 +197,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
 
   return (
     <div className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-800 border border-white/10 w-full max-w-sm mx-auto">
-
-      {/* Estado */}
       <div className="text-center">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
           {estado === 'idle' && 'Agente de voz KIA'}
@@ -219,7 +210,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
         </p>
       </div>
 
-      {/* Botón principal con animación de pulso */}
       <button
         onClick={estado === 'idle' ? iniciarLlamada : desconectar}
         disabled={estado === 'conectando'}
@@ -254,7 +244,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
         )}
       </button>
 
-      {/* Transcript y respuesta */}
       {(transcript || respuesta) && (
         <div className="w-full space-y-2">
           {transcript && (

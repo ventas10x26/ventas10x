@@ -63,7 +63,8 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
       const ctx = playCtxRef.current
       const samples = pcm16ToFloat32(base64)
       const audioBuffer = ctx.createBuffer(1, samples.length, sampleRate)
-      audioBuffer.copyToChannel(samples, 0)
+      const channelData = audioBuffer.getChannelData(0)
+      channelData.set(samples)
 
       const source = ctx.createBufferSource()
       source.buffer = audioBuffer

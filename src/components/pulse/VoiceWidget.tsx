@@ -1,5 +1,6 @@
 'use client'
 // Ruta destino: src/components/pulse/VoiceWidget.tsx
+// Audio sin gaps usando AudioContext scheduling
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
@@ -11,20 +12,14 @@ interface Props {
   colorPrimario?: string
 }
 
-function pcm16ToWavBlob(base64: string, sampleRate = 16000): Blob {
+function pcm16ToFloat32(base64: string): Float32Array {
   const binary = atob(base64)
-  const pcmBytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) pcmBytes[i] = binary.charCodeAt(i)
-  const buf = new ArrayBuffer(44 + pcmBytes.length)
-  const v = new DataView(buf)
-  const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
-  str(0, 'RIFF'); v.setUint32(4, 36 + pcmBytes.length, true); str(8, 'WAVE')
-  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true)
-  v.setUint16(22, 1, true); v.setUint32(24, sampleRate, true)
-  v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true)
-  str(36, 'data'); v.setUint32(40, pcmBytes.length, true)
-  new Uint8Array(buf).set(pcmBytes, 44)
-  return new Blob([buf], { type: 'audio/wav' })
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const pcm = new Int16Array(bytes.buffer)
+  const float = new Float32Array(pcm.length)
+  for (let i = 0; i < pcm.length; i++) float[i] = pcm[i] / 32768.0
+  return float
 }
 
 export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colorPrimario = '#0ea5e9' }: Props) {
@@ -36,77 +31,74 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
 
   const wsRef = useRef<WebSocket | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const ctxRef = useRef<AudioContext | null>(null)
+  const captureCtxRef = useRef<AudioContext | null>(null)  // para micrófono
+  const playCtxRef = useRef<AudioContext | null>(null)     // para reproducción
   const analyserRef = useRef<AnalyserNode | null>(null)
   const processorRef = useRef<ScriptProcessorNode | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const volTimerRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Cola secuencial de audio
-  const audioQueueRef = useRef<Blob[]>([])
-  const playingRef = useRef(false)
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+  const nextPlayTimeRef = useRef(0) // tiempo de scheduling para próximo chunk
+  const sampleRate = 16000
 
   useEffect(() => { return () => { desconectar() } }, [])
 
   const desconectar = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (volTimerRef.current) clearInterval(volTimerRef.current)
-    if (currentAudioRef.current) { currentAudioRef.current.pause(); currentAudioRef.current = null }
     if (processorRef.current) { try { processorRef.current.disconnect() } catch {} }
     if (analyserRef.current) { try { analyserRef.current.disconnect() } catch {} }
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
     if (wsRef.current) { try { wsRef.current.close() } catch {} }
-    if (ctxRef.current) { try { ctxRef.current.close() } catch {} }
-    audioQueueRef.current = []
-    playingRef.current = false
-    wsRef.current = null; streamRef.current = null; ctxRef.current = null
+    if (captureCtxRef.current) { try { captureCtxRef.current.close() } catch {} }
+    if (playCtxRef.current) { try { playCtxRef.current.close() } catch {} }
+    wsRef.current = null; streamRef.current = null
+    captureCtxRef.current = null; playCtxRef.current = null
+    nextPlayTimeRef.current = 0
     setEstado('idle'); setDuracion(0); setVolumen(0); setTranscript(''); setRespuesta('')
   }, [])
 
-  function procesarCola() {
-    if (playingRef.current || audioQueueRef.current.length === 0) return
-    playingRef.current = true
-    const blob = audioQueueRef.current.shift()!
-    const url = URL.createObjectURL(blob)
-    const audio = new Audio(url)
-    currentAudioRef.current = audio
-    audio.onended = () => {
-      URL.revokeObjectURL(url)
-      currentAudioRef.current = null
-      playingRef.current = false
-      procesarCola() // siguiente chunk
-    }
-    audio.onerror = () => {
-      URL.revokeObjectURL(url)
-      currentAudioRef.current = null
-      playingRef.current = false
-      procesarCola()
-    }
-    audio.play().catch(() => {
-      playingRef.current = false
-      procesarCola()
-    })
-  }
-
   function encolarAudio(base64: string) {
+    if (!playCtxRef.current || !base64) return
     try {
-      const blob = pcm16ToWavBlob(base64, 16000)
-      audioQueueRef.current.push(blob)
-      procesarCola()
+      const ctx = playCtxRef.current
+      const samples = pcm16ToFloat32(base64)
+      const audioBuffer = ctx.createBuffer(1, samples.length, sampleRate)
+      audioBuffer.copyToChannel(samples, 0)
+
+      const source = ctx.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(ctx.destination)
+
+      // Scheduling sin gaps: encolar justo donde termina el anterior
+      const now = ctx.currentTime
+      const startTime = Math.max(now, nextPlayTimeRef.current)
+      source.start(startTime)
+      nextPlayTimeRef.current = startTime + audioBuffer.duration
     } catch (e) {
       console.error('[voice] encolarAudio error:', e)
     }
+  }
+
+  function limpiarCola() {
+    // Detener reproducción actual reiniciando el contexto de play
+    if (playCtxRef.current) {
+      try { playCtxRef.current.close() } catch {}
+    }
+    playCtxRef.current = new AudioContext({ sampleRate })
+    nextPlayTimeRef.current = 0
   }
 
   async function iniciarLlamada() {
     try {
       setEstado('conectando')
       setTranscript(''); setRespuesta('')
-      audioQueueRef.current = []; playingRef.current = false
 
       const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
       if (!agentId) throw new Error('Agent ID no configurado')
+
+      // Contexto de reproducción
+      playCtxRef.current = new AudioContext({ sampleRate })
+      nextPlayTimeRef.current = 0
 
       const ws = new WebSocket('wss://api.elevenlabs.io/v1/convai/conversation?agent_id=' + agentId)
       wsRef.current = ws
@@ -120,15 +112,17 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
 
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+            audio: { sampleRate, channelCount: 1, echoCancellation: true, noiseSuppression: true }
           })
           streamRef.current = stream
           setEstado('activo')
           timerRef.current = setInterval(() => setDuracion(d => d + 1), 1000)
 
-          const ctx = new AudioContext({ sampleRate: 16000 })
-          ctxRef.current = ctx
+          // Contexto de captura separado
+          const ctx = new AudioContext({ sampleRate })
+          captureCtxRef.current = ctx
           const source = ctx.createMediaStreamSource(stream)
+
           const analyser = ctx.createAnalyser()
           analyser.fftSize = 256
           analyserRef.current = analyser
@@ -145,6 +139,7 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
           processorRef.current = proc
           analyser.connect(proc)
           proc.connect(ctx.destination)
+
           proc.onaudioprocess = (e: AudioProcessingEvent) => {
             if (ws.readyState !== WebSocket.OPEN) return
             const inp = e.inputBuffer.getChannelData(0)
@@ -155,6 +150,7 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
             for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
             ws.send(JSON.stringify({ user_audio_chunk: btoa(bin) }))
           }
+
         } catch (e) {
           console.error('[voice] mic error:', e)
           setEstado('error'); setTimeout(() => setEstado('idle'), 3000)
@@ -165,14 +161,10 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
         try {
           const msg = JSON.parse(ev.data)
           if (msg.type === 'audio') {
-            const b64 = msg.audio_event?.audio_base_64 || ''
-            if (b64) encolarAudio(b64)
+            encolarAudio(msg.audio_event?.audio_base_64 || '')
           }
           if (msg.type === 'interruption') {
-            // Limpiar cola cuando el usuario interrumpe
-            audioQueueRef.current = []
-            if (currentAudioRef.current) { currentAudioRef.current.pause(); currentAudioRef.current = null }
-            playingRef.current = false
+            limpiarCola()
           }
           if (msg.type === 'user_transcript') setTranscript(msg.user_transcription_event?.user_transcript || '')
           if (msg.type === 'agent_response') setRespuesta(msg.agent_response_event?.agent_response || '')

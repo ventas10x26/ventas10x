@@ -37,8 +37,8 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
   const processorRef = useRef<ScriptProcessorNode | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const volTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const keepAliveRef = useRef<NodeJS.Timeout | null>(null)
   const nextPlayTimeRef = useRef(0) // tiempo de scheduling para próximo chunk
-  const agentHablandoRef = useRef(false)
   const sampleRate = 16000
 
   useEffect(() => { return () => { desconectar() } }, [])
@@ -46,6 +46,7 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
   const desconectar = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (volTimerRef.current) clearInterval(volTimerRef.current)
+    if (keepAliveRef.current) clearInterval(keepAliveRef.current)
     if (processorRef.current) { try { processorRef.current.disconnect() } catch {} }
     if (analyserRef.current) { try { analyserRef.current.disconnect() } catch {} }
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
@@ -71,15 +72,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
       source.buffer = audioBuffer
       source.connect(ctx.destination)
 
-      // Silenciar mic mientras el agente habla (evitar echo)
-      agentHablandoRef.current = true
-      source.onended = () => {
-        // Solo quitar mute si no hay más chunks pendientes
-        if (Math.abs(playCtxRef.current!.currentTime - nextPlayTimeRef.current) < 0.1) {
-          agentHablandoRef.current = false
-        }
-      }
-
       // Scheduling sin gaps: encolar justo donde termina el anterior
       const now = ctx.currentTime
       const startTime = Math.max(now, nextPlayTimeRef.current)
@@ -97,7 +89,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
     }
     playCtxRef.current = new AudioContext({ sampleRate })
     nextPlayTimeRef.current = 0
-    agentHablandoRef.current = false
   }
 
   async function iniciarLlamada() {
@@ -129,6 +120,12 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
           streamRef.current = stream
           setEstado('activo')
           timerRef.current = setInterval(() => setDuracion(d => d + 1), 1000)
+          // Keepalive: evitar que ElevenLabs cierre por inactividad
+          keepAliveRef.current = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }))
+            }
+          }, 10000)
 
           // Contexto de captura separado
           const ctx = new AudioContext({ sampleRate })
@@ -154,8 +151,6 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
 
           proc.onaudioprocess = (e: AudioProcessingEvent) => {
             if (ws.readyState !== WebSocket.OPEN) return
-            // No enviar audio del mic mientras el agente habla (evitar echo)
-            if (agentHablandoRef.current) return
             const inp = e.inputBuffer.getChannelData(0)
             const pcm = new Int16Array(inp.length)
             for (let i = 0; i < inp.length; i++) pcm[i] = Math.max(-32768, Math.min(32767, inp[i] * 32768))

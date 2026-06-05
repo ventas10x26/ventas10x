@@ -45,7 +45,15 @@ export async function middleware(request: NextRequest) {
     url.pathname = `/pulse${pathname === '/' ? '' : pathname}`
     return NextResponse.rewrite(url)
   }
-
+  // ─── Rutas API de Pulse que deben pasar sin auth ────────────
+  if (
+    pathname.startsWith('/api/pulse') ||
+    pathname.startsWith('/api/bot') ||
+    pathname.startsWith('/api/bot-lead') ||
+    pathname.startsWith('/api/cron')
+  ) {
+    return NextResponse.next()
+  }
   // ─── Ruta Ventas10x (comportamiento original sin cambios) ───
   return await updateSession(request)
 }

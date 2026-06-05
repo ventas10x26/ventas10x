@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/onboarding-reminder",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/pulse/cron/follow-up",
+      "schedule": "0 * * * *"
     }
   ]
 }

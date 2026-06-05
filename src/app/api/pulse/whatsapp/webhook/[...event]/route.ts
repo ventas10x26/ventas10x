@@ -14,7 +14,6 @@ const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTej36IuFT6HGZGKUvHGlestv9Ro1qyKXuZ88poK_diUl_6vOiU_QBKhBV7UGSUq7c3Z9g40pPtPNYr/pub?output=csv'
 
-// Cache del catálogo (válido dentro de la misma instancia de Vercel)
 let catalogoCache: VehiculoMedia[] = []
 let catalogoCacheTime = 0
 const CACHE_TTL = 60 * 60 * 1000
@@ -33,7 +32,7 @@ type VehiculoMedia = {
 
 type MensajeHistorial = { role: 'user' | 'assistant'; content: string }
 
-// ── SUPABASE: leer/escribir conversación ─────────────────────────────────────
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
 
 async function leerConversacion(instanceName: string, remoteJid: string): Promise<{
   historial: MensajeHistorial[]
@@ -73,7 +72,7 @@ async function guardarConversacion(
       .upsert({
         instance_name: instanceName,
         remote_jid: remoteJid,
-        historial: historial.slice(-12), // máximo 12 mensajes
+        historial: historial.slice(-12),
         modelo_detectado: modeloDetectado,
         media_enviada: mediaEnviada,
         updated_at: new Date().toISOString(),
@@ -83,7 +82,7 @@ async function guardarConversacion(
   }
 }
 
-// ── CATÁLOGO ─────────────────────────────────────────────────────────────────
+// ── CATÁLOGO ──────────────────────────────────────────────────────────────────
 
 async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   const ahora = Date.now()
@@ -105,11 +104,7 @@ async function obtenerCatalogo(): Promise<VehiculoMedia[]> {
   }
 }
 
-// Parser CSV completo RFC 4180 — maneja:
-// 1. Comas dentro de celdas entre comillas: "1.0L 66HP, Transmision de 5 Velocidades"
-// 2. Saltos de línea dentro de celdas: descripciones multilínea del NEW STONIC
 function parsearCSV(csv: string): VehiculoMedia[] {
-  // Tokenizar caracter a caracter respetando comillas y saltos de línea dentro de celdas
   const filas: string[][] = []
   let filaActual: string[] = []
   let celda = ''
@@ -120,13 +115,13 @@ function parsearCSV(csv: string): VehiculoMedia[] {
     const siguiente = csv[i + 1]
 
     if (ch === '"') {
-      if (inQuotes && siguiente === '"') { celda += '"'; i++ } // comilla escapada ""
+      if (inQuotes && siguiente === '"') { celda += '"'; i++ }
       else { inQuotes = !inQuotes }
     } else if (ch === ',' && !inQuotes) {
       filaActual.push(celda.trim())
       celda = ''
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (ch === '\r' && siguiente === '\n') i++ // CRLF
+      if (ch === '\r' && siguiente === '\n') i++
       filaActual.push(celda.trim())
       if (filaActual.some(c => c !== '')) filas.push(filaActual)
       filaActual = []
@@ -135,7 +130,6 @@ function parsearCSV(csv: string): VehiculoMedia[] {
       celda += ch
     }
   }
-  // última celda/fila
   if (celda.trim() || filaActual.length > 0) {
     filaActual.push(celda.trim())
     if (filaActual.some(c => c !== '')) filas.push(filaActual)
@@ -144,7 +138,7 @@ function parsearCSV(csv: string): VehiculoMedia[] {
   if (filas.length < 2) return []
 
   const cols = filas[0].map(h => h.toLowerCase())
-  const sep = 'COMA' // siempre coma en Google Sheets CSV
+  const sep = 'COMA'
   console.log('[webhook] sep:', sep, '| total cols:', cols.length)
 
   const idx = {
@@ -170,7 +164,6 @@ function parsearCSV(csv: string): VehiculoMedia[] {
     if (cells[idx.activo]?.toUpperCase() === 'FALSE') continue
     if (cells[idx.activaV]?.toUpperCase() === 'FALSE') continue
     const imagenUrl = idx.imagen >= 0 ? (cells[idx.imagen] || '') : ''
-    // Validar que imagen_url sea imagen real (no PDF)
     if (imagenUrl && imagenUrl.toLowerCase().endsWith('.pdf')) continue
     vehiculos.push({
       linea: cells[idx.linea] || '',
@@ -189,8 +182,6 @@ function parsearCSV(csv: string): VehiculoMedia[] {
 
 // ── DETECCIÓN Y CÁLCULO ───────────────────────────────────────────────────────
 
-// FIX v5: Aliases — palabras que el cliente dice → fragmento real en v.linea del CSV
-// El CSV usa "NEW PICANTO", "NEW SORENTO", "NEW STONIC" pero el cliente dice solo el nombre
 const ALIASES_MODELO: Record<string, string> = {
   'picanto': 'new picanto',
   'sorento': 'new sorento',
@@ -199,23 +190,18 @@ const ALIASES_MODELO: Record<string, string> = {
 
 function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
   const lower = textoCompleto.toLowerCase()
-
-  // Expandir aliases antes de comparar
   let textoExpandido = lower
   for (const [alias, real] of Object.entries(ALIASES_MODELO)) {
     if (lower.includes(alias) && !lower.includes(real)) {
       textoExpandido = textoExpandido.replace(new RegExp(alias, 'g'), real)
     }
   }
-
-  // Match exacto línea + versión
   for (const v of vehiculos) {
     if (
       textoExpandido.includes(v.linea.toLowerCase()) &&
       textoExpandido.includes(v.version.toLowerCase())
     ) return v
   }
-  // Match solo línea
   for (const v of vehiculos) {
     if (textoExpandido.includes(v.linea.toLowerCase())) return v
   }
@@ -225,7 +211,6 @@ function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): Vehi
 function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number } {
   const t = textoCompleto
 
-  // ── INICIAL ──────────────────────────────────────────────────────────────
   const inicialMatch =
     t.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?(?:cuota\s+)?inicial/i) ||
     t.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
@@ -237,26 +222,21 @@ function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number
     t.match(/(?:doy|tengo|pongo|pago|pagar|dar)\s+(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:inicial|entrada|cuota)/i) ||
     t.match(/(?:doy|tengo|pongo)\s+(\d+)\s*m(?:illones?)?/i) ||
     t.match(/con\s+(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:inicial|entrada)/i) ||
-    // "68M de inicial", "68M inicial", "68M de cuota inicial"
     t.match(/(\d+)\s*m(?:illones?)?\s+(?:de\s+)?(?:cuota\s+)?inicial/i) ||
-    // Mensaje corto solo número M
     (t.trim().replace(/[^\d]/g, '').length <= 4 && t.match(/^\s*(\d+)\s*m(?:illones?)?\s*$/i)) || null
 
   const inicial = inicialMatch ? parseInt(inicialMatch[1].replace(/[.,]/g, '')) * 1_000_000 : 0
 
-  // ── PLAZO ─────────────────────────────────────────────────────────────────
   const plazoMatch =
     t.match(/(\d+)\s*meses/i) ||
     t.match(/a\s+(\d+)\s+meses/i) ||
     t.match(/plazo\s+(?:de\s+)?(\d+)/i) ||
     t.match(/financiar\s+(?:a\s+)?(\d+)/i) ||
     t.match(/cuotas?\s+(?:de\s+)?(\d+)\s*meses/i) ||
-    // Número solo entre 12–120 como mensaje corto
     (t.trim().match(/^\s*(\d+)\s*$/) &&
      parseInt(t.trim()) >= 12 && parseInt(t.trim()) <= 120
        ? t.trim().match(/^\s*(\d+)\s*$/) : null)
-  
-  // Si el cliente pide crédito sin especificar plazo → usar 60 meses por defecto
+
   const quiereCredito = /cr[eé]dito|financiar|financiamiento|cuota|mensualidad|saldo en cr/i.test(t)
   const plazo = plazoMatch ? parseInt(plazoMatch[1]) : (inicial > 0 && quiereCredito ? 60 : 0)
 
@@ -269,23 +249,23 @@ function calcularSimulacion(modelo: VehiculoMedia, inicial: number, plazo: numbe
   if (monto <= 0 || plazo <= 0) return null
   const tasa = 0.018
   const cuota = Math.round((monto * tasa * Math.pow(1 + tasa, plazo)) / (Math.pow(1 + tasa, plazo) - 1))
-  const fmt = (n: number) => `$${n.toLocaleString('es-CO')}`
+  const fmt = (n: number) => '$' + n.toLocaleString('es-CO')
   return [
     'Simulación financiamiento bancario',
-    `Modelo: KIA ${modelo.linea} ${modelo.version} ${modelo.año}`,
-    `Precio lista: ${fmt(modelo.precio)}`,
-    modelo.bono > 0 ? `Bono: ${fmt(modelo.bono)}` : null,
-    modelo.bono > 0 ? `Precio neto: ${fmt(precioNeto)}` : null,
-    `Inicial: ${fmt(inicial)}`,
-    `Monto a financiar: ${fmt(monto)}`,
-    `Plazo: ${plazo} meses`,
-    `Cuota aprox: ${fmt(cuota)}/mes`,
-    `Tasa ref: 1.8% mensual (referencia — varía según banco)`,
-    `Nota: cuota exacta la confirma el banco`,
+    'Modelo: KIA ' + modelo.linea + ' ' + modelo.version + ' ' + modelo.año,
+    'Precio lista: ' + fmt(modelo.precio),
+    modelo.bono > 0 ? 'Bono: ' + fmt(modelo.bono) : null,
+    modelo.bono > 0 ? 'Precio neto: ' + fmt(precioNeto) : null,
+    'Inicial: ' + fmt(inicial),
+    'Monto a financiar: ' + fmt(monto),
+    'Plazo: ' + plazo + ' meses',
+    'Cuota aprox: ' + fmt(cuota) + '/mes',
+    'Tasa ref: 1.8% mensual (referencia — varía según banco)',
+    'Nota: cuota exacta la confirma el banco',
   ].filter(Boolean).join('\n')
 }
 
-// ── CITAS ────────────────────────────────────────────────────────────────────
+// ── CITAS ─────────────────────────────────────────────────────────────────────
 
 async function registrarCita(
   remoteJid: string,
@@ -294,19 +274,17 @@ async function registrarCita(
   horaTexto: string
 ): Promise<void> {
   try {
-    // Buscar el lead por remoteJid (teléfono)
     const telefono = remoteJid.replace('@s.whatsapp.net', '').replace(/^57/, '')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: leads } = await (supabaseAdmin.from('pulse_leads') as any)
       .select('id, vendedor_id, nombre')
-      .or(`telefono.ilike.%${telefono}%`)
+      .or('telefono.ilike.%' + telefono + '%')
       .order('created_at', { ascending: false })
       .limit(1)
 
     const lead = leads?.[0]
     if (!lead) { console.log('[cita] lead no encontrado para:', telefono); return }
 
-    // Insertar cita
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabaseAdmin.from('pulse_citas') as any)
       .upsert({
@@ -319,13 +297,11 @@ async function registrarCita(
         updated_at: new Date().toISOString(),
       }, { onConflict: 'lead_id' })
 
-    // Mover lead a estado test_drive
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabaseAdmin.from('pulse_leads') as any)
       .update({ estado: 'test_drive', updated_at: new Date().toISOString() })
       .eq('id', lead.id)
 
-    // Notificar al asesor por WhatsApp
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('whatsapp, nombre')
@@ -334,15 +310,11 @@ async function registrarCita(
 
     if (profile?.whatsapp) {
       const numAsesor = profile.whatsapp.replace(/\D/g, '').replace(/^57/, '')
-      const msgAsesor = `🗓️ Test Drive agendado
-Lead: ${lead.nombre}
-Día: ${diaTexto}
-Hora: ${horaTexto}
-Teléfono: +57${telefono}`
-      await fetch(`${process.env.EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
+      const msgAsesor = '🗓️ Test Drive agendado\nLead: ' + lead.nombre + '\nDía: ' + diaTexto + '\nHora: ' + horaTexto + '\nTeléfono: +57' + telefono
+      await fetch(process.env.EVOLUTION_API_URL + '/message/sendText/' + instanceName, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY! },
-        body: JSON.stringify({ number: `57${numAsesor}`, text: msgAsesor }),
+        headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY || '' },
+        body: JSON.stringify({ number: '57' + numAsesor, text: msgAsesor }),
       })
       console.log('[cita] asesor notificado:', profile.nombre)
     }
@@ -355,10 +327,8 @@ Teléfono: +57${telefono}`
 
 function extraerDiaHora(historial: { role: string; content: string }[]): { dia: string; hora: string } {
   const textoHistorial = historial.map(h => h.content).join(' ').toLowerCase()
-
   const dias = ['lunes', 'martes', 'miércoles', 'miercoles', 'jueves', 'viernes', 'sábado', 'sabado', 'domingo']
   const dia = dias.find(d => textoHistorial.includes(d)) || ''
-
   const horaMatch =
     textoHistorial.match(/(\d{1,2})\s*(?:pm|am)/i) ||
     textoHistorial.match(/(\d{1,2})\s*(?:de la tarde|de la mañana)/i)
@@ -366,7 +336,6 @@ function extraerDiaHora(historial: { role: string; content: string }[]): { dia: 
     textoHistorial.includes('mañana') ? 'en la mañana' :
     textoHistorial.includes('tarde') ? 'en la tarde' : ''
   )
-
   return { dia, hora }
 }
 
@@ -374,7 +343,7 @@ function extraerDiaHora(historial: { role: string; content: string }[]): { dia: 
 
 async function enviarTexto(instanceName: string, remoteJid: string, mensaje: string) {
   try {
-    await fetch(`${EVO_URL}/message/sendText/${instanceName}`, {
+    await fetch(EVO_URL + '/message/sendText/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({ number: remoteJid, text: mensaje }),
@@ -385,13 +354,13 @@ async function enviarTexto(instanceName: string, remoteJid: string, mensaje: str
 async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, nombreModelo: string) {
   try {
     console.log('[webhook] enviando botones test drive')
-    const res = await fetch(`${EVO_URL}/message/sendButtons/${instanceName}`, {
+    const res = await fetch(EVO_URL + '/message/sendButtons/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({
         number: remoteJid,
         title: '¿Quieres conocerlo en persona?',
-        description: `Te espero en el concesionario para que pruebes el ${nombreModelo} y lo sientas tú mismo.`,
+        description: 'Te espero en el concesionario para que pruebes el ' + nombreModelo + ' y lo sientas tú mismo.',
         footer: 'KIA Colombia',
         buttons: [
           { buttonId: 'btn_test_drive_si', buttonText: { displayText: '✅ Sí, quiero agendar Test Drive' }, type: 1 },
@@ -401,23 +370,22 @@ async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, n
     })
     console.log('[webhook] botones status:', res.status)
     if (!res.ok) {
-      // Fallback a texto si botones no están soportados en esta versión de Evolution
       const err = await res.text()
       console.log('[webhook] botones fallback a texto, error:', err.slice(0, 100))
       await enviarTexto(instanceName, remoteJid,
-        `¿Te gustaría agendar un Test Drive del ${nombreModelo}?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido`)
+        '¿Te gustaría agendar un Test Drive del ' + nombreModelo + '?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido')
     }
   } catch (e) {
     console.error('[webhook] enviarBotonesTestDrive error:', e)
     await enviarTexto(instanceName, remoteJid,
-      `¿Te gustaría agendar un Test Drive del ${nombreModelo}?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido`)
+      '¿Te gustaría agendar un Test Drive del ' + nombreModelo + '?\n\nResponde:\n1️⃣ Sí, quiero agendar\n2️⃣ Aún no me decido')
   }
 }
 
 async function enviarImagen(instanceName: string, remoteJid: string, url: string, caption: string) {
   try {
     console.log('[webhook] enviando imagen:', url.slice(0, 80))
-    const res = await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
+    const res = await fetch(EVO_URL + '/message/sendMedia/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({ number: remoteJid, mediatype: 'image', media: url, caption }),
@@ -429,15 +397,15 @@ async function enviarImagen(instanceName: string, remoteJid: string, url: string
 async function enviarFicha(instanceName: string, remoteJid: string, url: string, linea: string, año: number) {
   try {
     console.log('[webhook] enviando ficha:', url.slice(0, 80))
-    await fetch(`${EVO_URL}/message/sendMedia/${instanceName}`, {
+    await fetch(EVO_URL + '/message/sendMedia/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({
         number: remoteJid,
         mediatype: 'document',
         media: url,
-        fileName: `Ficha_KIA_${linea}_${año}.pdf`,
-        caption: `Ficha técnica KIA ${linea} ${año}`,
+        fileName: 'Ficha_KIA_' + linea + '_' + año + '.pdf',
+        caption: 'Ficha técnica KIA ' + linea + ' ' + año,
       }),
     })
   } catch (e) { console.error('[webhook] enviarFicha error:', e) }
@@ -448,11 +416,9 @@ async function enviarFicha(instanceName: string, remoteJid: string, url: string,
 async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
   const def = { systemPrompt: '', nombre: 'el asesor', botActivo: false }
   try {
-    // Convertir instanceName a email: "ricaza81_at_gmail_com" → "ricaza81@gmail.com"
-    // Formato: todo antes de "_at_" es el usuario, todo después es el dominio con "_" → "."
     const partes = instanceName.split('_at_')
     const emailFromInstance = partes.length === 2
-      ? `${partes[0]}@${partes[1].replace(/_/g, '.')}`
+      ? partes[0] + '@' + partes[1].replace(/_/g, '.')
       : null
     console.log('[webhook] emailFromInstance:', emailFromInstance)
 
@@ -462,7 +428,6 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
       .not('metadata', 'is', null)
     if (!rows || !Array.isArray(rows)) return def
 
-    // PRIORIDAD 1: match exacto por email derivado del instanceName
     if (emailFromInstance) {
       const rowExacto = rows.find((r: Record<string, unknown>) =>
         String(r.email || '').toLowerCase() === emailFromInstance.toLowerCase()
@@ -476,10 +441,9 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
       }
     }
 
-    // PRIORIDAD 2: match por teléfono de la instancia (Evolution API)
     let telefonoInstancia: string | null = null
     try {
-      const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers: { apikey: EVO_KEY } })
+      const res = await fetch(EVO_URL + '/instance/connectionState/' + instanceName, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
         const match = String(data?.instance?.ownerJid || '').match(/^(\d+)@/)
@@ -489,12 +453,10 @@ async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt
 
     if (telefonoInstancia) {
       const corto = telefonoInstancia.replace(/^57/, '')
-      // Buscar row cuyo email también hace match con instanceName (evitar duplicados de teléfono)
       for (const row of rows) {
         const rowEmail = String((row as Record<string, unknown>).email || '').toLowerCase()
         const meta = row.metadata as Record<string, unknown>
         const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
-        // Solo usar este row si el email también coincide con el instanceName
         const emailCoincide = emailFromInstance && rowEmail === emailFromInstance.toLowerCase()
         if (w && w === corto && emailCoincide) {
           const cfg = meta?.agent_config as Record<string, unknown> | undefined
@@ -537,58 +499,7 @@ async function generarRespuesta(
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
-      system: `${systemPrompt || `Eres el asistente de ventas de ${nombre}, asesor KIA.`}
-
-${catalogoTexto}
-
-IDENTIDAD:
-Eres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del concesionario, dirección ni datos que no estén en el catálogo. Si no sabes la dirección exacta, di "en el concesionario" solamente. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.
-
-TU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.
-
-FORMATO — SIN EXCEPCIÓN:
-- Máximo 2-3 oraciones por mensaje — esto es WhatsApp, no un catálogo
-- CERO asteriscos (*), CERO negritas, CERO markdown, CERO listas con guiones o numeradas
-- Si hay varias versiones: menciona máximo 2, la más económica y la más popular, en prosa natural
-- Ejemplo CORRECTO: "Tenemos el Sportage desde 127M neto en versión Desire, y el más pedido es el Vibrant a 144M."
-- Ejemplo INCORRECTO: "*Sportage 2026:* • Desire: $129M • Vibrant: $145M"
-- Tono cálido, directo, colombiano — nunca robótico ni corporativo
-
-SOBRE PRECIOS Y DATOS TÉCNICOS:
-- NUNCA inventes precios, cuotas, especificaciones ni disponibilidad
-- Si el dato exacto está en el catálogo que tienes → úsalo
-- Si NO tienes el dato exacto → di "eso te lo confirmo en el concesionario cuando lo veas en persona" y redirige al test drive
-- NUNCA digas "te confirmo", "voy a consultar" ni "déjame verificar"
-
-SOBRE FOTOS, FICHAS Y SIMULACIONES:
-- NUNCA menciones fotos, fichas ni simulaciones en tu respuesta — ni que las envías, ni que están llegando, ni que van por otro lado
-- Si el cliente pregunta por la cuota: di únicamente "la simulación ya está siendo procesada y te llega en un momento" — nada más
-
-SOBRE FINANCIAMIENTO:
-- NUNCA menciones "KIA Crédito", "KIA Financia" ni "KIA Financial"
-- Usa siempre: "opciones de financiamiento con diferentes bancos"
-
-ESTRATEGIA DE CONVERSACIÓN:
-1. Engancha con el beneficio más relevante para ese cliente (familia, economía, status, tecnología)
-2. Genera deseo — hazle imaginar cómo se siente manejar ese carro
-3. Maneja objeciones con empatía, no con argumentos — "entiendo, por eso mismo te propongo que lo pruebes"
-4. SIEMPRE termina con una pregunta que avance hacia el test drive
-5. Si el cliente duda o compara con otra marca: valida su proceso, destaca 1 diferencial KIA y propón el test drive como la forma de decidir con seguridad
-
-PRIORIDADES EN CADA MENSAJE — SEGUIR ESTE ORDEN:
-- Si el cliente mencionó inicial o crédito → confirma que la simulación está siendo procesada, NO hagas otra pregunta
-- Si el cliente preguntó algo concreto → responde ESO primero, luego avanza
-- NUNCA desvíes la conversación cuando el cliente ya mostró intención de compra
-- Quien controla la pregunta, controla la negociación — haz UNA sola pregunta por mensaje, siempre orientada al siguiente paso
-- Si ya tienes modelo + inicial → el siguiente paso es siempre el test drive, no más preguntas de producto
-
-PREGUNTAS DE CIERRE (rotar según contexto):
-- "¿Cuándo te gustaría venir a conocerlo en persona?"
-- "¿Tienes 30 minutos esta semana para probarlo en la carretera?"
-- "¿Qué día te queda mejor para el test drive, entre semana o el fin de semana?"
-- "El test drive no compromete nada — es solo para que lo sientas tú mismo. ¿Cuándo vamos?"
-
-REGLA DE ORO: si no sabes algo con certeza, no lo inventes. Invita al test drive. Ahí están todas las respuestas.`,
+      system: (systemPrompt || 'Eres el asistente de ventas de ' + nombre + ', asesor KIA.') + '\n\n' + catalogoTexto + '\n\nIDENTIDAD:\nEres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del concesionario, dirección ni datos que no estén en el catálogo. Si no sabes la dirección exacta, di "en el concesionario" solamente. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.\n\nTU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.\n\nFORMATO — SIN EXCEPCIÓN:\n- Máximo 2-3 oraciones por mensaje — esto es WhatsApp, no un catálogo\n- CERO asteriscos (*), CERO negritas, CERO markdown, CERO listas con guiones o numeradas\n- Si hay varias versiones: menciona máximo 2, la más económica y la más popular, en prosa natural\n- Ejemplo CORRECTO: "Tenemos el Sportage desde 127M neto en versión Desire, y el más pedido es el Vibrant a 144M."\n- Ejemplo INCORRECTO: "*Sportage 2026:* • Desire: $129M • Vibrant: $145M"\n- Tono cálido, directo, colombiano — nunca robótico ni corporativo\n\nSOBRE PRECIOS Y DATOS TÉCNICOS:\n- NUNCA inventes precios, cuotas, especificaciones ni disponibilidad\n- Si el dato exacto está en el catálogo que tienes → úsalo\n- Si NO tienes el dato exacto → di "eso te lo confirmo en el concesionario cuando lo veas en persona" y redirige al test drive\n- NUNCA digas "te confirmo", "voy a consultar" ni "déjame verificar"\n\nSOBRE FOTOS, FICHAS Y SIMULACIONES:\n- NUNCA menciones fotos, fichas ni simulaciones en tu respuesta — ni que las envías, ni que están llegando, ni que van por otro lado\n- Si el cliente pregunta por la cuota: di únicamente "la simulación ya está siendo procesada y te llega en un momento" — nada más\n\nSOBRE FINANCIAMIENTO:\n- NUNCA menciones "KIA Crédito", "KIA Financia" ni "KIA Financial"\n- Usa siempre: "opciones de financiamiento con diferentes bancos"\n\nESTRATEGIA DE CONVERSACIÓN:\n1. Engancha con el beneficio más relevante para ese cliente (familia, economía, status, tecnología)\n2. Genera deseo — hazle imaginar cómo se siente manejar ese carro\n3. Maneja objeciones con empatía, no con argumentos — "entiendo, por eso mismo te propongo que lo pruebes"\n4. SIEMPRE termina con una pregunta que avance hacia el test drive\n5. Si el cliente duda o compara con otra marca: valida su proceso, destaca 1 diferencial KIA y propón el test drive como la forma de decidir con seguridad\n\nPRIORIDADES EN CADA MENSAJE — SEGUIR ESTE ORDEN:\n- Si el cliente mencionó inicial o crédito → confirma que la simulación está siendo procesada, NO hagas otra pregunta\n- Si el cliente preguntó algo concreto → responde ESO primero, luego avanza\n- NUNCA desvíes la conversación cuando el cliente ya mostró intención de compra\n- Quien controla la pregunta, controla la negociación — haz UNA sola pregunta por mensaje, siempre orientada al siguiente paso\n- Si ya tienes modelo + inicial → el siguiente paso es siempre el test drive, no más preguntas de producto\n\nPREGUNTAS DE CIERRE (rotar según contexto):\n- "¿Cuándo te gustaría venir a conocerlo en persona?"\n- "¿Tienes 30 minutos esta semana para probarlo en la carretera?"\n- "¿Qué día te queda mejor para el test drive, entre semana o el fin de semana?"\n- "El test drive no compromete nada — es solo para que lo sientas tú mismo. ¿Cuándo vamos?"\n\nREGLA DE ORO: si no sabes algo con certeza, no lo inventes. Invita al test drive. Ahí están todas las respuestas.',
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -620,7 +531,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     else if (body.data?.key) msgs = [body.data]
     else if (body.messages) msgs = body.messages
 
-    console.log(`[webhook] instance: ${instanceName}, msgs: ${msgs.length}`)
+    console.log('[webhook] instance: ' + instanceName + ', msgs: ' + msgs.length)
 
     const { systemPrompt, nombre, botActivo } = await obtenerConfigAgente(instanceName)
     if (!botActivo) { console.log('[webhook] bot INACTIVO'); return NextResponse.json({ ok: true, paused: true }) }
@@ -628,9 +539,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     const vehiculos = await obtenerCatalogo()
     const catalogoTexto = vehiculos.length > 0
       ? '=== CATÁLOGO KIA ===\n' + vehiculos.map(v => {
-          const p = `$${(v.precio / 1_000_000).toFixed(1)}M`
-          const b = v.bono > 0 ? ` (bono $${(v.bono / 1_000_000).toFixed(1)}M, neto $${((v.precio - v.bono) / 1_000_000).toFixed(1)}M)` : ''
-          return `KIA ${v.linea} ${v.version} ${v.año}: ${p}${b} | ${v.combustible} | ${v.specs}`
+          const p = '$' + (v.precio / 1_000_000).toFixed(1) + 'M'
+          const b = v.bono > 0 ? ' (bono $' + (v.bono / 1_000_000).toFixed(1) + 'M, neto $' + ((v.precio - v.bono) / 1_000_000).toFixed(1) + 'M)' : ''
+          return 'KIA ' + v.linea + ' ' + v.version + ' ' + v.año + ': ' + p + b + ' | ' + v.combustible + ' | ' + v.specs
         }).join('\n')
       : ''
 
@@ -642,7 +553,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (remoteJid.includes('@g.us')) continue
 
       const message = m.message as Record<string, unknown>
-      // Detectar respuesta a botones (buttonsResponseMessage)
       const btnResponse = message?.buttonsResponseMessage as Record<string, unknown> | undefined
       const btnId = String(btnResponse?.selectedButtonId || '')
       const btnText = String(btnResponse?.selectedDisplayText || '')
@@ -654,27 +564,23 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
-      // GUARDIA: solo responder a números que sean leads registrados en pulse_leads
-      // Evita que el bot responda a contactos normales de WhatsApp del asesor
       const telefonoRaw = remoteJid.replace('@s.whatsapp.net', '').replace(/^57/, '')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: leadCheck } = await (supabaseAdmin.from('pulse_leads') as any)
         .select('id')
-        .or(`telefono.ilike.%${telefonoRaw}%,telefono.ilike.%57${telefonoRaw}%`)
+        .or('telefono.ilike.%' + telefonoRaw + '%,telefono.ilike.%57' + telefonoRaw + '%')
         .limit(1)
         .maybeSingle()
       if (!leadCheck) {
-        console.log(`[webhook] IGNORADO — no es lead registrado: ${telefonoRaw}`)
+        console.log('[webhook] IGNORADO — no es lead registrado: ' + telefonoRaw)
         continue
       }
 
-      // Leer conversación ANTES de la detección de botones (necesitamos historial)
       const conv = await leerConversacion(instanceName, remoteJid)
       const { historial, mediaEnviada, modeloDetectado: modeloPersistido } = conv
 
-      // Detectar respuesta a botones de test drive — nativo (btnId) o texto plano (fallback)
       const textoLower = texto.toLowerCase().trim()
-      const esConfirmacionTestDrive = 
+      const esConfirmacionTestDrive =
         btnId === 'btn_test_drive_si' ||
         textoLower === '1' || textoLower === '1.' ||
         textoLower === 'si' || textoLower === 'sí' ||
@@ -686,23 +592,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         textoLower === 'aún no me decido' || textoLower === 'aun no me decido' ||
         textoLower === 'no' || textoLower === 'todavía no' || textoLower === 'todavia no'
 
-      // Solo aplicar si el historial reciente incluye oferta de test drive
       const historialReciente = historial.slice(-4).map(h => h.content).join(' ').toLowerCase()
       const hayOfertaTestDrive = historialReciente.includes('test drive') || historialReciente.includes('agendar')
-      
-      // No activar si ya hay un día acordado — evita reiniciar flujo con "si" de confirmación
       const diasSemana = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado']
       const yaHayDiaAcordado = diasSemana.some(d => historialReciente.includes(d))
 
       if (hayOfertaTestDrive && esConfirmacionTestDrive && !yaHayDiaAcordado) {
         await new Promise(r => setTimeout(r, 800))
         await enviarTexto(instanceName, remoteJid,
-          `¡Perfecto, te espero en el concesionario! 🤝 ¿Qué día de esta semana te viene mejor para el test drive?`)
-        // Guardar en historial
+          '¡Perfecto, te espero en el concesionario! 🤝 ¿Qué día de esta semana te viene mejor para el test drive?')
         await guardarConversacion(instanceName, remoteJid, [
           ...historial,
           { role: 'user', content: texto },
-          { role: 'assistant', content: `¡Perfecto, te espero en el concesionario! ¿Qué día te viene mejor?` },
+          { role: 'assistant', content: '¡Perfecto, te espero en el concesionario! ¿Qué día te viene mejor?' },
         ], modeloPersistido || null, mediaEnviada)
         console.log('[webhook] lead confirmó test drive')
         continue
@@ -710,65 +612,51 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (hayOfertaTestDrive && esNegacionTestDrive) {
         await new Promise(r => setTimeout(r, 800))
         await enviarTexto(instanceName, remoteJid,
-          `Sin afán, cuando quieras. ¿Hay algo más del vehículo que quieras conocer para terminar de decidirte?`)
+          'Sin afán, cuando quieras. ¿Hay algo más del vehículo que quieras conocer para terminar de decidirte?')
         await guardarConversacion(instanceName, remoteJid, [
           ...historial,
           { role: 'user', content: texto },
-          { role: 'assistant', content: `Sin afán. ¿Hay algo más que quieras conocer?` },
+          { role: 'assistant', content: 'Sin afán. ¿Hay algo más que quieras conocer?' },
         ], modeloPersistido || null, mediaEnviada)
         console.log('[webhook] lead no se decide')
         continue
       }
 
-      console.log(`[webhook] mensaje: "${texto}"`)
+      console.log('[webhook] mensaje: "' + texto + '"')
 
-      // TEST TEMPORAL — responde a "test_botones" con botones de prueba
       if (texto.trim().toLowerCase() === 'test_botones') {
         await enviarBotonesTestDrive(instanceName, remoteJid, 'KIA NEW PICANTO VIBRANT 2027')
         console.log('[webhook] test botones enviado')
         continue
       }
 
-      // conversación ya leída arriba antes de detección de botones
-
-      // Texto completo = historial + mensaje actual para detección
       const textoCompleto = [...historial.map(h => h.content), texto].join(' ')
-
-      // FIX v5: detectar por texto expandido con aliases, o recuperar el modelo persistido
       const modeloDetectadoPorTexto = vehiculos.length > 0 ? detectarModelo(textoCompleto, vehiculos) : null
-      // Recuperar modelo persistido: formato puede ser "LINEA|||VERSION" o solo "LINEA" (legacy)
       const modeloDetectado = modeloDetectadoPorTexto ?? (() => {
         if (!modeloPersistido) return null
         if (modeloPersistido.includes('|||')) {
           const [linea, version] = modeloPersistido.split('|||')
-          // Match exacto primero, luego fallback por includes
           return vehiculos.find(v => v.linea === linea && v.version === version)
             ?? vehiculos.find(v => v.linea === linea)
             ?? null
         }
-        // Legacy: solo línea — usar includes para tolerar diferencias de nombre
         return vehiculos.find(v => v.linea === modeloPersistido)
           ?? vehiculos.find(v => v.linea.includes(modeloPersistido) || modeloPersistido.includes(v.linea))
           ?? null
       })()
 
       const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
-
-      // Extraer inicial y plazo del historial completo
       const { inicial, plazo } = extraerNumeros(textoCompleto)
-      console.log(`[webhook] modelo: ${modeloDetectado?.linea || 'ninguno'} | inicial: ${inicial} | plazo: ${plazo}`)
+      console.log('[webhook] modelo: ' + (modeloDetectado?.linea || 'ninguno') + ' | inicial: ' + inicial + ' | plazo: ' + plazo)
 
-      // Calcular simulación si hay suficientes datos
       let simulacion: string | null = null
       if (modeloDetectado && inicial > 0 && plazo > 0) {
         simulacion = calcularSimulacion(modeloDetectado, inicial, plazo)
         console.log('[webhook] simulacion calculada:', simulacion ? 'SI' : 'NO')
       }
 
-      // Generar respuesta conversacional
       const respuesta = await generarRespuesta(texto, systemPrompt, nombre, historial, catalogoTexto)
 
-      // Actualizar historial
       const nuevoHistorial: MensajeHistorial[] = [
         ...historial,
         { role: 'user', content: texto },
@@ -777,16 +665,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       const nuevaMediaEnviada = [...mediaEnviada]
       if (modeloDetectado && esPrimera) nuevaMediaEnviada.push(modeloDetectado.linea)
 
-      // Preservar modelo persistido — guardar linea+version para match exacto posterior
-      const modeloKeyActual = modeloDetectado ? `${modeloDetectado.linea}|||${modeloDetectado.version}` : null
+      const modeloKeyActual = modeloDetectado ? modeloDetectado.linea + '|||' + modeloDetectado.version : null
       const modeloAGuardar = modeloKeyActual || modeloPersistido || null
       await guardarConversacion(instanceName, remoteJid, nuevoHistorial, modeloAGuardar, nuevaMediaEnviada)
 
-      // Detectar cita confirmada — cuando el historial tiene día + hora acordados
       const historialTexto = nuevoHistorial.map(h => h.content).join(' ').toLowerCase()
       const tieneDia = ['lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'].some(d => historialTexto.includes(d))
       const tieneHora = /\d{1,2}\s*(pm|am)|en la tarde|en la mañana|2pm|3pm|4pm|10am|11am/.test(historialTexto)
-      // Verificar si ya existe cita en BD para no duplicar
       if (tieneDia && tieneHora) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: citaExistente } = await (supabaseAdmin.from('pulse_citas') as any)
@@ -804,68 +689,48 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         }
       }
 
-      // Enviar respuesta conversacional
       if (respuesta) {
         await new Promise(r => setTimeout(r, 800 + Math.random() * 500))
         await enviarTexto(instanceName, remoteJid, respuesta)
-        console.log(`[webhook] texto enviado: "${respuesta.slice(0, 60)}"`)
+        console.log('[webhook] texto enviado: "' + respuesta.slice(0, 60) + '"')
       }
 
-      // Enviar simulación de crédito
       if (simulacion) {
         await new Promise(r => setTimeout(r, 600))
         await enviarTexto(instanceName, remoteJid, simulacion)
         console.log('[webhook] simulacion enviada')
-
-        // Botones de agendamiento tras simulación
         await new Promise(r => setTimeout(r, 1800))
         const nombreModelo = modeloDetectado
-          ? `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
+          ? 'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año
           : 'el vehículo'
         await enviarBotonesTestDrive(instanceName, remoteJid, nombreModelo)
       }
 
-      // Enviar imagen (primera mención del modelo)
       if (modeloDetectado && esPrimera && modeloDetectado.imagenUrl) {
         await new Promise(r => setTimeout(r, 800))
-        await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl, `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`)
+        await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl,
+          'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año)
       }
 
-      // Enviar ficha técnica (primera mención del modelo)
       if (modeloDetectado && esPrimera && modeloDetectado.fichaTecnica) {
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
-
-        // Botones de agendamiento tras enviar catálogo completo
         await new Promise(r => setTimeout(r, 1500))
         const nombreModeloFicha = modeloDetectado
-          ? `KIA ${modeloDetectado.linea} ${modeloDetectado.version} ${modeloDetectado.año}`
+          ? 'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año
           : 'el vehículo'
         await enviarBotonesTestDrive(instanceName, remoteJid, nombreModeloFicha)
-
       }
     }
 
-    // ── TEST TEMPORAL BOTONES — eliminar después de verificar ──
-    // Envía "test_botones" por WhatsApp para probar si Evolution soporta botones nativos
-    // Si llegan botones tocables → ✅ funcionan. Si llega texto 1️⃣/2️⃣ → usar otro endpoint.
-
-    // ── FOLLOW-UP BACKGROUND ────────────────────────────────────
-    // Fire-and-forget: revisar leads inactivos sin bloquear esta respuesta
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
-    fetch(`${baseUrl}/api/pulse/cron/follow-up`, {
+    // ── FOLLOW-UP BACKGROUND (fire-and-forget) ────────────────────────────────
+    const followUpBase = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
+    const followUpUrl = followUpBase + '/api/pulse/cron/follow-up'
+    const cronSecret = process.env.CRON_SECRET || ''
+    fetch(followUpUrl, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      headers: { Authorization: 'Bearer ' + cronSecret },
     }).catch(e => console.error('[webhook] follow-up trigger error:', e))
-    // ── FIN FOLLOW-UP ───────────────────────────────────────────
-
-    // ── FOLLOW-UP BACKGROUND ────────────────────────────────────
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
-    fetch(`${baseUrl}/api/pulse/cron/follow-up`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
-    }).catch(e => console.error('[webhook] follow-up trigger error:', e))
-    // ── FIN FOLLOW-UP ───────────────────────────────────────────
 
     return NextResponse.json({ ok: true })
   } catch (e) {

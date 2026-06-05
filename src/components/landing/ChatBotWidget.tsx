@@ -57,6 +57,7 @@ export default function ChatBotWidget({
   // Vapi voice
   const [vapiActivo, setVapiActivo]     = useState(false)
   const [vapiCargando, setVapiCargando] = useState(false)
+  const [vapiEnabled, setVapiEnabled]   = useState(false)
   const vapiRef = useRef<any>(null)
 
   const chatRef  = useRef<HTMLDivElement>(null)
@@ -71,8 +72,8 @@ export default function ChatBotWidget({
         : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
       setMensajes([{ role: 'assistant', text: mensajeInicial, timestamp: new Date() }])
       setBotonesIniciales(true)
-      // Auto-disparar saludo de voz al abrir por primera vez
-      setTimeout(() => { iniciarVoz() }, 1500)
+      // Auto-disparar saludo de voz solo si Pulse Motor está activo
+      if (vapiEnabled) setTimeout(() => { iniciarVoz() }, 1500)
     }
     if (abierto) {
       setNotifBurbuja(false)
@@ -83,6 +84,15 @@ export default function ChatBotWidget({
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
   }, [mensajes, cargando, formVisible, botonesIniciales])
+
+  // Verificar si este asesor tiene Pulse Motor activo
+  useEffect(() => {
+    if (!slug) return
+    fetch('/api/pulse/status?slug=' + slug)
+      .then(r => r.json())
+      .then(d => setVapiEnabled(!!d.vapi_enabled))
+      .catch(() => setVapiEnabled(false))
+  }, [slug])
 
   // Limpiar Vapi al desmontar
   useEffect(() => {
@@ -102,7 +112,17 @@ export default function ChatBotWidget({
     try {
       setVapiCargando(true)
       const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY
-      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID
+      // Obtener assistantId personalizado para este asesor
+      let assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || ''
+      try {
+        const res = await fetch('/api/pulse/vapi/assistant?slug=' + slug)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.assistant_id) assistantId = data.assistant_id
+        }
+      } catch (e) {
+        console.warn('[vapi] usando assistant global como fallback')
+      }
       if (!publicKey || !assistantId) {
         console.error('[vapi] keys no configuradas')
         setVapiCargando(false)
@@ -128,12 +148,7 @@ export default function ChatBotWidget({
         setVapiCargando(false)
       })
 
-      await vapi.start(assistantId, {
-        variableValues: {
-          nombre_asesor: nombreAsesor,
-          concesionario: nombreAsesor,
-        },
-      })
+      await vapi.start(assistantId)
     } catch (e) {
       console.error('[vapi] error iniciando:', e)
       setVapiActivo(false)
@@ -403,8 +418,8 @@ export default function ChatBotWidget({
               disabled={cargando}
               style={{ flex: 1, padding: '10px 14px', borderRadius: 100, border: '1px solid rgba(0,0,0,0.12)', fontSize: 15, outline: 'none', background: cargando ? '#f5f5f5' : '#fff', color: '#222', fontFamily: 'Inter, sans-serif' }}
             />
-            {/* Botón de voz Vapi */}
-            <button
+            {/* Botón de voz Vapi — solo visible si vapiEnabled */}
+            {vapiEnabled && <button
               onClick={iniciarVoz}
               disabled={vapiCargando}
               title={vapiActivo ? 'Colgar llamada' : 'Escuchar saludo de voz'}
@@ -423,7 +438,7 @@ export default function ChatBotWidget({
               {vapiCargando ? (
                 <span style={{ width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'botTyping-spin 0.8s linear infinite' }} />
               ) : vapiActivo ? '📵' : '🎤'}
-            </button>
+            </button>}
             {/* Botón enviar */}
             <button
               onClick={() => enviar()}

@@ -19,7 +19,7 @@ const MENSAJE_DEFAULT = '¡Hola {nombre}! 👋 Soy {asesor} de KIA. Vi que estuv
 const HORAS = [1, 2, 3, 6, 12, 24]
 
 export default function FollowupSettings({ asesorId, inicial }: Props) {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   const [cfg, setCfg] = useState<Config>(inicial)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)

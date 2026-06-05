@@ -1,7 +1,6 @@
 'use client'
 // Ruta destino: src/components/pulse/VoiceWidget.tsx
 // Widget de voz bidireccional con ElevenLabs Conversational AI
-// Conexión directa (agente público) — sin token firmado
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
@@ -13,8 +12,6 @@ interface Props {
   colorPrimario?: string
 }
 
-const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || ''
-
 export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colorPrimario = '#0ea5e9' }: Props) {
   const [estado, setEstado] = useState<EstadoConexion>('idle')
   const [transcript, setTranscript] = useState('')
@@ -25,26 +22,31 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
   const wsRef = useRef<WebSocket | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const workletRef = useRef<AudioWorkletNode | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const audioQueueRef = useRef<AudioBuffer[]>([])
+  const volTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // Cola de chunks MP3 para reproducción secuencial
+  const audioQueueRef = useRef<Uint8Array[]>([])
   const isPlayingRef = useRef(false)
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null)
 
-  useEffect(() => {
-    return () => { desconectar() }
-  }, [])
+  useEffect(() => { return () => { desconectar() } }, [])
 
   const desconectar = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
-    if (processorRef.current) processorRef.current.disconnect()
+    if (volTimerRef.current) clearInterval(volTimerRef.current)
+    if (workletRef.current) workletRef.current.disconnect()
     if (analyserRef.current) analyserRef.current.disconnect()
+    if (sourceRef.current) { try { sourceRef.current.stop() } catch {} }
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
-    if (wsRef.current) wsRef.current.close()
-    if (audioCtxRef.current) audioCtxRef.current.close()
+    if (wsRef.current) { try { wsRef.current.close() } catch {} }
+    if (audioCtxRef.current) { try { audioCtxRef.current.close() } catch {} }
     wsRef.current = null
     streamRef.current = null
     audioCtxRef.current = null
+    audioQueueRef.current = []
+    isPlayingRef.current = false
     setEstado('idle')
     setDuracion(0)
     setVolumen(0)
@@ -52,32 +54,15 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
     setRespuesta('')
   }, [])
 
-  async function reproducirAudio(base64: string) {
-    if (!audioCtxRef.current || !base64) return
+  // Reproducir MP3 usando un elemento Audio (más compatible)
+  async function reproducirChunk(base64: string) {
+    if (!base64) return
     try {
-      const bytes = atob(base64)
-      const buffer = new Uint8Array(bytes.length)
-      for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i)
-      const audioBuffer = await audioCtxRef.current.decodeAudioData(buffer.buffer)
-      audioQueueRef.current.push(audioBuffer)
-      if (!isPlayingRef.current) reproducirCola()
+      const audioEl = new Audio('data:audio/mpeg;base64,' + base64)
+      audioEl.play().catch(e => console.error('[voice] play error:', e))
     } catch (e) {
-      console.error('[voice] error reproduciendo audio:', e)
+      console.error('[voice] error reproduciendo chunk:', e)
     }
-  }
-
-  function reproducirCola() {
-    if (!audioCtxRef.current || audioQueueRef.current.length === 0) {
-      isPlayingRef.current = false
-      return
-    }
-    isPlayingRef.current = true
-    const buffer = audioQueueRef.current.shift()!
-    const source = audioCtxRef.current.createBufferSource()
-    source.buffer = buffer
-    source.connect(audioCtxRef.current.destination)
-    source.onended = reproducirCola
-    source.start()
   }
 
   async function iniciarLlamada() {
@@ -86,18 +71,17 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
       setTranscript('')
       setRespuesta('')
 
-      const agentId = AGENT_ID
-      if (!agentId) throw new Error('Agent ID no configurado')
+      const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID
+      if (!agentId) throw new Error('NEXT_PUBLIC_ELEVENLABS_AGENT_ID no configurado')
 
-      // Conexión directa a ElevenLabs (agente público)
       const wsUrl = 'wss://api.elevenlabs.io/v1/convai/conversation?agent_id=' + agentId
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
-      audioCtxRef.current = new AudioContext({ sampleRate: 16000 })
-
       ws.onopen = async () => {
-        // Enviar variables dinámicas del asesor
+        console.log('[voice] WebSocket conectado')
+
+        // Enviar variables dinámicas
         ws.send(JSON.stringify({
           type: 'conversation_initiation_client_data',
           dynamic_variables: {
@@ -106,36 +90,40 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
           },
         }))
 
-        // Capturar micrófono
+        // Iniciar captura de micrófono
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
           })
           streamRef.current = stream
-
           setEstado('activo')
 
+          // Timer duración
           timerRef.current = setInterval(() => setDuracion(d => d + 1), 1000)
 
-          const source = audioCtxRef.current!.createMediaStreamSource(stream)
-          const analyser = audioCtxRef.current!.createAnalyser()
+          // AudioContext para captura
+          const ctx = new AudioContext({ sampleRate: 16000 })
+          audioCtxRef.current = ctx
+          const source = ctx.createMediaStreamSource(stream)
+
+          // Analyser para volumen visual
+          const analyser = ctx.createAnalyser()
           analyser.fftSize = 256
           analyserRef.current = analyser
           source.connect(analyser)
 
-          const processor = audioCtxRef.current!.createScriptProcessor(4096, 1, 1)
-          processorRef.current = processor
-          analyser.connect(processor)
-          processor.connect(audioCtxRef.current!.destination)
-
-          processor.onaudioprocess = (e) => {
-            if (ws.readyState !== WebSocket.OPEN) return
-
+          // Timer volumen
+          volTimerRef.current = setInterval(() => {
             const data = new Uint8Array(analyser.frequencyBinCount)
             analyser.getByteFrequencyData(data)
             const avg = data.reduce((a, b) => a + b, 0) / data.length
             setVolumen(avg / 128)
+          }, 100)
 
+          // ScriptProcessor para enviar PCM al WebSocket
+          const processor = ctx.createScriptProcessor(4096, 1, 1)
+          processor.onaudioprocess = (e) => {
+            if (ws.readyState !== WebSocket.OPEN) return
             const input = e.inputBuffer.getChannelData(0)
             const pcm = new Int16Array(input.length)
             for (let i = 0; i < input.length; i++) {
@@ -146,8 +134,11 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
             for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
             ws.send(JSON.stringify({ user_audio_chunk: btoa(binary) }))
           }
-        } catch (micError) {
-          console.error('[voice] error micrófono:', micError)
+          analyser.connect(processor)
+          processor.connect(ctx.destination)
+
+        } catch (micErr) {
+          console.error('[voice] error micrófono:', micErr)
           setEstado('error')
           setTimeout(() => setEstado('idle'), 3000)
         }
@@ -156,17 +147,28 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
       ws.onmessage = async (event) => {
         try {
           const msg = JSON.parse(event.data)
+          console.log('[voice] msg type:', msg.type)
+
           if (msg.type === 'audio') {
-            await reproducirAudio(msg.audio_event?.audio_base_64 || '')
+            const b64 = msg.audio_event?.audio_base_64 || msg.audio || ''
+            if (b64) await reproducirChunk(b64)
           }
-          if (msg.type === 'transcript' || msg.type === 'user_transcript') {
-            setTranscript(msg.transcript?.text || msg.user_transcription_event?.user_transcript || '')
+
+          if (msg.type === 'user_transcript') {
+            setTranscript(msg.user_transcription_event?.user_transcript || '')
           }
+
           if (msg.type === 'agent_response') {
             setRespuesta(msg.agent_response_event?.agent_response || '')
           }
+
+          if (msg.type === 'interruption') {
+            // El usuario interrumpió — limpiar cola de audio
+            audioQueueRef.current = []
+          }
+
         } catch (e) {
-          console.error('[voice] error mensaje:', e)
+          console.error('[voice] error procesando mensaje:', e)
         }
       }
 
@@ -176,8 +178,9 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
         setTimeout(() => setEstado('idle'), 3000)
       }
 
-      ws.onclose = () => {
-        if (estado === 'activo') desconectar()
+      ws.onclose = (e) => {
+        console.log('[voice] WebSocket cerrado:', e.code, e.reason)
+        desconectar()
       }
 
     } catch (e: any) {
@@ -205,8 +208,7 @@ export default function VoiceWidget({ slug, nombreAsesor = 'tu asesor KIA', colo
           {estado === 'error' && 'Error de conexión'}
         </p>
         <p className="text-sm text-slate-300">
-          {estado === 'idle' && 'Habla con ' + nombreAsesor}
-          {estado === 'activo' && 'Escuchando...'}
+          {estado === 'idle' ? 'Habla con ' + nombreAsesor : estado === 'activo' ? 'Escuchando...' : ''}
         </p>
       </div>
 

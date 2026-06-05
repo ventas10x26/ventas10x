@@ -59,6 +59,7 @@ export default function ChatBotWidget({
   const [vapiCargando, setVapiCargando] = useState(false)
   const [vapiEnabled, setVapiEnabled]   = useState(false)
   const vapiRef = useRef<any>(null)
+  const vapiAutoTriggered = useRef(false)
 
   const chatRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -72,8 +73,7 @@ export default function ChatBotWidget({
         : `¡Hola! 👋 Soy el asistente virtual de ${nombreAsesor}. ¿En qué puedo ayudarte hoy?`
       setMensajes([{ role: 'assistant', text: mensajeInicial, timestamp: new Date() }])
       setBotonesIniciales(true)
-      // Auto-disparar saludo de voz solo si Pulse Motor está activo
-      if (vapiEnabled) setTimeout(() => { iniciarVoz() }, 1500)
+      // La voz se dispara desde el useEffect de pulse/status cuando vapiEnabled se activa
     }
     if (abierto) {
       setNotifBurbuja(false)
@@ -90,7 +90,15 @@ export default function ChatBotWidget({
     if (!slug) return
     fetch('/api/pulse/status?slug=' + slug)
       .then(r => r.json())
-      .then(d => setVapiEnabled(!!d.vapi_enabled))
+      .then(d => {
+        const enabled = !!d.vapi_enabled
+        setVapiEnabled(enabled)
+        // Auto-disparar voz si el chat ya está abierto y no se ha disparado antes
+        if (enabled && !vapiAutoTriggered.current) {
+          vapiAutoTriggered.current = true
+          setTimeout(() => { iniciarVoz() }, 1000)
+        }
+      })
       .catch(() => setVapiEnabled(false))
   }, [slug])
 

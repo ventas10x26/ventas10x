@@ -850,6 +850,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     // Envía "test_botones" por WhatsApp para probar si Evolution soporta botones nativos
     // Si llegan botones tocables → ✅ funcionan. Si llega texto 1️⃣/2️⃣ → usar otro endpoint.
 
+    // ── FOLLOW-UP BACKGROUND ────────────────────────────────────
+    // Fire-and-forget: revisar leads inactivos sin bloquear esta respuesta
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
+    fetch(`${baseUrl}/api/pulse/cron/follow-up`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+    }).catch(e => console.error('[webhook] follow-up trigger error:', e))
+    // ── FIN FOLLOW-UP ───────────────────────────────────────────
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[webhook] error:', e)

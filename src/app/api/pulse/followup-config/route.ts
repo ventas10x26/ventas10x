@@ -28,7 +28,6 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json()
 
-  // Nombres reales de columna en pulse_agentes
   const allowed = [
     'followup_activo',
     'followup_dia1', 'followup_msg_dia1',
@@ -36,7 +35,9 @@ export async function PATCH(req: NextRequest) {
     'followup_dia7', 'followup_msg_dia7',
     'bot_activo', 'marca',
   ]
-  const patch: Record<string, unknown> = {}
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const patch: Record<string, any> = {}
   for (const key of allowed) {
     if (key in body) patch[key] = body[key]
   }
@@ -46,7 +47,8 @@ export async function PATCH(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('pulse_agentes')
-    .update(patch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(patch as any)
     .eq('user_id', user.id)
     .select()
     .single()

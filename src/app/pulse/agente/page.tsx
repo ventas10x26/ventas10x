@@ -60,6 +60,7 @@ export default function PulseAgentePage() {
   const [sinAgente, setSinAgente] = useState(false)
   const [subiendoVoz, setSubiendoVoz] = useState(false)
   const [tab, setTab] = useState<'voz' | 'comportamiento' | 'mensajes' | 'avanzado'>('voz')
+  const [whatsappConectado, setWhatsappConectado] = useState(false)
 
   const patch = (p: Partial<PulseAgenteDTO>) => setForm((f) => ({ ...f, ...p }))
 
@@ -360,20 +361,25 @@ export default function PulseAgentePage() {
             ════════════════════════════════════════ */}
             {tab === 'avanzado' && (
               <>
-                {/* Toggle Bot WhatsApp */}
+                {/* Toggle Bot WhatsApp — solo activo si hay QR conectado */}
                 <section style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid #1e293b', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 4px', color: '#fff' }}>Bot WhatsApp</h2>
                       <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-                        {form.bot_activo
-                          ? '🟢 Activo — el agente responde mensajes automáticamente'
-                          : '⚪ Inactivo — los mensajes llegan sin respuesta automática'}
+                        {!whatsappConectado
+                          ? '⚠️ Conectá tu WhatsApp abajo para activar el bot'
+                          : form.bot_activo
+                            ? '🟢 Activo — el agente responde mensajes automáticamente'
+                            : '⚪ Inactivo — los mensajes llegan sin respuesta automática'}
                       </p>
                     </div>
                     <button
                       type="button"
+                      disabled={!whatsappConectado}
+                      title={!whatsappConectado ? 'Primero conectá tu WhatsApp con el QR' : undefined}
                       onClick={async () => {
+                        if (!whatsappConectado) return
                         const nuevoValor = !form.bot_activo
                         patch({ bot_activo: nuevoValor })
                         try {
@@ -394,17 +400,19 @@ export default function PulseAgentePage() {
                       }}
                       style={{
                         position: 'relative', width: 52, height: 28, borderRadius: 999,
-                        border: 'none', padding: 0, flexShrink: 0, cursor: 'pointer',
-                        background: form.bot_activo
+                        border: 'none', padding: 0, flexShrink: 0,
+                        cursor: !whatsappConectado ? 'not-allowed' : 'pointer',
+                        opacity: !whatsappConectado ? 0.45 : 1,
+                        background: whatsappConectado && form.bot_activo
                           ? 'linear-gradient(135deg, #f97316, #ea580c)'
                           : 'rgba(51,65,85,0.8)',
-                        transition: 'background 0.2s',
+                        transition: 'background 0.2s, opacity 0.2s',
                       }}
                       aria-label={form.bot_activo ? 'Desactivar bot' : 'Activar bot'}
                     >
                       <span style={{
                         position: 'absolute', top: 3,
-                        left: form.bot_activo ? 27 : 3,
+                        left: whatsappConectado && form.bot_activo ? 27 : 3,
                         width: 22, height: 22, borderRadius: '50%',
                         background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                         transition: 'left 0.2s', display: 'block',
@@ -416,6 +424,7 @@ export default function PulseAgentePage() {
                 {/* Conexión WhatsApp */}
                 <PulseWhatsappConnect
                   email={form.email}
+                  onEstadoChange={setWhatsappConectado}
                   onConnected={(phone) => {
                     patch({ whatsapp: phone })
                     setMensaje('✓ WhatsApp conectado — el bot ya responde automáticamente')

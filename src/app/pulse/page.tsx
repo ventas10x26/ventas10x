@@ -88,7 +88,7 @@ export default function PulseMotorLanding() {
       cubeSpeedX.current += (tSX - cubeSpeedX.current) * 0.06
       cubeRotY.current += cubeSpeedY.current
       cubeRotX.current += cubeSpeedX.current
-      cubeRotX.current = Math.max(-50, Math.min(50, cubeRotX.current))
+      cubeRotX.current = Math.max(-45, Math.min(45, cubeRotX.current))
       const el = document.getElementById('pm-cube')
       if (el) el.style.transform = 'rotateX(' + cubeRotX.current + 'deg) rotateY(' + cubeRotY.current + 'deg)'
       raf = requestAnimationFrame(cubeTick)
@@ -192,7 +192,7 @@ export default function PulseMotorLanding() {
         .pm-note-dot { width:6px; height:6px; border-radius:50%; background:#10b981; flex-shrink:0; animation:pulse 2s ease infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-        @media(max-width:768px) { .hero-grid{flex-direction:column!important} .grid3{grid-template-columns:1fr!important} }
+        @media(max-width:768px) { .hero-grid{flex-direction:column!important} .grid3{grid-template-columns:1fr!important} .cube-grid{grid-template-columns:1fr!important} }
       `}</style>
 
       <div style={{ minHeight:'100vh', background:'var(--bg)', color:'#fff', fontFamily:FONT_BODY }}>
@@ -344,48 +344,89 @@ export default function PulseMotorLanding() {
         </section>
 
 
-        {/* Cubo 3D interactivo */}
-        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px', textAlign:'center' }}>
-          <p style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'40px' }}>
-            Tu agente IA tiene 6 habilidades
-          </p>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'28px' }}>
-            <div
-              id="pm-cube-scene"
-              style={{ width:'160px', height:'160px', perspective:'750px', cursor:'crosshair' }}
-            >
-              <div id="pm-cube" style={{ width:'160px', height:'160px', position:'relative', transformStyle:'preserve-3d' as 'preserve-3d' }}>
+        {/* Cubo 3D interactivo — 2 columnas */}
+        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 100px' }}>
+
+          <div className="cube-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'64px', alignItems:'center' }}>
+
+            {/* Columna izquierda — habilidades */}
+            <div>
+              <p style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'16px' }}>
+                Tu agente IA
+              </p>
+              <h2 style={{ fontSize:'clamp(26px,3vw,40px)', fontWeight:700, fontFamily:FONT, letterSpacing:'-.4px', lineHeight:'1.1', marginBottom:'40px', color:'#fff' }}>
+                Un agente que{' '}
+                <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+                  vende como vos
+                </span>
+              </h2>
+              <div style={{ display:'flex', flexDirection:'column', gap:'0' }}>
                 {[
-                  { face:'front',  tx:'translateZ(80px)',                     color:'rgba(14,165,233,0.06)', border:'rgba(14,165,233,0.4)',  textColor:'#7dd3fc', icon:'⚡', label:'Responde en 30 seg' },
-                  { face:'back',   tx:'rotateY(180deg) translateZ(80px)',     color:'rgba(16,185,129,0.06)', border:'rgba(16,185,129,0.35)', textColor:'#6ee7b7', icon:'🔁', label:'Seguimiento automático' },
-                  { face:'right',  tx:'rotateY(90deg) translateZ(80px)',      color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'📱', label:'Tu WhatsApp · QR' },
-                  { face:'left',   tx:'rotateY(-90deg) translateZ(80px)',     color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🎯', label:'Entrenado por vos' },
-                  { face:'top',    tx:'rotateX(90deg) translateZ(80px)',      color:'rgba(8,15,26,0.88)',    border:'rgba(16,185,129,0.3)',  textColor:'#6ee7b7', icon:'📅', label:'Agenda citas' },
-                  { face:'bottom', tx:'rotateX(-90deg) translateZ(80px)',     color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🧠', label:'Aprende tu estilo' },
-                ].map(f => (
-                  <div key={f.face} style={{
-                    position:'absolute', width:'160px', height:'160px',
-                    transform: f.tx,
-                    background: f.color,
-                    border: '1.5px solid ' + f.border,
-                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                    gap:'8px', padding:'12px',
-                    fontSize:'12px', fontWeight:600, fontFamily:FONT_BODY,
-                    color: f.textColor, textAlign:'center', lineHeight:'1.4',
+                  { icon:'⚡', label:'Responde en 30 segundos', desc:'El lead llega y el agente responde antes de que vos puedas leer la notificación.', color:'#0ea5e9' },
+                  { icon:'🔁', label:'Seguimiento automático', desc:'Día 1, 3 y 7 sin que hagas nada. Ningún lead se queda olvidado.', color:'#10b981' },
+                  { icon:'📱', label:'Tu WhatsApp · Sin SIM nueva', desc:'Conectás con QR desde tu celular. Tu número de siempre.', color:'#0ea5e9' },
+                  { icon:'🎯', label:'Entrenado con tu forma de vender', desc:'Le enseñás tus respuestas, objeciones y precios. Habla como vos.', color:'#10b981' },
+                  { icon:'📅', label:'Agenda citas automáticamente', desc:'Propone horarios, confirma test drives y registra la cita.', color:'#0ea5e9' },
+                  { icon:'🧠', label:'Aprende tu estilo', desc:'Cuanto más lo usás, más preciso se vuelve con tus clientes.', color:'#10b981' },
+                ].map((h, i) => (
+                  <div key={h.label} style={{
+                    display:'flex', gap:'16px', alignItems:'flex-start',
+                    padding:'16px 0',
+                    borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                   }}>
-                    <span style={{ fontSize:'28px' }}>{f.icon}</span>
-                    {f.label}
+                    <div style={{
+                      width:'36px', height:'36px', borderRadius:'10px', flexShrink:0,
+                      background: h.color === '#0ea5e9' ? 'rgba(14,165,233,0.1)' : 'rgba(16,185,129,0.1)',
+                      border: '1px solid ' + (h.color === '#0ea5e9' ? 'rgba(14,165,233,0.2)' : 'rgba(16,185,129,0.2)'),
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:'18px',
+                    }}>{h.icon}</div>
+                    <div>
+                      <p style={{ fontSize:'14px', fontWeight:700, color:'#e2e8f0', margin:'0 0 3px' }}>{h.label}</p>
+                      <p style={{ fontSize:'13px', color:'#475569', margin:0, lineHeight:'1.55' }}>{h.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-            <p style={{ fontSize:'12px', color:'#334155' }}>Pasá el mouse para guiarlo</p>
-            <h3 style={{ fontSize:'clamp(20px,2.5vw,28px)', fontWeight:700, fontFamily:FONT, letterSpacing:'-.3px', color:'#fff' }}>
-              Un agente que{' '}
-              <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-                vende como vos
-              </span>
-            </h3>
+
+            {/* Columna derecha — cubo 3D */}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'20px' }}>
+              <div
+                id="pm-cube-scene"
+                style={{ width:'260px', height:'260px', perspective:'900px', cursor:'crosshair' }}
+              >
+                <div id="pm-cube" style={{ width:'260px', height:'260px', position:'relative', transformStyle:'preserve-3d' as 'preserve-3d' }}>
+                  {[
+                    { face:'front',  tx:'translateZ(130px)',                color:'rgba(14,165,233,0.08)', border:'rgba(14,165,233,0.4)',  textColor:'#7dd3fc', icon:'⚡', label:'Responde en 30 seg' },
+                    { face:'back',   tx:'rotateY(180deg) translateZ(130px)',color:'rgba(16,185,129,0.08)', border:'rgba(16,185,129,0.4)',  textColor:'#6ee7b7', icon:'🔁', label:'Seguimiento automático' },
+                    { face:'right',  tx:'rotateY(90deg) translateZ(130px)', color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'📱', label:'Tu WhatsApp · QR' },
+                    { face:'left',   tx:'rotateY(-90deg) translateZ(130px)',color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🎯', label:'Entrenado por vos' },
+                    { face:'top',    tx:'rotateX(90deg) translateZ(130px)', color:'rgba(8,15,26,0.9)',    border:'rgba(16,185,129,0.3)',  textColor:'#6ee7b7', icon:'📅', label:'Agenda citas' },
+                    { face:'bottom', tx:'rotateX(-90deg) translateZ(130px)',color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.2)',  textColor:'#7dd3fc', icon:'🧠', label:'Aprende tu estilo' },
+                  ].map(f => (
+                    <div key={f.face} style={{
+                      position:'absolute', width:'260px', height:'260px',
+                      transform: f.tx,
+                      background: f.color,
+                      border: '1.5px solid ' + f.border,
+                      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                      gap:'12px', padding:'24px',
+                      fontSize:'14px', fontWeight:600, fontFamily:FONT_BODY,
+                      color: f.textColor, textAlign:'center', lineHeight:'1.4',
+                      backdropFilter:'blur(4px)',
+                    }}>
+                      <span style={{ fontSize:'36px' }}>{f.icon}</span>
+                      {f.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p style={{ fontSize:'12px', color:'#334155', textAlign:'center' }}>
+                ↔ Pasá el mouse para guiarlo
+              </p>
+            </div>
+
           </div>
         </section>
 

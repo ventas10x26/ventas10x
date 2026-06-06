@@ -558,10 +558,10 @@ export default function PulseMotorLanding() {
             </div>
 
             {/* Layout cubo: cubo centrado + cards laterales */}
-            <div className="cube-layout" style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center' }}>
+            <div className="cube-layout" style={{ display:'flex', alignItems:'center', gap:'80px', justifyContent:'center' }}>
 
               {/* Cards izquierda */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'14px', flex:'1', maxWidth:'220px' }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:'14px', flex:'1', maxWidth:'210px', flexShrink:0 }}>
                 {CUBE_FACES.slice(0, 3).map(f => (
                   <div key={f.face} style={{ background:'rgba(255,255,255,0.03)', border:`1px solid ${f.border.replace('0.45','0.15')}`, borderRadius:'14px', padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px', transition:'border-color .2s,background .2s' }}>
                     <div style={{ width:'36px', height:'36px', borderRadius:'10px', background:f.color, border:`1px solid ${f.border.replace('0.45','0.3')}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'18px' }}>
@@ -577,12 +577,10 @@ export default function PulseMotorLanding() {
                 ))}
               </div>
 
-              {/* Cubo 3D central */}
+              {/* Cubo 3D central — wrapper de 520px reserva las caras proyectadas (130px cada lado) */}
               <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:'20px' }}>
-                {/* Glow radial detrás del cubo */}
-                <div style={{ position:'relative' }}>
+                <div style={{ position:'relative', width:'520px', height:'520px', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'320px', height:'320px', background:'radial-gradient(circle,rgba(14,165,233,0.12) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
-
                   <div
                     id="pm-cube-scene"
                     style={{ width:'260px', height:'260px', perspective:'900px', cursor:'crosshair', position:'relative', zIndex:1 }}
@@ -624,7 +622,7 @@ export default function PulseMotorLanding() {
               </div>
 
               {/* Cards derecha */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'14px', flex:'1', maxWidth:'220px' }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:'14px', flex:'1', maxWidth:'210px', flexShrink:0 }}>
                 {CUBE_FACES.slice(3, 6).map(f => (
                   <div key={f.face} style={{ background:'rgba(255,255,255,0.03)', border:`1px solid ${f.border.replace('0.45','0.15').replace('0.35','0.15').replace('0.25','0.12')}`, borderRadius:'14px', padding:'14px 16px', display:'flex', alignItems:'center', gap:'12px' }}>
                     <div style={{ width:'36px', height:'36px', borderRadius:'10px', background:f.color, border:`1px solid ${f.border.replace('0.45','0.3').replace('0.35','0.25')}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'18px' }}>

@@ -36,7 +36,7 @@ export async function GET() {
   // Conversaciones
   const { data: conversaciones, error: convError } = await db
     .from('pulse_conversaciones')
-    .select('remote_jid, historial, updated_at, created_at')
+    .select('remote_jid, historial, updated_at, created_at, nombre_contacto, followup_activo')
     .eq('instance_name', instanceName)
     .order('updated_at', { ascending: false })
 
@@ -105,6 +105,8 @@ export async function GET() {
       followup_count:           fuCount,
       proximo_followup:         proximoFollowup,
       tiene_followup_pendiente: proximoFollowup !== null,
+      nombre_contacto: conv.nombre_contacto ?? null,
+      followup_activo_contacto: conv.followup_activo ?? true,
     }
   })
 

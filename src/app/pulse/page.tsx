@@ -315,8 +315,8 @@ export default function PulseMotorLanding() {
               {/* Sombra del piso */}
               <div style={{ position:'absolute', bottom:'2px', left:'50%', transform:'translateX(-50%)', width:'200px', height:'8px', background:'rgba(0,0,0,0.4)', borderRadius:'50%', filter:'blur(4px)' }} />
               <img
-                src="https://pngimg.com/uploads/kia/kia_PNG105.png"
-                alt="KIA Sportage"
+                src="/sportage.avif"
+                alt="KIA Sportage NX5"
                 style={{
                   width:'100%', maxWidth:'280px',
                   filter:'drop-shadow(0 20px 40px rgba(14,165,233,0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',

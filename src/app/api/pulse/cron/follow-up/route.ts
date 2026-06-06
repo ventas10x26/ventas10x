@@ -1,8 +1,5 @@
-// Ruta destino: src/app/api/pulse/cron/follow-up/route.ts
-// Corre cada hora (vercel.json). Detecta conversaciones inactivas y dispara:
-//   1. Mensaje WhatsApp al lead
-//   2. Alerta WhatsApp al asesor
-//   3. Email al asesor (Resend)
+// src/app/api/pulse/cron/follow-up/route.ts
+// v2 — guard anti-duplicado: verifica pulse_followup_log antes de enviar
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -16,7 +13,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL!
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY!
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function extraerNombreLead(historial: any[]): string {
   for (const m of historial ?? []) {
@@ -48,7 +45,7 @@ async function registrarLog(
   remoteJid: string,
   instanceName: string,
   asesorEmail: string,
-  tipo: 'lead' | 'asesor_wa' | 'asesor_email',
+  tipo: 'lead' | 'asesor_wa' | 'asesor_email' | 'dia1' | 'dia3' | 'dia7',
   status = 'ok'
 ) {
   await supabase.from('pulse_followup_log').insert({
@@ -58,6 +55,34 @@ async function registrarLog(
     tipo,
     status,
   })
+}
+
+// ── Guard anti-duplicado ─────────────────────────────────────────────────────
+// Verifica si ya se envió un follow-up del mismo tipo a este JID hoy
+async function yaEnviadoHoy(
+  remoteJid: string,
+  instanceName: string,
+  tipo: string
+): Promise<boolean> {
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const { data, error } = await supabase
+    .from('pulse_followup_log')
+    .select('id')
+    .eq('remote_jid', remoteJid)
+    .eq('instance_name', instanceName)
+    .eq('tipo', tipo)
+    .eq('status', 'ok')
+    .gte('enviado_at', hoy.toISOString())
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[cron] yaEnviadoHoy error:', error.message)
+    return false
+  }
+  return !!data
 }
 
 async function emailAsesor(
@@ -80,49 +105,25 @@ async function emailAsesor(
 <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
 <tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
-
   <tr><td style="padding:0 0 28px;text-align:center;">
     <span style="background:linear-gradient(135deg,#0ea5e9,#10b981);border-radius:10px;padding:8px 16px;font-size:18px;font-weight:700;">⚡ Pulse Motor</span>
   </td></tr>
-
   <tr><td style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.2);border-top:3px solid #f59e0b;border-radius:16px;padding:36px;">
     <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:1.5px;text-transform:uppercase;">⏰ ALERTA DE FOLLOW-UP</p>
     <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;line-height:1.3;">
       ${nombreAsesor}, tienes un lead<br/>
       <span style="color:#f59e0b;">sin atender hace ${horasStr} horas</span>
     </h1>
-
     <table cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;width:100%;">
-      <tr>
-        <td style="padding:5px 0;font-size:13px;color:#94a3b8;width:130px;">👤 Lead</td>
-        <td style="padding:5px 0;font-size:13px;color:#fff;font-weight:600;">${nombreLead}</td>
-      </tr>
-      <tr>
-        <td style="padding:5px 0;font-size:13px;color:#94a3b8;">📱 Teléfono</td>
-        <td style="padding:5px 0;font-size:13px;color:#fff;font-weight:600;">${telefono}</td>
-      </tr>
-      <tr>
-        <td style="padding:5px 0;font-size:13px;color:#94a3b8;">🚗 Interés</td>
-        <td style="padding:5px 0;font-size:13px;color:#10b981;font-weight:600;">${modelo}</td>
-      </tr>
-      <tr>
-        <td style="padding:5px 0;font-size:13px;color:#94a3b8;">⏱️ Inactivo</td>
-        <td style="padding:5px 0;font-size:13px;color:#f59e0b;font-weight:600;">${horasStr} horas</td>
-      </tr>
+      <tr><td style="padding:5px 0;font-size:13px;color:#94a3b8;width:130px;">👤 Lead</td><td style="padding:5px 0;font-size:13px;color:#fff;font-weight:600;">${nombreLead}</td></tr>
+      <tr><td style="padding:5px 0;font-size:13px;color:#94a3b8;">📱 Teléfono</td><td style="padding:5px 0;font-size:13px;color:#fff;font-weight:600;">${telefono}</td></tr>
+      <tr><td style="padding:5px 0;font-size:13px;color:#94a3b8;">🚗 Interés</td><td style="padding:5px 0;font-size:13px;color:#10b981;font-weight:600;">${modelo}</td></tr>
+      <tr><td style="padding:5px 0;font-size:13px;color:#94a3b8;">⏱️ Inactivo</td><td style="padding:5px 0;font-size:13px;color:#f59e0b;font-weight:600;">${horasStr} horas</td></tr>
     </table>
-
-    <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;line-height:1.6;">
-      El bot ya envió un mensaje de reactivación automático. Te recomendamos hacer seguimiento personal para cerrar la oportunidad.
-    </p>
-
-    <a href="https://wa.me/${telefono}" style="display:inline-block;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;">
-      💬 Escribir al lead en WhatsApp
-    </a>
+    <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;line-height:1.6;">El bot ya envió un mensaje de reactivación automático.</p>
+    <a href="https://wa.me/${telefono}" style="display:inline-block;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;">💬 Escribir al lead en WhatsApp</a>
   </td></tr>
-
-  <tr><td style="padding:20px 0 0;text-align:center;font-size:11px;color:#475569;">
-    Pulse Motor · pulsemotor.co · Configura tus alertas en el dashboard
-  </td></tr>
+  <tr><td style="padding:20px 0 0;text-align:center;font-size:11px;color:#475569;">Pulse Motor · pulsemotor.co</td></tr>
 </table>
 </td></tr>
 </table>
@@ -130,7 +131,7 @@ async function emailAsesor(
   })
 }
 
-// ── Handler ──────────────────────────────────────────────────────────────────
+// ── Handler ───────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -138,7 +139,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const stats = { procesados: 0, mensajes_lead: 0, alertas_wa: 0, alertas_email: 0, errores: [] as string[] }
+  const stats = { procesados: 0, mensajes_lead: 0, alertas_wa: 0, alertas_email: 0, duplicados_saltados: 0, errores: [] as string[] }
 
   try {
     const { data: convs, error } = await supabase
@@ -155,6 +156,14 @@ export async function GET(req: NextRequest) {
       const modelo = c.modelo_detectado ?? 'vehículo KIA'
       const nombreAsesor = c.asesor_nombre ?? 'tu asesor KIA'
 
+      // ── GUARD: verificar si ya se envió el follow-up al lead hoy ──
+      const duplicado = await yaEnviadoHoy(c.remote_jid, c.instance_name, 'lead')
+      if (duplicado) {
+        stats.duplicados_saltados++
+        console.log(`[cron] SALTADO (ya enviado hoy): ${c.remote_jid}`)
+        continue
+      }
+
       // 1️⃣ WhatsApp al lead
       try {
         const msg = buildMensaje(
@@ -164,18 +173,23 @@ export async function GET(req: NextRequest) {
         await enviarWhatsApp(c.instance_name, c.remote_jid, msg)
         await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'lead')
         stats.mensajes_lead++
+        console.log(`[cron] ✅ lead enviado: ${c.remote_jid}`)
       } catch (e: any) {
         stats.errores.push(`[lead] ${c.remote_jid}: ${e.message}`)
         await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'lead', 'error')
+        continue // si falla el mensaje al lead, no alertar al asesor
       }
 
       // 2️⃣ WhatsApp al asesor
       if (c.asesor_whatsapp) {
         try {
-          const alerta = `⚠️ *Follow-up enviado*\n\n👤 *Lead:* ${nombreLead}\n📱 *Tel:* ${telefono}\n🚗 *Interés:* ${modelo}\n⏱️ *Inactivo:* ${Number(c.horas_inactivo).toFixed(1)}h\n\nEl bot ya lo contactó. Haz seguimiento personal 💪`
-          await enviarWhatsApp(c.instance_name, c.asesor_whatsapp, alerta)
-          await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'asesor_wa')
-          stats.alertas_wa++
+          const yaAlertadoWA = await yaEnviadoHoy(c.remote_jid, c.instance_name, 'asesor_wa')
+          if (!yaAlertadoWA) {
+            const alerta = `⚠️ *Follow-up enviado*\n\n👤 *Lead:* ${nombreLead}\n📱 *Tel:* ${telefono}\n🚗 *Interés:* ${modelo}\n⏱️ *Inactivo:* ${Number(c.horas_inactivo).toFixed(1)}h\n\nEl bot ya lo contactó. Haz seguimiento personal 💪`
+            await enviarWhatsApp(c.instance_name, c.asesor_whatsapp, alerta)
+            await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'asesor_wa')
+            stats.alertas_wa++
+          }
         } catch (e: any) {
           stats.errores.push(`[asesor_wa] ${c.asesor_email}: ${e.message}`)
         }
@@ -184,9 +198,12 @@ export async function GET(req: NextRequest) {
       // 3️⃣ Email al asesor
       if (c.asesor_email) {
         try {
-          await emailAsesor(c.asesor_email, nombreAsesor, telefono, nombreLead, modelo, Number(c.horas_inactivo))
-          await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'asesor_email')
-          stats.alertas_email++
+          const yaEmailado = await yaEnviadoHoy(c.remote_jid, c.instance_name, 'asesor_email')
+          if (!yaEmailado) {
+            await emailAsesor(c.asesor_email, nombreAsesor, telefono, nombreLead, modelo, Number(c.horas_inactivo))
+            await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'asesor_email')
+            stats.alertas_email++
+          }
         } catch (e: any) {
           stats.errores.push(`[asesor_email] ${c.asesor_email}: ${e.message}`)
         }

@@ -1,4 +1,5 @@
-// POST: sube audio de muestra de voz y agrega entrada al historial del asesor (Supabase Storage + metadata)
+// src/app/api/pulse/agente/voz-muestra/route.ts
+// POST: sube audio de muestra de voz y agrega entrada al historial del asesor
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData()
     const audio = form.get('audio')
-    const transcripcion = String(form.get('transcripcion') || '').trim()
+    const transcripcionRaw = String(form.get('transcripcion') || '').trim()
     const duracionRaw = Number(form.get('duracion_seg') || 0)
     const duracion_seg = Number.isFinite(duracionRaw) ? Math.max(0, Math.round(duracionRaw)) : 0
     const emailForm = form.get('email') ? String(form.get('email')) : null
@@ -42,12 +43,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email o sesión requeridos' }, { status: 401 })
     }
 
-    if (!transcripcion || transcripcion.length < 8) {
-      return NextResponse.json(
-        { error: 'La transcripción es muy corta. Graba de nuevo o escribe al menos una frase.' },
-        { status: 400 }
-      )
-    }
+    // Aceptar audio aunque no haya transcripción automática — usar placeholder
+    const transcripcion = transcripcionRaw.length >= 3
+      ? transcripcionRaw
+      : '[grabación de voz — completá la transcripción desde Mi agente → Voz y tono]'
 
     if (!(audio instanceof Blob) || audio.size < 100) {
       return NextResponse.json({ error: 'Archivo de audio inválido' }, { status: 400 })
@@ -90,8 +89,7 @@ export async function POST(req: NextRequest) {
       console.error('[pulse/agente/voz-muestra] upload:', uploadErr)
       return NextResponse.json(
         {
-          error:
-            'No pudimos guardar el audio. Crea el bucket "pulse-agente-voz" en Supabase Storage (público o con URLs firmadas).',
+          error: 'No pudimos guardar el audio. Verificá el bucket "pulse-agente-voz" en Supabase Storage.',
           detail: uploadErr.message,
         },
         { status: 500 }

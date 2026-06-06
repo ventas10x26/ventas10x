@@ -193,6 +193,10 @@ export default function PulseMotorLanding() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
         @media(max-width:768px) { .hero-grid{flex-direction:column!important} .grid3{grid-template-columns:1fr!important} .cube-grid{grid-template-columns:1fr!important} }
+        @keyframes floatCar {
+          0%, 100% { transform: translateY(0px) rotate(-1deg); }
+          50% { transform: translateY(-10px) rotate(1deg); }
+        }
       `}</style>
 
       <div style={{ minHeight:'100vh', background:'var(--bg)', color:'#fff', fontFamily:FONT_BODY }}>
@@ -263,11 +267,11 @@ export default function PulseMotorLanding() {
             </div>
           </div>
 
-          {/* Hero grid: demo WA + form */}
+          {/* Hero grid: demo WA + auto + form */}
           <div className="hero-grid" style={{ display:'flex', alignItems:'flex-start', gap:'40px', justifyContent:'center' }}>
 
             {/* WhatsApp demo animado */}
-            <div style={{ ...v(1400), flexShrink:0, background:'#0d1829', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'16px', overflow:'hidden', maxWidth:'310px', width:'100%' }}>
+            <div style={{ ...v(1400), flexShrink:0, background:'#0d1829', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'16px', overflow:'hidden', maxWidth:'310px', width:'100%', position:'relative' }}>
               <div style={{ background:'#075e54', padding:'10px 14px', display:'flex', alignItems:'center', gap:'10px' }}>
                 <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'rgba(37,211,102,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'20px',height:'20px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
@@ -301,6 +305,35 @@ export default function PulseMotorLanding() {
                     El asesor estaba en test drive — el agente atendió solo
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Auto KIA flotante */}
+            <div style={{ ...v(1450), flexShrink:0, position:'relative', width:'280px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {/* Glow detrás del auto */}
+              <div style={{ position:'absolute', bottom:'0', left:'50%', transform:'translateX(-50%)', width:'240px', height:'40px', background:'radial-gradient(ellipse,rgba(14,165,233,0.25) 0%,transparent 70%)', borderRadius:'50%', filter:'blur(8px)' }} />
+              {/* Sombra del piso */}
+              <div style={{ position:'absolute', bottom:'2px', left:'50%', transform:'translateX(-50%)', width:'200px', height:'8px', background:'rgba(0,0,0,0.4)', borderRadius:'50%', filter:'blur(4px)' }} />
+              <img
+                src="https://pngimg.com/uploads/kia/kia_PNG105.png"
+                alt="KIA Sportage"
+                style={{
+                  width:'100%', maxWidth:'280px',
+                  filter:'drop-shadow(0 20px 40px rgba(14,165,233,0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+                  animation:'floatCar 4s ease-in-out infinite',
+                  position:'relative', zIndex:1,
+                }}
+              />
+              {/* Badge sobre el auto */}
+              <div style={{
+                position:'absolute', top:'8px', right:'-8px',
+                background:'linear-gradient(135deg,#0ea5e9,#10b981)',
+                borderRadius:'999px', padding:'5px 12px',
+                fontSize:'11px', fontWeight:700, color:'#fff',
+                boxShadow:'0 4px 12px rgba(14,165,233,0.3)',
+                whiteSpace:'nowrap',
+              }}>
+                🤖 Agente activo
               </div>
             </div>
 

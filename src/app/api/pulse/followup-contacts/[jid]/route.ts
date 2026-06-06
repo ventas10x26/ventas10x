@@ -1,12 +1,11 @@
 // src/app/api/pulse/followup-contacts/[jid]/route.ts
-// PATCH: actualizar nombre_contacto y/o followup_activo de una conversación
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { jid: string } }
+  { params }: { params: Promise<{ jid: string }> }
 ) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -22,8 +21,8 @@ export async function PATCH(
     .replace('@', '_at_')
     .replace(/\./g, '_')
 
-  // Decodificar el JID (viene URL-encoded)
-  const remoteJid = decodeURIComponent(params.jid)
+  const { jid } = await params
+  const remoteJid = decodeURIComponent(jid)
 
   const body = await req.json()
   const patch: Record<string, unknown> = {}

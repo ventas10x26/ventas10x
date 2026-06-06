@@ -7,7 +7,9 @@ export async function GET() {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = supabase as any
+  const { data, error } = await client
     .from('pulse_agentes')
     .select('*')
     .eq('user_id', user.id)
@@ -36,8 +38,7 @@ export async function PATCH(req: NextRequest) {
     'bot_activo', 'marca',
   ]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const patch: Record<string, any> = {}
+  const patch: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) patch[key] = body[key]
   }
@@ -45,10 +46,13 @@ export async function PATCH(req: NextRequest) {
   if (Object.keys(patch).length === 0)
     return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 })
 
-  const { data, error } = await supabase
+  // Castear el cliente completo para evitar conflictos con tipos generados
+  // (pulse_agentes es tabla nueva sin tipos en database.types.ts aún)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = supabase as any
+  const { data, error } = await client
     .from('pulse_agentes')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update(patch as any)
+    .update(patch)
     .eq('user_id', user.id)
     .select()
     .single()

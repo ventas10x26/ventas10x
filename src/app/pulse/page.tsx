@@ -19,7 +19,7 @@ function validarNombre(n: string) {
 }
 
 const PASOS = [
-  { num: '01', icon: '📋', titulo: 'Entrenás a tu agente', desc: 'Le enseñás cómo vendés tú: objeciones, precios, modelos, follow-ups. En 5 minutos queda listo.' },
+  { num: '01', icon: '📋', titulo: 'Entrená a tu agente', desc: 'Le enseñás cómo vendés tú: objeciones, precios, modelos, follow-ups. En 5 minutos queda listo.' },
   { num: '02', icon: '📱', titulo: 'Conectás con QR', desc: 'Escaneas un código QR desde tu celular. Tu número de siempre — sin SIM nueva, sin número extra.' },
   { num: '03', icon: '⚡', titulo: 'El agente trabaja por ti', desc: 'Llega un lead → responde en 30 segundos. Día 1, 3 y 7 hace seguimiento. Tú solo cerrás.' },
 ]

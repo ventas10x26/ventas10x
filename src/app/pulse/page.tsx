@@ -1,7 +1,7 @@
 // Ruta destino: src/app/pulse/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const FONT = "'Syne', system-ui, sans-serif"
@@ -52,6 +52,14 @@ export default function PulseMotorLanding() {
   const [visibleMsgs, setVisibleMsgs] = useState<number[]>([])
   const [showTyping, setShowTyping] = useState(false)
   const [showNote, setShowNote] = useState(false)
+  const cubeRotX = useRef(-15)
+  const cubeRotY = useRef(0)
+  const cubeSpeedX = useRef(0)
+  const cubeSpeedY = useRef(0.5)
+  const cubeHover = useRef(false)
+  const cubeMouseNX = useRef(0)
+  const cubeMouseNY = useRef(0)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -70,6 +78,36 @@ export default function PulseMotorLanding() {
       setTimeout(() => setVisibleMsgs(prev => [...prev, i]), m.delay)
     })
     setTimeout(() => setShowNote(true), 4400)
+
+    // Cubo 3D
+    let raf: number
+    function cubeTick() {
+      const tSY = cubeHover.current ? cubeMouseNX.current * 3.5 : 0.5
+      const tSX = cubeHover.current ? -cubeMouseNY.current * 1.5 : 0
+      cubeSpeedY.current += (tSY - cubeSpeedY.current) * 0.06
+      cubeSpeedX.current += (tSX - cubeSpeedX.current) * 0.06
+      cubeRotY.current += cubeSpeedY.current
+      cubeRotX.current += cubeSpeedX.current
+      cubeRotX.current = Math.max(-50, Math.min(50, cubeRotX.current))
+      const el = document.getElementById('pm-cube')
+      if (el) el.style.transform = 'rotateX(' + cubeRotX.current + 'deg) rotateY(' + cubeRotY.current + 'deg)'
+      raf = requestAnimationFrame(cubeTick)
+    }
+    raf = requestAnimationFrame(cubeTick)
+
+    const sc = document.getElementById('pm-cube-scene')
+    if (sc) {
+      sc.addEventListener('mousemove', (e: Event) => {
+        const me = e as MouseEvent
+        const r = (sc as HTMLElement).getBoundingClientRect()
+        cubeMouseNX.current = (me.clientX - r.left - r.width/2) / (r.width/2)
+        cubeMouseNY.current = (me.clientY - r.top - r.height/2) / (r.height/2)
+      })
+      sc.addEventListener('mouseenter', () => { cubeHover.current = true })
+      sc.addEventListener('mouseleave', () => { cubeHover.current = false; cubeMouseNX.current = 0; cubeMouseNY.current = 0 })
+    }
+
+    return () => { cancelAnimationFrame(raf) }
   }, [])
 
   useEffect(() => { if (touchedEmail) setErrorEmail(validarEmail(email)) }, [email, touchedEmail])
@@ -302,6 +340,52 @@ export default function PulseMotorLanding() {
                 ¿Ya tenés cuenta? <a href="/pulse/login" style={{ color:'#0ea5e9', textDecoration:'none', fontWeight:500 }}>Ingresar →</a>
               </p>
             </form>
+          </div>
+        </section>
+
+
+        {/* Cubo 3D interactivo */}
+        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px', textAlign:'center' }}>
+          <p style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'40px' }}>
+            Tu agente IA tiene 6 habilidades
+          </p>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'28px' }}>
+            <div
+              id="pm-cube-scene"
+              style={{ width:'160px', height:'160px', perspective:'750px', cursor:'crosshair' }}
+            >
+              <div id="pm-cube" style={{ width:'160px', height:'160px', position:'relative', transformStyle:'preserve-3d' as 'preserve-3d' }}>
+                {[
+                  { face:'front',  tx:'translateZ(80px)',                     color:'rgba(14,165,233,0.06)', border:'rgba(14,165,233,0.4)',  textColor:'#7dd3fc', icon:'⚡', label:'Responde en 30 seg' },
+                  { face:'back',   tx:'rotateY(180deg) translateZ(80px)',     color:'rgba(16,185,129,0.06)', border:'rgba(16,185,129,0.35)', textColor:'#6ee7b7', icon:'🔁', label:'Seguimiento automático' },
+                  { face:'right',  tx:'rotateY(90deg) translateZ(80px)',      color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'📱', label:'Tu WhatsApp · QR' },
+                  { face:'left',   tx:'rotateY(-90deg) translateZ(80px)',     color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🎯', label:'Entrenado por vos' },
+                  { face:'top',    tx:'rotateX(90deg) translateZ(80px)',      color:'rgba(8,15,26,0.88)',    border:'rgba(16,185,129,0.3)',  textColor:'#6ee7b7', icon:'📅', label:'Agenda citas' },
+                  { face:'bottom', tx:'rotateX(-90deg) translateZ(80px)',     color:'rgba(8,15,26,0.88)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🧠', label:'Aprende tu estilo' },
+                ].map(f => (
+                  <div key={f.face} style={{
+                    position:'absolute', width:'160px', height:'160px',
+                    transform: f.tx,
+                    background: f.color,
+                    border: '1.5px solid ' + f.border,
+                    display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                    gap:'8px', padding:'12px',
+                    fontSize:'12px', fontWeight:600, fontFamily:FONT_BODY,
+                    color: f.textColor, textAlign:'center', lineHeight:'1.4',
+                  }}>
+                    <span style={{ fontSize:'28px' }}>{f.icon}</span>
+                    {f.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p style={{ fontSize:'12px', color:'#334155' }}>Pasá el mouse para guiarlo</p>
+            <h3 style={{ fontSize:'clamp(20px,2.5vw,28px)', fontWeight:700, fontFamily:FONT, letterSpacing:'-.3px', color:'#fff' }}>
+              Un agente que{' '}
+              <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+                vende como vos
+              </span>
+            </h3>
           </div>
         </section>
 

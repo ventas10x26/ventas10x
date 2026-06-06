@@ -1,40 +1,37 @@
 // src/app/api/pulse/followup-contacts/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 export async function GET() {
+  // Auth con el cliente normal (cookies de sesión)
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  // DEBUG temporal — quitar después
-  console.log('[followup-contacts] user:', user?.email, 'authError:', authError?.message)
-
   if (authError || !user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
+  // Queries con service role — bypasea RLS, lee todas las tablas
+  const db = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   const instanceName = user.email!
     .toLowerCase()
     .replace('@', '_at_')
     .replace(/\./g, '_')
 
-  console.log('[followup-contacts] instanceName:', instanceName)
-
   // Config del agente
-  const { data: agente, error: agenteError } = await db
+  const { data: agente } = await db
     .from('pulse_agentes')
     .select('followup_activo, followup_dia1, followup_dia3, followup_dia7')
     .eq('instance_name', instanceName)
     .limit(1)
-    .single()
+    .maybeSingle()
 
-  console.log('[followup-contacts] agente:', agente, 'error:', agenteError?.message)
-
-  const followupActivo: boolean = agente?.followup_activo ?? true
-  const dia1: boolean           = agente?.followup_dia1    ?? true
-  const dia3: boolean           = agente?.followup_dia3    ?? true
-  const dia7: boolean           = agente?.followup_dia7    ?? true
+  const followupActivo: boolean = (agente as any)?.followup_activo ?? true
+  const dia1: boolean           = (agente as any)?.followup_dia1    ?? true
+  const dia3: boolean           = (agente as any)?.followup_dia3    ?? true
+  const dia7: boolean           = (agente as any)?.followup_dia7    ?? true
 
   // Conversaciones
   const { data: conversaciones, error: convError } = await db
@@ -43,18 +40,14 @@ export async function GET() {
     .eq('instance_name', instanceName)
     .order('updated_at', { ascending: false })
 
-  console.log('[followup-contacts] conversaciones count:', conversaciones?.length, 'error:', convError?.message)
-
-  if (convError) {
-    return NextResponse.json({ error: convError.message }, { status: 500 })
-  }
-
-  if (!conversaciones || conversaciones.length === 0) {
+  if (convError) return NextResponse.json({ error: convError.message }, { status: 500 })
+  if (!conversaciones?.length) {
     return NextResponse.json({ contacts: [], followup_activo: followupActivo, total: 0, pendientes: 0 })
   }
 
-  const jids: string[] = conversaciones.map((c: any) => c.remote_jid)
+  const jids = conversaciones.map((c: any) => c.remote_jid)
 
+  // Follow-up logs
   const { data: followups } = await db
     .from('pulse_followup_log')
     .select('remote_jid, tipo, enviado_at, status')
@@ -62,6 +55,7 @@ export async function GET() {
     .in('remote_jid', jids)
     .order('enviado_at', { ascending: false })
 
+  // Indexar
   const lastFollowup: Record<string, any> = {}
   const countSeguimiento: Record<string, number> = {}
   const SEGUIMIENTO = new Set(['dia1', 'dia3', 'dia7'])

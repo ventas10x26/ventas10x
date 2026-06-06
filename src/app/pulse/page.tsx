@@ -137,7 +137,7 @@ export default function PulseMotorLanding() {
             <div className={`v d1${visible?' on':''}`} style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'6px 16px', fontSize:'13px', fontWeight:600, color:'#7dd3fc', marginBottom:'32px' }}>
               🚗 Para asesores de concesionario automotriz
             </div>
-            <h1 className={`v d2${visible?' on':''}`} style={{ fontSize:'clamp(38px,6vw,70px)', fontWeight:800, lineHeight:'1.05', letterSpacing:'-2px', margin:'0 0 24px', fontFamily:FONT }}>
+            <h1 className={`v d2${visible?' on':''}`} style={{ fontSize:'clamp(38px,6vw,70px)', fontWeight:700, lineHeight:'1.05', letterSpacing:'-0.5px', margin:'0 0 24px', fontFamily:FONT }}>
               Tu agente IA que vende<br />
               <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>mientras tú estás ocupado</span>
             </h1>
@@ -227,13 +227,13 @@ export default function PulseMotorLanding() {
         <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'80px 24px' }}>
           <div style={{ textAlign:'center', marginBottom:'56px' }}>
             <p style={{ fontSize:'12px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'12px' }}>Cómo funciona</p>
-            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:800, letterSpacing:'-1px', fontFamily:FONT }}>De cero a agente activo<br />en 5 minutos</h2>
+            <h2 style={{ fontSize:'clamp(28px,4vw,44px)', fontWeight:700, letterSpacing:'-0.3px', fontFamily:FONT }}>De cero a agente activo<br />en 5 minutos</h2>
           </div>
           <div className="grid3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'24px' }}>
             {PASOS.map((p,i)=>(
               <div key={p.num} className="card" style={{ padding:'28px', position:'relative', overflow:'hidden' }}>
                 <div style={{ position:'absolute', top:'16px', right:'20px', fontSize:'48px', opacity:'.06', fontWeight:900, fontFamily:FONT, lineHeight:1 }}>{p.num}</div>
-                <div style={{ fontSize:'11px', fontWeight:800, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'12px' }}>{p.num}</div>
+                <div style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'12px' }}>{p.num}</div>
                 <div style={{ fontSize:'32px', marginBottom:'14px' }}>{p.icon}</div>
                 <h3 style={{ fontSize:'17px', fontWeight:700, margin:'0 0 8px', fontFamily:FONT }}>{p.titulo}</h3>
                 <p style={{ fontSize:'14px', color:'#64748b', lineHeight:'1.6', margin:0 }}>{p.desc}</p>
@@ -248,7 +248,7 @@ export default function PulseMotorLanding() {
           <div style={{ background:'linear-gradient(135deg,rgba(16,185,129,0.08),rgba(14,165,233,0.08))', border:'1px solid rgba(16,185,129,0.2)', borderRadius:'20px', padding:'48px', display:'flex', alignItems:'center', gap:'48px', flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:'260px' }}>
               <div style={{ fontSize:'12px', fontWeight:700, letterSpacing:'2px', color:'#10b981', textTransform:'uppercase', marginBottom:'12px' }}>El diferencial clave</div>
-              <h2 style={{ fontSize:'clamp(24px,3vw,36px)', fontWeight:800, letterSpacing:'-.8px', fontFamily:FONT, marginBottom:'16px', lineHeight:'1.15' }}>
+              <h2 style={{ fontSize:'clamp(24px,3vw,36px)', fontWeight:700, letterSpacing:'-0.2px', fontFamily:FONT, marginBottom:'16px', lineHeight:'1.15' }}>
                 Tu WhatsApp de siempre.<br /><span style={{ color:'#10b981' }}>Sin número nuevo.</span>
               </h2>
               <p style={{ fontSize:'16px', color:'#94a3b8', lineHeight:'1.65', marginBottom:'24px' }}>
@@ -278,7 +278,7 @@ export default function PulseMotorLanding() {
         <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px' }}>
           <div style={{ textAlign:'center', marginBottom:'48px' }}>
             <p style={{ fontSize:'12px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'12px' }}>Resultados reales</p>
-            <h2 style={{ fontSize:'clamp(26px,3vw,40px)', fontWeight:800, letterSpacing:'-.8px', fontFamily:FONT }}>Lo que dicen los asesores</h2>
+            <h2 style={{ fontSize:'clamp(26px,3vw,40px)', fontWeight:700, letterSpacing:'-0.2px', fontFamily:FONT }}>Lo que dicen los asesores</h2>
           </div>
           <div className="grid3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px' }}>
             {TESTIMONIOS.map(t=>(
@@ -300,7 +300,7 @@ export default function PulseMotorLanding() {
         {/* CTA final */}
         <section style={{ position:'relative', zIndex:1, maxWidth:'700px', margin:'0 auto', padding:'0 24px 100px', textAlign:'center' }}>
           <div style={{ background:'linear-gradient(135deg,rgba(14,165,233,0.08),rgba(16,185,129,0.08))', border:'1px solid rgba(14,165,233,0.15)', borderRadius:'20px', padding:'48px 32px' }}>
-            <h2 style={{ fontSize:'clamp(26px,3vw,40px)', fontWeight:800, letterSpacing:'-.8px', fontFamily:FONT, marginBottom:'16px', lineHeight:'1.2' }}>
+            <h2 style={{ fontSize:'clamp(26px,3vw,40px)', fontWeight:700, letterSpacing:'-0.2px', fontFamily:FONT, marginBottom:'16px', lineHeight:'1.2' }}>
               ¿Cuántos leads perdiste<br />esta semana por no responder?
             </h2>
             <p style={{ fontSize:'16px', color:'#94a3b8', marginBottom:'32px', lineHeight:'1.6' }}>

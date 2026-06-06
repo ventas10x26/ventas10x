@@ -31,10 +31,9 @@ const TESTIMONIOS = [
 ]
 
 const WA_MENSAJES = [
-  { out: false, text: 'Hola! Vi el Sportage NX5 en OLX. ¿Cuánto sale con crédito?', time: '3:42 p.m.', delay: 1800 },
-  { out: true,  text: '¡Hola Gerardo! 👋 El Sportage NX5 Desire está desde $127M neto. Con 30M inicial a 60 meses, cuota aprox $2.1M/mes. ¿Te hago simulación exacta?', time: '3:42 p.m. ✓✓', delay: 2400 },
-  { out: false, text: 'Sí! Y quiero verlo en persona', time: '3:43 p.m.', delay: 3200 },
-  { out: true,  text: 'Perfecto 🙌 ¿Cuándo tenés 30min para el test drive? Mañana 10am o pasado 3pm.', time: '3:43 p.m. ✓✓', delay: 3900 },
+  { out: false, text: 'Hola! Vi el Sportage NX5 😍', time: '3:42 p.m.', delay: 1500 },
+  { out: true,  text: '¡Hola! Desde $127M neto. ¿Te agendo el test drive? 🙌', time: '3:42 p.m. ✓✓', delay: 2300 },
+  { out: true,  text: '✅ Cita agendada: mañana 10am', time: '3:43 p.m. ✓✓', delay: 3500 },
 ]
 
 export default function PulseMotorLanding() {
@@ -193,9 +192,18 @@ export default function PulseMotorLanding() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
         @media(max-width:768px) { .hero-grid{flex-direction:column!important} .grid3{grid-template-columns:1fr!important} .cube-grid{grid-template-columns:1fr!important} }
+        @keyframes drawPath {
+          to { strokeDashoffset: 0; }
+        }
+        @keyframes scanLine {
+          0%,100% { transform: translateY(-60px); opacity:0; }
+          20% { opacity:.5; }
+          80% { opacity:.5; }
+          50% { transform: translateY(60px); opacity:.5; }
+        }
         @keyframes floatCar {
-          0%, 100% { transform: translateY(0px) rotate(-1deg); }
-          50% { transform: translateY(-10px) rotate(1deg); }
+          0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
+          50% { transform: translateY(-12px) rotate(0.5deg); }
         }
       `}</style>
 
@@ -267,74 +275,152 @@ export default function PulseMotorLanding() {
             </div>
           </div>
 
-          {/* Hero grid: demo WA + auto + form */}
-          <div className="hero-grid" style={{ display:'flex', alignItems:'flex-start', gap:'40px', justifyContent:'center' }}>
+          {/* Hero grid: auto SVG + form */}
+          <div className="hero-grid" style={{ display:'flex', alignItems:'flex-start', gap:'48px', justifyContent:'center' }}>
 
-            {/* WhatsApp demo animado */}
-            <div style={{ ...v(1400), flexShrink:0, background:'#0d1829', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'16px', overflow:'hidden', maxWidth:'310px', width:'100%', position:'relative' }}>
-              <div style={{ background:'#075e54', padding:'10px 14px', display:'flex', alignItems:'center', gap:'10px' }}>
-                <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'rgba(37,211,102,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'20px',height:'20px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>Agente KIA</div>
-                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>● en línea</div>
-                </div>
-              </div>
-              <div style={{ padding:'14px', display:'flex', flexDirection:'column', gap:'8px', minHeight:'240px' }}>
-                {WA_MENSAJES.map((m, i) => (
-                  <div key={i} className={`pm-msg${visibleMsgs.includes(i) ? ' on' : ''}`} style={{ alignSelf: m.out ? 'flex-end' : 'flex-start', maxWidth:'88%' }}>
-                    <div style={{ padding:'8px 11px', borderRadius: m.out ? '10px 0 10px 10px' : '0 10px 10px 10px', background: m.out ? '#128c7e' : 'rgba(255,255,255,0.07)', color: m.out ? '#fff' : '#cbd5e1', fontSize:'13px', lineHeight:'1.5', fontFamily:FONT_BODY }}>
-                      {m.text}
-                    </div>
-                    <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', textAlign: m.out ? 'right' : 'left', marginTop:'2px' }}>{m.time}</div>
-                  </div>
-                ))}
-                {showTyping && (
-                  <div style={{ alignSelf:'flex-start' }}>
-                    <div style={{ padding:'10px 14px', background:'rgba(255,255,255,0.07)', borderRadius:'0 10px 10px 10px', display:'inline-flex' }}>
-                      <div className="pm-typing">
-                        <div className="pm-dot" /><div className="pm-dot" /><div className="pm-dot" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {showNote && (
-                  <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 10px', background:'rgba(14,165,233,0.08)', border:'1px solid rgba(14,165,233,0.15)', borderRadius:'8px', fontSize:'11px', color:'#7dd3fc', opacity: showNote ? 1 : 0, transition:'opacity .4s ease' }}>
-                    <div className="pm-note-dot" />
-                    El asesor estaba en test drive — el agente atendió solo
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Auto SVG tech + burbujas WA */}
+            <div style={{ ...v(1400), flex:'1', minWidth:'300px', maxWidth:'480px', position:'relative' }}>
 
-            {/* Auto KIA flotante */}
-            <div style={{ ...v(1450), flexShrink:0, position:'relative', width:'280px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {/* Glow detrás del auto */}
-              <div style={{ position:'absolute', bottom:'0', left:'50%', transform:'translateX(-50%)', width:'240px', height:'40px', background:'radial-gradient(ellipse,rgba(14,165,233,0.25) 0%,transparent 70%)', borderRadius:'50%', filter:'blur(8px)' }} />
-              {/* Sombra del piso */}
-              <div style={{ position:'absolute', bottom:'2px', left:'50%', transform:'translateX(-50%)', width:'200px', height:'8px', background:'rgba(0,0,0,0.4)', borderRadius:'50%', filter:'blur(4px)' }} />
-              <img
-                src="/sportage.avif"
-                alt="KIA Sportage NX5"
-                style={{
-                  width:'100%', maxWidth:'280px',
-                  filter:'drop-shadow(0 20px 40px rgba(14,165,233,0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                  animation:'floatCar 4s ease-in-out infinite',
-                  position:'relative', zIndex:1,
-                }}
-              />
-              {/* Badge sobre el auto */}
-              <div style={{
-                position:'absolute', top:'8px', right:'-8px',
-                background:'linear-gradient(135deg,#0ea5e9,#10b981)',
-                borderRadius:'999px', padding:'5px 12px',
-                fontSize:'11px', fontWeight:700, color:'#fff',
-                boxShadow:'0 4px 12px rgba(14,165,233,0.3)',
-                whiteSpace:'nowrap',
-              }}>
-                🤖 Agente activo
+              {/* Glow suelo */}
+              <div style={{ position:'absolute', bottom:'0', left:'50%', transform:'translateX(-50%)', width:'80%', height:'30px', background:'radial-gradient(ellipse,rgba(14,165,233,0.15) 0%,transparent 70%)', borderRadius:'50%', filter:'blur(8px)', zIndex:0 }} />
+
+              {/* Línea piso */}
+              <div style={{ position:'absolute', bottom:'8%', left:0, right:0, height:'1px', background:'linear-gradient(90deg,transparent,rgba(14,165,233,0.2),rgba(16,185,129,0.2),transparent)', zIndex:0 }} />
+
+              {/* Auto SVG */}
+              <div style={{ position:'relative', zIndex:1, width:'100%', paddingBottom:'52%' }}>
+                <div style={{ position:'absolute', inset:0 }}>
+              {/* KIA EV3 wireframe tech — animado con líneas que se dibujan */}
+              <svg
+                style={{ width:'100%', height:'100%', animation:'carFloat 4s ease-in-out infinite', filter:'drop-shadow(0 20px 40px rgba(14,165,233,0.18))', overflow:'visible' }}
+                viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="bG" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(14,165,233,0.08)"/>
+                    <stop offset="100%" stopColor="rgba(16,185,129,0.04)"/>
+                  </linearGradient>
+                  <clipPath id="sC"><rect x="20" y="20" width="360" height="200"/></clipPath>
+                </defs>
+                {/* Sombra suelo */}
+                <ellipse cx="200" cy="222" rx="155" ry="8" fill="rgba(14,165,233,0.06)"/>
+                {/* Cuerpo principal */}
+                <path d="M55 170 L55 130 Q58 108 75 95 L115 72 Q138 48 168 42 L248 40 Q278 40 300 56 L338 82 Q358 95 362 115 L365 140 L365 170 Z"
+                  fill="url(#bG)" stroke="rgba(14,165,233,0.5)" strokeWidth="1.5"
+                  style={{strokeDasharray:1000,strokeDashoffset:1000,animation:'drawPath 2.5s ease .6s forwards'}}/>
+                {/* Techo */}
+                <path d="M118 72 Q140 46 172 38 L250 36 Q280 36 302 52 L338 78"
+                  fill="none" stroke="rgba(14,165,233,0.7)" strokeWidth="1.5"
+                  style={{strokeDasharray:600,strokeDashoffset:600,animation:'drawPath 2s ease 1s forwards'}}/>
+                {/* Parabrisas */}
+                <path d="M122 70 Q144 44 175 36 L248 35 Q272 35 292 50 L325 72 Z"
+                  fill="rgba(14,165,233,0.06)" stroke="rgba(14,165,233,0.5)" strokeWidth="1"
+                  style={{strokeDasharray:500,strokeDashoffset:500,animation:'drawPath 1.8s ease 1.4s forwards'}}/>
+                {/* Cintura */}
+                <path d="M75 130 Q200 118 345 126" fill="none" stroke="rgba(14,165,233,0.35)" strokeWidth="1.2"
+                  style={{strokeDasharray:300,strokeDashoffset:300,animation:'drawPath 1.5s ease 1.8s forwards'}}/>
+                {/* Puerta delantera */}
+                <path d="M118 70 L118 165 L210 165 L210 70" fill="none" stroke="rgba(14,165,233,0.2)" strokeWidth="1"
+                  style={{strokeDasharray:400,strokeDashoffset:400,animation:'drawPath 1.5s ease 2s forwards'}}/>
+                {/* Puerta trasera */}
+                <path d="M210 65 L210 165 L322 165 L322 75" fill="none" stroke="rgba(14,165,233,0.2)" strokeWidth="1"
+                  style={{strokeDasharray:400,strokeDashoffset:400,animation:'drawPath 1.5s ease 2.2s forwards'}}/>
+                {/* Pilar B */}
+                <line x1="210" y1="36" x2="210" y2="70" stroke="rgba(14,165,233,0.3)" strokeWidth="2"/>
+                {/* Manijas */}
+                <rect x="152" y="126" width="28" height="5" rx="2.5" fill="rgba(14,165,233,0.3)" stroke="rgba(14,165,233,0.6)" strokeWidth="0.8"/>
+                <rect x="248" y="126" width="28" height="5" rx="2.5" fill="rgba(14,165,233,0.3)" stroke="rgba(14,165,233,0.6)" strokeWidth="0.8"/>
+                {/* Frente EV3 */}
+                <path d="M58 130 L58 165 L115 165 L115 95 Q90 100 75 115 Z" fill="rgba(8,15,26,0.6)" stroke="rgba(14,165,233,0.3)" strokeWidth="1.2"/>
+                {/* Parrilla rectangular */}
+                <rect x="62" y="135" width="48" height="22" rx="3" fill="rgba(14,165,233,0.05)" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="63" y1="141" x2="109" y2="141" stroke="rgba(14,165,233,0.25)" strokeWidth=".8"/>
+                <line x1="63" y1="147" x2="109" y2="147" stroke="rgba(14,165,233,0.25)" strokeWidth=".8"/>
+                <line x1="63" y1="153" x2="109" y2="153" stroke="rgba(14,165,233,0.25)" strokeWidth=".8"/>
+                <text x="86" y="148" textAnchor="middle" fontSize="7" fill="rgba(14,165,233,0.8)" fontWeight="800" fontFamily="Syne,sans-serif">KIA</text>
+                {/* Faro LED DRL angular */}
+                <path d="M58 108 L58 125 L112 120 L112 105 Z" fill="rgba(14,165,233,0.07)" stroke="rgba(14,165,233,0.45)" strokeWidth="1.2"/>
+                <line x1="62" y1="110" x2="108" y2="107" stroke="#0ea5e9" strokeWidth="1.8" strokeLinecap="round" opacity=".9"/>
+                <line x1="62" y1="115" x2="108" y2="112" stroke="rgba(14,165,233,0.35)" strokeWidth="1" strokeLinecap="round"/>
+                {/* Faro trasero */}
+                <path d="M345 90 L362 100 L365 130 L348 128 Z" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.5)" strokeWidth="1.2"/>
+                <line x1="350" y1="93" x2="362" y2="126" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" opacity=".7"/>
+                {/* Spoiler */}
+                <path d="M340 42 L365 54 L365 48 L342 36 Z" fill="rgba(8,15,26,0.8)" stroke="rgba(14,165,233,0.25)" strokeWidth="1"/>
+                {/* Bumpers + falda */}
+                <path d="M322 165 L365 165 L365 175 Q360 180 348 180 L318 180 Z" fill="rgba(8,15,26,0.7)" stroke="rgba(14,165,233,0.2)" strokeWidth="1"/>
+                <path d="M58 165 L115 165 L115 178 Q108 183 88 183 L58 180 Z" fill="rgba(8,15,26,0.7)" stroke="rgba(14,165,233,0.2)" strokeWidth="1"/>
+                <path d="M112 165 L322 165 L325 176 L108 176 Z" fill="rgba(8,15,26,0.6)" stroke="rgba(14,165,233,0.15)" strokeWidth="1"/>
+                {/* Rueda delantera */}
+                <circle cx="112" cy="195" r="26" fill="#0a0f1a" stroke="rgba(14,165,233,0.5)" strokeWidth="1.8"/>
+                <circle cx="112" cy="195" r="18" fill="#0d1520" stroke="rgba(14,165,233,0.35)" strokeWidth="1.2"/>
+                <circle cx="112" cy="195" r="5" fill="rgba(14,165,233,0.25)" stroke="rgba(14,165,233,0.7)" strokeWidth="1.2"/>
+                <line x1="112" y1="177" x2="112" y2="190" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="112" y1="200" x2="112" y2="213" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="94" y1="195" x2="107" y2="195" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="117" y1="195" x2="130" y2="195" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="99" y1="182" x2="109" y2="190" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="115" y1="200" x2="125" y2="208" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="125" y1="182" x2="117" y2="190" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="99" y1="208" x2="107" y2="200" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                {/* Rueda trasera */}
+                <circle cx="328" cy="195" r="26" fill="#0a0f1a" stroke="rgba(14,165,233,0.5)" strokeWidth="1.8"/>
+                <circle cx="328" cy="195" r="18" fill="#0d1520" stroke="rgba(14,165,233,0.35)" strokeWidth="1.2"/>
+                <circle cx="328" cy="195" r="5" fill="rgba(14,165,233,0.25)" stroke="rgba(14,165,233,0.7)" strokeWidth="1.2"/>
+                <line x1="328" y1="177" x2="328" y2="190" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="328" y1="200" x2="328" y2="213" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="310" y1="195" x2="323" y2="195" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="333" y1="195" x2="346" y2="195" stroke="rgba(14,165,233,0.55)" strokeWidth="1.5"/>
+                <line x1="315" y1="182" x2="325" y2="190" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="331" y1="200" x2="341" y2="208" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="341" y1="182" x2="333" y2="190" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                <line x1="315" y1="208" x2="323" y2="200" stroke="rgba(14,165,233,0.4)" strokeWidth="1.2"/>
+                {/* Scan line */}
+                <g clipPath="url(#sC)">
+                  <line x1="20" y1="110" x2="380" y2="110" stroke="rgba(14,165,233,0.3)" strokeWidth="1.5" strokeDasharray="8 4"
+                    style={{animation:'scanLine 3s ease-in-out infinite'}}/>
+                </g>
+                {/* Nodos tech */}
+                <circle cx="58" cy="108" r="3" fill="#0ea5e9" opacity=".8"/>
+                <circle cx="112" cy="70" r="3" fill="#0ea5e9" opacity=".6"/>
+                <circle cx="325" cy="72" r="3" fill="#10b981" opacity=".6"/>
+                <circle cx="362" cy="130" r="3" fill="#0ea5e9" opacity=".8"/>
+                <line x1="58" y1="108" x2="35" y2="90" stroke="rgba(14,165,233,0.2)" strokeWidth=".8" strokeDasharray="3 3"/>
+                <line x1="362" y1="130" x2="385" y2="112" stroke="rgba(14,165,233,0.2)" strokeWidth=".8" strokeDasharray="3 3"/>
+                {/* Reflejo */}
+                <path d="M150 44 Q210 36 270 40" stroke="rgba(255,255,255,0.05)" strokeWidth="2" fill="none" strokeLinecap="round"/>
+              </svg>
+                </div>
               </div>
+
+              {/* Burbuja 1 */}
+              <div className={`pm-msg${visibleMsgs.includes(0) ? ' on' : ''}`} style={{ position:'absolute', top:'5%', right:'-8px', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px 10px 0 10px', padding:'8px 12px', fontSize:'12px', color:'#cbd5e1', maxWidth:'160px', zIndex:3 }}>
+                Hola! Vi el Sportage NX5 😍
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:'2px', textAlign:'right' }}>3:42 p.m.</div>
+              </div>
+
+              {/* Burbuja 2 — agente responde */}
+              <div className={`pm-msg${visibleMsgs.includes(1) ? ' on' : ''}`} style={{ position:'absolute', top:'30%', right:'-12px', background:'#128c7e', borderRadius:'10px 10px 0 10px', padding:'8px 12px', fontSize:'12px', color:'#fff', maxWidth:'190px', zIndex:3, boxShadow:'0 4px 16px rgba(18,140,126,0.25)' }}>
+                ¡Hola! Desde $127M neto. ¿Te agendo el test drive? 🙌
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', marginTop:'2px', textAlign:'right' }}>3:42 p.m. ✓✓</div>
+              </div>
+
+              {/* Burbuja 3 — cita */}
+              <div className={`pm-msg${visibleMsgs.includes(2) ? ' on' : ''}`} style={{ position:'absolute', bottom:'18%', right:'-8px', background:'#075e54', borderRadius:'10px 10px 0 10px', padding:'8px 12px', fontSize:'12px', color:'#fff', zIndex:3, whiteSpace:'nowrap' }}>
+                ✅ Cita agendada: mañana 10am
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', marginTop:'2px', textAlign:'right' }}>3:43 p.m. ✓✓</div>
+              </div>
+
+              {/* Badge agente activo */}
+              <div style={{ position:'absolute', top:'10%', left:'42%', width:'10px', height:'10px', borderRadius:'50%', background:'#10b981', border:'2px solid #080f1a', animation:'pm-note-dot 2s infinite', zIndex:4 }} />
+
+              {/* QR tag */}
+              {showNote && (
+                <div style={{ position:'absolute', bottom:'10%', left:'-12px', background:'rgba(8,15,26,0.9)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'10px', padding:'5px 10px', display:'flex', alignItems:'center', gap:'6px', fontSize:'11px', color:'#6ee7b7', fontWeight:600, zIndex:3, whiteSpace:'nowrap', opacity: showNote ? 1 : 0, transition:'opacity .4s ease' }}>
+                  <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'12px',height:'12px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                  Tu número · QR · Sin SIM nueva
+                </div>
+              )}
             </div>
 
             {/* Form */}

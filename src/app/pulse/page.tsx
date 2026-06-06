@@ -254,7 +254,7 @@ export default function PulseMotorLanding() {
 
             <div style={{ ...v(1100), display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', flexWrap:'wrap' }}>
               {[
-                { text:'📱 Tu WhatsApp · QR · Sin SIM nueva', green: true },
+                { text:'WA Tu WhatsApp · QR · Sin SIM nueva', green: true, wa: true },
                 { text:'⚡ Responde en <30 seg', green: false },
                 { text:'🔁 Seguimiento día 1, 3 y 7', green: false },
               ].map(p => (
@@ -269,7 +269,9 @@ export default function PulseMotorLanding() {
             {/* WhatsApp demo animado */}
             <div style={{ ...v(1400), flexShrink:0, background:'#0d1829', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'16px', overflow:'hidden', maxWidth:'310px', width:'100%' }}>
               <div style={{ background:'#075e54', padding:'10px 14px', display:'flex', alignItems:'center', gap:'10px' }}>
-                <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>🤖</div>
+                <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'rgba(37,211,102,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'20px',height:'20px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                </div>
                 <div>
                   <div style={{ fontSize:'13px', fontWeight:700, color:'#fff' }}>Agente KIA</div>
                   <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>● en línea</div>
@@ -376,11 +378,15 @@ export default function PulseMotorLanding() {
                   }}>
                     <div style={{
                       width:'36px', height:'36px', borderRadius:'10px', flexShrink:0,
-                      background: h.color === '#0ea5e9' ? 'rgba(14,165,233,0.1)' : 'rgba(16,185,129,0.1)',
-                      border: '1px solid ' + (h.color === '#0ea5e9' ? 'rgba(14,165,233,0.2)' : 'rgba(16,185,129,0.2)'),
+                      background: h.icon === 'WA' ? 'rgba(37,211,102,0.1)' : h.color === '#0ea5e9' ? 'rgba(14,165,233,0.1)' : 'rgba(16,185,129,0.1)',
+                      border: '1px solid ' + (h.icon === 'WA' ? 'rgba(37,211,102,0.25)' : h.color === '#0ea5e9' ? 'rgba(14,165,233,0.2)' : 'rgba(16,185,129,0.2)'),
                       display:'flex', alignItems:'center', justifyContent:'center',
                       fontSize:'18px',
-                    }}>{h.icon}</div>
+                    }}>
+                      {h.icon === 'WA' ? (
+                        <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'20px',height:'20px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                      ) : h.icon}
+                    </div>
                     <div>
                       <p style={{ fontSize:'14px', fontWeight:700, color:'#e2e8f0', margin:'0 0 3px' }}>{h.label}</p>
                       <p style={{ fontSize:'13px', color:'#475569', margin:0, lineHeight:'1.55' }}>{h.desc}</p>
@@ -400,7 +406,7 @@ export default function PulseMotorLanding() {
                   {[
                     { face:'front',  tx:'translateZ(130px)',                color:'rgba(14,165,233,0.08)', border:'rgba(14,165,233,0.4)',  textColor:'#7dd3fc', icon:'⚡', label:'Responde en 30 seg' },
                     { face:'back',   tx:'rotateY(180deg) translateZ(130px)',color:'rgba(16,185,129,0.08)', border:'rgba(16,185,129,0.4)',  textColor:'#6ee7b7', icon:'🔁', label:'Seguimiento automático' },
-                    { face:'right',  tx:'rotateY(90deg) translateZ(130px)', color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'📱', label:'Tu WhatsApp · QR' },
+                    { face:'right',  tx:'rotateY(90deg) translateZ(130px)', color:'rgba(37,211,102,0.06)', border:'rgba(37,211,102,0.3)',  textColor:'#6ee7b7', icon:'WA', label:'Tu WhatsApp · QR' },
                     { face:'left',   tx:'rotateY(-90deg) translateZ(130px)',color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.25)', textColor:'#7dd3fc', icon:'🎯', label:'Entrenado por vos' },
                     { face:'top',    tx:'rotateX(90deg) translateZ(130px)', color:'rgba(8,15,26,0.9)',    border:'rgba(16,185,129,0.3)',  textColor:'#6ee7b7', icon:'📅', label:'Agenda citas' },
                     { face:'bottom', tx:'rotateX(-90deg) translateZ(130px)',color:'rgba(8,15,26,0.9)',    border:'rgba(14,165,233,0.2)',  textColor:'#7dd3fc', icon:'🧠', label:'Aprende tu estilo' },
@@ -416,7 +422,11 @@ export default function PulseMotorLanding() {
                       color: f.textColor, textAlign:'center', lineHeight:'1.4',
                       backdropFilter:'blur(4px)',
                     }}>
-                      <span style={{ fontSize:'36px' }}>{f.icon}</span>
+                      {f.icon === 'WA' ? (
+                        <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'36px',height:'36px'}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                      ) : (
+                        <span style={{ fontSize:'36px' }}>{f.icon}</span>
+                      )}
                       {f.label}
                     </div>
                   ))}

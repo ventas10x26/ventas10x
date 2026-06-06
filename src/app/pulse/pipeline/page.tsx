@@ -1,8 +1,4 @@
-// Ruta destino: src/app/pulse/pipeline/page.tsx
-// REEMPLAZA el archivo actual.
-//
-// Mismo pipeline Kanban pero envuelto en PulseAppShell.
-
+// src/app/pulse/pipeline/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -10,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { PulsePipelineKanban, type PulseLead } from '@/components/pulse/PulsePipelineKanban'
+import { PulseFollowUpPanel } from '@/components/pulse/PulseFollowUpPanel'
 
 export default function PulsePipelinePage() {
   const router = useRouter()
@@ -66,7 +63,6 @@ export default function PulsePipelinePage() {
         setTextoNuevoLead('')
         setShowNuevoLead(false)
         await cargarLeads()
-        // Disparar trigger después de cerrar modal
         if (data.lead?.id) {
           setTimeout(() => {
             fetch('/api/pulse/leads/trigger', {
@@ -95,7 +91,8 @@ export default function PulsePipelinePage() {
   return (
     <PulseAppShell userName={user.nombre} userEmail={user.email}>
       <div style={{ padding: '24px' }}>
-        {/* Heading + acción */}
+
+        {/* ── Heading + acción ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
           <div>
             <h1 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px' }}>
@@ -105,11 +102,15 @@ export default function PulsePipelinePage() {
               Arrastrá leads entre columnas para mover su estado.
             </p>
           </div>
-          <button onClick={() => setShowNuevoLead(true)} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button
+            onClick={() => setShowNuevoLead(true)}
+            style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
             + Nuevo lead
           </button>
         </div>
 
+        {/* ── Kanban ── */}
         {loading ? (
           <p style={{ fontSize: '14px', color: '#94a3b8', textAlign: 'center', padding: '60px' }}>Cargando pipeline...</p>
         ) : leads.length === 0 ? (
@@ -117,7 +118,10 @@ export default function PulsePipelinePage() {
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
             <p style={{ fontSize: '15px', color: '#cbd5e1', margin: '0 0 6px' }}>No tenés leads todavía</p>
             <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 20px' }}>Click en &quot;+ Nuevo lead&quot; para empezar</p>
-            <button onClick={() => setShowNuevoLead(true)} style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button
+              onClick={() => setShowNuevoLead(true)}
+              style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
               + Crear mi primer lead
             </button>
           </div>
@@ -129,9 +133,27 @@ export default function PulsePipelinePage() {
           />
         )}
 
+        {/* ══════════════════════════════════════════════════
+            PANEL FOLLOW-UP — debajo del kanban
+        ══════════════════════════════════════════════════ */}
+        <div style={{
+          marginTop: '48px',
+          paddingTop: '40px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          <PulseFollowUpPanel />
+        </div>
+
+        {/* ── Modal nuevo lead ── */}
         {showNuevoLead && (
-          <div onClick={() => !creando && setShowNuevoLead(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', maxWidth: '520px', width: '100%' }}>
+          <div
+            onClick={() => !creando && setShowNuevoLead(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 50 }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', maxWidth: '520px', width: '100%' }}
+            >
               <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px' }}>Nuevo lead</h3>
               <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 16px' }}>Pegá el texto del lead. La IA va a extraer los datos automáticamente.</p>
               <textarea
@@ -143,14 +165,25 @@ export default function PulsePipelinePage() {
                 style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '16px' }}
               />
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowNuevoLead(false)} disabled={creando} style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                <button onClick={crearLead} disabled={creando || !textoNuevoLead.trim()} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: creando || !textoNuevoLead.trim() ? '#475569' : 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: creando || !textoNuevoLead.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                <button
+                  onClick={() => setShowNuevoLead(false)}
+                  disabled={creando}
+                  style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={crearLead}
+                  disabled={creando || !textoNuevoLead.trim()}
+                  style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: creando || !textoNuevoLead.trim() ? '#475569' : 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: creando || !textoNuevoLead.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                >
                   {creando ? 'Guardando...' : 'Guardar lead'}
                 </button>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </PulseAppShell>
   )

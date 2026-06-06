@@ -1,5 +1,6 @@
+// src/app/api/pulse/agente/route.ts
 // GET: carga configuración del agente IA del asesor (pulse_waitlist.metadata)
-// PUT: guarda personalización (voz, objeciones, prompts, etc.)
+// PUT: guarda personalización + upsert automático en pulse_agentes
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -19,6 +20,8 @@ const supabaseAdmin = createAdmin(
   { auth: { persistSession: false } }
 )
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 async function resolverEmail(req: NextRequest): Promise<string | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,6 +31,12 @@ async function resolverEmail(req: NextRequest): Promise<string | null> {
   if (q && q.includes('@')) return q.trim().toLowerCase()
 
   return null
+}
+
+async function resolverUserId(req: NextRequest): Promise<string | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user?.id ?? null
 }
 
 async function cargarPorEmail(email: string) {
@@ -43,6 +52,66 @@ async function cargarPorEmail(email: string) {
   }
   return { row: data, error: null }
 }
+
+// ── Sincronizar pulse_agentes automáticamente ─────────────────────────────────
+// Se llama en cada PUT para garantizar que el registro exista
+async function sincronizarPulseAgente(
+  email: string,
+  userId: string | null,
+  botActivo: boolean
+): Promise<void> {
+  try {
+    // Derivar instance_name del email (igual que el webhook)
+    const instanceName = email
+      .toLowerCase()
+      .replace('@', '_at_')
+      .replace(/\./g, '_')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabaseAdmin as any
+
+    // Verificar si ya existe
+    const { data: existente } = await db
+      .from('pulse_agentes')
+      .select('id, user_id')
+      .eq('instance_name', instanceName)
+      .maybeSingle()
+
+    if (existente) {
+      // Actualizar user_id si falta, y bot_activo
+      const patch: Record<string, unknown> = { bot_activo: botActivo }
+      if (!existente.user_id && userId) patch.user_id = userId
+      await db
+        .from('pulse_agentes')
+        .update(patch)
+        .eq('instance_name', instanceName)
+      console.log('[pulse/agente] pulse_agentes actualizado:', instanceName)
+    } else {
+      // Crear nuevo registro con defaults
+      await db
+        .from('pulse_agentes')
+        .insert({
+          user_id: userId,
+          instance_name: instanceName,
+          bot_activo: botActivo,
+          marca: 'KIA',
+          followup_activo: true,
+          followup_dia1: true,
+          followup_dia3: true,
+          followup_dia7: true,
+          followup_msg_dia1: '¡Hola {nombre}! 👋 Soy {asesor} de KIA. Solo quería confirmar si pudiste ver la info del {modelo}. ¿Tienes alguna pregunta? 🚗',
+          followup_msg_dia3: '¡Hola {nombre}! 😊 Quería saber si pudiste revisar el catálogo del {modelo}. Esta semana tenemos disponibilidad para test drive. ¿Te interesa?',
+          followup_msg_dia7: 'Hola {nombre}, es mi último mensaje 🙏. Si en algún momento querés info sobre el {modelo} u otro vehículo KIA, acá estoy. ¡Que tengas un excelente día!',
+        })
+      console.log('[pulse/agente] pulse_agentes CREADO:', instanceName)
+    }
+  } catch (e) {
+    // No romper el flujo principal si esto falla
+    console.error('[pulse/agente] sincronizarPulseAgente error:', e)
+  }
+}
+
+// ── GET ───────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   try {
@@ -88,6 +157,13 @@ export async function GET(req: NextRequest) {
       voz_historial = [legacy]
     }
 
+    // Sincronizar pulse_agentes en el GET también (garantiza existencia al cargar la página)
+    const userId = await resolverUserId(req)
+    const botActivo = (meta as any)?.bot_activo !== false
+    sincronizarPulseAgente(email, userId, botActivo).catch(e =>
+      console.error('[pulse/agente GET] sync bg error:', e)
+    )
+
     return NextResponse.json({ ok: true, agente: { ...agente, voz_historial } })
   } catch (e) {
     console.error('[pulse/agente GET]', e)
@@ -97,6 +173,8 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+// ── PUT ───────────────────────────────────────────────────────────────────────
 
 async function regenerarConIA(
   nombre: string,
@@ -189,6 +267,11 @@ export async function PUT(req: NextRequest) {
       console.error('[pulse/agente] update:', updateErr)
       return NextResponse.json({ error: 'No pudimos guardar los cambios' }, { status: 500 })
     }
+
+    // ── Sincronizar pulse_agentes automáticamente ──────────────────────────
+    const userId = await resolverUserId(req)
+    const botActivo = (meta as any)?.bot_activo !== false
+    await sincronizarPulseAgente(email, userId, botActivo)
 
     const agente = metadataToDTO(
       { id: row.id, email: row.email, nombre: patch.nombre || row.nombre, metadata: meta },

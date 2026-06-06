@@ -1,5 +1,5 @@
 // src/app/api/pulse/whatsapp/webhook/[...event]/route.ts
-// v5 — aliases detección + modelo persistido entre requests
+// v5 — aliases detección + modelo persistido entre requests + fix guard conversación activa
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
@@ -138,21 +138,18 @@ function parsearCSV(csv: string): VehiculoMedia[] {
   if (filas.length < 2) return []
 
   const cols = filas[0].map(h => h.toLowerCase())
-  const sep = 'COMA'
-  console.log('[webhook] sep:', sep, '| total cols:', cols.length)
-
   const idx = {
-    linea: cols.findIndex(c => c.includes('línea') || c === 'linea'),
-    año: cols.findIndex(c => c.includes('año') || c === 'ano'),
-    activo: cols.findIndex(c => c === 'activo'),
+    linea:   cols.findIndex(c => c.includes('línea') || c === 'linea'),
+    año:     cols.findIndex(c => c.includes('año') || c === 'ano'),
+    activo:  cols.findIndex(c => c === 'activo'),
     version: cols.findIndex(c => c === 'versión' || c === 'version'),
     activaV: cols.findIndex(c => c === 'activa'),
-    precio: cols.findIndex(c => c.includes('precio')),
-    bono: cols.findIndex(c => c.includes('bono') && c.includes('monetario')),
-    ficha: cols.findIndex(c => c.includes('ficha')),
-    imagen: cols.findIndex(c => c.includes('imagen') || c.includes('foto')),
-    specs: cols.findIndex(c => c.includes('especif') || c.includes('otras')),
-    comb: cols.findIndex(c => c.includes('combustible')),
+    precio:  cols.findIndex(c => c.includes('precio')),
+    bono:    cols.findIndex(c => c.includes('bono') && c.includes('monetario')),
+    ficha:   cols.findIndex(c => c.includes('ficha')),
+    imagen:  cols.findIndex(c => c.includes('imagen') || c.includes('foto')),
+    specs:   cols.findIndex(c => c.includes('especif') || c.includes('otras')),
+    comb:    cols.findIndex(c => c.includes('combustible')),
   }
 
   console.log('[webhook] idx: linea=' + idx.linea + ' imagen=' + idx.imagen + ' ficha=' + idx.ficha)
@@ -166,15 +163,15 @@ function parsearCSV(csv: string): VehiculoMedia[] {
     const imagenUrl = idx.imagen >= 0 ? (cells[idx.imagen] || '') : ''
     if (imagenUrl && imagenUrl.toLowerCase().endsWith('.pdf')) continue
     vehiculos.push({
-      linea: cells[idx.linea] || '',
-      version: cells[idx.version] || '',
-      año: parseInt(cells[idx.año] || '0'),
-      precio: parseInt(cells[idx.precio]?.replace(/\D/g, '') || '0'),
-      bono: parseInt(cells[idx.bono]?.replace(/\D/g, '') || '0'),
+      linea:        cells[idx.linea] || '',
+      version:      cells[idx.version] || '',
+      año:          parseInt(cells[idx.año] || '0'),
+      precio:       parseInt(cells[idx.precio]?.replace(/\D/g, '') || '0'),
+      bono:         parseInt(cells[idx.bono]?.replace(/\D/g, '') || '0'),
       fichaTecnica: cells[idx.ficha] || '',
       imagenUrl,
-      specs: cells[idx.specs] || '',
-      combustible: cells[idx.comb] || '',
+      specs:        cells[idx.specs] || '',
+      combustible:  cells[idx.comb] || '',
     })
   }
   return vehiculos
@@ -185,7 +182,7 @@ function parsearCSV(csv: string): VehiculoMedia[] {
 const ALIASES_MODELO: Record<string, string> = {
   'picanto': 'new picanto',
   'sorento': 'new sorento',
-  'stonic': 'new stonic',
+  'stonic':  'new stonic',
 }
 
 function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): VehiculoMedia | null {
@@ -197,10 +194,7 @@ function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): Vehi
     }
   }
   for (const v of vehiculos) {
-    if (
-      textoExpandido.includes(v.linea.toLowerCase()) &&
-      textoExpandido.includes(v.version.toLowerCase())
-    ) return v
+    if (textoExpandido.includes(v.linea.toLowerCase()) && textoExpandido.includes(v.version.toLowerCase())) return v
   }
   for (const v of vehiculos) {
     if (textoExpandido.includes(v.linea.toLowerCase())) return v
@@ -210,7 +204,6 @@ function detectarModelo(textoCompleto: string, vehiculos: VehiculoMedia[]): Vehi
 
 function extraerNumeros(textoCompleto: string): { inicial: number; plazo: number } {
   const t = textoCompleto
-
   const inicialMatch =
     t.match(/(\d+)\s*m(?:illones?)?\s*(?:de\s+)?(?:cuota\s+)?inicial/i) ||
     t.match(/inicial\s+(?:de\s+)?(\d+)\s*m/i) ||
@@ -302,23 +295,6 @@ async function registrarCita(
       .update({ estado: 'test_drive', updated_at: new Date().toISOString() })
       .eq('id', lead.id)
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('whatsapp, nombre')
-      .eq('id', lead.vendedor_id)
-      .maybeSingle()
-
-    if (profile?.whatsapp) {
-      const numAsesor = profile.whatsapp.replace(/\D/g, '').replace(/^57/, '')
-      const msgAsesor = '🗓️ Test Drive agendado\nLead: ' + lead.nombre + '\nDía: ' + diaTexto + '\nHora: ' + horaTexto + '\nTeléfono: +57' + telefono
-      await fetch(process.env.EVOLUTION_API_URL + '/message/sendText/' + instanceName, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: process.env.EVOLUTION_API_KEY || '' },
-        body: JSON.stringify({ number: '57' + numAsesor, text: msgAsesor }),
-      })
-      console.log('[cita] asesor notificado:', profile.nombre)
-    }
-
     console.log('[cita] ✅ registrada — lead:', lead.nombre, '|', diaTexto, horaTexto)
   } catch (e) {
     console.error('[cita] error:', e)
@@ -353,7 +329,6 @@ async function enviarTexto(instanceName: string, remoteJid: string, mensaje: str
 
 async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, nombreModelo: string) {
   try {
-    console.log('[webhook] enviando botones test drive')
     const res = await fetch(EVO_URL + '/message/sendButtons/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
@@ -368,7 +343,6 @@ async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, n
         ],
       }),
     })
-    console.log('[webhook] botones status:', res.status)
     if (!res.ok) {
       const err = await res.text()
       console.log('[webhook] botones fallback a texto, error:', err.slice(0, 100))
@@ -384,19 +358,16 @@ async function enviarBotonesTestDrive(instanceName: string, remoteJid: string, n
 
 async function enviarImagen(instanceName: string, remoteJid: string, url: string, caption: string) {
   try {
-    console.log('[webhook] enviando imagen:', url.slice(0, 80))
-    const res = await fetch(EVO_URL + '/message/sendMedia/' + instanceName, {
+    await fetch(EVO_URL + '/message/sendMedia/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
       body: JSON.stringify({ number: remoteJid, mediatype: 'image', media: url, caption }),
     })
-    console.log('[webhook] imagen status:', res.status)
   } catch (e) { console.error('[webhook] enviarImagen error:', e) }
 }
 
 async function enviarFicha(instanceName: string, remoteJid: string, url: string, linea: string, año: number) {
   try {
-    console.log('[webhook] enviando ficha:', url.slice(0, 80))
     await fetch(EVO_URL + '/message/sendMedia/' + instanceName, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
@@ -499,7 +470,7 @@ async function generarRespuesta(
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
-      system: (systemPrompt || 'Eres el asistente de ventas de ' + nombre + ', asesor KIA.') + '\n\n' + catalogoTexto + '\n\nIDENTIDAD:\nEres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del concesionario, dirección ni datos que no estén en el catálogo. Si no sabes la dirección exacta, di "en el concesionario" solamente. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.\n\nTU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.\n\nFORMATO — SIN EXCEPCIÓN:\n- Máximo 2-3 oraciones por mensaje — esto es WhatsApp, no un catálogo\n- CERO asteriscos (*), CERO negritas, CERO markdown, CERO listas con guiones o numeradas\n- Si hay varias versiones: menciona máximo 2, la más económica y la más popular, en prosa natural\n- Ejemplo CORRECTO: "Tenemos el Sportage desde 127M neto en versión Desire, y el más pedido es el Vibrant a 144M."\n- Ejemplo INCORRECTO: "*Sportage 2026:* • Desire: $129M • Vibrant: $145M"\n- Tono cálido, directo, colombiano — nunca robótico ni corporativo\n\nSOBRE PRECIOS Y DATOS TÉCNICOS:\n- NUNCA inventes precios, cuotas, especificaciones ni disponibilidad\n- Si el dato exacto está en el catálogo que tienes → úsalo\n- Si NO tienes el dato exacto → di "eso te lo confirmo en el concesionario cuando lo veas en persona" y redirige al test drive\n- NUNCA digas "te confirmo", "voy a consultar" ni "déjame verificar"\n\nSOBRE FOTOS, FICHAS Y SIMULACIONES:\n- NUNCA menciones fotos, fichas ni simulaciones en tu respuesta — ni que las envías, ni que están llegando, ni que van por otro lado\n- Si el cliente pregunta por la cuota: di únicamente "la simulación ya está siendo procesada y te llega en un momento" — nada más\n\nSOBRE FINANCIAMIENTO:\n- NUNCA menciones "KIA Crédito", "KIA Financia" ni "KIA Financial"\n- Usa siempre: "opciones de financiamiento con diferentes bancos"\n\nESTRATEGIA DE CONVERSACIÓN:\n1. Engancha con el beneficio más relevante para ese cliente (familia, economía, status, tecnología)\n2. Genera deseo — hazle imaginar cómo se siente manejar ese carro\n3. Maneja objeciones con empatía, no con argumentos — "entiendo, por eso mismo te propongo que lo pruebes"\n4. SIEMPRE termina con una pregunta que avance hacia el test drive\n5. Si el cliente duda o compara con otra marca: valida su proceso, destaca 1 diferencial KIA y propón el test drive como la forma de decidir con seguridad\n\nPRIORIDADES EN CADA MENSAJE — SEGUIR ESTE ORDEN:\n- Si el cliente mencionó inicial o crédito → confirma que la simulación está siendo procesada, NO hagas otra pregunta\n- Si el cliente preguntó algo concreto → responde ESO primero, luego avanza\n- NUNCA desvíes la conversación cuando el cliente ya mostró intención de compra\n- Quien controla la pregunta, controla la negociación — haz UNA sola pregunta por mensaje, siempre orientada al siguiente paso\n- Si ya tienes modelo + inicial → el siguiente paso es siempre el test drive, no más preguntas de producto\n\nPREGUNTAS DE CIERRE (rotar según contexto):\n- "¿Cuándo te gustaría venir a conocerlo en persona?"\n- "¿Tienes 30 minutos esta semana para probarlo en la carretera?"\n- "¿Qué día te queda mejor para el test drive, entre semana o el fin de semana?"\n- "El test drive no compromete nada — es solo para que lo sientas tú mismo. ¿Cuándo vamos?"\n\nREGLA DE ORO: si no sabes algo con certeza, no lo inventes. Invita al test drive. Ahí están todas las respuestas.',
+      system: (systemPrompt || 'Eres el asistente de ventas de ' + nombre + ', asesor KIA.') + '\n\n' + catalogoTexto + '\n\nIDENTIDAD:\nEres un asesor KIA experto, humano y cercano. NUNCA inventes el nombre del concesionario, dirección ni datos que no estén en el catálogo. Si no sabes la dirección exacta, di "en el concesionario" solamente. Hablas como un amigo de confianza que conoce cada carro a fondo y quiere ayudar al cliente a tomar la mejor decisión — no como un vendedor desesperado. Sabes que este lead está comparando opciones en otros concesionarios y tienes muy poco tiempo para ganarte su atención.\n\nTU ÚNICO OBJETIVO: llevar al lead a un test drive en el concesionario. Ahí se cierran todas las dudas. Ahí se cierra la venta.\n\nFORMATO — SIN EXCEPCIÓN:\n- Máximo 2-3 oraciones por mensaje — esto es WhatsApp, no un catálogo\n- CERO asteriscos (*), CERO negritas, CERO markdown, CERO listas con guiones o numeradas\n- Si hay varias versiones: menciona máximo 2, la más económica y la más popular, en prosa natural\n- Tono cálido, directo, colombiano — nunca robótico ni corporativo\n\nSOBRE PRECIOS Y DATOS TÉCNICOS:\n- NUNCA inventes precios, cuotas, especificaciones ni disponibilidad\n- Si el dato exacto está en el catálogo → úsalo\n- Si NO tienes el dato exacto → di "eso te lo confirmo en el concesionario" y redirige al test drive\n\nSOBRE FOTOS, FICHAS Y SIMULACIONES:\n- NUNCA menciones fotos, fichas ni simulaciones en tu respuesta\n- Si el cliente pregunta por la cuota: di únicamente "la simulación ya está siendo procesada y te llega en un momento"\n\nSOBRE FINANCIAMIENTO:\n- NUNCA menciones "KIA Crédito", "KIA Financia" ni "KIA Financial"\n- Usa siempre: "opciones de financiamiento con diferentes bancos"\n\nESTRATEGIA:\n1. Engancha con el beneficio más relevante para ese cliente\n2. Genera deseo — hazle imaginar cómo se siente manejar ese carro\n3. Maneja objeciones con empatía\n4. SIEMPRE termina con una pregunta que avance hacia el test drive\n\nPRIORIDADES:\n- Si el cliente mencionó inicial o crédito → confirma que la simulación está siendo procesada\n- Si el cliente preguntó algo concreto → responde ESO primero\n- NUNCA desvíes cuando el cliente ya mostró intención de compra\n- Haz UNA sola pregunta por mensaje, orientada al siguiente paso\n\nPREGUNTAS DE CIERRE:\n- "¿Cuándo te gustaría venir a conocerlo en persona?"\n- "¿Tienes 30 minutos esta semana para probarlo en la carretera?"\n- "¿Qué día te queda mejor para el test drive?"\n\nREGLA DE ORO: si no sabes algo con certeza, no lo inventes. Invita al test drive.',
       messages: [...historialLimpio, { role: 'user', content: texto }],
     })
     return msg.content[0].type === 'text' ? msg.content[0].text : null
@@ -565,14 +536,25 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (!texto) continue
 
       const telefonoRaw = remoteJid.replace('@s.whatsapp.net', '').replace(/^57/, '')
+
+      // ── GUARD: verificar si es lead registrado O tiene conversación activa ──
+      // Los leads de follow-up WhatsApp tienen conversación pero no siempre están en pulse_leads
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: leadCheck } = await (supabaseAdmin.from('pulse_leads') as any)
         .select('id')
         .or('telefono.ilike.%' + telefonoRaw + '%,telefono.ilike.%57' + telefonoRaw + '%')
         .limit(1)
         .maybeSingle()
-      if (!leadCheck) {
-        console.log('[webhook] IGNORADO — no es lead registrado: ' + telefonoRaw)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: convCheck } = await (supabaseAdmin.from('pulse_conversaciones') as any)
+        .select('id')
+        .eq('remote_jid', remoteJid)
+        .eq('instance_name', instanceName)
+        .maybeSingle()
+
+      if (!leadCheck && !convCheck) {
+        console.log('[webhook] IGNORADO — sin lead ni conversación activa: ' + telefonoRaw)
         continue
       }
 
@@ -626,7 +608,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 
       if (texto.trim().toLowerCase() === 'test_botones') {
         await enviarBotonesTestDrive(instanceName, remoteJid, 'KIA NEW PICANTO VIBRANT 2027')
-        console.log('[webhook] test botones enviado')
         continue
       }
 
@@ -652,7 +633,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       let simulacion: string | null = null
       if (modeloDetectado && inicial > 0 && plazo > 0) {
         simulacion = calcularSimulacion(modeloDetectado, inicial, plazo)
-        console.log('[webhook] simulacion calculada:', simulacion ? 'SI' : 'NO')
       }
 
       const respuesta = await generarRespuesta(texto, systemPrompt, nombre, historial, catalogoTexto)
@@ -682,10 +662,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
           const { dia, hora } = extraerDiaHora(nuevoHistorial)
           if (dia && hora) {
             await registrarCita(remoteJid, instanceName, dia, hora)
-            console.log('[webhook] cita detectada y registrada:', dia, hora)
           }
-        } else {
-          console.log('[webhook] cita ya existe en BD — skip')
         }
       }
 
@@ -698,7 +675,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       if (simulacion) {
         await new Promise(r => setTimeout(r, 600))
         await enviarTexto(instanceName, remoteJid, simulacion)
-        console.log('[webhook] simulacion enviada')
         await new Promise(r => setTimeout(r, 1800))
         const nombreModelo = modeloDetectado
           ? 'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año
@@ -716,20 +692,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
         await new Promise(r => setTimeout(r, 1500))
-        const nombreModeloFicha = modeloDetectado
-          ? 'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año
-          : 'el vehículo'
+        const nombreModeloFicha = 'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año
         await enviarBotonesTestDrive(instanceName, remoteJid, nombreModeloFicha)
       }
     }
 
     // ── FOLLOW-UP BACKGROUND (fire-and-forget) ────────────────────────────────
     const followUpBase = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
-    const followUpUrl = followUpBase + '/api/pulse/cron/follow-up'
-    const cronSecret = process.env.CRON_SECRET || ''
-    fetch(followUpUrl, {
+    fetch(followUpBase + '/api/pulse/cron/follow-up', {
       method: 'GET',
-      headers: { Authorization: 'Bearer ' + cronSecret },
+      headers: { Authorization: 'Bearer ' + (process.env.CRON_SECRET || '') },
     }).catch(e => console.error('[webhook] follow-up trigger error:', e))
 
     return NextResponse.json({ ok: true })
@@ -740,5 +712,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v25' })
+  return NextResponse.json({ ok: true, service: 'pulse-whatsapp-webhook-v26' })
 }

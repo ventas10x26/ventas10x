@@ -382,6 +382,9 @@ export function PulseFollowUpPanel() {
       }
     })
   }, [])
+
+  // Actualización optimista local
+  const handleUpdate = useCallback((jid: string, patch: Partial<FollowUpContact>) => {
     setData(prev => {
       if (!prev) return prev
       return {

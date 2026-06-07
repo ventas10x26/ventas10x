@@ -26,18 +26,15 @@ function slugEmail(email: string) {
   return email.replace('@', '_at_').replace(/\./g, '_').replace(/[^a-z0-9_]/gi, '').toLowerCase()
 }
 
-// Guardar número en profiles y pulse_waitlist cuando se conecta
 async function persistirNumeroConectado(email: string, phone: string) {
   try {
     const numero = phone.replace(/\D/g, '')
     const numeroFormateado = numero.startsWith('57') ? `+${numero}` : `+57${numero}`
 
-    // 1. Buscar user en auth.users por email
     const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
     const user = users?.find(u => u.email === email)
 
     if (user) {
-      // Actualizar profiles.whatsapp
       await supabaseAdmin
         .from('profiles')
         .update({ whatsapp: numeroFormateado })
@@ -45,7 +42,6 @@ async function persistirNumeroConectado(email: string, phone: string) {
       console.log('[instance] whatsapp guardado en profiles:', numeroFormateado)
     }
 
-    // 2. Actualizar pulse_waitlist.metadata.whatsapp
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: row } = await (supabaseAdmin.from('pulse_waitlist') as any)
       .select('id, metadata')
@@ -65,14 +61,36 @@ async function persistirNumeroConectado(email: string, phone: string) {
   }
 }
 
+// ── Actualizar webhook de instancia existente a base64: false ─────────────────
+async function corregirWebhook(instanceName: string, webhookUrl: string) {
+  try {
+    const { data: current } = await evoFetch(`/webhook/find/${instanceName}`)
+    if (current?.webhookBase64 === true) {
+      await evoFetch(`/webhook/set/${instanceName}`, 'POST', {
+        webhook: {
+          url: webhookUrl,
+          enabled: true,
+          webhookByEvents: true,
+          webhookBase64: false,
+          events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+        },
+      })
+      console.log('[instance] webhook corregido a base64: false para:', instanceName)
+    }
+  } catch (e) {
+    console.error('[instance] corregirWebhook error:', e)
+  }
+}
+
 // GET /api/pulse/whatsapp/instance?email=asesor@gmail.com
 export async function GET(req: NextRequest) {
   const email = req.nextUrl.searchParams.get('email')
   if (!email) return NextResponse.json({ error: 'email requerido' }, { status: 400 })
 
   const instanceName = slugEmail(email)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
+  const webhookUrl = `${appUrl}/api/pulse/whatsapp/webhook/${instanceName}/messages-upsert`
 
-  // Usar connectionState directo (no fetchInstances que da 401)
   const { ok, data } = await evoFetch(`/instance/connectionState/${instanceName}`)
 
   if (!ok || !data) {
@@ -83,7 +101,6 @@ export async function GET(req: NextRequest) {
   let ownerJid = data?.instance?.ownerJid || data?.ownerJid || null
   let profileName = data?.instance?.profileName || data?.profileName || null
 
-  // Si no trajo ownerJid, intentar con fetchInstances singular
   if (state === 'open' && !ownerJid) {
     const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${instanceName}`)
     ownerJid = fetchData?.instance?.ownerJid || fetchData?.ownerJid || null
@@ -91,9 +108,10 @@ export async function GET(req: NextRequest) {
     console.log('[instance GET] fetchInstances data:', JSON.stringify(fetchData))
   }
 
-  // Si aún no hay ownerJid, leer el número guardado en pulse_waitlist
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let phone = ownerJid?.replace('@s.whatsapp.net', '') || profileName || null
   if (state === 'open' && !phone) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: wlRow } = await (supabaseAdmin.from('pulse_waitlist') as any)
       .select('metadata')
       .ilike('email', email)
@@ -104,8 +122,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (state === 'open') {
-    // Persistir número automáticamente al detectar conexión
     if (phone) await persistirNumeroConectado(email, phone)
+
+    // Corregir webhook si aún tiene base64: true
+    await corregirWebhook(instanceName, webhookUrl)
 
     return NextResponse.json({
       connected: true,
@@ -116,7 +136,6 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // No conectado — obtener QR
   const { data: qrData } = await evoFetch(`/instance/connect/${instanceName}`)
   return NextResponse.json({
     connected: false,
@@ -134,11 +153,8 @@ export async function POST(req: NextRequest) {
 
   const instanceName = slugEmail(email)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
-
-  // Webhook apunta al catch-all con el instanceName en el path
   const webhookUrl = `${appUrl}/api/pulse/whatsapp/webhook/${instanceName}/messages-upsert`
 
-  // Intentar crear instancia
   const { ok, data } = await evoFetch('/instance/create', 'POST', {
     instanceName,
     integration: 'WHATSAPP-BAILEYS',
@@ -146,13 +162,14 @@ export async function POST(req: NextRequest) {
     webhook: {
       url: webhookUrl,
       byEvents: true,
-      base64: true,
+      base64: false,          // ← fix: era true, causaba que los mensajes llegaran codificados
       events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
     },
   })
 
   if (!ok && !data?.hash) {
-    // Ya existe — reconectar
+    // Ya existe — corregir webhook y reconectar
+    await corregirWebhook(instanceName, webhookUrl)
     const { data: connectData } = await evoFetch(`/instance/connect/${instanceName}`)
     return NextResponse.json({
       ok: true,

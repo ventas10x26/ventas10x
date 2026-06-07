@@ -72,6 +72,8 @@ async function corregirWebhook(instanceName: string, webhookUrl: string) {
           enabled: true,
           webhookByEvents: true,
           webhookBase64: false,
+          base64: false,
+          byEvents: true,
           events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
         },
       })
@@ -162,7 +164,9 @@ export async function POST(req: NextRequest) {
     webhook: {
       url: webhookUrl,
       byEvents: true,
-      base64: false,          // ← fix: era true, causaba que los mensajes llegaran codificados
+      base64: false,
+      webhookByEvents: true,
+      webhookBase64: false,
       events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
     },
   })

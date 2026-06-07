@@ -56,12 +56,15 @@ function ContactCard({
   contact: FollowUpContact
   onWhatsApp: (phone: string) => void
   onUpdate: (jid: string, patch: Partial<FollowUpContact>) => void
+  onDelete: (jid: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [nombre, setNombre] = useState(contact.nombre_contacto ?? '')
   const [guardandoNombre, setGuardandoNombre] = useState(false)
   const [guardandoToggle, setGuardandoToggle] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
+  const [confirmEliminar, setConfirmEliminar] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -88,6 +91,40 @@ function ContactCard({
       setEditandoNombre(false)
     } finally {
       setGuardandoNombre(false)
+    }
+  }
+
+  const eliminarContacto = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirmEliminar) {
+      setConfirmEliminar(true)
+      // Auto-cancelar confirmación a los 3 segundos
+      setTimeout(() => setConfirmEliminar(false), 3000)
+      return
+    }
+    setEliminando(true)
+    try {
+      const jidEncoded = encodeURIComponent(contact.remote_jid)
+      await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, { method: 'DELETE' })
+      onDelete(contact.remote_jid)
+    } finally {
+      setEliminando(false)
+      setConfirmEliminar(false)
+    }
+  }
+    e.stopPropagation()
+    setGuardandoToggle(true)
+    const nuevoValor = !fuActivo
+    try {
+      const jidEncoded = encodeURIComponent(contact.remote_jid)
+      await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followup_activo: nuevoValor }),
+      })
+      onUpdate(contact.remote_jid, { followup_activo_contacto: nuevoValor })
+    } finally {
+      setGuardandoToggle(false)
     }
   }
 
@@ -205,6 +242,25 @@ function ContactCard({
           <WaIcon />
         </button>
 
+        {/* Botón eliminar */}
+        <button
+          type="button"
+          onClick={eliminarContacto}
+          disabled={eliminando}
+          title={confirmEliminar ? 'Click de nuevo para confirmar' : 'Eliminar contacto definitivamente'}
+          style={{
+            flexShrink: 0, width: '32px', height: '32px', borderRadius: '50%',
+            background: confirmEliminar ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${confirmEliminar ? 'rgba(248,113,113,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: eliminando ? 'wait' : 'pointer',
+            fontSize: '14px', transition: 'all .2s',
+            opacity: eliminando ? 0.5 : 1,
+          }}
+        >
+          {eliminando ? '…' : confirmEliminar ? '⚠' : '🗑'}
+        </button>
+
         <span style={{ color: '#334155', fontSize: '11px', flexShrink: 0, transition: 'transform .2s', transform: expanded ? 'rotate(180deg)' : 'none' }}>▼</span>
       </div>
 
@@ -313,8 +369,19 @@ export function PulseFollowUpPanel() {
 
   const abrirWA = (phone: string) => window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank')
 
-  // Actualización optimista local sin recargar la API
-  const handleUpdate = useCallback((jid: string, patch: Partial<FollowUpContact>) => {
+  // Eliminación optimista local
+  const handleDelete = useCallback((jid: string) => {
+    setData(prev => {
+      if (!prev) return prev
+      const contacts = prev.contacts.filter(c => c.remote_jid !== jid)
+      return {
+        ...prev,
+        contacts,
+        total: contacts.length,
+        pendientes: contacts.filter(c => c.tiene_followup_pendiente).length,
+      }
+    })
+  }, [])
     setData(prev => {
       if (!prev) return prev
       return {
@@ -438,7 +505,7 @@ export function PulseFollowUpPanel() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {contactosFiltrados.map(contact => (
-            <ContactCard key={contact.remote_jid} contact={contact} onWhatsApp={abrirWA} onUpdate={handleUpdate} />
+            <ContactCard key={contact.remote_jid} contact={contact} onWhatsApp={abrirWA} onUpdate={handleUpdate} onDelete={handleDelete} />
           ))}
           {busqueda && (
             <p style={{ fontSize: '11px', color: '#334155', textAlign: 'center', margin: '4px 0 0' }}>

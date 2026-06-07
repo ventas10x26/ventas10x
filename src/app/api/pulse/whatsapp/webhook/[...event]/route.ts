@@ -657,6 +657,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       })()
 
       const esPrimera = modeloDetectado ? !mediaEnviada.includes(modeloDetectado.linea) : false
+
+      // Detectar si el lead pide fotos o ficha explícitamente
+      const textoLowerMedia = texto.toLowerCase()
+      const pideFoto = /foto|imagen|ver|como es|como luce|muéstrame|muestrame|enviame|mándame|mandame|pic|photo/i.test(textoLowerMedia)
+      const pideFicha = /ficha|técnica|tecnica|especificaci|datos técnicos|datos tecnicos|catalogo|catálogo|pdf|documento/i.test(textoLowerMedia)
+      const enviarMedia = esPrimera || pideFoto || pideFicha
       const { inicial, plazo } = extraerNumeros(textoCompleto)
       console.log('[webhook] modelo: ' + (modeloDetectado?.linea || 'ninguno') + ' | inicial: ' + inicial + ' | plazo: ' + plazo)
 
@@ -712,13 +718,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         await enviarBotonesTestDrive(instanceName, remoteJid, nombreModelo)
       }
 
-      if (modeloDetectado && esPrimera && modeloDetectado.imagenUrl) {
+      if (modeloDetectado && enviarMedia && modeloDetectado.imagenUrl) {
         await new Promise(r => setTimeout(r, 800))
         await enviarImagen(instanceName, remoteJid, modeloDetectado.imagenUrl,
           'KIA ' + modeloDetectado.linea + ' ' + modeloDetectado.version + ' ' + modeloDetectado.año)
       }
 
-      if (modeloDetectado && esPrimera && modeloDetectado.fichaTecnica) {
+      if (modeloDetectado && enviarMedia && modeloDetectado.fichaTecnica) {
         await new Promise(r => setTimeout(r, 600))
         await enviarFicha(instanceName, remoteJid, modeloDetectado.fichaTecnica, modeloDetectado.linea, modeloDetectado.año)
         await new Promise(r => setTimeout(r, 1500))

@@ -228,23 +228,22 @@ function ContactCard({
           <WaIcon />
         </button>
 
-        {/* Botón eliminar con confirmación */}
+        {/* Botón eliminar */}
         <button
           type="button"
-          onClick={eliminarContacto}
+          onClick={(e) => { e.stopPropagation(); setExpanded(true); setConfirmEliminar(true) }}
           disabled={eliminando}
-          title={confirmEliminar ? 'Click de nuevo para confirmar eliminación' : 'Eliminar contacto'}
+          title="Eliminar contacto"
           style={{
             flexShrink: 0, width: '32px', height: '32px', borderRadius: '50%',
             background: confirmEliminar ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.04)',
             border: `1px solid ${confirmEliminar ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: eliminando ? 'wait' : 'pointer',
-            fontSize: '14px', transition: 'all .2s',
-            opacity: eliminando ? 0.5 : 1,
+            cursor: eliminando ? 'wait' : 'pointer', fontSize: '14px',
+            transition: 'all .2s', opacity: eliminando ? 0.5 : 1,
           }}
         >
-          {eliminando ? '…' : confirmEliminar ? '⚠' : '🗑'}
+          {eliminando ? '…' : '🗑'}
         </button>
 
         <span style={{ color: '#334155', fontSize: '11px', flexShrink: 0, transition: 'transform .2s', transform: expanded ? 'rotate(180deg)' : 'none' }}>▼</span>
@@ -315,8 +314,38 @@ function ContactCard({
 
           {/* Zona de peligro — eliminar */}
           {confirmEliminar && (
-            <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#fca5a5' }}>
-              ⚠ Esto eliminará la conversación y todos los logs de follow-up. Click en 🗑 para confirmar.
+            <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '10px', padding: '12px 14px' }}>
+              <p style={{ fontSize: '12px', color: '#fca5a5', margin: '0 0 10px' }}>
+                ⚠ Esto eliminará la conversación y todos los logs de follow-up permanentemente.
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    setEliminando(true)
+                    try {
+                      const jidEncoded = encodeURIComponent(contact.remote_jid)
+                      const res = await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, { method: 'DELETE' })
+                      if (res.ok) onDelete(contact.remote_jid)
+                    } finally {
+                      setEliminando(false)
+                      setConfirmEliminar(false)
+                    }
+                  }}
+                  disabled={eliminando}
+                  style={{ padding: '7px 14px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: eliminando ? 'wait' : 'pointer', fontFamily: FONT_BODY }}
+                >
+                  {eliminando ? 'Eliminando…' : 'Sí, eliminar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setConfirmEliminar(false) }}
+                  style={{ padding: '7px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#94a3b8', fontSize: '12px', cursor: 'pointer', fontFamily: FONT_BODY }}
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           )}
         </div>

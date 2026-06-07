@@ -66,6 +66,8 @@ function ContactCard({
   const [guardandoToggle, setGuardandoToggle] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [confirmEliminar, setConfirmEliminar] = useState(false)
+  const confirmRef = useRef(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -97,19 +99,29 @@ function ContactCard({
 
   const eliminarContacto = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirmEliminar) {
+    if (!confirmRef.current) {
+      // Primer click — pedir confirmación
+      confirmRef.current = true
       setConfirmEliminar(true)
-      setTimeout(() => setConfirmEliminar(false), 3000)
+      // Auto-cancelar a los 4 segundos
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        confirmRef.current = false
+        setConfirmEliminar(false)
+      }, 4000)
       return
     }
+    // Segundo click — ejecutar eliminación
+    if (timerRef.current) clearTimeout(timerRef.current)
+    confirmRef.current = false
+    setConfirmEliminar(false)
     setEliminando(true)
     try {
       const jidEncoded = encodeURIComponent(contact.remote_jid)
-      await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, { method: 'DELETE' })
-      onDelete(contact.remote_jid)
+      const res = await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, { method: 'DELETE' })
+      if (res.ok) onDelete(contact.remote_jid)
     } finally {
       setEliminando(false)
-      setConfirmEliminar(false)
     }
   }
 

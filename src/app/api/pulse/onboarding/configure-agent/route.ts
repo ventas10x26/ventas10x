@@ -1,3 +1,4 @@
+// src/app/api/pulse/onboarding/configure-agent/route.ts
 // POST: configura el asistente IA del asesor KIA (onboarding demo)
 // Persiste en pulse_waitlist y genera perfil/mensaje con Claude.
 // EMAIL: dispara email de bienvenida en el primer onboarding con voz grabada.
@@ -64,11 +65,11 @@ Tono colombiano, cercano, sin inventar precios exactos.`,
     const clean = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed = JSON.parse(clean) as Record<string, string>
     return {
-      perfil: parsed.perfil || fallback.perfil,
-      especializacion: parsed.especializacion || fallback.especializacion,
-      propuesta_valor: parsed.propuesta_valor || fallback.propuesta_valor,
-      primer_mensaje: parsed.primer_mensaje || fallback.primer_mensaje,
-      system_prompt: parsed.system_prompt || fallback.system_prompt,
+      perfil:           parsed.perfil           || fallback.perfil,
+      especializacion:  parsed.especializacion  || fallback.especializacion,
+      propuesta_valor:  parsed.propuesta_valor  || fallback.propuesta_valor,
+      primer_mensaje:   parsed.primer_mensaje   || fallback.primer_mensaje,
+      system_prompt:    parsed.system_prompt    || fallback.system_prompt,
     }
   } catch (aiErr) {
     console.warn('[pulse/onboarding/configure-agent] IA fallback:', aiErr)
@@ -115,7 +116,55 @@ async function persistirWaitlist(
   return { id: (inserted?.id as string) ?? null, esNuevo: true }
 }
 
-// ── Dispara el email de bienvenida sin bloquear la respuesta ──
+// ── Sincronizar pulse_agentes automáticamente al completar onboarding ─────────
+async function sincronizarPulseAgente(emailTrim: string): Promise<void> {
+  try {
+    const instanceName = emailTrim
+      .replace('@', '_at_')
+      .replace(/\./g, '_')
+      .replace(/[^a-z0-9_]/gi, '')
+      .toLowerCase()
+
+    // Obtener user_id del usuario autenticado
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
+    const user = users?.find(u => u.email === emailTrim)
+    const userId = user?.id ?? null
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabaseAdmin as any
+    const { data: existente } = await db
+      .from('pulse_agentes')
+      .select('id, user_id')
+      .eq('instance_name', instanceName)
+      .maybeSingle()
+
+    if (existente) {
+      // Actualizar bot_activo y user_id si falta
+      const patch: Record<string, unknown> = { bot_activo: true }
+      if (!existente.user_id && userId) patch.user_id = userId
+      await db.from('pulse_agentes').update(patch).eq('instance_name', instanceName)
+      console.log('[configure-agent] pulse_agentes actualizado:', instanceName)
+    } else {
+      await db.from('pulse_agentes').insert({
+        user_id: userId,
+        instance_name: instanceName,
+        bot_activo: true,
+        marca: 'KIA',
+        followup_activo: true,
+        followup_dia1: true,
+        followup_dia3: true,
+        followup_dia7: true,
+        followup_msg_dia1: '¡Hola {nombre}! 👋 Soy {asesor} de KIA. Solo quería confirmar si pudiste ver la info del {modelo}. ¿Tienes alguna pregunta? 🚗',
+        followup_msg_dia3: '¡Hola {nombre}! 😊 Quería saber si pudiste revisar el catálogo del {modelo}. Esta semana tenemos disponibilidad para test drive. ¿Te interesa?',
+        followup_msg_dia7: 'Hola {nombre}, es mi último mensaje 🙏. Si en algún momento querés info sobre el {modelo} u otro vehículo KIA, acá estoy. ¡Que tengas un excelente día!',
+      })
+      console.log('[configure-agent] pulse_agentes CREADO:', instanceName)
+    }
+  } catch (e) {
+    console.error('[configure-agent] sincronizarPulseAgente error:', e)
+  }
+}
+
 function dispararEmailBienvenida(email: string, nombre: string, appUrl: string) {
   fetch(`${appUrl}/api/pulse/email-bienvenida`, {
     method: 'POST',
@@ -145,45 +194,51 @@ export async function POST(req: NextRequest) {
     if (!textoVozOk && !duracionOk)
       return NextResponse.json({ error: 'Graba al menos 8 segundos o una frase completa en el paso de voz' }, { status: 400 })
 
-    const nombreTrim = nombre.trim()
-    const emailTrim = email.trim().toLowerCase()
-    const whatsappTrim = whatsapp.trim()
-    const estiloTrim = estilo_venta.trim()
-    const obstaculoTrim = obstaculo.trim()
+    const nombreTrim     = nombre.trim()
+    const emailTrim      = email.trim().toLowerCase()
+    const whatsappTrim   = whatsapp.trim()
+    const estiloTrim     = estilo_venta.trim()
+    const obstaculoTrim  = obstaculo.trim()
     const muestraVozTrim = (typeof muestra_voz === 'string' ? muestra_voz : '').trim()
-    const duracionVoz = typeof duracion_voz_seg === 'number' && duracion_voz_seg > 0 ? duracion_voz_seg : null
-    const primerNombre = nombreTrim.split(/\s+/)[0]
+    const duracionVoz    = typeof duracion_voz_seg === 'number' && duracion_voz_seg > 0 ? duracion_voz_seg : null
+    const primerNombre   = nombreTrim.split(/\s+/)[0]
 
-    const fallback = configFallback(nombreTrim, estiloTrim, obstaculoTrim)
+    const fallback    = configFallback(nombreTrim, estiloTrim, obstaculoTrim)
     const agentConfig = await generarConIA(nombreTrim, estiloTrim, obstaculoTrim, muestraVozTrim, primerNombre, fallback)
 
     const metadata = {
-      onboarding_demo: true,
-      whatsapp: whatsappTrim,
-      estilo_venta: estiloTrim,
-      obstaculo: obstaculoTrim,
-      muestra_voz: muestraVozTrim,
+      onboarding_demo:  true,
+      bot_activo:       true,   // ← FIX: siempre true al completar onboarding
+      whatsapp:         whatsappTrim,
+      estilo_venta:     estiloTrim,
+      obstaculo:        obstaculoTrim,
+      muestra_voz:      muestraVozTrim,
       duracion_voz_seg: duracionVoz,
       manejo_objeciones: '',
-      respuestas_tipo: '',
-      agent_config: agentConfig,
-      configured_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      user_agent: req.headers.get('user-agent') || null,
+      respuestas_tipo:  '',
+      agent_config:     agentConfig,
+      configured_at:    new Date().toISOString(),
+      updated_at:       new Date().toISOString(),
+      user_agent:       req.headers.get('user-agent') || null,
     }
 
-    const { id: agentId, esNuevo } = await persistirWaitlist(emailTrim, nombreTrim, metadata)
+    const { id: agentId } = await persistirWaitlist(emailTrim, nombreTrim, metadata)
 
-    // ── Email de bienvenida: siempre que haya voz grabada ──
+    // Sincronizar pulse_agentes en background (no bloquea la respuesta)
+    sincronizarPulseAgente(emailTrim).catch(e =>
+      console.error('[configure-agent] sync bg error:', e)
+    )
+
+    // Email de bienvenida
     if (textoVozOk || duracionOk) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pulsemotor.co'
       dispararEmailBienvenida(emailTrim, nombreTrim, appUrl)
     }
 
     return NextResponse.json({
-      ok: true,
+      ok:       true,
       agent_id: agentId,
-      saved: !!agentId,
+      saved:    !!agentId,
       ...agentConfig,
     })
   } catch (e) {

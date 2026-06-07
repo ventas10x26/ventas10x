@@ -52,6 +52,7 @@ function ContactCard({
   contact,
   onWhatsApp,
   onUpdate,
+  onDelete,
 }: {
   contact: FollowUpContact
   onWhatsApp: (phone: string) => void
@@ -98,7 +99,6 @@ function ContactCard({
     e.stopPropagation()
     if (!confirmEliminar) {
       setConfirmEliminar(true)
-      // Auto-cancelar confirmación a los 3 segundos
       setTimeout(() => setConfirmEliminar(false), 3000)
       return
     }
@@ -110,21 +110,6 @@ function ContactCard({
     } finally {
       setEliminando(false)
       setConfirmEliminar(false)
-    }
-  }
-    e.stopPropagation()
-    setGuardandoToggle(true)
-    const nuevoValor = !fuActivo
-    try {
-      const jidEncoded = encodeURIComponent(contact.remote_jid)
-      await fetch(`/api/pulse/followup-contacts/${jidEncoded}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ followup_activo: nuevoValor }),
-      })
-      onUpdate(contact.remote_jid, { followup_activo_contacto: nuevoValor })
-    } finally {
-      setGuardandoToggle(false)
     }
   }
 
@@ -149,15 +134,9 @@ function ContactCard({
 
   return (
     <div style={{
-      background: !fuActivo
-        ? 'rgba(255,255,255,0.015)'
-        : contact.tiene_followup_pendiente
-          ? 'rgba(14,165,233,0.04)'
-          : 'rgba(255,255,255,0.02)',
+      background: !fuActivo ? 'rgba(255,255,255,0.015)' : contact.tiene_followup_pendiente ? 'rgba(14,165,233,0.04)' : 'rgba(255,255,255,0.02)',
       border: `1px solid ${!fuActivo ? 'rgba(255,255,255,0.04)' : contact.tiene_followup_pendiente ? 'rgba(14,165,233,0.18)' : 'rgba(255,255,255,0.06)'}`,
-      borderRadius: '12px',
-      overflow: 'hidden',
-      transition: 'all .2s',
+      borderRadius: '12px', overflow: 'hidden', transition: 'all .2s',
       opacity: fuActivo ? 1 : 0.6,
     }}>
 
@@ -180,12 +159,8 @@ function ContactCard({
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>
-              {displayName}
-            </span>
-            {contact.nombre_contacto && (
-              <span style={{ fontSize: '11px', color: '#334155' }}>· +{contact.phone}</span>
-            )}
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>{displayName}</span>
+            {contact.nombre_contacto && <span style={{ fontSize: '11px', color: '#334155' }}>· +{contact.phone}</span>}
             {contact.proximo_followup && fuActivo && (
               <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', background: 'rgba(14,165,233,0.15)', border: '1px solid rgba(14,165,233,0.3)', color: '#7dd3fc' }}>
                 📅 Pendiente {contact.proximo_followup}
@@ -207,19 +182,18 @@ function ContactCard({
           </div>
         </div>
 
-        {/* Toggle follow-up individual */}
+        {/* Toggle follow-up */}
         <button
           type="button"
           onClick={toggleFollowup}
           disabled={guardandoToggle}
-          title={fuActivo ? 'Pausar follow-up para este contacto' : 'Activar follow-up para este contacto'}
+          title={fuActivo ? 'Pausar follow-up' : 'Activar follow-up'}
           style={{
             flexShrink: 0, position: 'relative',
             width: '36px', height: '20px', borderRadius: '10px', border: 'none',
             background: fuActivo ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : 'rgba(255,255,255,0.1)',
             cursor: guardandoToggle ? 'wait' : 'pointer',
-            opacity: guardandoToggle ? 0.6 : 1,
-            transition: 'background .2s',
+            opacity: guardandoToggle ? 0.6 : 1, transition: 'background .2s',
             boxShadow: fuActivo ? '0 0 8px rgba(14,165,233,0.25)' : 'none',
           }}
         >
@@ -242,16 +216,16 @@ function ContactCard({
           <WaIcon />
         </button>
 
-        {/* Botón eliminar */}
+        {/* Botón eliminar con confirmación */}
         <button
           type="button"
           onClick={eliminarContacto}
           disabled={eliminando}
-          title={confirmEliminar ? 'Click de nuevo para confirmar' : 'Eliminar contacto definitivamente'}
+          title={confirmEliminar ? 'Click de nuevo para confirmar eliminación' : 'Eliminar contacto'}
           style={{
             flexShrink: 0, width: '32px', height: '32px', borderRadius: '50%',
             background: confirmEliminar ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${confirmEliminar ? 'rgba(248,113,113,0.4)' : 'rgba(255,255,255,0.08)'}`,
+            border: `1px solid ${confirmEliminar ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.08)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: eliminando ? 'wait' : 'pointer',
             fontSize: '14px', transition: 'all .2s',
@@ -281,25 +255,14 @@ function ContactCard({
                   onChange={e => setNombre(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') guardarNombre(); if (e.key === 'Escape') setEditandoNombre(false) }}
                   placeholder="Ej: Sandra Vélez"
-                  style={{
-                    flex: 1, padding: '7px 10px', borderRadius: '8px',
-                    border: '1.5px solid rgba(14,165,233,0.35)', background: 'rgba(14,165,233,0.06)',
-                    color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none',
-                  }}
+                  style={{ flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1.5px solid rgba(14,165,233,0.35)', background: 'rgba(14,165,233,0.06)', color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
                 />
-                <button
-                  type="button"
-                  onClick={guardarNombre}
-                  disabled={guardandoNombre}
-                  style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT_BODY }}
-                >
+                <button type="button" onClick={guardarNombre} disabled={guardandoNombre}
+                  style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT_BODY }}>
                   {guardandoNombre ? '…' : '✓'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setEditandoNombre(false); setNombre(contact.nombre_contacto ?? '') }}
-                  style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: '12px', cursor: 'pointer', fontFamily: FONT_BODY }}
-                >
+                <button type="button" onClick={() => { setEditandoNombre(false); setNombre(contact.nombre_contacto ?? '') }}
+                  style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: '12px', cursor: 'pointer', fontFamily: FONT_BODY }}>
                   ✕
                 </button>
               </div>
@@ -308,11 +271,8 @@ function ContactCard({
                 <span style={{ fontSize: '13px', color: contact.nombre_contacto ? '#e2e8f0' : '#334155' }}>
                   {contact.nombre_contacto || 'Sin nombre asignado'}
                 </span>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); setEditandoNombre(true) }}
-                  style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#475569', fontSize: '11px', cursor: 'pointer', fontFamily: FONT_BODY }}
-                >
+                <button type="button" onClick={e => { e.stopPropagation(); setEditandoNombre(true) }}
+                  style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#475569', fontSize: '11px', cursor: 'pointer', fontFamily: FONT_BODY }}>
                   ✏ editar
                 </button>
               </div>
@@ -338,6 +298,13 @@ function ContactCard({
               <span style={{ color: '#6ee7b7', fontWeight: 600 }}>{contact.ultimo_followup.tipo}</span>
               <span>·</span>
               <span>{new Date(contact.ultimo_followup.enviado_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          )}
+
+          {/* Zona de peligro — eliminar */}
+          {confirmEliminar && (
+            <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', color: '#fca5a5' }}>
+              ⚠ Esto eliminará la conversación y todos los logs de follow-up. Click en 🗑 para confirmar.
             </div>
           )}
         </div>
@@ -369,28 +336,18 @@ export function PulseFollowUpPanel() {
 
   const abrirWA = (phone: string) => window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank')
 
-  // Eliminación optimista local
+  const handleUpdate = useCallback((jid: string, patch: Partial<FollowUpContact>) => {
+    setData(prev => {
+      if (!prev) return prev
+      return { ...prev, contacts: prev.contacts.map(c => c.remote_jid === jid ? { ...c, ...patch } : c) }
+    })
+  }, [])
+
   const handleDelete = useCallback((jid: string) => {
     setData(prev => {
       if (!prev) return prev
       const contacts = prev.contacts.filter(c => c.remote_jid !== jid)
-      return {
-        ...prev,
-        contacts,
-        total: contacts.length,
-        pendientes: contacts.filter(c => c.tiene_followup_pendiente).length,
-      }
-    })
-  }, [])
-
-  // Actualización optimista local
-  const handleUpdate = useCallback((jid: string, patch: Partial<FollowUpContact>) => {
-    setData(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        contacts: prev.contacts.map(c => c.remote_jid === jid ? { ...c, ...patch } : c),
-      }
+      return { ...prev, contacts, total: contacts.length, pendientes: contacts.filter(c => c.tiene_followup_pendiente).length }
     })
   }, [])
 
@@ -399,28 +356,19 @@ export function PulseFollowUpPanel() {
     if (!pasaFiltro) return false
     if (!busqueda.trim()) return true
     const q = busqueda.toLowerCase()
-    return (
-      c.phone.includes(q) ||
-      (c.nombre_contacto ?? '').toLowerCase().includes(q) ||
-      (c.primer_mensaje ?? '').toLowerCase().includes(q)
-    )
+    return c.phone.includes(q) || (c.nombre_contacto ?? '').toLowerCase().includes(q) || (c.primer_mensaje ?? '').toLowerCase().includes(q)
   })
 
   return (
     <div style={{ fontFamily: FONT_BODY }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '3px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, fontFamily: FONT }}>Follow-up de contactos</h2>
             {data && (
-              <span style={{
-                fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
-                background: data.followup_activo ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${data.followup_activo ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.08)'}`,
-                color: data.followup_activo ? '#6ee7b7' : '#475569',
-              }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: data.followup_activo ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${data.followup_activo ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.08)'}`, color: data.followup_activo ? '#6ee7b7' : '#475569' }}>
                 {data.followup_activo ? '● Activo' : '○ Inactivo'}
               </span>
             )}
@@ -429,57 +377,45 @@ export function PulseFollowUpPanel() {
             {data ? `${data.total} contactos · ${data.pendientes} con follow-up pendiente` : 'Cargando…'}
           </p>
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Filtros */}
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', overflow: 'hidden' }}>
             {(['pendientes', 'todos'] as const).map(f => (
               <button key={f} type="button" onClick={() => setFiltro(f)}
-                style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', background: filtro === f ? 'rgba(14,165,233,0.15)' : 'transparent', color: filtro === f ? '#7dd3fc' : '#475569', fontSize: '12px', fontWeight: 600, fontFamily: FONT_BODY, transition: 'all .15s' }}
-              >
+                style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', background: filtro === f ? 'rgba(14,165,233,0.15)' : 'transparent', color: filtro === f ? '#7dd3fc' : '#475569', fontSize: '12px', fontWeight: 600, fontFamily: FONT_BODY, transition: 'all .15s' }}>
                 {f === 'pendientes' ? '📅 Pendientes' : '👥 Todos'}
               </button>
             ))}
           </div>
           <button type="button" onClick={cargar} disabled={loading}
             style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', cursor: 'pointer', fontSize: '14px', opacity: loading ? 0.5 : 1 }}
-            title="Actualizar"
-          >🔄</button>
+            title="Actualizar">🔄</button>
         </div>
       </div>
 
-      {/* ── Buscador ── */}
+      {/* Buscador */}
       <div style={{ position: 'relative', marginBottom: '14px' }}>
         <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: '#334155', pointerEvents: 'none' }}>🔍</span>
         <input
-          type="text"
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
+          type="text" value={busqueda} onChange={e => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre, número o mensaje…"
-          style={{
-            width: '100%', padding: '9px 12px 9px 36px', borderRadius: '10px',
-            border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)',
-            color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none',
-            transition: 'border-color .2s', boxSizing: 'border-box',
-          }}
+          style={{ width: '100%', padding: '9px 12px 9px 36px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
           onFocus={e => (e.target.style.borderColor = 'rgba(14,165,233,0.35)')}
           onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
         />
         {busqueda && (
           <button type="button" onClick={() => setBusqueda('')}
-            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}
-          >×</button>
+            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>×</button>
         )}
       </div>
 
-      {/* ── Métricas ── */}
+      {/* Métricas */}
       {data && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '14px' }}>
           {[
-            { label: 'Total contactos',     val: data.total,                                                         color: '#7dd3fc' },
-            { label: 'Follow-up pendiente', val: data.pendientes,                                                    color: '#fbbf24' },
-            { label: 'Ya contactados',      val: data.contacts.filter(c => c.followup_count > 0).length,            color: '#6ee7b7' },
-            { label: 'Respondieron',        val: data.contacts.filter(c => c.ultimo_rol === 'user').length,          color: '#a78bfa' },
+            { label: 'Total contactos',     val: data.total,                                                color: '#7dd3fc' },
+            { label: 'Follow-up pendiente', val: data.pendientes,                                          color: '#fbbf24' },
+            { label: 'Ya contactados',      val: data.contacts.filter(c => c.followup_count > 0).length,  color: '#6ee7b7' },
+            { label: 'Respondieron',        val: data.contacts.filter(c => c.ultimo_rol === 'user').length, color: '#a78bfa' },
           ].map(m => (
             <div key={m.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '10px 14px' }}>
               <div style={{ fontSize: '10px', color: '#475569', marginBottom: '4px' }}>{m.label}</div>
@@ -489,7 +425,7 @@ export function PulseFollowUpPanel() {
         </div>
       )}
 
-      {/* ── Lista ── */}
+      {/* Lista */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#475569', fontSize: '13px' }}>Cargando contactos…</div>
       ) : !data?.followup_activo ? (

@@ -383,62 +383,92 @@ async function enviarFicha(instanceName: string, remoteJid: string, url: string,
 }
 
 // ── CONFIG AGENTE ─────────────────────────────────────────────────────────────
+// pulse_agentes es la fuente de verdad para bot_activo
+// pulse_waitlist provee el system_prompt y nombre del asesor
 
 async function obtenerConfigAgente(instanceName: string): Promise<{ systemPrompt: string; nombre: string; botActivo: boolean }> {
   const def = { systemPrompt: '', nombre: 'el asesor', botActivo: false }
   try {
-    const partes = instanceName.split('_at_')
-    const emailFromInstance = partes.length === 2
-      ? partes[0] + '@' + partes[1].replace(/_/g, '.')
-      : null
+    const emailFromInstance = (() => {
+      const partes = instanceName.split('_at_')
+      return partes.length === 2 ? partes[0] + '@' + partes[1].replace(/_/g, '.') : null
+    })()
     console.log('[webhook] emailFromInstance:', emailFromInstance)
 
+    // 1. Verificar pulse_agentes primero — fuente de verdad del bot_activo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
-      .select('email, nombre, metadata')
-      .not('metadata', 'is', null)
-    if (!rows || !Array.isArray(rows)) return def
+    const { data: agente } = await (supabaseAdmin.from('pulse_agentes') as any)
+      .select('bot_activo')
+      .eq('instance_name', instanceName)
+      .maybeSingle()
+
+    // Si existe en pulse_agentes y bot_activo es explícitamente false → pausado
+    if (agente && agente.bot_activo === false) {
+      console.log('[webhook] bot PAUSADO por pulse_agentes:', instanceName)
+      return { ...def, botActivo: false }
+    }
+
+    // 2. Obtener system_prompt y nombre desde pulse_waitlist
+    let systemPrompt = ''
+    let nombre = 'el asesor'
 
     if (emailFromInstance) {
-      const rowExacto = rows.find((r: Record<string, unknown>) =>
-        String(r.email || '').toLowerCase() === emailFromInstance.toLowerCase()
-      )
-      if (rowExacto) {
-        const meta = rowExacto.metadata as Record<string, unknown>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: row } = await (supabaseAdmin.from('pulse_waitlist') as any)
+        .select('email, nombre, metadata')
+        .ilike('email', emailFromInstance)
+        .maybeSingle()
+
+      if (row) {
+        nombre = row.nombre || 'el asesor'
+        const meta = row.metadata as Record<string, unknown> | null
         const cfg = meta?.agent_config as Record<string, unknown> | undefined
-        const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-        console.log('[webhook] config por email exacto:', emailFromInstance, '| botActivo:', botActivo)
-        return { systemPrompt: String(cfg?.system_prompt || ''), nombre: rowExacto.nombre || 'el asesor', botActivo }
+        systemPrompt = String(cfg?.system_prompt || '')
+
+        // Si no existe en pulse_agentes pero sí en pulse_waitlist → bot activo por defecto
+        // (usuario completó onboarding pero pulse_agentes aún no tiene su registro)
+        console.log('[webhook] config encontrada para:', emailFromInstance, '| pulse_agentes:', !!agente)
+        return { systemPrompt, nombre, botActivo: true }
       }
     }
 
-    let telefonoInstancia: string | null = null
+    // 3. Fallback: buscar por teléfono de la instancia si no se encontró por email
     try {
       const res = await fetch(EVO_URL + '/instance/connectionState/' + instanceName, { headers: { apikey: EVO_KEY } })
       if (res.ok) {
         const data = await res.json()
         const match = String(data?.instance?.ownerJid || '').match(/^(\d+)@/)
-        if (match) telefonoInstancia = match[1]
+        if (match) {
+          const corto = match[1].replace(/^57/, '')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: rows } = await (supabaseAdmin.from('pulse_waitlist') as any)
+            .select('email, nombre, metadata')
+            .not('metadata', 'is', null)
+
+          for (const row of (rows || [])) {
+            const meta = row.metadata as Record<string, unknown>
+            const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
+            if (w && w === corto) {
+              const cfg = meta?.agent_config as Record<string, unknown> | undefined
+              console.log('[webhook] config por teléfono:', row.email)
+              return {
+                systemPrompt: String(cfg?.system_prompt || ''),
+                nombre: row.nombre || 'el asesor',
+                botActivo: true,
+              }
+            }
+          }
+        }
       }
     } catch { /* continuar */ }
 
-    if (telefonoInstancia) {
-      const corto = telefonoInstancia.replace(/^57/, '')
-      for (const row of rows) {
-        const rowEmail = String((row as Record<string, unknown>).email || '').toLowerCase()
-        const meta = row.metadata as Record<string, unknown>
-        const w = String(meta?.whatsapp || '').replace(/\D/g, '').replace(/^57/, '')
-        const emailCoincide = emailFromInstance && rowEmail === emailFromInstance.toLowerCase()
-        if (w && w === corto && emailCoincide) {
-          const cfg = meta?.agent_config as Record<string, unknown> | undefined
-          const botActivo = meta?.bot_activo === false || String(meta?.bot_activo) === 'false' ? false : true
-          console.log('[webhook] config por tel+email:', rowEmail, '| botActivo:', botActivo)
-          return { systemPrompt: String(cfg?.system_prompt || ''), nombre: row.nombre || 'el asesor', botActivo }
-        }
-      }
+    // Si tiene pulse_agentes con bot_activo = true pero no hay waitlist → dejar pasar
+    if (agente && agente.bot_activo === true) {
+      console.log('[webhook] bot activo por pulse_agentes sin waitlist:', instanceName)
+      return { systemPrompt: '', nombre: 'el asesor', botActivo: true }
     }
 
-    console.log('[webhook] no se encontró config para instanceName:', instanceName)
+    console.log('[webhook] no se encontró config para:', instanceName)
     return def
   } catch (e) {
     console.error('[webhook] obtenerConfigAgente error:', e)

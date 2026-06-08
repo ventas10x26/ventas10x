@@ -771,8 +771,6 @@ export default function PulseMotorLanding() {
           </div>
         </section>
 
-        </section>
-
         {/* ═══ NOSOTROS LO HACEMOS POR VOS ═══ */}
         <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px' }}>
           {/* Header */}

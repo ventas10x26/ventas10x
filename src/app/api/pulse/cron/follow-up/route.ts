@@ -24,6 +24,16 @@ function extraerNombreLead(historial: any[]): string {
   return 'Cliente'
 }
 
+// Limpiar modelo_detectado — quitar separador ||| y capitalizar
+function limpiarModelo(modeloRaw: string | null): string {
+  if (!modeloRaw) return 'vehículo KIA'
+  // Formato: "NEW PICANTO|||GT LINE" → "KIA New Picanto GT Line"
+  const partes = modeloRaw.split('|||').map(p => p.trim())
+  const texto = partes.join(' ').toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase()) // Title Case
+  return `KIA ${texto}`
+}
+
 function buildMensaje(template: string, nombre: string, modelo: string, asesor: string) {
   return template
     .replace(/\{nombre\}/g, nombre)
@@ -153,16 +163,31 @@ export async function GET(req: NextRequest) {
       stats.procesados++
       const telefono = c.remote_jid.replace('@s.whatsapp.net', '').replace('@c.us', '')
       const nombreLead = extraerNombreLead(c.historial ?? [])
-      const modelo = c.modelo_detectado ?? 'vehículo KIA'
+      const modelo = limpiarModelo(c.modelo_detectado)  // ← Fix: sin |||
       const nombreAsesor = c.asesor_nombre ?? 'tu asesor KIA'
 
-      // ── GUARD: verificar si ya se envió el follow-up al lead hoy ──
-      const duplicado = await yaEnviadoHoy(c.remote_jid, c.instance_name, 'lead')
-      if (duplicado) {
+      // ── GUARD anti-duplicado + anti-race-condition ──
+      // Insertar el log PRIMERO con status='procesando' para bloquear ejecuciones paralelas
+      const { data: lockInsert } = await supabase
+        .from('pulse_followup_log')
+        .insert({
+          remote_jid: c.remote_jid,
+          instance_name: c.instance_name,
+          asesor_email: c.asesor_email,
+          tipo: 'lead',
+          status: 'procesando',
+        })
+        .select('id')
+        .single()
+
+      if (!lockInsert) {
+        // Ya hay otro proceso manejando este JID
         stats.duplicados_saltados++
-        console.log(`[cron] SALTADO (ya enviado hoy): ${c.remote_jid}`)
+        console.log(`[cron] SALTADO (race condition): ${c.remote_jid}`)
         continue
       }
+
+      const lockId = lockInsert.id
 
       // 1️⃣ WhatsApp al lead
       try {
@@ -171,13 +196,15 @@ export async function GET(req: NextRequest) {
           nombreLead, modelo, nombreAsesor
         )
         await enviarWhatsApp(c.instance_name, c.remote_jid, msg)
-        await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'lead')
+        // Actualizar el lock a 'ok'
+        await supabase.from('pulse_followup_log').update({ status: 'ok' }).eq('id', lockId)
         stats.mensajes_lead++
         console.log(`[cron] ✅ lead enviado: ${c.remote_jid}`)
       } catch (e: any) {
         stats.errores.push(`[lead] ${c.remote_jid}: ${e.message}`)
-        await registrarLog(c.remote_jid, c.instance_name, c.asesor_email, 'lead', 'error')
-        continue // si falla el mensaje al lead, no alertar al asesor
+        // Marcar como error
+        await supabase.from('pulse_followup_log').update({ status: 'error' }).eq('id', lockId)
+        continue
       }
 
       // 2️⃣ WhatsApp al asesor

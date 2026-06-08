@@ -10,6 +10,7 @@ import type { PulseAgenteDTO } from '@/lib/pulse-agent'
 import { PulseAudioLogs } from '@/components/pulse/PulseAudioLogs'
 import { PulseWhatsappConnect } from '@/components/pulse/PulseWhatsappConnect'
 import FollowUpConfig from '@/components/pulse/FollowUpConfig'
+import CreditosBanner from '@/components/pulse/CreditosBanner'   // ← NUEVO
 
 const EMPTY: PulseAgenteDTO = {
   agent_id: null, email: '', nombre: '', whatsapp: '',
@@ -47,20 +48,21 @@ function Section({ title, badge, children }: { title: string; badge?: string; ch
 }
 
 export default function PulseAgentePage() {
-  const router = useRouter()
+  const router  = useRouter()
   const supabase = createClient()
 
-  const [user, setUser] = useState<{ nombre: string; email: string } | null>(null)
-  const [form, setForm] = useState<PulseAgenteDTO>(EMPTY)
-  const [loading, setLoading] = useState(true)
-  const [guardando, setGuardando] = useState(false)
-  const [regenerando, setRegenerando] = useState(false)
-  const [mensaje, setMensaje] = useState('')
-  const [error, setError] = useState('')
-  const [sinAgente, setSinAgente] = useState(false)
-  const [subiendoVoz, setSubiendoVoz] = useState(false)
-  const [tab, setTab] = useState<'voz' | 'comportamiento' | 'mensajes' | 'avanzado'>('voz')
+  const [user, setUser]                   = useState<{ nombre: string; email: string } | null>(null)
+  const [form, setForm]                   = useState<PulseAgenteDTO>(EMPTY)
+  const [loading, setLoading]             = useState(true)
+  const [guardando, setGuardando]         = useState(false)
+  const [regenerando, setRegenerando]     = useState(false)
+  const [mensaje, setMensaje]             = useState('')
+  const [error, setError]                 = useState('')
+  const [sinAgente, setSinAgente]         = useState(false)
+  const [subiendoVoz, setSubiendoVoz]     = useState(false)
+  const [tab, setTab]                     = useState<'voz' | 'comportamiento' | 'mensajes' | 'avanzado'>('voz')
   const [whatsappConectado, setWhatsappConectado] = useState(false)
+  const [creditosAgotados, setCreditosAgotados]   = useState(false)  // ← NUEVO
 
   const patch = (p: Partial<PulseAgenteDTO>) => setForm((f) => ({ ...f, ...p }))
 
@@ -69,7 +71,7 @@ export default function PulseAgentePage() {
     setError('')
     try {
       const q = emailHint ? `?email=${encodeURIComponent(emailHint)}` : ''
-      const res = await fetch(`/api/pulse/agente${q}`)
+      const res  = await fetch(`/api/pulse/agente${q}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al cargar')
       if (!data.agente) {
@@ -92,8 +94,8 @@ export default function PulseAgentePage() {
         ? new URLSearchParams(window.location.search)
         : new URLSearchParams()
 
-      const urlEmail = params.get('email')
-      const urlTab = params.get('tab') as typeof tab | null
+      const urlEmail      = params.get('email')
+      const urlTab        = params.get('tab') as typeof tab | null
       const fromOnboarding = params.get('from') === 'onboarding'
 
       if (urlTab && ['voz', 'comportamiento', 'mensajes', 'avanzado'].includes(urlTab)) {
@@ -108,7 +110,7 @@ export default function PulseAgentePage() {
       if (authUser?.email) {
         email = authUser.email
         setUser({
-          email: authUser.email,
+          email:  authUser.email,
           nombre: (authUser.user_metadata?.full_name as string) || authUser.email.split('@')[0],
         })
       } else {
@@ -133,10 +135,10 @@ export default function PulseAgentePage() {
     setMensaje('')
     setError('')
     try {
-      const res = await fetch('/api/pulse/agente', {
-        method: 'PUT',
+      const res  = await fetch('/api/pulse/agente', {
+        method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, regenerar_ia: regenerarIa }),
+        body:    JSON.stringify({ ...form, regenerar_ia: regenerarIa }),
       })
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar')
@@ -162,7 +164,7 @@ export default function PulseAgentePage() {
         fd.append('transcripcion', texto)
         fd.append('duracion_seg', String(dur))
         if (form.email) fd.append('email', form.email)
-        const res = await fetch('/api/pulse/agente/voz-muestra', { method: 'POST', body: fd })
+        const res  = await fetch('/api/pulse/agente/voz-muestra', { method: 'POST', body: fd })
         const data = await res.json()
         if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar el audio')
         setMensaje('✓ Grabación guardada en tu historial de voz')
@@ -181,10 +183,10 @@ export default function PulseAgentePage() {
     : undefined
 
   const tabs: { id: typeof tab; label: string }[] = [
-    { id: 'voz',           label: '🎙️ Voz y tono' },
+    { id: 'voz',            label: '🎙️ Voz y tono' },
     { id: 'comportamiento', label: '🧠 Comportamiento' },
-    { id: 'mensajes',      label: '💬 Mensajes' },
-    { id: 'avanzado',      label: '⚙️ Avanzado' },
+    { id: 'mensajes',       label: '💬 Mensajes' },
+    { id: 'avanzado',       label: '⚙️ Avanzado' },
   ]
 
   if (loading) {
@@ -198,6 +200,9 @@ export default function PulseAgentePage() {
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 100px' }}>
+
+        {/* ── BANNER DE CRÉDITOS — arriba de todo ── */}
+        <CreditosBanner onAgotado={() => setCreditosAgotados(true)} />
 
         {/* ── Cabecera ── */}
         <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
@@ -216,16 +221,16 @@ export default function PulseAgentePage() {
             <button
               type="button"
               onClick={() => guardar(false)}
-              disabled={guardando || regenerando || sinAgente}
-              style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: sinAgente ? 'not-allowed' : 'pointer', opacity: sinAgente ? 0.5 : 1, fontFamily: 'inherit' }}
+              disabled={guardando || regenerando || sinAgente || creditosAgotados}
+              style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: (sinAgente || creditosAgotados) ? 'not-allowed' : 'pointer', opacity: (sinAgente || creditosAgotados) ? 0.5 : 1, fontFamily: 'inherit' }}
             >
               {guardando ? 'Guardando…' : 'Guardar cambios'}
             </button>
             <button
               type="button"
               onClick={() => guardar(true)}
-              disabled={guardando || regenerando || sinAgente}
-              style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #f97316', background: 'rgba(249,115,22,0.08)', color: '#fdba74', fontWeight: 700, fontSize: 13, cursor: sinAgente ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              disabled={guardando || regenerando || sinAgente || creditosAgotados}
+              style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #f97316', background: 'rgba(249,115,22,0.08)', color: '#fdba74', fontWeight: 700, fontSize: 13, cursor: (sinAgente || creditosAgotados) ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
             >
               {regenerando ? 'Re-entrenando…' : '⚡ Re-entrenar con IA'}
             </button>
@@ -261,9 +266,7 @@ export default function PulseAgentePage() {
               ))}
             </div>
 
-            {/* ════════════════════════════════════════
-                TAB: VOZ Y TONO
-            ════════════════════════════════════════ */}
+            {/* TAB: VOZ Y TONO */}
             {tab === 'voz' && (
               <>
                 <Section title="Muestra de voz del asesor" badge="ENTRENAMIENTO">
@@ -289,30 +292,16 @@ export default function PulseAgentePage() {
               </>
             )}
 
-            {/* ════════════════════════════════════════
-                TAB: COMPORTAMIENTO
-            ════════════════════════════════════════ */}
+            {/* TAB: COMPORTAMIENTO */}
             {tab === 'comportamiento' && (
               <>
                 <Section title="Manejo de objeciones" badge="PERSONALIZADO">
                   <label style={labelStyle}>Cómo respondes objeciones (precio, competencia, "lo pienso", etc.)</label>
-                  <textarea
-                    value={form.manejo_objeciones}
-                    onChange={(e) => patch({ manejo_objeciones: e.target.value })}
-                    placeholder="Ej: Si dicen que está caro, les muestro el valor de equipamiento y simulo KIA Crédito con cuota mensual…"
-                    rows={6}
-                    style={{ ...inputStyle, resize: 'vertical' }}
-                  />
+                  <textarea value={form.manejo_objeciones} onChange={(e) => patch({ manejo_objeciones: e.target.value })} placeholder="Ej: Si dicen que está caro, les muestro el valor de equipamiento y simulo KIA Crédito con cuota mensual…" rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
                 </Section>
                 <Section title="Respuestas tipo">
                   <label style={labelStyle}>Guiones o frases que usás seguido</label>
-                  <textarea
-                    value={form.respuestas_tipo}
-                    onChange={(e) => patch({ respuestas_tipo: e.target.value })}
-                    placeholder="Ej: Saludo inicial, cierre test drive, seguimiento 24h…"
-                    rows={6}
-                    style={{ ...inputStyle, resize: 'vertical' }}
-                  />
+                  <textarea value={form.respuestas_tipo} onChange={(e) => patch({ respuestas_tipo: e.target.value })} placeholder="Ej: Saludo inicial, cierre test drive, seguimiento 24h…" rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
                 </Section>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
@@ -327,21 +316,14 @@ export default function PulseAgentePage() {
               </>
             )}
 
-            {/* ════════════════════════════════════════
-                TAB: MENSAJES
-            ════════════════════════════════════════ */}
+            {/* TAB: MENSAJES */}
             {tab === 'mensajes' && (
               <>
                 <Section title="Propuesta de valor del asistente">
                   <textarea value={form.propuesta_valor} onChange={(e) => patch({ propuesta_valor: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
                 </Section>
                 <Section title="Primer mensaje sugerido (WhatsApp)">
-                  <textarea
-                    value={form.primer_mensaje}
-                    onChange={(e) => patch({ primer_mensaje: e.target.value })}
-                    rows={4}
-                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }}
-                  />
+                  <textarea value={form.primer_mensaje} onChange={(e) => patch({ primer_mensaje: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }} />
                   <button
                     type="button"
                     onClick={() => {
@@ -356,12 +338,9 @@ export default function PulseAgentePage() {
               </>
             )}
 
-            {/* ════════════════════════════════════════
-                TAB: AVANZADO
-            ════════════════════════════════════════ */}
+            {/* TAB: AVANZADO */}
             {tab === 'avanzado' && (
               <>
-                {/* Toggle Bot WhatsApp — solo activo si hay QR conectado */}
                 <section style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid #1e293b', borderRadius: 16, padding: 20, marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
@@ -376,17 +355,17 @@ export default function PulseAgentePage() {
                     </div>
                     <button
                       type="button"
-                      disabled={!whatsappConectado}
-                      title={!whatsappConectado ? 'Primero conectá tu WhatsApp con el QR' : undefined}
+                      disabled={!whatsappConectado || creditosAgotados}
+                      title={!whatsappConectado ? 'Primero conectá tu WhatsApp con el QR' : creditosAgotados ? 'Sin créditos — activá tu plan' : undefined}
                       onClick={async () => {
-                        if (!whatsappConectado) return
+                        if (!whatsappConectado || creditosAgotados) return
                         const nuevoValor = !form.bot_activo
                         patch({ bot_activo: nuevoValor })
                         try {
-                          const res = await fetch('/api/pulse/agente', {
-                            method: 'PUT',
+                          const res  = await fetch('/api/pulse/agente', {
+                            method:  'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...form, bot_activo: nuevoValor }),
+                            body:    JSON.stringify({ ...form, bot_activo: nuevoValor }),
                           })
                           const data = await res.json()
                           if (!res.ok || !data.ok) throw new Error(data.error)
@@ -401,9 +380,9 @@ export default function PulseAgentePage() {
                       style={{
                         position: 'relative', width: 52, height: 28, borderRadius: 999,
                         border: 'none', padding: 0, flexShrink: 0,
-                        cursor: !whatsappConectado ? 'not-allowed' : 'pointer',
-                        opacity: !whatsappConectado ? 0.45 : 1,
-                        background: whatsappConectado && form.bot_activo
+                        cursor: (!whatsappConectado || creditosAgotados) ? 'not-allowed' : 'pointer',
+                        opacity: (!whatsappConectado || creditosAgotados) ? 0.45 : 1,
+                        background: whatsappConectado && form.bot_activo && !creditosAgotados
                           ? 'linear-gradient(135deg, #f97316, #ea580c)'
                           : 'rgba(51,65,85,0.8)',
                         transition: 'background 0.2s, opacity 0.2s',
@@ -412,7 +391,7 @@ export default function PulseAgentePage() {
                     >
                       <span style={{
                         position: 'absolute', top: 3,
-                        left: whatsappConectado && form.bot_activo ? 27 : 3,
+                        left: whatsappConectado && form.bot_activo && !creditosAgotados ? 27 : 3,
                         width: 22, height: 22, borderRadius: '50%',
                         background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                         transition: 'left 0.2s', display: 'block',
@@ -421,7 +400,6 @@ export default function PulseAgentePage() {
                   </div>
                 </section>
 
-                {/* Conexión WhatsApp */}
                 <PulseWhatsappConnect
                   email={form.email}
                   onEstadoChange={setWhatsappConectado}
@@ -431,12 +409,10 @@ export default function PulseAgentePage() {
                   }}
                 />
 
-                {/* ── FOLLOW-UP AUTOMÁTICO ── */}
                 <Section title="Follow-up automático" badge="NUEVO">
                   <FollowUpConfig />
                 </Section>
 
-                {/* Datos de contacto */}
                 <Section title="Datos de contacto">
                   <div style={{ display: 'grid', gap: 12 }}>
                     <div>
@@ -454,17 +430,11 @@ export default function PulseAgentePage() {
                   </div>
                 </Section>
 
-                {/* System prompt */}
                 <Section title="System prompt interno" badge="AVANZADO">
                   <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
                     Instrucciones que Claude usa al responder leads. Editalo solo si sabés lo que hacés.
                   </p>
-                  <textarea
-                    value={form.system_prompt}
-                    onChange={(e) => patch({ system_prompt: e.target.value })}
-                    rows={10}
-                    style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }}
-                  />
+                  <textarea value={form.system_prompt} onChange={(e) => patch({ system_prompt: e.target.value })} rows={10} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }} />
                 </Section>
 
                 {form.agent_id && (
@@ -481,7 +451,6 @@ export default function PulseAgentePage() {
           </>
         )}
 
-        {/* ── Navegación inferior ── */}
         <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -498,7 +467,6 @@ export default function PulseAgentePage() {
             Repetir onboarding
           </button>
         </div>
-
       </div>
     </PulseAppShell>
   )

@@ -384,22 +384,22 @@ export default function PulseMotorLanding() {
                 border:'1px solid rgba(255,255,255,0.08)',
               }}>
                 <iframe
-                  src="https://share.synthesia.io/embeds/videos/8ca3103d-efcb-406a-b40e-d21b61845a48"
+                  src="https://share.synthesia.io/embeds/videos/8ca3103d-efcb-406a-b40e-d21b61845a48?autoplay=1"
                   loading="lazy"
                   title="Pulse Motor — No pierdas más leads"
                   allowFullScreen
-                  allow="encrypted-media; fullscreen; microphone; screen-wake-lock;"
+                  allow="encrypted-media; fullscreen; microphone; screen-wake-lock; autoplay;"
                   style={{ position:'absolute', width:'100%', height:'100%', top:0, left:0, border:'none', padding:0, margin:0, overflow:'hidden', borderRadius:'20px' }}
                 />
               </div>
-              {/* Badge debajo del video */}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', marginTop:'18px', flexWrap:'wrap' }}>
+              {/* Badges social proof — diseño visible */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', marginTop:'18px', flexWrap:'wrap' }}>
                 {[
-                  { icon:'⭐', text:'4.9/5 asesores satisfechos' },
-                  { icon:'🚗', text:'+500 leads atendidos' },
-                  { icon:'⚡', text:'30 seg tiempo de respuesta' },
+                  { icon:'⭐', text:'4.9/5 asesores', color:'#fbbf24', bg:'rgba(251,191,36,0.12)', border:'rgba(251,191,36,0.25)' },
+                  { icon:'🚗', text:'+500 leads atendidos', color:'#6ee7b7', bg:'rgba(16,185,129,0.12)', border:'rgba(16,185,129,0.25)' },
+                  { icon:'⚡', text:'30 seg respuesta', color:'#7dd3fc', bg:'rgba(14,165,233,0.12)', border:'rgba(14,165,233,0.25)' },
                 ].map(b => (
-                  <div key={b.text} style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'#475569' }}>
+                  <div key={b.text} style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'6px 14px', borderRadius:'999px', fontSize:'12px', fontWeight:600, color:b.color, background:b.bg, border:`1px solid ${b.border}` }}>
                     <span>{b.icon}</span><span>{b.text}</span>
                   </div>
                 ))}

@@ -173,7 +173,25 @@ export async function GET(req: NextRequest) {
         continue
       }
 
-      // Lock anti-race-condition: insertar con status='procesando'
+      // Lock anti-race-condition: verificar primero, luego insertar
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+      const { data: yaExiste } = await supabase
+        .from('pulse_followup_log')
+        .select('id')
+        .eq('remote_jid', c.remote_jid)
+        .eq('instance_name', c.instance_name)
+        .eq('tipo', tipoDia)
+        .gte('enviado_at', hoy.toISOString())
+        .maybeSingle()
+
+      if (yaExiste) {
+        stats.saltados++
+        console.log(`[cron] SALTADO (ya enviado hoy ${tipoDia}): ${c.remote_jid}`)
+        continue
+      }
+
+      // Insertar log con status procesando
       const { data: lockInsert } = await supabase
         .from('pulse_followup_log')
         .insert({
@@ -184,11 +202,11 @@ export async function GET(req: NextRequest) {
           status: 'procesando',
         })
         .select('id')
-        .single()
+        .maybeSingle()
 
       if (!lockInsert) {
         stats.saltados++
-        console.log(`[cron] SALTADO (race condition): ${c.remote_jid}`)
+        console.log(`[cron] SALTADO (lock fallido): ${c.remote_jid}`)
         continue
       }
 

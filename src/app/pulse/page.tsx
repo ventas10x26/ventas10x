@@ -237,6 +237,7 @@ export default function PulseMotorLanding() {
                 <button onClick={() => setModalContacto(true)} className="btn-nav-hacemos" style={{ fontSize:'13px', fontWeight:700, color:'#fff', padding:'8px 16px', borderRadius:'8px', background:'linear-gradient(135deg,#10b981,#059669)', border:'1px solid rgba(16,185,129,0.4)', cursor:'pointer', fontFamily:FONT_BODY, display:'flex', alignItems:'center', gap:'6px', letterSpacing:'-.1px' }}>
                   🤝 Lo hacemos por vos
                 </button>
+                <a href="#precios" style={{ fontSize:'14px', fontWeight:500, color:'#94a3b8', padding:'8px 16px', borderRadius:'8px', textDecoration:'none', transition:'color .15s' }} onMouseEnter={e=>(e.currentTarget.style.color='#e2e8f0')} onMouseLeave={e=>(e.currentTarget.style.color='#94a3b8')}>Precios</a>
                 <a href="/pulse/login"  style={{ fontSize:'14px', fontWeight:500, color:'#94a3b8', padding:'8px 16px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.1)', textDecoration:'none' }}>Ingresar</a>
                 <a href="/pulse/signup" style={{ fontSize:'14px', fontWeight:600, color:'#fff', padding:'8px 18px', borderRadius:'8px', background:'var(--grad)', textDecoration:'none', boxShadow:'0 4px 14px rgba(14,165,233,0.25)' }}>Registrarse →</a>
               </>
@@ -684,7 +685,7 @@ export default function PulseMotorLanding() {
             PRECIOS — después de testimonios, antes del CTA final
             Lógica: ROI primero, precio después
         ═══════════════════════════════════════════════════════ */}
-        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 100px' }}>
+        <section id="precios" style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 100px', scrollMarginTop:'80px' }}>
 
           <div style={{ textAlign:'center', marginBottom:'52px' }}>
             <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:'999px', padding:'5px 16px', fontSize:'12px', fontWeight:600, color:'#6ee7b7', marginBottom:'16px' }}>

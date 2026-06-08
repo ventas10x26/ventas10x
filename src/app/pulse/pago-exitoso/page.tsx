@@ -1,19 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
-export default function PagoExitoso() {
-  const [visible, setVisible] = useState(false)
-  const params = useSearchParams()
+function PagoExitosoContent() {
+  const params  = useSearchParams()
   const orderId = params.get('order_id') ?? params.get('bold_order_id') ?? ''
 
-  useEffect(() => {
-    setTimeout(() => setVisible(true), 100)
-  }, [])
+  return (
+    <>
+      {orderId && (
+        <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'10px', padding:'12px 16px', marginBottom:'28px', fontSize:'12px', color:'#475569' }}>
+          Referencia: <span style={{ color:'#94a3b8', fontWeight:600 }}>{orderId}</span>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function PagoExitoso() {
+  useEffect(() => {}, [])
 
   return (
     <>
@@ -29,7 +38,6 @@ export default function PagoExitoso() {
       <div style={{ minHeight:'100vh', background:'#080f1a', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:FONT_BODY, padding:'24px' }}>
         <div style={{ maxWidth:'440px', width:'100%', textAlign:'center' }}>
 
-          {/* Ícono éxito */}
           <div className="pop" style={{ width:'80px', height:'80px', borderRadius:'50%', background:'rgba(16,185,129,0.15)', border:'2px solid #10b981', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'36px', margin:'0 auto 28px' }}>
             ✓
           </div>
@@ -41,11 +49,9 @@ export default function PagoExitoso() {
             Tu agente Pulse Motor está activo. En menos de 5 minutos te llega la confirmación por email.
           </p>
 
-          {orderId && (
-            <div className="fade" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'10px', padding:'12px 16px', marginBottom:'28px', fontSize:'12px', color:'#475569', animationDelay:'.3s' }}>
-              Referencia: <span style={{ color:'#94a3b8', fontWeight:600 }}>{orderId}</span>
-            </div>
-          )}
+          <Suspense fallback={null}>
+            <PagoExitosoContent />
+          </Suspense>
 
           <div className="fade" style={{ display:'flex', flexDirection:'column', gap:'12px', animationDelay:'.35s' }}>
             <a href="/pulse/agente" style={{ display:'block', padding:'14px', borderRadius:'12px', background:'linear-gradient(135deg,#0ea5e9,#10b981)', color:'#fff', fontSize:'15px', fontWeight:700, textDecoration:'none', fontFamily:FONT, boxShadow:'0 4px 20px rgba(14,165,233,0.3)' }}>

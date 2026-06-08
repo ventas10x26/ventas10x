@@ -337,6 +337,49 @@ export default function PulseMotorLanding() {
             </div>
           </div>
 
+          {/* Sección 2 columnas: copy + video */}
+          <div style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center', flexWrap:'wrap', marginTop:'64px', marginBottom:'8px' }}>
+            {/* Columna izquierda: copy */}
+            <div style={{ flex:'1', minWidth:'280px', maxWidth:'440px' }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.2)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'20px' }}>
+                🎬 Mirá cómo funciona
+              </div>
+              <h2 style={{ fontFamily:FONT, fontSize:'clamp(24px,3.5vw,38px)', fontWeight:700, lineHeight:1.15, letterSpacing:'-.3px', margin:'0 0 16px' }}>
+                Tu agente trabaja<br/>
+                <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>mientras vos cerrás.</span>
+              </h2>
+              <p style={{ fontSize:'15px', color:'#64748b', lineHeight:'1.7', margin:'0 0 24px' }}>
+                En 60 segundos entendés por qué los asesores que usan Pulse Motor no pierden más leads por tiempo de respuesta.
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                {[
+                  { icon:'⚡', text:'Responde al lead en 30 segundos desde tu número' },
+                  { icon:'🔁', text:'Follow-up automático día 1, 3 y 7 sin que hagas nada' },
+                  { icon:'🎯', text:'Entrena al agente con tu propio estilo de venta' },
+                ].map(item => (
+                  <div key={item.icon} style={{ display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                    <span style={{ fontSize:'18px', flexShrink:0, marginTop:'1px' }}>{item.icon}</span>
+                    <span style={{ fontSize:'14px', color:'#94a3b8', lineHeight:'1.5' }}>{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Columna derecha: video Synthesia */}
+            <div style={{ flex:'1', minWidth:'300px', maxWidth:'560px' }}>
+              <div style={{ position:'relative', overflow:'hidden', aspectRatio:'1920/1080', borderRadius:'16px', boxShadow:'0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)' }}>
+                <iframe
+                  src="https://share.synthesia.io/embeds/videos/8ca3103d-efcb-406a-b40e-d21b61845a48"
+                  loading="lazy"
+                  title="Pulse Motor — No pierdas más leads"
+                  allowFullScreen
+                  allow="encrypted-media; fullscreen; microphone; screen-wake-lock;"
+                  style={{ position:'absolute', width:'100%', height:'100%', top:0, left:0, border:'none', padding:0, margin:0, overflow:'hidden', borderRadius:'16px' }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Hero grid: Form + Celular */}
           <div className="hero-grid" style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center' }}>
 

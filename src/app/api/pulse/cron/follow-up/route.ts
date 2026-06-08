@@ -167,8 +167,9 @@ export async function GET(req: NextRequest) {
 
       // Obtener mensaje del día (respeta config de pulse_agentes)
       const templateMensaje = await obtenerMensajeDia(c.instance_name, tipoDia, c.followup_mensaje)
+      console.log(`[cron] ${c.instance_name} | ${tipoDia} | template: "${templateMensaje?.slice(0,30)}"`)
       if (!templateMensaje) {
-        console.log(`[cron] ${tipoDia} desactivado para ${c.instance_name}`)
+        console.log(`[cron] SALTADO (template vacío ${tipoDia}): ${c.instance_name}`)
         stats.saltados++
         continue
       }
@@ -192,7 +193,7 @@ export async function GET(req: NextRequest) {
       }
 
       // Insertar log con status procesando
-      const { data: lockInsert } = await supabase
+      const { error: lockError } = await supabase
         .from('pulse_followup_log')
         .insert({
           remote_jid: c.remote_jid,
@@ -201,25 +202,37 @@ export async function GET(req: NextRequest) {
           tipo: tipoDia,
           status: 'procesando',
         })
-        .select('id')
-        .maybeSingle()
 
-      if (!lockInsert) {
+      if (lockError) {
         stats.saltados++
-        console.log(`[cron] SALTADO (lock fallido): ${c.remote_jid}`)
+        console.log(`[cron] SALTADO (lock error): ${c.remote_jid} | ${lockError.message}`)
         continue
       }
+
+      // Obtener el id del registro insertado
+      const { data: lockInsert } = await supabase
+        .from('pulse_followup_log')
+        .select('id')
+        .eq('remote_jid', c.remote_jid)
+        .eq('instance_name', c.instance_name)
+        .eq('tipo', tipoDia)
+        .eq('status', 'procesando')
+        .order('enviado_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const lockId = lockInsert?.id ?? null
 
       // Enviar WhatsApp al lead
       try {
         const msg = buildMensaje(templateMensaje, nombreLead, modelo, nombreAsesor)
         await enviarWhatsApp(c.instance_name, c.remote_jid, msg)
-        await supabase.from('pulse_followup_log').update({ status: 'ok' }).eq('id', lockInsert.id)
+        if (lockId) await supabase.from('pulse_followup_log').update({ status: 'ok' }).eq('id', lockId)
         stats[tipoDia]++
         console.log(`[cron] ✅ ${tipoDia} enviado: ${c.remote_jid} | ${modelo}`)
       } catch (e: any) {
         stats.errores.push(`[${tipoDia}] ${c.remote_jid}: ${e.message}`)
-        await supabase.from('pulse_followup_log').update({ status: 'error' }).eq('id', lockInsert.id)
+        if (lockId) await supabase.from('pulse_followup_log').update({ status: 'error' }).eq('id', lockId)
         continue
       }
 

@@ -733,13 +733,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       }
     }
 
-    // ── FOLLOW-UP BACKGROUND (fire-and-forget) ────────────────────────────────
-    const followUpBase = process.env.NEXT_PUBLIC_APP_URL || 'https://ventas10x.co'
-    fetch(followUpBase + '/api/pulse/cron/follow-up', {
-      method: 'GET',
-      headers: { Authorization: 'Bearer ' + (process.env.CRON_SECRET || '') },
-    }).catch(e => console.error('[webhook] follow-up trigger error:', e))
-
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('[webhook] error:', e)

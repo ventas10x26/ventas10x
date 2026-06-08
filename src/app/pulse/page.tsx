@@ -713,21 +713,21 @@ export default function PulseMotorLanding() {
                       <div style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0' }}>Comisión promedio por venta</div>
                       <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>Un Picanto o Sportage vendido</div>
                     </div>
-                    <div style={{ fontFamily:FONT, fontSize:'18px', fontWeight:800, color:'#6ee7b7', flexShrink:0, marginLeft:'16px' }}>+$500.000</div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'18px', fontWeight:800, color:'#6ee7b7', flexShrink:0, marginLeft:'16px' }}>+$500.000</div>
                   </div>
                   <div className="roi-line" style={{ background:'rgba(248,113,113,0.06)', border:'1px solid rgba(248,113,113,0.12)', borderRadius:'0', marginBottom:'2px' }}>
                     <div>
                       <div style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0' }}>Costo Pulse Motor / mes</div>
                       <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>Todo incluido, sin sorpresas</div>
                     </div>
-                    <div style={{ fontFamily:FONT, fontSize:'18px', fontWeight:800, color:'#f87171', flexShrink:0, marginLeft:'16px' }}>−$99.000</div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'18px', fontWeight:800, color:'#f87171', flexShrink:0, marginLeft:'16px' }}>−$99.000</div>
                   </div>
                   <div className="roi-line" style={{ background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'0 0 12px 12px' }}>
                     <div>
                       <div style={{ fontSize:'14px', fontWeight:700, color:'#f8fafc' }}>Tu ganancia neta ese mes</div>
                       <div style={{ fontSize:'11px', color:'#6ee7b7', marginTop:'2px' }}>Con solo 1 lead recuperado</div>
                     </div>
-                    <div style={{ fontFamily:FONT, fontSize:'24px', fontWeight:800, color:'#10b981', flexShrink:0, marginLeft:'16px' }}>+$401.000</div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'24px', fontWeight:800, color:'#10b981', flexShrink:0, marginLeft:'16px' }}>+$401.000</div>
                   </div>
                 </div>
                 <p style={{ fontSize:'12px', color:'#334155', marginTop:'16px', lineHeight:1.6 }}>
@@ -782,7 +782,7 @@ export default function PulseMotorLanding() {
                 </div>
 
                 <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginBottom:'4px' }}>
-                  <span style={{ fontFamily:FONT, fontSize:'52px', fontWeight:800, color:'#f8fafc', lineHeight:1 }}>$99k</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'52px', fontWeight:800, color:'#f8fafc', lineHeight:1 }}>$99k</span>
                   <div>
                     <div style={{ fontSize:'14px', color:'#475569', fontWeight:500 }}>/mes</div>
                     <div style={{ fontSize:'11px', color:'#334155' }}>COP</div>

@@ -338,50 +338,77 @@ export default function PulseMotorLanding() {
           </div>
 
           {/* Sección 2 columnas: copy + video */}
-          <div style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center', flexWrap:'wrap', marginTop:'64px', marginBottom:'8px' }}>
+          <div style={{
+            display:'flex', alignItems:'center', gap:'64px', justifyContent:'center',
+            flexWrap:'wrap', marginTop:'80px', paddingTop:'80px',
+            borderTop:'1px solid rgba(255,255,255,0.05)',
+          }}>
             {/* Columna izquierda: copy */}
-            <div style={{ flex:'1', minWidth:'280px', maxWidth:'440px' }}>
-              <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.2)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'20px' }}>
+            <div style={{ flex:'1', minWidth:'280px', maxWidth:'420px' }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:'7px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.2)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'24px' }}>
                 🎬 Mirá cómo funciona
               </div>
-              <h2 style={{ fontFamily:FONT, fontSize:'clamp(24px,3.5vw,38px)', fontWeight:700, lineHeight:1.15, letterSpacing:'-.3px', margin:'0 0 16px' }}>
-                Tu agente trabaja<br/>
-                <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>mientras vos cerrás.</span>
+              <h2 style={{ fontFamily:FONT, fontSize:'clamp(26px,3.5vw,40px)', fontWeight:700, lineHeight:1.12, letterSpacing:'-.4px', margin:'0 0 18px' }}>
+                Mirá por qué ningún<br/>
+                <span style={{ background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>lead se queda sin respuesta.</span>
               </h2>
-              <p style={{ fontSize:'15px', color:'#64748b', lineHeight:'1.7', margin:'0 0 24px' }}>
-                En 60 segundos entendés por qué los asesores que usan Pulse Motor no pierden más leads por tiempo de respuesta.
+              <p style={{ fontSize:'15px', color:'#64748b', lineHeight:'1.7', margin:'0 0 32px' }}>
+                En 60 segundos entendés por qué los asesores que usan Pulse Motor venden más — sin trabajar más horas.
               </p>
-              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:'16px', marginBottom:'36px' }}>
                 {[
-                  { icon:'⚡', text:'Responde al lead en 30 segundos desde tu número' },
-                  { icon:'🔁', text:'Follow-up automático día 1, 3 y 7 sin que hagas nada' },
-                  { icon:'🎯', text:'Entrena al agente con tu propio estilo de venta' },
+                  { icon:'⚡', color:'#0ea5e9', bg:'rgba(14,165,233,0.1)', border:'rgba(14,165,233,0.2)', text:'Responde al lead en 30 segundos desde tu número' },
+                  { icon:'🔁', color:'#10b981', bg:'rgba(16,185,129,0.1)', border:'rgba(16,185,129,0.2)', text:'Follow-up automático día 1, 3 y 7 sin que hagas nada' },
+                  { icon:'🎯', color:'#0ea5e9', bg:'rgba(14,165,233,0.1)', border:'rgba(14,165,233,0.2)', text:'Entrena al agente con tu propio estilo de venta' },
                 ].map(item => (
-                  <div key={item.icon} style={{ display:'flex', gap:'10px', alignItems:'flex-start' }}>
-                    <span style={{ fontSize:'18px', flexShrink:0, marginTop:'1px' }}>{item.icon}</span>
+                  <div key={item.icon} style={{ display:'flex', gap:'14px', alignItems:'center' }}>
+                    <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0, background:item.bg, border:`1px solid ${item.border}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>
+                      {item.icon}
+                    </div>
                     <span style={{ fontSize:'14px', color:'#94a3b8', lineHeight:'1.5' }}>{item.text}</span>
                   </div>
                 ))}
               </div>
+              <a href="/pulse/signup" style={{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'13px 26px', borderRadius:'12px', background:'var(--grad)', color:'#fff', fontSize:'15px', fontWeight:700, textDecoration:'none', fontFamily:FONT, boxShadow:'0 4px 20px rgba(14,165,233,0.25)', letterSpacing:'-.2px' }}>
+                Crear mi agente gratis →
+              </a>
+              <p style={{ fontSize:'12px', color:'#334155', marginTop:'10px' }}>14 días gratis · Sin tarjeta · Tu WhatsApp actual</p>
             </div>
 
             {/* Columna derecha: video Synthesia */}
-            <div style={{ flex:'1', minWidth:'300px', maxWidth:'560px' }}>
-              <div style={{ position:'relative', overflow:'hidden', aspectRatio:'1920/1080', borderRadius:'16px', boxShadow:'0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ flex:'1.2', minWidth:'300px', maxWidth:'600px' }}>
+              <div style={{
+                position:'relative', overflow:'hidden', aspectRatio:'1920/1080',
+                borderRadius:'20px',
+                boxShadow:'0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.07)',
+                border:'1px solid rgba(255,255,255,0.08)',
+              }}>
                 <iframe
                   src="https://share.synthesia.io/embeds/videos/8ca3103d-efcb-406a-b40e-d21b61845a48"
                   loading="lazy"
                   title="Pulse Motor — No pierdas más leads"
                   allowFullScreen
                   allow="encrypted-media; fullscreen; microphone; screen-wake-lock;"
-                  style={{ position:'absolute', width:'100%', height:'100%', top:0, left:0, border:'none', padding:0, margin:0, overflow:'hidden', borderRadius:'16px' }}
+                  style={{ position:'absolute', width:'100%', height:'100%', top:0, left:0, border:'none', padding:0, margin:0, overflow:'hidden', borderRadius:'20px' }}
                 />
+              </div>
+              {/* Badge debajo del video */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', marginTop:'18px', flexWrap:'wrap' }}>
+                {[
+                  { icon:'⭐', text:'4.9/5 asesores satisfechos' },
+                  { icon:'🚗', text:'+500 leads atendidos' },
+                  { icon:'⚡', text:'30 seg tiempo de respuesta' },
+                ].map(b => (
+                  <div key={b.text} style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'#475569' }}>
+                    <span>{b.icon}</span><span>{b.text}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
           {/* Hero grid: Form + Celular */}
-          <div className="hero-grid" style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center' }}>
+          <div className="hero-grid" style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center', marginTop:'80px', paddingTop:'80px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
 
             {/* Izquierda: Form */}
             <form onSubmit={submit} style={{ ...v(1200), flex:'1', minWidth:'280px', maxWidth:'380px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'20px', padding:'28px', backdropFilter:'blur(12px)' }}>

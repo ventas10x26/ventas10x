@@ -27,20 +27,14 @@ export default function PulsePricingPage() {
     })
   }, [])
 
-  // Montar botón apenas carga la página — no esperar auth
   useEffect(() => {
-    if (!boldContainerRef.current) return
-
     const montar = async () => {
       try {
         setCargandoBtn(true)
-        boldContainerRef.current!.innerHTML = ''
 
-        // order_id: solo alfanumérico + guiones, máx 60 chars
         const uid     = (usuarioId ?? 'anon').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)
         const orderId = `pulse-${uid}-${Date.now()}`
 
-        // Obtener hash de integridad desde el backend
         const res = await fetch('/api/pulse/bold/integrity', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -48,31 +42,44 @@ export default function PulsePricingPage() {
         })
         const { integrity } = await res.json() as { integrity: string }
 
-        const script = document.createElement('script')
-        script.src = 'https://checkout.bold.co/library/boldPaymentButton.js'
-        script.setAttribute('data-bold-button', 'dark-L')
-        script.setAttribute('data-order-id', orderId)
-        script.setAttribute('data-currency', CURRENCY)
-        script.setAttribute('data-amount', String(PRECIO))
-        script.setAttribute('data-api-key', BOLD_API_KEY)
-        script.setAttribute('data-integrity-signature', integrity)
-        script.setAttribute('data-redirection-url', `${window.location.origin}/pulse/pago-exitoso`)
-        script.setAttribute('data-description', 'Pulse Motor Plan Mensual')
+        // 1. Cargar librería Bold en el head
+        const libScript = document.createElement('script')
+        libScript.src   = 'https://checkout.bold.co/library/boldPaymentButton.js'
+
+        await new Promise<void>((resolve, reject) => {
+          libScript.onload  = () => resolve()
+          libScript.onerror = () => reject(new Error('No se pudo cargar Bold'))
+          document.head.appendChild(libScript)
+        })
+
+        // 2. Crear script del botón en el contenedor
+        if (!boldContainerRef.current) return
+        boldContainerRef.current.innerHTML = ''
+
+        const btnScript = document.createElement('script')
+        btnScript.setAttribute('data-bold-button',          'dark-L')
+        btnScript.setAttribute('data-order-id',             orderId)
+        btnScript.setAttribute('data-currency',             CURRENCY)
+        btnScript.setAttribute('data-amount',               String(PRECIO))
+        btnScript.setAttribute('data-api-key',              BOLD_API_KEY)
+        btnScript.setAttribute('data-integrity-signature',  integrity)
+        btnScript.setAttribute('data-redirection-url',      `${window.location.origin}/pulse/pago-exitoso`)
+        btnScript.setAttribute('data-description',          'Pulse Motor Plan Mensual')
         if (usuarioEmail) {
-          script.setAttribute('data-customer-data', JSON.stringify({ email: usuarioEmail }))
+          btnScript.setAttribute('data-customer-data', JSON.stringify({ email: usuarioEmail }))
         }
 
-        boldContainerRef.current!.appendChild(script)
+        boldContainerRef.current.appendChild(btnScript)
+        setCargandoBtn(false)
       } catch (e) {
-        console.error('[pricing] error montando Bold:', e)
-      } finally {
+        console.error('[pricing] error Bold:', e)
         setCargandoBtn(false)
       }
     }
 
     montar()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // montar una sola vez al cargar — el email se precarga si está disponible
+  }, [])
 
   return (
     <>

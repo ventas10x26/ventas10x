@@ -27,9 +27,9 @@ export default function PulsePricingPage() {
     })
   }, [])
 
+  // Montar botón apenas carga la página — no esperar auth
   useEffect(() => {
     if (!boldContainerRef.current) return
-    if (usuarioId === null && usuarioEmail === null) return // esperar auth
 
     const montar = async () => {
       try {
@@ -71,7 +71,8 @@ export default function PulsePricingPage() {
     }
 
     montar()
-  }, [usuarioId, usuarioEmail])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // montar una sola vez al cargar — el email se precarga si está disponible
 
   return (
     <>

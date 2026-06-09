@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 const BOLD_API_KEY = '5L4jlcgWAJnjqOd_2E4906Yxq7lo5HHQqfESbb5_VyU'
-const PRECIO = 9900000 // en centavos para Bold = $99.000 COP
+const PRECIO = 99000 // Bold COP = pesos enteros, NO centavos
 
 export default function PulsePricingPage() {
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null)
@@ -23,14 +23,14 @@ export default function PulsePricingPage() {
     })
   }, [])
 
-  // Inyectar script Bold cuando tengamos el usuario
   useEffect(() => {
     if (!boldContainerRef.current) return
-
-    // Limpiar cualquier script anterior
     boldContainerRef.current.innerHTML = ''
 
-    const orderId = `pulse_${usuarioId ?? 'anon'}_${Date.now()}`
+    // order_id: solo alfanumérico + guiones, sin caracteres especiales
+    const ts      = Date.now()
+    const uid     = (usuarioId ?? 'anon').replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)
+    const orderId = `pulse${uid}${ts}`
 
     const script = document.createElement('script')
     script.src = 'https://checkout.bold.co/library/boldPaymentButton.js'
@@ -40,10 +40,8 @@ export default function PulsePricingPage() {
     script.setAttribute('data-amount', String(PRECIO))
     script.setAttribute('data-api-key', BOLD_API_KEY)
     script.setAttribute('data-redirect-url', `${window.location.origin}/pulse/pago-exitoso`)
-    if (usuarioEmail) {
-      script.setAttribute('data-customer-email', usuarioEmail)
-    }
-    script.setAttribute('data-description', 'Pulse Motor — Plan Mensual')
+    script.setAttribute('data-description', 'Pulse Motor Plan Mensual')
+    if (usuarioEmail) script.setAttribute('data-customer-email', usuarioEmail)
 
     boldContainerRef.current.appendChild(script)
   }, [usuarioId, usuarioEmail])
@@ -51,7 +49,7 @@ export default function PulsePricingPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #080f1a; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
@@ -59,17 +57,16 @@ export default function PulsePricingPage() {
         .check-item { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
         .check-item:last-child { border-bottom:none; }
         @keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(16,185,129,0.2)} 50%{box-shadow:0 0 40px rgba(16,185,129,0.4)} }
+        @media(max-width:700px){ .pricing-grid{grid-template-columns:1fr!important} }
       `}</style>
 
       <div style={{ minHeight:'100vh', background:'#080f1a', color:'#fff', fontFamily:FONT_BODY, position:'relative', overflow:'hidden' }}>
 
-        {/* Glow background */}
         <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0 }}>
           <div style={{ position:'absolute', top:'-10%', left:'50%', transform:'translateX(-50%)', width:'600px', height:'600px', background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:'10%', right:'-5%', width:'300px', height:'300px', background:'radial-gradient(circle,rgba(16,185,129,0.06) 0%,transparent 70%)', borderRadius:'50%' }} />
         </div>
 
-        {/* Header */}
         <header style={{ position:'relative', zIndex:10, padding:'20px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1100px', margin:'0 auto', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
           <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
             <div style={{ width:'34px', height:'34px', borderRadius:'9px', background:'linear-gradient(135deg,#0ea5e9,#10b981)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>⚡</div>
@@ -78,10 +75,8 @@ export default function PulsePricingPage() {
           {usuarioEmail && <span style={{ fontSize:'13px', color:'#475569' }}>{usuarioEmail}</span>}
         </header>
 
-        {/* Contenido principal */}
         <main style={{ position:'relative', zIndex:1, maxWidth:'960px', margin:'0 auto', padding:'60px 24px 80px' }}>
 
-          {/* Badge + headline */}
           <div style={{ textAlign:'center', marginBottom:'48px' }} className="fade-up">
             <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'999px', padding:'5px 16px', fontSize:'12px', fontWeight:600, color:'#6ee7b7', marginBottom:'20px' }}>
               🎉 14 días gratis ya terminaron — seguí vendiendo
@@ -97,16 +92,16 @@ export default function PulsePricingPage() {
             </p>
           </div>
 
-          {/* Card principal */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', alignItems:'start' }}>
+          <div className="pricing-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', alignItems:'start' }}>
 
-            {/* Columna izquierda: qué incluye */}
+            {/* Columna izquierda */}
             <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'20px', padding:'32px', animation:'glowPulse 3s ease-in-out infinite' }}>
               <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginBottom:'6px' }}>
-                <span style={{ fontFamily:FONT, fontSize:'42px', fontWeight:800, color:'#fff', lineHeight:1 }}>$99.000</span>
-                <span style={{ fontSize:'14px', color:'#475569', fontWeight:500 }}>/mes</span>
+                {/* ← FIX: FONT_BODY para consistencia con el resto */}
+                <span style={{ fontFamily:FONT_BODY, fontSize:'42px', fontWeight:800, color:'#fff', lineHeight:1 }}>$99.000</span>
+                <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#475569', fontWeight:500 }}>/mes</span>
               </div>
-              <p style={{ fontSize:'13px', color:'#334155', marginBottom:'28px' }}>COP · IVA incluido · Pago mensual</p>
+              <p style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#334155', marginBottom:'28px' }}>COP · IVA incluido · Pago mensual</p>
 
               <div style={{ marginBottom:'28px' }}>
                 {[
@@ -121,55 +116,48 @@ export default function PulsePricingPage() {
                 ].map(item => (
                   <div key={item.icon} className="check-item">
                     <div style={{ width:'28px', height:'28px', borderRadius:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{item.icon}</div>
-                    <span style={{ fontSize:'14px', color:'#94a3b8', lineHeight:'1.5' }}>{item.text}</span>
+                    <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#94a3b8', lineHeight:'1.5' }}>{item.text}</span>
                   </div>
                 ))}
               </div>
 
               <div style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:'12px', padding:'16px' }}>
-                <p style={{ fontSize:'13px', color:'#6ee7b7', fontWeight:600, marginBottom:'6px' }}>🔒 Sin riesgo</p>
-                <p style={{ fontSize:'12px', color:'#475569', lineHeight:1.6 }}>Si en los primeros 7 días no ves resultados, te devolvemos el dinero. Sin preguntas.</p>
+                <p style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#6ee7b7', fontWeight:600, marginBottom:'6px' }}>🔒 Sin riesgo</p>
+                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', lineHeight:1.6 }}>Si en los primeros 7 días no ves resultados, te devolvemos el dinero. Sin preguntas.</p>
               </div>
             </div>
 
-            {/* Columna derecha: botón Bold + garantías */}
+            {/* Columna derecha */}
             <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
 
-              {/* Resumen del cargo */}
               <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:'16px', padding:'20px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize:'14px', color:'#94a3b8' }}>Pulse Motor — Plan Mensual</span>
-                  <span style={{ fontSize:'14px', fontWeight:600 }}>$99.000</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#94a3b8' }}>Pulse Motor — Plan Mensual</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'14px', fontWeight:600 }}>$99.000</span>
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize:'13px', color:'#475569' }}>IVA (19%)</span>
-                  <span style={{ fontSize:'13px', color:'#475569' }}>incluido</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#475569' }}>IVA (19%)</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#475569' }}>incluido</span>
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontSize:'15px', fontWeight:700, fontFamily:FONT }}>Total hoy</span>
-                  <span style={{ fontSize:'20px', fontWeight:800, fontFamily:FONT, color:'#10b981' }}>$99.000 COP</span>
+                  <span style={{ fontFamily:FONT, fontSize:'15px', fontWeight:700 }}>Total hoy</span>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'20px', fontWeight:800, color:'#10b981' }}>$99.000 COP</span>
                 </div>
               </div>
 
-              {/* Botón Bold */}
               <div>
-                <p style={{ fontSize:'12px', color:'#475569', textAlign:'center', marginBottom:'12px' }}>
+                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', textAlign:'center', marginBottom:'12px' }}>
                   Pagá con tarjeta, PSE o Nequi
                 </p>
-                <div
-                  ref={boldContainerRef}
-                  style={{ display:'flex', justifyContent:'center', minHeight:'56px' }}
-                />
+                <div ref={boldContainerRef} style={{ display:'flex', justifyContent:'center', minHeight:'56px' }} />
               </div>
 
-              {/* Métodos de pago */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', flexWrap:'wrap' }}>
                 {['VISA', 'Mastercard', 'PSE', 'Nequi'].map(m => (
-                  <div key={m} style={{ padding:'4px 10px', borderRadius:'6px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', fontSize:'11px', color:'#475569', fontWeight:600 }}>{m}</div>
+                  <div key={m} style={{ padding:'4px 10px', borderRadius:'6px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', fontFamily:FONT_BODY, fontSize:'11px', color:'#475569', fontWeight:600 }}>{m}</div>
                 ))}
               </div>
 
-              {/* Seguridad */}
               <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
                 {[
                   { icon:'🔐', text:'Pago 100% seguro procesado por Bold' },
@@ -178,38 +166,36 @@ export default function PulsePricingPage() {
                 ].map(item => (
                   <div key={item.icon} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
                     <span style={{ fontSize:'14px' }}>{item.icon}</span>
-                    <span style={{ fontSize:'12px', color:'#475569' }}>{item.text}</span>
+                    <span style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569' }}>{item.text}</span>
                   </div>
                 ))}
               </div>
 
-              {/* FAQ rápido */}
               <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:'12px', padding:'16px' }}>
-                <p style={{ fontSize:'12px', fontWeight:700, color:'#94a3b8', marginBottom:'10px', textTransform:'uppercase', letterSpacing:'1px' }}>Preguntas frecuentes</p>
+                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:700, color:'#94a3b8', marginBottom:'10px', textTransform:'uppercase', letterSpacing:'1px' }}>Preguntas frecuentes</p>
                 {[
                   { q:'¿Puedo cancelar cuando quiero?', a:'Sí. Desde tu panel, en cualquier momento, sin penalidades.' },
                   { q:'¿Necesito instalar algo?', a:'No. Solo escanear un QR con tu WhatsApp actual.' },
                   { q:'¿El cliente sabe que es IA?', a:'No necesariamente. El agente habla como vos, con tu estilo.' },
                 ].map((item, i) => (
                   <div key={i} style={{ marginBottom:i<2?'10px':0 }}>
-                    <p style={{ fontSize:'12px', fontWeight:600, color:'#e2e8f0', marginBottom:'2px' }}>{item.q}</p>
-                    <p style={{ fontSize:'12px', color:'#475569', lineHeight:1.5 }}>{item.a}</p>
+                    <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:600, color:'#e2e8f0', marginBottom:'2px' }}>{item.q}</p>
+                    <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', lineHeight:1.5 }}>{item.a}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Social proof */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'32px', marginTop:'48px', flexWrap:'wrap' }}>
             {[
               { val:'< 30 seg', label:'Tiempo de respuesta' },
-              { val:'+500', label:'Leads atendidos' },
-              { val:'89%', label:'Tasa de respuesta' },
+              { val:'+500',     label:'Leads atendidos' },
+              { val:'89%',      label:'Tasa de respuesta' },
             ].map(s => (
               <div key={s.label} style={{ textAlign:'center' }}>
                 <div style={{ fontFamily:FONT, fontSize:'24px', fontWeight:800, background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>{s.val}</div>
-                <div style={{ fontSize:'12px', color:'#475569', marginTop:'2px' }}>{s.label}</div>
+                <div style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', marginTop:'2px' }}>{s.label}</div>
               </div>
             ))}
           </div>

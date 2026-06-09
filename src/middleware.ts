@@ -1,29 +1,32 @@
-// Ruta destino: src/middleware.ts
-//
-// MERGED: combina tu middleware actual (updateSession Supabase)
-// + nueva detección de dominio para Pulse Motor.
-//
-// Comportamiento:
-// - pulsemotor.co/*   → reescribe a /pulse/*  (sin updateSession, es público)
-// - ventas10x.co/*    → updateSession normal (auth Supabase como antes)
-// - Cualquier otro    → updateSession normal
-
+// src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || ''
-  const url = request.nextUrl.clone()
+  const url      = request.nextUrl.clone()
   const pathname = url.pathname
 
-  // Detectar si es dominio de Pulse Motor
   const isPulseMotor =
     hostname.includes('pulsemotor.co') ||
     hostname.includes('pulsemotor.vercel.app') ||
     hostname.includes('pulsemotor.localhost')
 
-  // ─── Ruta Pulse Motor ─────────────────────────────────────
+  // ─── Pulse Motor ──────────────────────────────────────────
   if (isPulseMotor) {
+
+    // sitemap.xml → reescribir al sitemap de /pulse
+    if (pathname === '/sitemap.xml') {
+      url.pathname = '/pulse/sitemap.xml'
+      return NextResponse.rewrite(url)
+    }
+
+    // robots.txt → reescribir al robots de /pulse
+    if (pathname === '/robots.txt') {
+      url.pathname = '/pulse/robots.txt'
+      return NextResponse.rewrite(url)
+    }
+
     // Si ya está en /pulse, dejar pasar
     if (pathname.startsWith('/pulse')) {
       return NextResponse.next()
@@ -45,7 +48,8 @@ export async function middleware(request: NextRequest) {
     url.pathname = `/pulse${pathname === '/' ? '' : pathname}`
     return NextResponse.rewrite(url)
   }
-  // ─── Rutas API de Pulse que deben pasar sin auth ────────────
+
+  // ─── Rutas API de Pulse que deben pasar sin auth ──────────
   if (
     pathname.startsWith('/api/pulse') ||
     pathname.startsWith('/api/bot') ||
@@ -54,7 +58,8 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.next()
   }
-  // ─── Ruta Ventas10x (comportamiento original sin cambios) ───
+
+  // ─── Ventas10x (comportamiento original) ──────────────────
   return await updateSession(request)
 }
 

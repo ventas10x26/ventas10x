@@ -40,36 +40,26 @@ async function montarBoton(container: HTMLDivElement, email: string | null) {
 
   container.innerHTML = ''
 
-  const btn = document.createElement('script')
-  btn.setAttribute('data-bold-button',         'dark-L')
-  btn.setAttribute('data-order-id',            orderId)
-  btn.setAttribute('data-currency',            CURRENCY)
-  btn.setAttribute('data-amount',              String(PRECIO))
-  btn.setAttribute('data-api-key',             BOLD_API_KEY)
-  btn.setAttribute('data-integrity-signature', integrity)
-  btn.setAttribute('data-redirection-url',     `${window.location.origin}/pulse/pago-exitoso`)
-  btn.setAttribute('data-description',         'Pulse Motor Plan Mensual')
-  if (email) btn.setAttribute('data-customer-data', JSON.stringify({ email }))
-
-  container.appendChild(btn)
-  console.log('[pricing] script insertado — orderId:', orderId)
-
-  // Bold no re-inicializa scripts dinámicos — esperar y forzar
-  await new Promise(r => setTimeout(r, 150))
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const w = window as any
-  if (typeof w.BoldButton?.init === 'function') {
-    w.BoldButton.init()
-  } else if (typeof w.boldPaymentButton?.init === 'function') {
-    w.boldPaymentButton.init()
-  } else if (typeof w.Bold?.init === 'function') {
-    w.Bold.init()
-  } else {
-    // Bold escucha DOMContentLoaded para inicializar botones
-    document.dispatchEvent(new Event('DOMContentLoaded'))
+  const BoldCheckout = (window as any).BoldCheckout
+  if (typeof BoldCheckout !== 'function') {
+    throw new Error('BoldCheckout no disponible')
   }
-  console.log('[pricing] init disparado. Bold keys:', Object.keys(w).filter(k => k.toLowerCase().includes('bold')))
+
+  // Crear instancia con config y renderizar en el contenedor
+  const checkout = new BoldCheckout({
+    orderId,
+    currency:           CURRENCY,
+    amount:             String(PRECIO),
+    apiKey:             BOLD_API_KEY,
+    integritySignature: integrity,
+    redirectionUrl:     `${window.location.origin}/pulse/pago-exitoso`,
+    description:        'Pulse Motor Plan Mensual',
+    ...(email ? { customerData: { email } } : {}),
+  })
+
+  checkout.render(container)
+  console.log('[pricing] BoldCheckout renderizado — orderId:', orderId)
 }
 
 export default function PulsePricingPage() {

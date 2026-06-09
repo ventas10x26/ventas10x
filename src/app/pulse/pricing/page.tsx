@@ -1,85 +1,91 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 const BOLD_API_KEY = '5L4jlcgWAJnjqOd_2E4906Yxq7lo5HHQqfESbb5_VyU'
-const PRECIO       = 99000  // COP enteros sin decimales
+const PRECIO       = 99000
 const CURRENCY     = 'COP'
+
+let boldLibCargada = false
+
+async function cargarLibBold(): Promise<void> {
+  if (boldLibCargada || document.querySelector('script[src*="boldPaymentButton"]')) {
+    boldLibCargada = true
+    return
+  }
+  return new Promise((resolve, reject) => {
+    const s    = document.createElement('script')
+    s.src      = 'https://checkout.bold.co/library/boldPaymentButton.js'
+    s.onload   = () => { boldLibCargada = true; resolve() }
+    s.onerror  = () => reject(new Error('Bold no cargó'))
+    document.head.appendChild(s)
+  })
+}
+
+async function montarBoton(container: HTMLDivElement, email: string | null) {
+  await cargarLibBold()
+
+  const uid     = `usr${Date.now()}`
+  const orderId = `pulse-${uid}`
+
+  const res = await fetch('/api/pulse/bold/integrity', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ orderId, amount: PRECIO, currency: CURRENCY }),
+  })
+  const { integrity } = await res.json() as { integrity: string }
+
+  container.innerHTML = ''
+
+  const btn = document.createElement('script')
+  btn.setAttribute('data-bold-button',         'dark-L')
+  btn.setAttribute('data-order-id',            orderId)
+  btn.setAttribute('data-currency',            CURRENCY)
+  btn.setAttribute('data-amount',              String(PRECIO))
+  btn.setAttribute('data-api-key',             BOLD_API_KEY)
+  btn.setAttribute('data-integrity-signature', integrity)
+  btn.setAttribute('data-redirection-url',     `${window.location.origin}/pulse/pago-exitoso`)
+  btn.setAttribute('data-description',         'Pulse Motor Plan Mensual')
+  if (email) btn.setAttribute('data-customer-data', JSON.stringify({ email }))
+
+  container.appendChild(btn)
+
+  // Forzar que Bold procese el nuevo script
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (window as any).BoldCheckout !== 'undefined') {
+    // Bold auto-inicializa al detectar el script en el DOM
+    console.log('[pricing] botón Bold montado — orderId:', orderId)
+  }
+}
 
 export default function PulsePricingPage() {
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null)
-  const [usuarioId, setUsuarioId]       = useState<string | null>(null)
-  const [cargandoBtn, setCargandoBtn]   = useState(true)
-  const boldContainerRef = useRef<HTMLDivElement>(null)
+  const [cargando, setCargando]         = useState(true)
+  const [error, setError]               = useState('')
   const supabase = createClient()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUsuarioEmail(data.user.email ?? null)
-        setUsuarioId(data.user.id)
-      } else {
-        setCargandoBtn(false)
-      }
+      setUsuarioEmail(data.user?.email ?? null)
     })
   }, [])
 
-  useEffect(() => {
-    const montar = async () => {
-      try {
-        setCargandoBtn(true)
-
-        const uid     = (usuarioId ?? 'anon').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16)
-        const orderId = `pulse-${uid}-${Date.now()}`
-
-        const res = await fetch('/api/pulse/bold/integrity', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ orderId, amount: PRECIO, currency: CURRENCY }),
-        })
-        const { integrity } = await res.json() as { integrity: string }
-
-        // 1. Cargar librería Bold en el head
-        const libScript = document.createElement('script')
-        libScript.src   = 'https://checkout.bold.co/library/boldPaymentButton.js'
-
-        await new Promise<void>((resolve, reject) => {
-          libScript.onload  = () => resolve()
-          libScript.onerror = () => reject(new Error('No se pudo cargar Bold'))
-          document.head.appendChild(libScript)
-        })
-
-        // 2. Crear script del botón en el contenedor
-        if (!boldContainerRef.current) return
-        boldContainerRef.current.innerHTML = ''
-
-        const btnScript = document.createElement('script')
-        btnScript.setAttribute('data-bold-button',          'dark-L')
-        btnScript.setAttribute('data-order-id',             orderId)
-        btnScript.setAttribute('data-currency',             CURRENCY)
-        btnScript.setAttribute('data-amount',               String(PRECIO))
-        btnScript.setAttribute('data-api-key',              BOLD_API_KEY)
-        btnScript.setAttribute('data-integrity-signature',  integrity)
-        btnScript.setAttribute('data-redirection-url',      `${window.location.origin}/pulse/pago-exitoso`)
-        btnScript.setAttribute('data-description',          'Pulse Motor Plan Mensual')
-        if (usuarioEmail) {
-          btnScript.setAttribute('data-customer-data', JSON.stringify({ email: usuarioEmail }))
-        }
-
-        boldContainerRef.current.appendChild(btnScript)
-        setCargandoBtn(false)
-      } catch (e) {
-        console.error('[pricing] error Bold:', e)
-        setCargandoBtn(false)
-      }
-    }
-
-    montar()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Ref callback: se llama cuando React monta/desmonta el div
+  const boldRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return
+    setCargando(true)
+    setError('')
+    montarBoton(node, usuarioEmail)
+      .then(() => setCargando(false))
+      .catch(e => {
+        console.error('[pricing] Bold error:', e)
+        setError('No se pudo cargar el botón de pago. Recargá la página.')
+        setCargando(false)
+      })
+  }, [usuarioEmail])
 
   return (
     <>
@@ -88,6 +94,7 @@ export default function PulsePricingPage() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #080f1a; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes spin   { to { transform: rotate(360deg) } }
         .fade-up { animation: fadeUp .6s ease forwards; }
         .check-item { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
         .check-item:last-child { border-bottom:none; }
@@ -96,7 +103,6 @@ export default function PulsePricingPage() {
       `}</style>
 
       <div style={{ minHeight:'100vh', background:'#080f1a', color:'#fff', fontFamily:FONT_BODY, position:'relative', overflow:'hidden' }}>
-
         <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0 }}>
           <div style={{ position:'absolute', top:'-10%', left:'50%', transform:'translateX(-50%)', width:'600px', height:'600px', background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)', borderRadius:'50%' }} />
           <div style={{ position:'absolute', bottom:'10%', right:'-5%', width:'300px', height:'300px', background:'radial-gradient(circle,rgba(16,185,129,0.06) 0%,transparent 70%)', borderRadius:'50%' }} />
@@ -111,16 +117,13 @@ export default function PulsePricingPage() {
         </header>
 
         <main style={{ position:'relative', zIndex:1, maxWidth:'960px', margin:'0 auto', padding:'60px 24px 80px' }}>
-
           <div style={{ textAlign:'center', marginBottom:'48px' }} className="fade-up">
             <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'999px', padding:'5px 16px', fontSize:'12px', fontWeight:600, color:'#6ee7b7', marginBottom:'20px' }}>
               🎉 14 días gratis ya terminaron — seguí vendiendo
             </div>
             <h1 style={{ fontFamily:FONT, fontSize:'clamp(28px,4vw,48px)', fontWeight:700, lineHeight:1.1, letterSpacing:'-.5px', marginBottom:'14px' }}>
               Activá tu agente por{' '}
-              <span style={{ background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-                $99.000/mes
-              </span>
+              <span style={{ background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>$99.000/mes</span>
             </h1>
             <p style={{ fontFamily:FONT_BODY, fontSize:'16px', color:'#64748b', maxWidth:'460px', margin:'0 auto', lineHeight:1.6 }}>
               Sin contratos. Cancelás cuando querás. Seguís usando tu WhatsApp de siempre.
@@ -129,7 +132,7 @@ export default function PulsePricingPage() {
 
           <div className="pricing-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', alignItems:'start' }}>
 
-            {/* Columna izquierda: features */}
+            {/* Columna izquierda */}
             <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'20px', padding:'32px', animation:'glowPulse 3s ease-in-out infinite' }}>
               <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginBottom:'6px' }}>
                 <span style={{ fontFamily:FONT_BODY, fontSize:'42px', fontWeight:800, color:'#fff', lineHeight:1 }}>$99.000</span>
@@ -159,7 +162,7 @@ export default function PulsePricingPage() {
               </div>
             </div>
 
-            {/* Columna derecha: checkout */}
+            {/* Columna derecha */}
             <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
               <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:'16px', padding:'20px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
@@ -176,19 +179,29 @@ export default function PulsePricingPage() {
                 </div>
               </div>
 
-              {/* Botón Bold */}
+              {/* Área del botón Bold */}
               <div>
                 <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', textAlign:'center', marginBottom:'12px' }}>
                   Pagá con tarjeta, PSE o Nequi
                 </p>
-                {cargandoBtn ? (
+
+                {/* Spinner mientras carga */}
+                {cargando && (
                   <div style={{ display:'flex', justifyContent:'center', alignItems:'center', height:'56px' }}>
                     <div style={{ width:'24px', height:'24px', border:'2px solid rgba(255,255,255,0.1)', borderTop:'2px solid #10b981', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
-                    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
                   </div>
-                ) : (
-                  <div ref={boldContainerRef} style={{ display:'flex', justifyContent:'center', minHeight:'56px' }} />
                 )}
+
+                {/* Error */}
+                {error && (
+                  <p style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#f87171', textAlign:'center', padding:'12px' }}>{error}</p>
+                )}
+
+                {/* Contenedor del botón — ref callback lo llena */}
+                <div
+                  ref={boldRef}
+                  style={{ display: cargando ? 'none' : 'flex', justifyContent:'center', minHeight:'56px' }}
+                />
               </div>
 
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', flexWrap:'wrap' }}>
@@ -214,8 +227,8 @@ export default function PulsePricingPage() {
                 <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:700, color:'#94a3b8', marginBottom:'10px', textTransform:'uppercase', letterSpacing:'1px' }}>Preguntas frecuentes</p>
                 {[
                   { q:'¿Puedo cancelar cuando quiero?', a:'Sí. Desde tu panel, en cualquier momento, sin penalidades.' },
-                  { q:'¿Necesito instalar algo?', a:'No. Solo escanear un QR con tu WhatsApp actual.' },
-                  { q:'¿El cliente sabe que es IA?', a:'No necesariamente. El agente habla como vos, con tu estilo.' },
+                  { q:'¿Necesito instalar algo?',       a:'No. Solo escanear un QR con tu WhatsApp actual.' },
+                  { q:'¿El cliente sabe que es IA?',    a:'No necesariamente. El agente habla como vos, con tu estilo.' },
                 ].map((item, i) => (
                   <div key={i} style={{ marginBottom:i<2?'10px':0 }}>
                     <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:600, color:'#e2e8f0', marginBottom:'2px' }}>{item.q}</p>

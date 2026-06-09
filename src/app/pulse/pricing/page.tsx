@@ -58,8 +58,9 @@ async function montarBoton(container: HTMLDivElement, email: string | null) {
     ...(email ? { customerData: { email } } : {}),
   })
 
-  checkout.render(container)
-  console.log('[pricing] BoldCheckout renderizado — orderId:', orderId)
+  // Embedded checkout dentro del contenedor
+  checkout.startEmbeddedCheckout(container)
+  console.log('[pricing] BoldCheckout embedded — orderId:', orderId)
 }
 
 export default function PulsePricingPage() {

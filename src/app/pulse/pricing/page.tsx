@@ -52,13 +52,24 @@ async function montarBoton(container: HTMLDivElement, email: string | null) {
   if (email) btn.setAttribute('data-customer-data', JSON.stringify({ email }))
 
   container.appendChild(btn)
+  console.log('[pricing] script insertado — orderId:', orderId)
 
-  // Forzar que Bold procese el nuevo script
+  // Bold no re-inicializa scripts dinámicos — esperar y forzar
+  await new Promise(r => setTimeout(r, 150))
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (window as any).BoldCheckout !== 'undefined') {
-    // Bold auto-inicializa al detectar el script en el DOM
-    console.log('[pricing] botón Bold montado — orderId:', orderId)
+  const w = window as any
+  if (typeof w.BoldButton?.init === 'function') {
+    w.BoldButton.init()
+  } else if (typeof w.boldPaymentButton?.init === 'function') {
+    w.boldPaymentButton.init()
+  } else if (typeof w.Bold?.init === 'function') {
+    w.Bold.init()
+  } else {
+    // Bold escucha DOMContentLoaded para inicializar botones
+    document.dispatchEvent(new Event('DOMContentLoaded'))
   }
+  console.log('[pricing] init disparado. Bold keys:', Object.keys(w).filter(k => k.toLowerCase().includes('bold')))
 }
 
 export default function PulsePricingPage() {

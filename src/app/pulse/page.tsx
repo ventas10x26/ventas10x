@@ -252,6 +252,9 @@ export default function PulseMotorLanding() {
             <div style={{ ...v(100), display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'28px' }}>
               🚗 Para asesores y concesionarios automotrices
             </div>
+
+            <SegmentSelector />
+
             <h1 id="pm-hero-headline" style={{ fontFamily:FONT, fontSize:'clamp(34px,5.5vw,60px)', fontWeight:700, lineHeight:'1.08', letterSpacing:'-.5px', margin:'0 0 20px' }}>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.3s' }}>Tu agente entrenado,</span></span>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.5s', background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>respondiendo en tu WhatsApp</span></span>

@@ -130,17 +130,18 @@ export default function PulseMotorLanding() {
   return (
     <>
       <style>{`
+
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root { --blue:#0ea5e9; --green:#10b981; --grad:linear-gradient(135deg,#0ea5e9,#10b981); --bg:#080f1a; --border:rgba(255,255,255,0.07); }
         body { background: var(--bg); }
 
-        .pm-input { width:100%; padding:13px 16px; border-radius:10px; border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#fff; font-size:15px; font-family:${FONT_BODY}; outline:none; transition:border-color .2s,box-shadow .2s; }
+        .pm-input { width:100%; padding:13px 16px; border-radius:10px; border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#fff; font-size:15px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s,box-shadow .2s; }
         .pm-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(14,165,233,0.12); }
         .pm-input.err { border-color:#f87171; }
         .pm-input::placeholder { color:#475569; }
         select option { background:#1e293b; }
 
-        .pm-btn { width:100%; padding:15px; border-radius:10px; border:none; background:var(--grad); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:${FONT}; letter-spacing:-.2px; box-shadow:0 4px 20px rgba(14,165,233,0.25); transition:all .2s; }
+        .pm-btn { width:100%; padding:15px; border-radius:10px; border:none; background:var(--grad); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:'Syne',sans-serif; letter-spacing:-.2px; box-shadow:0 4px 20px rgba(14,165,233,0.25); transition:all .2s; }
         .pm-btn:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); box-shadow:0 8px 28px rgba(14,165,233,0.35); }
         .pm-btn:disabled { opacity:.5; cursor:not-allowed; }
 
@@ -189,7 +190,7 @@ export default function PulseMotorLanding() {
         .hacemos-orb-1 { position:absolute; top:-80px; left:10%; width:400px; height:400px; background:radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%); border-radius:50%; pointer-events:none; }
         .hacemos-orb-2 { position:absolute; bottom:-60px; right:5%; width:300px; height:300px; background:radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%); border-radius:50%; pointer-events:none; }
 
-        .cube-face { position:absolute; width:260px; height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; font-size:13px; font-weight:600; font-family:${FONT_BODY}; text-align:center; line-height:1.35; backdrop-filter:blur(4px); }
+        .cube-face { position:absolute; width:260px; height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; font-size:13px; font-weight:600; font-family:'DM Sans',sans-serif; text-align:center; line-height:1.35; backdrop-filter:blur(4px); }
         .cube-section-bg { background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(14,165,233,0.06) 0%, transparent 70%); position:relative; overflow:hidden; }
         .cube-section-bg::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.015) 59px,rgba(255,255,255,0.015) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.015) 59px,rgba(255,255,255,0.015) 60px); pointer-events:none; }
 

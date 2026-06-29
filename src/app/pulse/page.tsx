@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PulseContactModal from '@/components/pulse/PulseContactModal'
+import { SegmentSelector } from '@/components/pulse/SegmentSelector'
 
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
@@ -249,9 +250,9 @@ export default function PulseMotorLanding() {
         <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'72px 24px 80px' }}>
           <div style={{ textAlign:'center', marginBottom:'56px' }}>
             <div style={{ ...v(100), display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'28px' }}>
-              🚗 Para asesores de concesionario automotriz
+              🚗 Para asesores y concesionarios automotrices
             </div>
-            <h1 style={{ fontFamily:FONT, fontSize:'clamp(34px,5.5vw,60px)', fontWeight:700, lineHeight:'1.08', letterSpacing:'-.5px', margin:'0 0 20px' }}>
+            <h1 id="pm-hero-headline" style={{ fontFamily:FONT, fontSize:'clamp(34px,5.5vw,60px)', fontWeight:700, lineHeight:'1.08', letterSpacing:'-.5px', margin:'0 0 20px' }}>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.3s' }}>Tu agente entrenado,</span></span>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.5s', background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>respondiendo en tu WhatsApp</span></span>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.7s' }}>mientras vos vendés.</span></span>

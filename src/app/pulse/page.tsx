@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PulseContactModal from '@/components/pulse/PulseContactModal'
-import { SegmentSelector } from '@/components/pulse/SegmentSelector'
-import './pulse-landing.css'
 
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
@@ -125,11 +123,95 @@ export default function PulseMotorLanding() {
   const v = (delay = 0) => ({
     opacity: visible ? 1 : 0,
     transform: visible ? 'translateY(0)' : 'translateY(20px)',
-    transition: 'opacity 0.7s ease ' + String(delay) + 'ms, transform 0.7s ease ' + String(delay) + 'ms',
+    transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
   })
 
   return (
     <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root { --blue:#0ea5e9; --green:#10b981; --grad:linear-gradient(135deg,#0ea5e9,#10b981); --bg:#080f1a; --border:rgba(255,255,255,0.07); }
+        body { background: var(--bg); }
+
+        .pm-input { width:100%; padding:13px 16px; border-radius:10px; border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#fff; font-size:15px; font-family:${FONT_BODY}; outline:none; transition:border-color .2s,box-shadow .2s; }
+        .pm-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(14,165,233,0.12); }
+        .pm-input.err { border-color:#f87171; }
+        .pm-input::placeholder { color:#475569; }
+        select option { background:#1e293b; }
+
+        .pm-btn { width:100%; padding:15px; border-radius:10px; border:none; background:var(--grad); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:${FONT}; letter-spacing:-.2px; box-shadow:0 4px 20px rgba(14,165,233,0.25); transition:all .2s; }
+        .pm-btn:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); box-shadow:0 8px 28px rgba(14,165,233,0.35); }
+        .pm-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+        .card { background:rgba(255,255,255,0.025); border:1px solid var(--border); border-radius:16px; transition:border-color .2s,transform .2s; }
+        .card:hover { border-color:rgba(14,165,233,0.2); transform:translateY(-2px); }
+
+        .pm-headline-line { overflow:hidden; display:block; }
+        .pm-headline-inner { display:block; transform:translateY(100%); opacity:0; transition:transform 0.65s cubic-bezier(0.16,1,0.3,1), opacity 0.65s ease; }
+        .pm-headline-inner.on { transform:translateY(0); opacity:1; }
+
+        .wa-bubble { opacity:0; transform:translateY(10px) scale(0.97); transition:opacity 0.3s ease, transform 0.3s ease; }
+        .wa-bubble.on { opacity:1; transform:translateY(0) scale(1); }
+        .wa-typing { display:flex; gap:4px; align-items:center; height:16px; }
+        .wa-dot { width:7px; height:7px; border-radius:50%; background:#25d366; animation:waBounce 1.1s ease infinite; }
+        .wa-dot:nth-child(2){animation-delay:.18s} .wa-dot:nth-child(3){animation-delay:.36s}
+        @keyframes waBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+        .wa-scroll::-webkit-scrollbar{width:3px} .wa-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.15);border-radius:2px}
+
+        @keyframes blinkSignal { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes pulse       { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes floatPhone  { 0%,100%{transform:translateY(0px) rotate(0.5deg)} 50%{transform:translateY(-8px) rotate(-0.5deg)} }
+        @keyframes glowPulse   { 0%,100%{box-shadow:0 0 30px rgba(37,211,102,0.15),0 30px 60px rgba(0,0,0,0.5)} 50%{box-shadow:0 0 50px rgba(37,211,102,0.25),0 30px 60px rgba(0,0,0,0.5)} }
+        @keyframes floatParticle { 0%,100%{transform:translateY(0) translateX(0);opacity:.6} 33%{transform:translateY(-20px) translateX(10px);opacity:1} 66%{transform:translateY(10px) translateX(-8px);opacity:.4} }
+
+        @keyframes navGlow {
+          0%,100% { box-shadow: 0 0 8px rgba(16,185,129,0.4), 0 0 20px rgba(16,185,129,0.2); }
+          50%      { box-shadow: 0 0 16px rgba(16,185,129,0.7), 0 0 36px rgba(16,185,129,0.35); }
+        }
+        .btn-nav-hacemos { animation: navGlow 2.5s ease-in-out infinite; transition: transform .2s, opacity .2s !important; }
+        .btn-nav-hacemos:hover { transform: translateY(-1px); opacity: .9; }
+
+        .hacemos-section {
+          position: relative;
+          background: radial-gradient(ellipse 100% 80% at 50% 0%, rgba(16,185,129,0.12) 0%, transparent 65%),
+                      linear-gradient(180deg, rgba(16,185,129,0.05) 0%, rgba(14,165,233,0.03) 50%, transparent 100%);
+          border-top: 1px solid rgba(16,185,129,0.2);
+          border-bottom: 1px solid rgba(16,185,129,0.1);
+          overflow: hidden;
+        }
+        .hacemos-section::before {
+          content:''; position:absolute; inset:0;
+          background: repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(16,185,129,0.03) 59px, rgba(16,185,129,0.03) 60px),
+                      repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(16,185,129,0.03) 59px, rgba(16,185,129,0.03) 60px);
+          pointer-events:none;
+        }
+        .hacemos-orb-1 { position:absolute; top:-80px; left:10%; width:400px; height:400px; background:radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%); border-radius:50%; pointer-events:none; }
+        .hacemos-orb-2 { position:absolute; bottom:-60px; right:5%; width:300px; height:300px; background:radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%); border-radius:50%; pointer-events:none; }
+
+        .cube-face { position:absolute; width:260px; height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; font-size:13px; font-weight:600; font-family:${FONT_BODY}; text-align:center; line-height:1.35; backdrop-filter:blur(4px); }
+        .cube-section-bg { background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(14,165,233,0.06) 0%, transparent 70%); position:relative; overflow:hidden; }
+        .cube-section-bg::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,0.015) 59px,rgba(255,255,255,0.015) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,0.015) 59px,rgba(255,255,255,0.015) 60px); pointer-events:none; }
+
+        .btn-hacemos { transition:all .2s !important; }
+        .btn-hacemos:hover { transform:translateY(-2px) !important; box-shadow:0 8px 28px rgba(16,185,129,0.4) !important; }
+
+        /* ── Pricing section ── */
+        .pricing-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start; }
+        .roi-line { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; }
+        .check-feat { display:flex; align-items:center; gap:10px; padding:7px 0; }
+        @keyframes pricingGlow { 0%,100%{box-shadow:0 0 30px rgba(14,165,233,0.1),0 24px 60px rgba(0,0,0,0.3)} 50%{box-shadow:0 0 50px rgba(14,165,233,0.18),0 24px 60px rgba(0,0,0,0.3)} }
+        .pricing-card { animation: pricingGlow 4s ease-in-out infinite; }
+
+        @media(max-width:900px){
+          .hero-grid{flex-direction:column!important;align-items:center!important}
+          .hero-grid>*{max-width:100%!important;width:100%!important}
+          .skills-grid{grid-template-columns:1fr!important}
+          .grid3{grid-template-columns:1fr!important}
+          .cube-layout{flex-direction:column!important;align-items:center!important}
+          .pricing-grid{grid-template-columns:1fr!important}
+        }
+      `}</style>
 
       <PulseContactModal open={modalContacto} onClose={() => setModalContacto(false)} />
 
@@ -166,17 +248,10 @@ export default function PulseMotorLanding() {
         {/* HERO */}
         <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'72px 24px 80px' }}>
           <div style={{ textAlign:'center', marginBottom:'56px' }}>
-
-            {/* Badge */}
-            <div style={{ ...v(100), display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'24px' }}>
-              🚗 Para asesores y concesionarios automotrices
+            <div style={{ ...v(100), display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(14,165,233,0.1)', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'5px 14px', fontSize:'12px', fontWeight:600, color:'#7dd3fc', marginBottom:'28px' }}>
+              🚗 Para asesores de concesionario automotriz
             </div>
-
-            {/* ── SELECTOR DE SEGMENTO ── */}
-            <SegmentSelector />
-
-            {/* Headline */}
-            <h1 id="pm-hero-headline" style={{ fontFamily:FONT, fontSize:'clamp(34px,5.5vw,60px)', fontWeight:700, lineHeight:'1.08', letterSpacing:'-.5px', margin:'0 0 20px', scrollMarginTop:'100px' }}>
+            <h1 style={{ fontFamily:FONT, fontSize:'clamp(34px,5.5vw,60px)', fontWeight:700, lineHeight:'1.08', letterSpacing:'-.5px', margin:'0 0 20px' }}>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.3s' }}>Tu agente entrenado,</span></span>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.5s', background:'var(--grad)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>respondiendo en tu WhatsApp</span></span>
               <span className="pm-headline-line"><span className={`pm-headline-inner${visible?' on':''}`} style={{ transitionDelay:'0.7s' }}>mientras vos vendés.</span></span>
@@ -236,7 +311,7 @@ export default function PulseMotorLanding() {
             </div>
           </div>
 
-          {/* Hero grid — form + phone */}
+          {/* Hero grid */}
           <div className="hero-grid" style={{ display:'flex', alignItems:'center', gap:'48px', justifyContent:'center', marginTop:'80px', paddingTop:'80px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
             <form onSubmit={submit} style={{ ...v(1200), flex:'1', minWidth:'280px', maxWidth:'380px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'20px', padding:'28px', backdropFilter:'blur(12px)' }}>
               <h3 style={{ fontSize:'20px', fontWeight:700, margin:'0 0 4px', fontFamily:FONT, letterSpacing:'-.3px' }}>Configurá tu agente gratis</h3>
@@ -555,4 +630,227 @@ export default function PulseMotorLanding() {
                 <div style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'10px' }}>{p.num}</div>
                 <div style={{ fontSize:'28px', marginBottom:'12px' }}>{p.icon}</div>
                 <h3 style={{ fontSize:'16px', fontWeight:700, margin:'0 0 8px', fontFamily:FONT }}>{p.titulo}</h3>
-                <p style={{ fontSize:'14px', color:'#64748b', lineHeight:'1.6', mar
+                <p style={{ fontSize:'14px', color:'#64748b', lineHeight:'1.6', margin:0 }}>{p.desc}</p>
+                {i===1&&<div style={{ marginTop:'14px', display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:'8px', padding:'5px 10px', fontSize:'11px', color:'#6ee7b7', fontWeight:600 }}>📱 Tu número · Sin SIM nueva</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* QR diferencial */}
+        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px' }}>
+          <div style={{ background:'linear-gradient(135deg,rgba(16,185,129,0.07),rgba(14,165,233,0.07))', border:'1px solid rgba(16,185,129,0.18)', borderRadius:'20px', padding:'48px', display:'flex', alignItems:'center', gap:'48px', flexWrap:'wrap' }}>
+            <div style={{ flex:1, minWidth:'260px' }}>
+              <div style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#10b981', textTransform:'uppercase', marginBottom:'10px' }}>El diferencial clave</div>
+              <h2 style={{ fontSize:'clamp(22px,3vw,34px)', fontWeight:700, letterSpacing:'-.4px', fontFamily:FONT, marginBottom:'14px', lineHeight:'1.2' }}>Tu WhatsApp de siempre.<br/><span style={{ color:'#10b981' }}>Sin número nuevo.</span></h2>
+              <p style={{ fontSize:'15px', color:'#94a3b8', lineHeight:'1.65', marginBottom:'20px' }}>Otros te piden una SIM nueva o un número de empresa. Nosotros no. Escaneas un QR desde tu celular y en 30 segundos tu agente ya está respondiendo desde tu número personal.</p>
+              {['Mismo número que tus clientes ya tienen guardado','Sin apps adicionales en tu celular','Desconectás cuando querás con un clic'].map(t=>(
+                <div key={t} style={{ display:'flex', alignItems:'flex-start', gap:'10px', marginBottom:'8px' }}>
+                  <span style={{ color:'#10b981', fontWeight:700, flexShrink:0 }}>✓</span>
+                  <span style={{ fontSize:'14px', color:'#cbd5e1' }}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ flexShrink:0, textAlign:'center' }}>
+              <div style={{ width:'140px', height:'140px', background:'#fff', borderRadius:'14px', padding:'10px', margin:'0 auto 10px', boxShadow:'0 0 40px rgba(16,185,129,0.15)', display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px' }}>
+                {Array.from({length:49}).map((_,i)=>{ const d=[0,1,2,3,4,5,6,7,13,14,20,21,27,28,34,35,41,42,43,44,45,46,48]; return <div key={i} style={{ borderRadius:'1px', background:(d.includes(i)||(i%3===0&&i>13&&i<35)||(i%7===3))?'#000':'transparent' }} /> })}
+              </div>
+              <p style={{ fontSize:'13px', color:'#10b981', fontWeight:600 }}>Escanea · Conecta · Listo</p>
+              <p style={{ fontSize:'12px', color:'#475569', marginTop:'3px' }}>30 segundos</p>
+            </div>
+          </div>
+        </section>
+
+        {/* TESTIMONIOS */}
+        <section style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 80px' }}>
+          <div style={{ textAlign:'center', marginBottom:'44px' }}>
+            <p style={{ fontSize:'11px', fontWeight:700, letterSpacing:'2px', color:'#0ea5e9', textTransform:'uppercase', marginBottom:'10px' }}>Resultados reales</p>
+            <h2 style={{ fontSize:'clamp(24px,3vw,38px)', fontWeight:700, letterSpacing:'-.4px', fontFamily:FONT }}>Lo que dicen los asesores</h2>
+          </div>
+          <div className="grid3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'18px' }}>
+            {TESTIMONIOS.map(t => (
+              <div key={t.nombre} className="card" style={{ padding:'22px' }}>
+                <div style={{ fontSize:'22px', color:'#0ea5e9', marginBottom:'10px', fontWeight:900, lineHeight:1 }}>"</div>
+                <p style={{ fontSize:'14px', color:'#cbd5e1', lineHeight:'1.65', margin:'0 0 18px', fontStyle:'italic' }}>{t.texto}</p>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                  <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'var(--grad)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, flexShrink:0 }}>{t.nombre[0]}</div>
+                  <div><div style={{ fontSize:'13px', fontWeight:700 }}>{t.nombre}</div><div style={{ fontSize:'12px', color:'#475569' }}>{t.cargo}</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════
+            PRECIOS — después de testimonios, antes del CTA final
+            Lógica: ROI primero, precio después
+        ═══════════════════════════════════════════════════════ */}
+        <section id="precios" style={{ position:'relative', zIndex:1, maxWidth:'1100px', margin:'0 auto', padding:'0 24px 100px', scrollMarginTop:'80px' }}>
+
+          <div style={{ textAlign:'center', marginBottom:'52px' }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:'999px', padding:'5px 16px', fontSize:'12px', fontWeight:600, color:'#6ee7b7', marginBottom:'16px' }}>
+              💰 Precio
+            </div>
+            <h2 style={{ fontFamily:FONT, fontSize:'clamp(26px,3.5vw,44px)', fontWeight:700, letterSpacing:'-.5px', lineHeight:1.1, marginBottom:'14px' }}>
+              Una venta extra al mes<br/>
+              <span style={{ background:'linear-gradient(135deg,#10b981,#0ea5e9)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+                cubre el año entero.
+              </span>
+            </h2>
+            <p style={{ fontSize:'16px', color:'#64748b', maxWidth:'440px', margin:'0 auto', lineHeight:1.6 }}>
+              Pulse Motor no es un gasto. Es el vendedor que trabaja mientras vos dormís.
+            </p>
+          </div>
+
+          <div className="pricing-grid">
+
+            {/* Columna izquierda: ROI */}
+            <div style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+              <div style={{ background:'rgba(16,185,129,0.04)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:'20px', padding:'28px' }}>
+                <p style={{ fontSize:'11px', fontWeight:700, color:'#10b981', letterSpacing:'2px', textTransform:'uppercase', marginBottom:'20px' }}>El math es simple</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                  <div className="roi-line" style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.12)', borderRadius:'12px 12px 0 0', borderBottom:'none' }}>
+                    <div>
+                      <div style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0' }}>Comisión promedio por venta</div>
+                      <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>Un Picanto o Sportage vendido</div>
+                    </div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'18px', fontWeight:800, color:'#6ee7b7', flexShrink:0, marginLeft:'16px' }}>+$500.000</div>
+                  </div>
+                  <div className="roi-line" style={{ background:'rgba(248,113,113,0.06)', border:'1px solid rgba(248,113,113,0.12)', borderRadius:'0', marginBottom:'2px' }}>
+                    <div>
+                      <div style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0' }}>Costo Pulse Motor / mes</div>
+                      <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>Todo incluido, sin sorpresas</div>
+                    </div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'18px', fontWeight:800, color:'#f87171', flexShrink:0, marginLeft:'16px' }}>−$99.000</div>
+                  </div>
+                  <div className="roi-line" style={{ background:'rgba(16,185,129,0.12)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'0 0 12px 12px' }}>
+                    <div>
+                      <div style={{ fontSize:'14px', fontWeight:700, color:'#f8fafc' }}>Tu ganancia neta ese mes</div>
+                      <div style={{ fontSize:'11px', color:'#6ee7b7', marginTop:'2px' }}>Con solo 1 lead recuperado</div>
+                    </div>
+                    <div style={{ fontFamily:FONT_BODY, fontSize:'24px', fontWeight:800, color:'#10b981', flexShrink:0, marginLeft:'16px' }}>+$401.000</div>
+                  </div>
+                </div>
+                <p style={{ fontSize:'12px', color:'#334155', marginTop:'16px', lineHeight:1.6 }}>
+                  ¿Cuántos leads perdés por semana por no responder a tiempo? Con Pulse Motor, ninguno.
+                </p>
+              </div>
+
+              {/* Testimonial de refuerzo */}
+              <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'16px', padding:'20px' }}>
+                <div style={{ fontSize:'20px', color:'#10b981', marginBottom:'8px', fontWeight:900, lineHeight:1 }}>"</div>
+                <p style={{ fontSize:'14px', color:'#cbd5e1', lineHeight:1.65, margin:'0 0 14px', fontStyle:'italic' }}>
+                  En el primer mes recuperé 3 ventas que se me hubieran ido. Pulse Motor se pagó solo 15 veces.
+                </p>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                  <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'linear-gradient(135deg,#0ea5e9,#10b981)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, color:'#fff' }}>J</div>
+                  <div>
+                    <div style={{ fontSize:'13px', fontWeight:700, color:'#e2e8f0' }}>Jorge P.</div>
+                    <div style={{ fontSize:'12px', color:'#475569' }}>Asesor Renault · Medellín</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Qué cuesta NO tenerlo */}
+              <div style={{ padding:'24px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:'16px' }}>
+                <p style={{ fontSize:'11px', fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:'16px' }}>¿Qué cuesta NO tener Pulse Motor?</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+                  {[
+                    { icon:'😰', label:'Perder 1 lead/semana', valor:'~$2.000.000/mes', desc:'en comisiones que se van a otro asesor', color:'#f87171' },
+                    { icon:'🕐', label:'Responder tarde (+1h)', valor:'70% menos cierres', desc:'los leads fríos rara vez vuelven', color:'#fbbf24' },
+                    { icon:'🔁', label:'Sin seguimiento auto', valor:'5x más trabajo', desc:'para el mismo resultado', color:'#94a3b8' },
+                  ].map(item => (
+                    <div key={item.label} style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                      <span style={{ fontSize:'20px', flexShrink:0 }}>{item.icon}</span>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'12px', color:'#64748b' }}>{item.label}</div>
+                        <div style={{ fontFamily:FONT, fontSize:'13px', fontWeight:700, color:item.color }}>{item.valor}</div>
+                      </div>
+                      <div style={{ fontSize:'11px', color:'#334155', maxWidth:'100px', textAlign:'right', lineHeight:1.4 }}>{item.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Columna derecha: card de precio */}
+            <div style={{ position:'sticky', top:'90px' }}>
+              <div className="pricing-card" style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(14,165,233,0.2)', borderRadius:'24px', padding:'32px', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:'-40px', right:'-40px', width:'200px', height:'200px', background:'radial-gradient(circle,rgba(14,165,233,0.08) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none' }} />
+
+                <div style={{ display:'inline-flex', alignItems:'center', gap:'6px', background:'linear-gradient(135deg,rgba(14,165,233,0.15),rgba(16,185,129,0.15))', border:'1px solid rgba(14,165,233,0.25)', borderRadius:'999px', padding:'4px 12px', fontSize:'11px', fontWeight:700, color:'#7dd3fc', marginBottom:'20px', letterSpacing:'.5px', textTransform:'uppercase' }}>
+                  ⚡ Plan único · Todo incluido
+                </div>
+
+                <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginBottom:'4px' }}>
+                  <span style={{ fontFamily:FONT_BODY, fontSize:'52px', fontWeight:800, color:'#f8fafc', lineHeight:1 }}>$99k</span>
+                  <div>
+                    <div style={{ fontSize:'14px', color:'#475569', fontWeight:500 }}>/mes</div>
+                    <div style={{ fontSize:'11px', color:'#334155' }}>COP</div>
+                  </div>
+                </div>
+                <p style={{ fontSize:'13px', color:'#475569', marginBottom:'24px' }}>Cancelás cuando querás · Sin permanencia</p>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'28px' }}>
+                  {[
+                    'Agente entrenado con tu estilo de venta',
+                    'Respuestas automáticas en menos de 30 seg',
+                    'Follow-up día 1, 3 y 7 automático',
+                    'Tu WhatsApp actual — sin SIM nueva',
+                    'Agendamiento de test drives solo',
+                    'Panel de leads y estadísticas',
+                    'Soporte directo por WhatsApp',
+                    '14 días de prueba gratis',
+                  ].map(f => (
+                    <div key={f} className="check-feat">
+                      <div style={{ width:'18px', height:'18px', borderRadius:'50%', background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'10px', color:'#10b981', fontWeight:700 }}>✓</div>
+                      <span style={{ fontSize:'13px', color:'#94a3b8' }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                  <button
+                    onClick={() => setModalContacto(true)}
+                    style={{ width:'100%', padding:'15px', borderRadius:'12px', border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:FONT, letterSpacing:'-.2px', boxShadow:'0 4px 20px rgba(16,185,129,0.35)', transition:'all .2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 8px 28px rgba(16,185,129,0.45)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 20px rgba(16,185,129,0.35)' }}
+                  >
+                    🤝 Lo hacemos por vos — gratis primero
+                  </button>
+                  <a href="/pulse/signup" style={{ display:'block', width:'100%', padding:'13px', borderRadius:'12px', background:'rgba(14,165,233,0.08)', border:'1px solid rgba(14,165,233,0.2)', color:'#7dd3fc', fontSize:'14px', fontWeight:600, textDecoration:'none', textAlign:'center', fontFamily:FONT, transition:'all .2s' }}>
+                    Empezar solo — 14 días gratis →
+                  </a>
+                </div>
+                <p style={{ fontSize:'11px', color:'#334155', textAlign:'center', marginTop:'12px' }}>Sin tarjeta para la prueba · Cancelás en 1 clic</p>
+              </div>
+
+              <div style={{ marginTop:'14px', display:'flex', alignItems:'center', gap:'12px', padding:'14px 18px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:'12px' }}>
+                <span style={{ fontSize:'20px', flexShrink:0 }}>🔒</span>
+                <div>
+                  <div style={{ fontSize:'13px', fontWeight:600, color:'#e2e8f0' }}>Garantía 7 días</div>
+                  <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5 }}>Si no ves resultados en la primera semana, te devolvemos el dinero. Sin preguntas.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* ═══ FIN PRECIOS ═══ */}
+
+        {/* CTA FINAL */}
+        <section style={{ position:'relative', zIndex:1, maxWidth:'680px', margin:'0 auto', padding:'0 24px 100px', textAlign:'center' }}>
+          <div style={{ background:'linear-gradient(135deg,rgba(14,165,233,0.07),rgba(16,185,129,0.07))', border:'1px solid rgba(14,165,233,0.14)', borderRadius:'20px', padding:'48px 32px' }}>
+            <h2 style={{ fontSize:'clamp(24px,3vw,38px)', fontWeight:700, letterSpacing:'-.4px', fontFamily:FONT, marginBottom:'14px', lineHeight:'1.2' }}>¿Cuántos leads perdiste<br/>esta semana por no responder?</h2>
+            <p style={{ fontSize:'15px', color:'#94a3b8', marginBottom:'28px', lineHeight:'1.65' }}>Con Pulse Motor nunca más. Tu agente responde en 30 segundos, hace seguimiento y agenda citas — mientras vos estás con otro cliente.</p>
+            <a href="/pulse/signup" style={{ display:'inline-block', padding:'15px 32px', borderRadius:'12px', background:'var(--grad)', color:'#fff', fontSize:'16px', fontWeight:700, textDecoration:'none', fontFamily:FONT, boxShadow:'0 4px 20px rgba(14,165,233,0.3)', letterSpacing:'-.2px' }}>Crear mi agente gratis →</a>
+            <p style={{ fontSize:'13px', color:'#334155', marginTop:'14px' }}>14 días gratis · Sin tarjeta · Tu WhatsApp actual</p>
+          </div>
+        </section>
+
+        <footer style={{ position:'relative', zIndex:1, padding:'24px', textAlign:'center', fontSize:'13px', color:'#334155', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          © 2026 Pulse Motor · Hecho en Cali, Colombia 🇨🇴
+        </footer>
+      </div>
+    </>
+  )
+}

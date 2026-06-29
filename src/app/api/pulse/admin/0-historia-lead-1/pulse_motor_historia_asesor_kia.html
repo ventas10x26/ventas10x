@@ -1,0 +1,478 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, .root {
+    background: transparent;
+    color: var(--color-text-primary);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .root { padding: 0 0 48px; }
+
+  .hero {
+    background: #080f1a;
+    border-radius: 16px;
+    padding: 56px 48px 48px;
+    margin-bottom: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: -80px; left: 50%;
+    transform: translateX(-50%);
+    width: 500px; height: 300px;
+    background: radial-gradient(ellipse, rgba(249,115,22,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(249,115,22,0.12);
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fdba74;
+    margin-bottom: 24px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: #f8fafc;
+    margin-bottom: 20px;
+  }
+
+  .hero h1 span {
+    color: #f97316;
+  }
+
+  .hero-sub {
+    font-size: 17px;
+    color: #64748b;
+    line-height: 1.7;
+    max-width: 560px;
+  }
+
+  .section {
+    background: #0d1b2e;
+    border-radius: 16px;
+    padding: 40px 48px;
+    margin-bottom: 2px;
+  }
+
+  .section-light {
+    background: #0a1628;
+  }
+
+  .scene-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #334155;
+    margin-bottom: 20px;
+  }
+
+  .scene-label.orange { color: #ea580c; }
+  .scene-label.green  { color: #059669; }
+
+  .scene-text {
+    font-size: 17px;
+    line-height: 1.8;
+    color: #94a3b8;
+  }
+
+  .scene-text strong {
+    color: #e2e8f0;
+    font-weight: 600;
+  }
+
+  .scene-text em {
+    color: #f97316;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .quote-block {
+    border-left: 3px solid #f97316;
+    padding: 16px 0 16px 24px;
+    margin: 28px 0;
+  }
+
+  .quote-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.4;
+  }
+
+  .quote-who {
+    font-size: 13px;
+    color: #475569;
+    margin-top: 8px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+  }
+
+  .stat-box {
+    background: rgba(249,115,22,0.06);
+    border: 1px solid rgba(249,115,22,0.15);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: #f97316;
+    display: block;
+  }
+
+  .stat-desc {
+    font-size: 12px;
+    color: #475569;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .vs-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 28px 0;
+  }
+
+  .vs-col {
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .vs-col.old {
+    background: rgba(239,68,68,0.06);
+    border: 1px solid rgba(239,68,68,0.15);
+  }
+
+  .vs-col.new {
+    background: rgba(16,185,129,0.06);
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+
+  .vs-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .vs-title.red   { color: #f87171; }
+  .vs-title.green { color: #34d399; }
+
+  .vs-item {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 10px;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .vs-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 8px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .vs-col.old .vs-item::before { background: #ef4444; }
+  .vs-col.new .vs-item::before { background: #10b981; }
+
+  .fear-block {
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.12);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 28px 0;
+  }
+
+  .fear-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fca5a5;
+    margin-bottom: 16px;
+  }
+
+  .fear-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .fear-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  .fear-text {
+    font-size: 15px;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+
+  .fear-text strong { color: #fca5a5; font-weight: 600; }
+
+  .hope-block {
+    background: rgba(16,185,129,0.05);
+    border: 1px solid rgba(16,185,129,0.15);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 28px 0;
+  }
+
+  .hope-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #6ee7b7;
+    margin-bottom: 16px;
+  }
+
+  .cta-section {
+    background: #080f1a;
+    border-radius: 16px;
+    padding: 56px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    bottom: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 400px; height: 200px;
+    background: radial-gradient(ellipse, rgba(16,185,129,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 16px;
+    line-height: 1.2;
+    position: relative;
+  }
+
+  .cta-section p {
+    font-size: 16px;
+    color: #475569;
+    max-width: 480px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    padding: 17px 36px;
+    border-radius: 12px;
+    text-decoration: none;
+    letter-spacing: -0.2px;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s;
+  }
+
+  .cta-btn:hover { transform: translateY(-2px); }
+
+  .cta-sub {
+    font-size: 13px;
+    color: #334155;
+    margin-top: 16px;
+    position: relative;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.04);
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .hero, .section, .cta-section { padding: 32px 24px; }
+    .stat-row { grid-template-columns: 1fr; }
+    .vs-block { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="root">
+
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="badge">Para asesores KIA en Colombia</div>
+    <h1>El lead llegó.<br/><span>Vos llegaste tarde.</span></h1>
+    <p class="hero-sub">La historia de cómo el asesor de al lado te está quitando ventas — sin que te des cuenta.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="scene-label">El momento exacto</div>
+    <p class="scene-text">
+      Son las <strong>11:47 de la noche.</strong> Un lead llega por MercadoLibre preguntando por el New Picanto. Tiene plata. Tiene intención. Está comparando tres concesionarios al mismo tiempo desde su cama.<br/><br/>
+      Vos estás dormido. Tu celular está en silencio.<br/><br/>
+      <em>El asesor de al lado tiene Pulse Motor.</em> Su agente responde en 28 segundos. A las 8 AM del día siguiente, cuando vos abrís el chat, el lead ya agendó el test drive con él.
+    </p>
+
+    <div class="quote-block">
+      <div class="quote-text">"El 78% de las ventas las cierra el primero que responde. No el mejor. El primero."</div>
+      <div class="quote-who">— Dato de la industria automotriz, Harvard Business Review</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section section-light">
+    <div class="scene-label">La realidad que nadie dice en voz alta</div>
+    <p class="scene-text">
+      Sos un buen asesor. Conocés cada versión del Sportage de memoria. Sabés hacer una simulación de crédito en 3 minutos. Cuando estás frente al cliente, cerrás.<br/><br/>
+      El problema no es tu talento. <strong>El problema es que el cliente moderno no espera.</strong>
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <span class="stat-num">30 seg</span>
+        <div class="stat-desc">Tiempo promedio de respuesta del asesor con IA</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">4.2 hrs</span>
+        <div class="stat-desc">Tiempo promedio de respuesta del asesor tradicional</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">21×</span>
+        <div class="stat-desc">Más probable de cerrar si respondés primero</div>
+      </div>
+    </div>
+
+    <div class="fear-block">
+      <div class="fear-title">Lo que te está costando cada día que esperás</div>
+      <div class="fear-item">
+        <div class="fear-dot"></div>
+        <div class="fear-text">Cada lead que no respondés en la primera hora tiene <strong>10% de probabilidad de conversión.</strong> En la primera hora, 40%.</div>
+      </div>
+      <div class="fear-item">
+        <div class="fear-dot"></div>
+        <div class="fear-text">Los leads de noche y fin de semana — que son el <strong>34% del total</strong> — van directamente al que tiene respuesta automática.</div>
+      </div>
+      <div class="fear-item">
+        <div class="fear-dot"></div>
+        <div class="fear-text">El follow-up manual que "vas a hacer mañana" se olvida. <strong>El 80% de las ventas requieren 5 o más contactos.</strong> ¿Cuántos hacés vos?</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <div class="scene-label orange">El antes y el después</div>
+
+    <div class="vs-block">
+      <div class="vs-col old">
+        <div class="vs-title red">Asesor tradicional</div>
+        <div class="vs-item">Llega al concesionario a las 8 AM y ve 6 chats sin responder</div>
+        <div class="vs-item">Pierde leads de madrugada y fin de semana</div>
+        <div class="vs-item">El follow-up depende de su memoria y energía</div>
+        <div class="vs-item">Escribe el mismo mensaje 30 veces al día</div>
+        <div class="vs-item">Negocia con clientes que ya visitaron la competencia</div>
+      </div>
+      <div class="vs-col new">
+        <div class="vs-title green">Asesor con Pulse Motor</div>
+        <div class="vs-item">Su agente respondió 6 leads a las 2 AM con su estilo exacto</div>
+        <div class="vs-item">Los fines de semana generan citas para el lunes</div>
+        <div class="vs-item">Follow-up automático día 1, 3 y 7 sin tocar nada</div>
+        <div class="vs-item">Solo atiende clientes ya calentados por el agente</div>
+        <div class="vs-item">Llega al test drive cuando el cliente ya quiere comprar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section section-light">
+    <div class="scene-label green">La nueva realidad</div>
+    <p class="scene-text">
+      Esto no es ciencia ficción ni tecnología del futuro. <strong>Asesores KIA en Colombia ya lo están usando.</strong><br/><br/>
+      Misma SIM. Mismo número de WhatsApp. Sin cambiar nada de tu flujo. Solo escaneás un QR y tu agente — entrenado con tu voz, tus objeciones, tu manera de cerrar — empieza a trabajar mientras vos dormís.
+    </p>
+
+    <div class="hope-block">
+      <div class="hope-title">Lo que cambia cuando tu agente trabaja las 24 horas</div>
+      <div class="fear-item">
+        <div class="fear-dot" style="background:#10b981"></div>
+        <div class="fear-text" style="color:#94a3b8">Cada mañana llegás al concesionario con <strong style="color:#6ee7b7;">leads ya calificados</strong>, no con chats fríos.</div>
+      </div>
+      <div class="fear-item">
+        <div class="fear-dot" style="background:#10b981"></div>
+        <div class="fear-text" style="color:#94a3b8">Los clientes que llegaban al test drive "de curiosidad" ahora llegan <strong style="color:#6ee7b7;">listos para cerrar.</strong></div>
+      </div>
+      <div class="fear-item">
+        <div class="fear-dot" style="background:#10b981"></div>
+        <div class="fear-text" style="color:#94a3b8">Tu tasa de conversión sube. Tu estrés baja. <strong style="color:#6ee7b7;">Tu comisión sube.</strong></div>
+      </div>
+    </div>
+
+    <div class="quote-block" style="border-left-color: #10b981">
+      <div class="quote-text" style="color:#f8fafc;">Una venta extra al mes por $500.000 de comisión.<br/>Pulse Motor cuesta $99.000.<br/><span style="color:#10b981;">Hacé las cuentas.</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="cta-section">
+    <div class="cta-glow"></div>
+    <h2>Tu próximo lead llega esta noche.<br/>¿Quién va a responder?</h2>
+    <p>Activá tu agente IA hoy. Tu WhatsApp de siempre. Tu estilo de venta. Respondiendo leads mientras dormís.</p>
+    <a class="cta-btn" href="https://pulsemotor.co" target="_blank" rel="noopener">
+      Quiero responder primero →
+    </a>
+    <div class="cta-sub">Sin contrato · Cancelás cuando querás · Garantía 7 días</div>
+  </div>
+
+</div>

@@ -130,7 +130,6 @@ export default function PulseMotorLanding() {
   return (
     <>
       <style>{`
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root { --blue:#0ea5e9; --green:#10b981; --grad:linear-gradient(135deg,#0ea5e9,#10b981); --bg:#080f1a; --border:rgba(255,255,255,0.07); }
         body { background: var(--bg); }

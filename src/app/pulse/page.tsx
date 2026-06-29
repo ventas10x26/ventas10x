@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PulseContactModal from '@/components/pulse/PulseContactModal'
 import { SegmentSelector } from '@/components/pulse/SegmentSelector'
+import './pulse-landing.css'
 
 const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"

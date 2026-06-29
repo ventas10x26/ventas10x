@@ -124,12 +124,13 @@ export default function PulseMotorLanding() {
   const v = (delay = 0) => ({
     opacity: visible ? 1 : 0,
     transform: visible ? 'translateY(0)' : 'translateY(20px)',
-    transition: 'opacity 0.7s ease ' + delay + 'ms, transform 0.7s ease ' + delay + 'ms',
+    transition: 'opacity 0.7s ease ' + String(delay) + 'ms, transform 0.7s ease ' + String(delay) + 'ms',
   })
 
   return (
     <>
       <style>{`
+
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root { --blue:#0ea5e9; --green:#10b981; --grad:linear-gradient(135deg,#0ea5e9,#10b981); --bg:#080f1a; --border:rgba(255,255,255,0.07); }
         body { background: var(--bg); }

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 
 const FONT = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
+const GRAD = 'linear-gradient(90deg, #3b82f6, #ec4899, #a855f7)'
+const gradText: React.CSSProperties = { backgroundImage: GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }
 
 interface PulseContactModalProps {
   open: boolean
@@ -72,7 +74,7 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
         onClick={(e) => { if (e.target === backdropRef.current) onClose() }}
         style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(8,15,26,0.85)',
+          background: 'rgba(0,0,0,0.85)',
           backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px',
@@ -81,13 +83,13 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
       >
         {/* Modal */}
         <div style={{
-          background: '#0d1b2e',
-          border: '1px solid rgba(14,165,233,0.2)',
-          borderRadius: '20px',
+          background: '#fafafa',
+          border: '1px solid rgba(0,0,0,0.14)',
+          borderRadius: '16px',
           padding: '40px',
           width: '100%', maxWidth: '480px',
           position: 'relative',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(14,165,233,0.08)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
           animation: 'slideUpModal .25s cubic-bezier(.22,.68,0,1.2)',
         }}>
 
@@ -96,14 +98,14 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
             onClick={onClose}
             style={{
               position: 'absolute', top: '16px', right: '16px',
-              background: 'rgba(255,255,255,0.06)', border: 'none',
+              background: 'rgba(0,0,0,0.06)', border: 'none',
               borderRadius: '8px', width: '32px', height: '32px',
-              cursor: 'pointer', color: '#94a3b8', fontSize: '18px',
+              cursor: 'pointer', color: '#475569', fontSize: '18px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background .15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.12)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.06)')}
           >
             ✕
           </button>
@@ -113,22 +115,22 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{
                 width: '64px', height: '64px', borderRadius: '50%',
-                background: 'rgba(16,185,129,0.15)', border: '2px solid #10b981',
+                background: 'rgba(0,0,0,0.1)', border: '2px solid rgba(0,0,0,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '28px', margin: '0 auto 24px',
               }}>✓</div>
-              <h3 style={{ fontFamily: FONT, fontSize: '22px', fontWeight: 700, color: '#f8fafc', marginBottom: '12px' }}>
-                ¡Listo! Te contactamos pronto
+              <h3 style={{ fontFamily: FONT, fontSize: '22px', fontWeight: 700, marginBottom: '12px' }}>
+                ¡Listo! <span style={gradText}>Te contactamos pronto</span>
               </h3>
-              <p style={{ fontFamily: FONT_BODY, fontSize: '15px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '28px' }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: '15px', color: '#475569', lineHeight: 1.6, marginBottom: '28px' }}>
                 Recibimos tus datos. Un asesor de Pulse Motor te va a escribir en menos de 24 horas para armar tu agente personalizado.
               </p>
               <button
                 onClick={onClose}
                 style={{
-                  fontFamily: FONT, fontWeight: 700, fontSize: '15px',
-                  padding: '12px 32px', borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #0ea5e9, #10b981)',
+                  fontFamily: FONT, fontWeight: 600, fontSize: '15px',
+                  padding: '12px 32px', borderRadius: '8px',
+                  background: '#000',
                   border: 'none', color: '#fff', cursor: 'pointer',
                 }}
               >
@@ -141,20 +143,19 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
               {/* Badge */}
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)',
+                background: 'transparent', border: '1px solid rgba(0,0,0,0.16)',
                 borderRadius: '20px', padding: '4px 12px', marginBottom: '20px',
               }}>
-                <span style={{ fontSize: '13px' }}>🤝</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#0ea5e9', fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase' }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#888', fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase' }}>
                   Lo hacemos por vos
                 </span>
               </div>
 
               <h2 style={{
                 fontFamily: FONT, fontSize: '24px', fontWeight: 700,
-                color: '#f8fafc', marginBottom: '10px', lineHeight: 1.2,
+                marginBottom: '10px', lineHeight: 1.2,
               }}>
-                Dejanos tus datos y armamos tu agente
+                Dejanos tus datos y <span style={gradText}>armamos tu agente</span>
               </h2>
               <p style={{
                 fontFamily: FONT_BODY, fontSize: '14px', color: '#64748b',
@@ -173,7 +174,7 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
                   <div key={i}>
                     <label style={{
                       display: 'block', fontFamily: FONT_BODY, fontSize: '12px',
-                      fontWeight: 600, color: '#94a3b8', marginBottom: '6px',
+                      fontWeight: 600, color: '#475569', marginBottom: '6px',
                       letterSpacing: '.4px', textTransform: 'uppercase',
                     }}>
                       {label}
@@ -187,14 +188,14 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
                       onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
                       style={{
                         width: '100%', boxSizing: 'border-box',
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(0,0,0,0.04)',
+                        border: '1px solid rgba(0,0,0,0.1)',
                         borderRadius: '10px', padding: '12px 16px',
-                        fontFamily: FONT_BODY, fontSize: '15px', color: '#f8fafc',
+                        fontFamily: FONT_BODY, fontSize: '15px', color: '#0a0a0a',
                         outline: 'none', transition: 'border-color .15s',
                       }}
-                      onFocus={e => (e.target.style.borderColor = '#0ea5e9')}
-                      onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                      onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+                      onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.1)')}
                     />
                   </div>
                 ))}
@@ -220,10 +221,10 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
                   fontFamily: FONT, fontWeight: 700, fontSize: '16px',
                   padding: '15px', borderRadius: '12px',
                   background: estado === 'loading'
-                    ? 'rgba(14,165,233,0.4)'
-                    : 'linear-gradient(135deg, #0ea5e9, #10b981)',
+                    ? 'rgba(0,0,0,0.3)'
+                    : '#000',
                   border: 'none', color: '#fff', cursor: estado === 'loading' ? 'not-allowed' : 'pointer',
-                  boxShadow: estado === 'loading' ? 'none' : '0 4px 20px rgba(14,165,233,0.35)',
+                  boxShadow: 'none',
                   transition: 'all .2s', letterSpacing: '-.2px',
                 }}
                 onMouseEnter={e => { if (estado !== 'loading') e.currentTarget.style.transform = 'translateY(-1px)' }}
@@ -233,7 +234,7 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
               </button>
 
               <p style={{
-                fontFamily: FONT_BODY, fontSize: '12px', color: '#334155',
+                fontFamily: FONT_BODY, fontSize: '12px', color: '#cbd5e1',
                 textAlign: 'center', marginTop: '12px',
               }}>
                 Sin compromiso · Te contactamos en menos de 24 hs

@@ -1,8 +1,8 @@
 // src/app/pulse/signup/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const inputStyle: React.CSSProperties = {
@@ -19,15 +19,24 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function PulseSignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <PulseSignupForm />
+    </Suspense>
+  )
+}
+
+function PulseSignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [nombre, setNombre] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(searchParams.get('email') || '')
   const [password, setPassword] = useState('')
-  const [marca, setMarca] = useState('')
-  const [concesionario, setConcesionario] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
+  const [marca, setMarca] = useState(searchParams.get('marca') || '')
+  const [concesionario, setConcesionario] = useState(searchParams.get('concesionario') || '')
+  const [whatsapp, setWhatsapp] = useState(searchParams.get('whatsapp') || '')
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'google' | 'error'>('idle')
   const [error, setError] = useState('')
   const [cuposDisponibles, setCuposDisponibles] = useState<number | null>(null)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ConcesionarioModal } from './ConcesionarioModal'
 
 export function SegmentSelector() {
   const [elegido, setElegido] = useState<'asesor' | 'concesionario' | null>(null)
@@ -153,46 +154,7 @@ export function SegmentSelector() {
       </div>
 
       {/* Modal DataBridge 360 */}
-      {showModal && (
-        <div onClick={cerrar} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(8,15,26,0.92)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#0d1b2e', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
-            <button onClick={cerrar} aria-label="Cerrar" style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', width: '30px', height: '30px', color: '#64748b', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>×</button>
-            <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#10b981', marginBottom: '6px' }}>Para el concesionario</p>
-            <p style={{ fontSize: '22px', fontWeight: 800, color: '#f8fafc', fontFamily: "'Syne',sans-serif", marginBottom: '10px', letterSpacing: '-.3px' }}>DataBridge 360</p>
-            <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.7, marginBottom: '1.5rem' }}>Un tablero único que conecta todas las líneas de negocio del concesionario en tiempo real.</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '1.25rem' }}>
-              {[
-                { icon: '🚗', name: 'Vehículos nuevos', sub: 'Inventario, reservas y asignaciones' },
-                { icon: '🔄', name: 'Retomas', sub: 'Usados, avalúos y oportunidades' },
-                { icon: '🏦', name: 'Financiación', sub: 'Solicitudes, bancos y aprobaciones' },
-                { icon: '🛡️', name: 'Pólizas', sub: 'Colisión, todo riesgo y renovaciones' },
-                { icon: '🔧', name: 'Accesorios', sub: 'Stock, ventas cruzadas y comisiones' },
-                { icon: '📊', name: 'Analítica', sub: 'Métricas por asesor y línea' },
-              ].map(m => (
-                <div key={m.name} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '12px 14px' }}>
-                  <div style={{ fontSize: '16px', marginBottom: '5px' }}>{m.icon}</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#e2e8f0', marginBottom: '3px', fontFamily: "'Syne',sans-serif" }}>{m.name}</div>
-                  <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>{m.sub}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', borderRadius: '10px', padding: '14px', display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <span style={{ fontSize: '16px', flexShrink: 0 }}>⚡</span>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#7dd3fc', marginBottom: '3px' }}>Agente WhatsApp incluido para cada asesor</div>
-                <div style={{ fontSize: '11px', color: '#475569', lineHeight: 1.5 }}>Responde leads en 30 segundos desde el número personal de cada asesor. Sin SIM nueva.</div>
-              </div>
-            </div>
-            <a href="mailto:hola@pulsemotor.co?subject=Quiero DataBridge 360 para mi concesionario" style={{ display: 'block', width: '100%', padding: '13px', borderRadius: '10px', background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center', fontFamily: "'Syne',sans-serif", marginBottom: '8px' }}>
-              Solicitar demo →
-            </a>
-            <button onClick={cerrar} style={{ display: 'block', width: '100%', padding: '11px', borderRadius: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#64748b', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-              Soy asesor, ver mi plan
-            </button>
-            <p style={{ fontSize: '11px', color: '#334155', textAlign: 'center', marginTop: '10px' }}>Precio a la medida · Sin compromiso · Demo en 48 horas</p>
-          </div>
-        </div>
-      )}
+      <ConcesionarioModal open={showModal} onClose={cerrar} />
     </>
   )
 }

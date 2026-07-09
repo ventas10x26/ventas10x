@@ -42,11 +42,21 @@ function inferType(raw: unknown[]): string {
   return 'texto'
 }
 
+const MAX_DEGREE_PER_FIELD = 4
+
+function isRealHeader(h: string): boolean {
+  const t = h.trim()
+  if (!t) return false
+  if (/^__?empty/i.test(t)) return false
+  if (/^column\d+$/i.test(t)) return false
+  return true
+}
+
 function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
   const nodes: Node3D[] = []
   const edges: Edge3D[] = []
   const pi2 = Math.PI * 2
-  const tableRadius = 190
+  const tableRadius = 190 + Math.max(0, sheets.length - 5) * 26
 
   nodes.push({ id: 'central', l: 'Oportunidad', kind: 'central', table: 'Oportunidad', color: CENTRAL_COLOR, x: 0, y: 0, z: 0, r: 26 })
 
@@ -62,13 +72,14 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
     const hubId = 'hub_' + si
     nodes.push({ id: hubId, l: sheet.name, kind: 'table', table: sheet.name, color, x: cx, y: cy, z: cz, r: 18 })
 
-    const headers = Object.keys(sheet.rows[0] || {})
+    const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
+    const fieldRadius = 55 + Math.max(0, headers.length - 6) * 4
     headers.forEach((h, fi) => {
       const rawValues = sheet.rows.map(r => r[h])
       const tipo = inferType(rawValues)
       const fa = pi2 * fi / Math.max(headers.length, 1)
       const id = `f_${si}_${fi}`
-      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, x: cx + Math.cos(fa) * 55, y: cy + rand(-18, 18), z: cz + Math.sin(fa) * 55, r: 9 })
+      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, x: cx + Math.cos(fa) * fieldRadius, y: cy + rand(-18, 18), z: cz + Math.sin(fa) * fieldRadius, r: 9 })
       edges.push({ a: hubId, b: id, w: 0.4, kind: 'contains' })
       const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim().toLowerCase()))
       cols.push({ id, sheetIdx: si, table: sheet.name, norm: normalize(h), values })
@@ -78,24 +89,34 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
     if (hasCentralField) edges.push({ a: hubId, b: 'central', w: 1.6, kind: 'fk', label: 'vínculo a oportunidad' })
   })
 
+  interface Candidate { a: string; b: string; overlap: number; nameMatch: boolean }
+  const candidates: Candidate[] = []
   for (let i = 0; i < cols.length; i++) {
     for (let j = i + 1; j < cols.length; j++) {
       const A = cols[i], B = cols[j]
       if (A.sheetIdx === B.sheetIdx) continue
-      const nameMatch = A.norm.length >= 3 && B.norm.length >= 3 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
+      const nameMatch = A.norm.length >= 4 && B.norm.length >= 4 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
       let overlap = 0
-      if (A.values.size && B.values.size) {
+      if (A.values.size >= 3 && B.values.size >= 3) {
         let inter = 0
         A.values.forEach(v => { if (B.values.has(v)) inter++ })
         overlap = inter / Math.min(A.values.size, B.values.size)
       }
-      if (overlap >= 0.4) {
-        edges.push({ a: A.id, b: B.id, w: 1 + overlap, kind: 'fk', label: `mismo valor ${Math.round(overlap * 100)}%` })
-      } else if (nameMatch) {
-        edges.push({ a: A.id, b: B.id, w: 1, kind: 'fk', label: 'nombre similar' })
-      }
+      if (overlap >= 0.5 || nameMatch) candidates.push({ a: A.id, b: B.id, overlap, nameMatch })
     }
   }
+  candidates.sort((x, y) => y.overlap - x.overlap)
+
+  const degree = new Map<string, number>()
+  candidates.forEach(c => {
+    const da = degree.get(c.a) ?? 0
+    const db = degree.get(c.b) ?? 0
+    if (da >= MAX_DEGREE_PER_FIELD || db >= MAX_DEGREE_PER_FIELD) return
+    const label = c.overlap >= 0.5 ? `mismo valor ${Math.round(c.overlap * 100)}%` : 'nombre similar'
+    edges.push({ a: c.a, b: c.b, w: 1 + c.overlap, kind: 'fk', label })
+    degree.set(c.a, da + 1)
+    degree.set(c.b, db + 1)
+  })
 
   const nameTableCount = new Map<string, Set<string>>()
   cols.forEach(c => {
@@ -193,6 +214,7 @@ export default function DataBridgePage() {
   const animRef      = useRef<number>(0)
   const nodesRef     = useRef<Node3D[]>([])
   const edgesRef     = useRef<Edge3D[]>([])
+  const hoverRef     = useRef<string | null>(null)
   const viewRef      = useRef<'3d' | 'top'>('3d')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -236,29 +258,33 @@ export default function DataBridgePage() {
     const proj = ns.map(n => ({ ...n, ...project(n.x, n.y, n.z, W, H) }))
     proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
 
-    es.forEach(e => {
+    const hoverId = hoverRef.current
+    const drawEdge = (e: Edge3D, emphasize: boolean) => {
       const a = proj.find(n => n.id === e.a)
       const b = proj.find(n => n.id === e.b)
       if (!a || !b) return
       ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
       if (e.kind === 'fk') {
-        ctx.strokeStyle = 'rgba(14,165,233,0.55)'; ctx.lineWidth = e.w * dimScale
+        ctx.strokeStyle = emphasize ? 'rgba(14,165,233,0.9)' : hoverId ? 'rgba(14,165,233,0.08)' : 'rgba(14,165,233,0.28)'
+        ctx.lineWidth = (emphasize ? 1.8 : 0.7) * e.w * dimScale
       } else {
-        ctx.strokeStyle = 'rgba(128,128,128,0.12)'; ctx.lineWidth = e.w * dimScale
+        ctx.strokeStyle = 'rgba(128,128,128,0.1)'; ctx.lineWidth = e.w * dimScale
       }
       ctx.stroke()
-      if (e.kind === 'fk' && e.label) {
+      if (e.kind === 'fk' && e.label && emphasize) {
         const mx = (a.px! + b.px!) / 2
         const my = (a.py! + b.py!) / 2
-        ctx.font = `${fs(9)}px system-ui`
+        ctx.font = `${fs(10)}px system-ui`
         const w = ctx.measureText(e.label).width
-        ctx.fillStyle = 'rgba(8,15,26,0.8)'
-        ctx.fillRect(mx - w / 2 - 4, my - fs(7), w + 8, fs(14))
-        ctx.fillStyle = 'rgba(125,211,252,0.95)'
+        ctx.fillStyle = 'rgba(8,15,26,0.9)'
+        ctx.fillRect(mx - w / 2 - 4, my - fs(8), w + 8, fs(16))
+        ctx.fillStyle = 'rgba(125,211,252,1)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(e.label, mx, my)
       }
-    })
+    }
+    es.filter(e => e.kind === 'contains' || !(hoverId && (e.a === hoverId || e.b === hoverId))).forEach(e => drawEdge(e, false))
+    if (hoverId) es.filter(e => e.kind === 'fk' && (e.a === hoverId || e.b === hoverId)).forEach(e => drawEdge(e, true))
 
     proj.forEach(n => {
       const c = n.color
@@ -426,6 +452,8 @@ export default function DataBridgePage() {
       const dx = mx - p.px!; const dy = my - p.py!
       return dx * dx + dy * dy < (n.r * s * dimScale + 8) ** 2
     })
+    const newHoverId = hit ? hit.id : null
+    if (hoverRef.current !== newHoverId) { hoverRef.current = newHoverId; draw() }
     setTooltip(hit ? { x: Math.min(mx + 12, W - 220), y: Math.max(my - 60, 0), node: hit } : null)
   }
 
@@ -498,7 +526,7 @@ export default function DataBridgePage() {
             onMouseMove={onMouseMove}
             onMouseDown={e => { if (phase !== 'ready') return; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); dragRef.current = { on: true, x: e.clientX - rect.left, y: e.clientY - rect.top } }}
             onMouseUp={() => { dragRef.current.on = false }}
-            onMouseLeave={() => { dragRef.current.on = false; setTooltip(null) }}
+            onMouseLeave={() => { dragRef.current.on = false; hoverRef.current = null; setTooltip(null); draw() }}
           >
             {/* Fondo de partículas */}
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
@@ -572,7 +600,7 @@ export default function DataBridgePage() {
             {/* Hint */}
             {phase === 'ready' && (
               <div style={{ position: 'absolute', bottom: '12px', right: '12px', fontSize: '11px', color: '#334155', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                🖱 arrastrá para rotar
+                🖱 arrastrá para rotar · pasá el mouse sobre un campo para ver sus relaciones
               </div>
             )}
           </div>

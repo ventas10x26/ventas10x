@@ -421,25 +421,33 @@ export default function DataBridgePage() {
 
   const startDemo = () => runProgress(() => processSheets(genDemoSheets()))
 
-  const handleFile = (file: File) => {
+  const handleFiles = (files: File[]) => {
     runProgress(async () => {
       try {
-        let sheets: SheetData[]
-        if (file.name.toLowerCase().endsWith('.json')) {
-          const text = await file.text()
-          const data = JSON.parse(text)
-          sheets = Array.isArray(data)
-            ? [{ name: file.name.replace(/\.json$/i, ''), rows: data }]
-            : Object.entries(data).map(([name, rows]) => ({ name, rows: rows as Record<string, unknown>[] }))
-        } else {
-          const buffer = await file.arrayBuffer()
-          const workbook = XLSX.read(buffer, { type: 'array' })
-          sheets = workbook.SheetNames.map(name => ({
-            name,
-            rows: XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[name], { defval: '' }),
-          }))
+        const allSheets: SheetData[] = []
+        for (const file of files) {
+          const baseName = file.name.replace(/\.[^.]+$/, '')
+          if (file.name.toLowerCase().endsWith('.json')) {
+            const text = await file.text()
+            const data = JSON.parse(text)
+            if (Array.isArray(data)) {
+              allSheets.push({ name: baseName, rows: data })
+            } else {
+              const keys = Object.entries(data)
+              keys.forEach(([name, rows]) => {
+                allSheets.push({ name: keys.length > 1 ? `${baseName} - ${name}` : baseName, rows: rows as Record<string, unknown>[] })
+              })
+            }
+          } else {
+            const buffer = await file.arrayBuffer()
+            const workbook = XLSX.read(buffer, { type: 'array' })
+            workbook.SheetNames.forEach(name => {
+              const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[name], { defval: '' })
+              allSheets.push({ name: workbook.SheetNames.length > 1 ? `${baseName} - ${name}` : baseName, rows })
+            })
+          }
         }
-        sheets = sheets.filter(s => s.rows.length > 0)
+        const sheets = allSheets.filter(s => s.rows.length > 0)
         processSheets(sheets.length ? sheets : genDemoSheets())
       } catch {
         processSheets(genDemoSheets())
@@ -448,8 +456,8 @@ export default function DataBridgePage() {
   }
 
   const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) handleFile(f)
+    const files = Array.from(e.target.files || [])
+    if (files.length) handleFiles(files)
     e.target.value = ''
   }
 
@@ -572,7 +580,7 @@ export default function DataBridgePage() {
                 <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Subí tu inventario</div>
-                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Excel · CSV · JSON</div>
+                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Excel · CSV · JSON — podés elegir varios archivos juntos</div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     {['Excel', 'CSV', 'JSON'].map(f => (
                       <span key={f} style={{ fontSize: '11px', color: '#334155', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT_BODY }}>{f}</span>
@@ -582,7 +590,7 @@ export default function DataBridgePage() {
                 <button onClick={startDemo} style={{ marginTop: '6px', fontSize: '12px', color: '#7dd3fc', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>
                   o probá con datos de ejemplo →
                 </button>
-                <input ref={fileInputRef} type="file" accept=".xlsx,.csv,.json" style={{ display: 'none' }} onChange={onFileInputChange} />
+                <input ref={fileInputRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
               </div>
             )}
 
@@ -676,11 +684,11 @@ export default function DataBridgePage() {
           <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>Subí tu inventario real</div>
-              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>La IA lee cada hoja de tu Excel o CSV y arma el mapa de campos y llaves en segundos.</div>
+              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Seleccioná varios archivos a la vez (ej. leads.xlsx + ventas.csv) para que la IA cruce campos y valores entre ellos.</div>
             </div>
             <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
               Subir archivo →
-              <input type="file" accept=".xlsx,.csv,.json" style={{ display: 'none' }} onChange={onFileInputChange} />
+              <input type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
             </label>
           </div>
         )}

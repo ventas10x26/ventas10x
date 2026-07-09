@@ -217,6 +217,7 @@ export default function DataBridgePage() {
   const [tooltip, setTooltip]         = useState<{ x: number; y: number; node: Node3D } | null>(null)
   const [stats, setStats]             = useState<{ table: string; color: string; count: number }[]>([])
   const [fullscreen, setFullscreen]   = useState(false)
+  const [dragMode, setDragMode]       = useState<'rotate' | 'pan'>('rotate')
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -274,7 +275,6 @@ export default function DataBridgePage() {
     proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
 
     const hoverId = hoverRef.current
-    const hoveredTable = hoverId ? proj.find(n => n.id === hoverId)?.table : undefined
     const drawEdge = (e: Edge3D, emphasize: boolean) => {
       const a = proj.find(n => n.id === e.a)
       const b = proj.find(n => n.id === e.b)
@@ -329,7 +329,7 @@ export default function DataBridgePage() {
         ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
       } else {
-        const revealed = !n.dense || n.id === hoverId || n.table === hoveredTable
+        const revealed = !n.dense || n.id === hoverId
         if (revealed) {
           ctx.font = `${fs(11)}px system-ui`; ctx.fillStyle = n.id === hoverId ? '#f8fafc' : '#b6c2d4'
           ctx.textAlign = 'center'; ctx.textBaseline = 'top'
@@ -458,7 +458,8 @@ export default function DataBridgePage() {
     const rect = canvasRef.current.getBoundingClientRect()
     const mx = e.clientX - rect.left; const my = e.clientY - rect.top
     if (dragRef.current.on) {
-      if (e.shiftKey) {
+      const effectiveMode = e.shiftKey ? (dragMode === 'rotate' ? 'pan' : 'rotate') : dragMode
+      if (effectiveMode === 'rotate') {
         camRef.current.ry += (mx - dragRef.current.x) * 0.4
         camRef.current.rx += (my - dragRef.current.y) * 0.4
         camRef.current.rx = Math.max(-80, Math.min(80, camRef.current.rx))
@@ -492,6 +493,9 @@ export default function DataBridgePage() {
         return e.label ? `${name} (${e.label})` : name
       })
       .filter((v): v is string => Boolean(v))
+
+  const fieldsOfTable = (table: string): string[] =>
+    nodes.filter(n => n.kind === 'field' && n.table === table).map(n => n.l)
 
   const legendEntries = Array.from(new Map(nodes.filter(n => n.kind !== 'field').map(n => [n.kind === 'central' ? 'Oportunidad' : n.table, n.color])).entries())
 
@@ -534,6 +538,12 @@ export default function DataBridgePage() {
                 {(['3d', 'top'] as const).map(v => (
                   <button key={v} onClick={() => setView(v)} style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: view === v ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: view === v ? 'rgba(14,165,233,0.1)' : 'transparent', color: view === v ? '#7dd3fc' : '#64748b', fontWeight: view === v ? 600 : 400 }}>
                     {v === '3d' ? '3D' : 'Top'}
+                  </button>
+                ))}
+                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
+                {(['rotate', 'pan'] as const).map(m => (
+                  <button key={m} onClick={() => setDragMode(m)} title={m === 'rotate' ? 'Arrastrar para rotar' : 'Arrastrar para mover'} style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: dragMode === m ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: dragMode === m ? 'rgba(14,165,233,0.1)' : 'transparent', color: dragMode === m ? '#7dd3fc' : '#64748b' }}>
+                    {m === 'rotate' ? '⟳' : '🖐'}
                   </button>
                 ))}
                 <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
@@ -592,7 +602,7 @@ export default function DataBridgePage() {
 
             {/* Tooltip */}
             {tooltip && (
-              <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, background: 'rgba(13,27,46,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#e2e8f0', pointerEvents: 'none', fontFamily: FONT_BODY, lineHeight: 1.6, zIndex: 10, maxWidth: '220px' }}>
+              <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, background: 'rgba(13,27,46,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#e2e8f0', pointerEvents: 'none', fontFamily: FONT_BODY, lineHeight: 1.6, zIndex: 10, maxWidth: '260px', maxHeight: '320px', overflow: 'hidden' }}>
                 {tooltip.node.kind === 'field' && (
                   <>
                     <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.table}.{tooltip.node.l}</div>
@@ -605,13 +615,19 @@ export default function DataBridgePage() {
                     </div>
                   </>
                 )}
-                {tooltip.node.kind === 'table' && (
-                  <>
-                    <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.l}</div>
-                    <div style={{ color: tooltip.node.color }}>Tabla / hoja</div>
-                    <div style={{ color: '#475569', marginTop: '2px' }}>{edges.filter(e => e.kind === 'contains' && e.a === tooltip.node.id).length} campos</div>
-                  </>
-                )}
+                {tooltip.node.kind === 'table' && (() => {
+                  const fields = fieldsOfTable(tooltip.node.table)
+                  return (
+                    <>
+                      <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.l}</div>
+                      <div style={{ color: tooltip.node.color }}>Tabla / hoja · {fields.length} campos</div>
+                      <div style={{ color: '#94a3b8', marginTop: '4px', fontSize: '11px', lineHeight: 1.5 }}>
+                        {fields.slice(0, 16).map((f, i) => <div key={i}>· {f}</div>)}
+                        {fields.length > 16 && <div style={{ color: '#475569' }}>+{fields.length - 16} más</div>}
+                      </div>
+                    </>
+                  )
+                })()}
                 {tooltip.node.kind === 'central' && (
                   <>
                     <div style={{ fontWeight: 700, marginBottom: '2px' }}>Oportunidad</div>
@@ -625,7 +641,7 @@ export default function DataBridgePage() {
             {/* Hint */}
             {phase === 'ready' && (
               <div style={{ position: 'absolute', bottom: '12px', right: '12px', fontSize: '11px', color: '#334155', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                🖐 arrastrá para mover · shift+arrastrar rota · scroll zoom
+                {dragMode === 'rotate' ? '⟳ arrastrá para rotar' : '🖐 arrastrá para mover'} · shift invierte · scroll zoom
               </div>
             )}
           </div>

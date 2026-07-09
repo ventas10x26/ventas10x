@@ -21,6 +21,9 @@ interface Edge3D { a: string; b: string }
 
 interface SheetData { name: string; rows: Record<string, unknown>[] }
 
+interface FieldMatch { fieldA: string; fieldB: string; label: string; score: number }
+interface TableRelation { a: string; b: string; matches: FieldMatch[] }
+
 const rand = (a: number, b: number) => Math.random() * (b - a) + a
 
 const BASE_DIM = 400
@@ -104,6 +107,40 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
   return { nodes, edges }
 }
 
+function detectTableRelations(sheets: SheetData[]): TableRelation[] {
+  interface ColInfo { table: string; field: string; norm: string; values: Set<string> }
+  const cols: ColInfo[] = []
+  sheets.forEach(sheet => {
+    const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
+    headers.forEach(h => {
+      const rawValues = sheet.rows.map(r => r[h])
+      const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim().toLowerCase()))
+      cols.push({ table: sheet.name, field: h, norm: normalize(h), values })
+    })
+  })
+
+  const pairMap = new Map<string, TableRelation>()
+  for (let i = 0; i < cols.length; i++) {
+    for (let j = i + 1; j < cols.length; j++) {
+      const A = cols[i], B = cols[j]
+      if (A.table === B.table) continue
+      const nameMatch = A.norm.length >= 4 && B.norm.length >= 4 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
+      let overlap = 0
+      if (A.values.size >= 3 && B.values.size >= 3) {
+        let inter = 0
+        A.values.forEach(v => { if (B.values.has(v)) inter++ })
+        overlap = inter / Math.min(A.values.size, B.values.size)
+      }
+      if (overlap < 0.5 && !nameMatch) continue
+      const label = overlap >= 0.5 ? `mismo valor ${Math.round(overlap * 100)}%` : 'nombre similar'
+      const key = [A.table, B.table].sort().join('|')
+      if (!pairMap.has(key)) pairMap.set(key, { a: A.table, b: B.table, matches: [] })
+      pairMap.get(key)!.matches.push({ fieldA: A.field, fieldB: B.field, label, score: overlap })
+    }
+  }
+  return Array.from(pairMap.values()).map(r => ({ ...r, matches: r.matches.sort((x, y) => y.score - x.score).slice(0, 6) }))
+}
+
 function computeTableStats(nodes: Node3D[]): { table: string; color: string; count: number }[] {
   const map = new Map<string, { color: string; count: number }>()
   nodes.filter(n => n.kind === 'field').forEach(n => {
@@ -179,6 +216,8 @@ export default function DataBridgePage() {
   const [stats, setStats]             = useState<{ table: string; color: string; count: number }[]>([])
   const [fullscreen, setFullscreen]   = useState(false)
   const [dragMode, setDragMode]       = useState<'rotate' | 'pan'>('rotate')
+  const [tableRelations, setTableRelations] = useState<TableRelation[]>([])
+  const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -341,6 +380,8 @@ export default function DataBridgePage() {
     const { nodes: n, edges: e } = buildGraph(sheets)
     setNodes(n); setEdges(e)
     setStats(computeTableStats(n))
+    setTableRelations(detectTableRelations(sheets))
+    setSchemaHover(null)
     setPhase('ready')
   }
 
@@ -435,9 +476,17 @@ export default function DataBridgePage() {
 
   const legendEntries = Array.from(new Map(nodes.filter(n => n.kind === 'table').map(n => [n.table, n.color])).entries())
 
+  const schemaTables = nodes.filter(n => n.kind === 'table')
+  const schemaPositions = new Map<string, { x: number; y: number }>()
+  schemaTables.forEach((t, i) => {
+    if (schemaTables.length <= 1) { schemaPositions.set(t.table, { x: 140, y: 140 }); return }
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / schemaTables.length
+    schemaPositions.set(t.table, { x: 140 + Math.cos(angle) * 95, y: 140 + Math.sin(angle) * 95 })
+  })
+
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 24px 80px' }}>
+      <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* Header */}
         <div style={{ marginBottom: '28px' }}>
@@ -453,7 +502,9 @@ export default function DataBridgePage() {
           </p>
         </div>
 
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* Visualizador */}
+        <div style={{ flex: '1 1 600px', minWidth: 0 }}>
         <div style={fullscreen ? {
           position: 'fixed', inset: 0, zIndex: 200, background: '#080f1a',
           padding: '18px 20px', display: 'flex', flexDirection: 'column',
@@ -581,6 +632,80 @@ export default function DataBridgePage() {
               ))}
             </div>
           )}
+        </div>
+        </div>
+
+        {/* Esquema de relaciones 2D */}
+        <div style={{ flex: '0 1 300px', minWidth: '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Esquema de relaciones</span>
+            <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
+              {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'}
+            </span>
+          </div>
+
+          {phase !== 'ready' ? (
+            <div style={{ fontSize: '12px', color: '#475569', fontFamily: FONT_BODY }}>Subí tus hojas para ver el esquema.</div>
+          ) : (
+            <>
+              <svg viewBox="0 0 280 280" style={{ width: '100%', height: 'auto', background: '#080f1a', borderRadius: '14px' }}>
+                {tableRelations.map((r, i) => {
+                  const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
+                  if (!p1 || !p2) return null
+                  const strength = Math.min(1, r.matches.length / 3)
+                  const active = schemaHover?.type === 'relation' && schemaHover.rel === r
+                  return (
+                    <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                      stroke={active ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.5)'}
+                      strokeWidth={(active ? 2 : 1) + strength * 1.5}
+                      strokeDasharray="4 3"
+                      onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
+                      onMouseLeave={() => setSchemaHover(null)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  )
+                })}
+                {schemaTables.map(t => {
+                  const p = schemaPositions.get(t.table)!
+                  return (
+                    <g key={t.id} onMouseEnter={() => setSchemaHover({ type: 'table', table: t.table })} onMouseLeave={() => setSchemaHover(null)} style={{ cursor: 'pointer' }}>
+                      <circle cx={p.x} cy={p.y} r={20} fill={t.color} />
+                      <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill="rgba(0,0,0,0.8)">{t.table.slice(0, 3).toUpperCase()}</text>
+                      <text x={p.x} y={p.y + 30} textAnchor="middle" fontSize="9" fill="#94a3b8">{t.table.length > 14 ? t.table.slice(0, 12) + '…' : t.table}</text>
+                    </g>
+                  )
+                })}
+              </svg>
+
+              <div style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, lineHeight: 1.6, minHeight: '60px' }}>
+                {!schemaHover && (tableRelations.length === 0
+                  ? 'No se detectaron relaciones entre tablas.'
+                  : 'Pasá el mouse sobre una tabla o línea para ver el detalle.')}
+                {schemaHover?.type === 'table' && (() => {
+                  const related = tableRelations.filter(r => r.a === schemaHover.table || r.b === schemaHover.table)
+                  return (
+                    <>
+                      <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{schemaHover.table}</div>
+                      {related.length === 0
+                        ? <div>Sin relaciones con otras tablas.</div>
+                        : related.map((r, i) => (
+                            <div key={i}>↔ {r.a === schemaHover.table ? r.b : r.a} ({r.matches.length} campo{r.matches.length !== 1 ? 's' : ''})</div>
+                          ))}
+                    </>
+                  )
+                })()}
+                {schemaHover?.type === 'relation' && (
+                  <>
+                    <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{schemaHover.rel.a} ↔ {schemaHover.rel.b}</div>
+                    {schemaHover.rel.matches.map((m, i) => (
+                      <div key={i}>{m.fieldA} ↔ {m.fieldB} <span style={{ color: '#475569' }}>({m.label})</span></div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
         </div>
 
         {/* Stats */}

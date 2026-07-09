@@ -25,6 +25,9 @@ interface SheetData { name: string; rows: Record<string, unknown>[] }
 
 const rand = (a: number, b: number) => Math.random() * (b - a) + a
 
+const BASE_DIM = 400
+const dimScaleFor = (h: number) => Math.min(2.2, Math.max(1, h / BASE_DIM))
+
 function normalize(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').replace(/[^a-z0-9]/g, '')
 }
@@ -182,6 +185,7 @@ export default function DataBridgePage() {
   const [edges, setEdges]             = useState<Edge3D[]>([])
   const [tooltip, setTooltip]         = useState<{ x: number; y: number; node: Node3D } | null>(null)
   const [stats, setStats]             = useState<{ table: string; color: string; count: number }[]>([])
+  const [fullscreen, setFullscreen]   = useState(false)
 
   const canvasRef    = useRef<HTMLCanvasElement>(null)
   const camRef       = useRef({ rx: -25, ry: 30 })
@@ -201,7 +205,8 @@ export default function DataBridgePage() {
   }, [])
 
   const project = useCallback((x: number, y: number, z: number, W: number, H: number) => {
-    if (viewRef.current === 'top') return { px: x + W / 2, py: -z + H / 2, depth: 1 }
+    const dimScale = dimScaleFor(H)
+    if (viewRef.current === 'top') return { px: x * dimScale + W / 2, py: -z * dimScale + H / 2, depth: 1 }
     const rx = camRef.current.rx * Math.PI / 180
     const ry = camRef.current.ry * Math.PI / 180
     const y1 = y * Math.cos(rx) - z * Math.sin(rx)
@@ -209,7 +214,7 @@ export default function DataBridgePage() {
     const x2 = x * Math.cos(ry) + z1 * Math.sin(ry)
     const z2 = -x * Math.sin(ry) + z1 * Math.cos(ry)
     const fov = 500; const d = fov / (fov + z2 + 300)
-    return { px: x2 * d + W / 2, py: y1 * d + H / 2, depth: z2 }
+    return { px: x2 * d * dimScale + W / 2, py: y1 * d * dimScale + H / 2, depth: z2 }
   }, [])
 
   const draw = useCallback(() => {
@@ -225,6 +230,9 @@ export default function DataBridgePage() {
     const es = edgesRef.current
     if (!ns.length) return
 
+    const dimScale = dimScaleFor(H)
+    const fs = (px: number) => Math.round(px * dimScale)
+
     const proj = ns.map(n => ({ ...n, ...project(n.x, n.y, n.z, W, H) }))
     proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
 
@@ -234,19 +242,19 @@ export default function DataBridgePage() {
       if (!a || !b) return
       ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
       if (e.kind === 'fk') {
-        ctx.strokeStyle = 'rgba(14,165,233,0.55)'; ctx.lineWidth = e.w
+        ctx.strokeStyle = 'rgba(14,165,233,0.55)'; ctx.lineWidth = e.w * dimScale
       } else {
-        ctx.strokeStyle = 'rgba(128,128,128,0.12)'; ctx.lineWidth = e.w
+        ctx.strokeStyle = 'rgba(128,128,128,0.12)'; ctx.lineWidth = e.w * dimScale
       }
       ctx.stroke()
       if (e.kind === 'fk' && e.label) {
         const mx = (a.px! + b.px!) / 2
         const my = (a.py! + b.py!) / 2
-        ctx.font = '9px system-ui'
+        ctx.font = `${fs(9)}px system-ui`
         const w = ctx.measureText(e.label).width
-        ctx.fillStyle = 'rgba(8,15,26,0.75)'
-        ctx.fillRect(mx - w / 2 - 3, my - 6, w + 6, 12)
-        ctx.fillStyle = 'rgba(125,211,252,0.9)'
+        ctx.fillStyle = 'rgba(8,15,26,0.8)'
+        ctx.fillRect(mx - w / 2 - 4, my - fs(7), w + 8, fs(14))
+        ctx.fillStyle = 'rgba(125,211,252,0.95)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(e.label, mx, my)
       }
@@ -254,34 +262,34 @@ export default function DataBridgePage() {
 
     proj.forEach(n => {
       const c = n.color
-      const scale = viewRef.current === '3d' ? (800 / (800 + (n.depth ?? 0) + 300)) : 1
-      const r = n.r * scale
+      const pscale = viewRef.current === '3d' ? (800 / (800 + (n.depth ?? 0) + 300)) : 1
+      const r = n.r * pscale * dimScale
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r + 3, 0, Math.PI * 2)
       ctx.fillStyle = c + '22'; ctx.fill()
       if (n.isHub) {
         ctx.beginPath(); ctx.arc(n.px!, n.py!, r + 6, 0, Math.PI * 2)
-        ctx.strokeStyle = c + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
+        ctx.strokeStyle = c + 'aa'; ctx.lineWidth = 1.5 * dimScale; ctx.stroke()
       }
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2)
       ctx.fillStyle = c; ctx.fill()
       if (n.kind === 'central') {
-        ctx.font = `800 12px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.85)'
+        ctx.font = `800 ${fs(13)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.85)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText('OP', n.px!, n.py!)
-        ctx.font = `800 12px system-ui`; ctx.fillStyle = CENTRAL_COLOR
+        ctx.font = `800 ${fs(13)}px system-ui`; ctx.fillStyle = CENTRAL_COLOR
         ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + 4)
+        ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
       } else if (n.kind === 'table') {
-        ctx.font = `700 11px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
+        ctx.font = `700 ${fs(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
-        ctx.font = `700 11px system-ui`; ctx.fillStyle = '#e2e8f0'
+        ctx.font = `700 ${fs(12)}px system-ui`; ctx.fillStyle = '#e2e8f0'
         ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + 4)
+        ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
       } else {
-        ctx.font = `10px system-ui`; ctx.fillStyle = '#94a3b8'
+        ctx.font = `${fs(11)}px system-ui`; ctx.fillStyle = '#b6c2d4'
         ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + 3)
+        ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
       }
     })
   }, [project])
@@ -309,22 +317,40 @@ export default function DataBridgePage() {
     return () => { stopped = true; cancelAnimationFrame(animRef.current) }
   }, [phase, draw])
 
-  useEffect(() => {
+  const syncCanvasSize = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1
-      const rect = canvas.parentElement!.getBoundingClientRect()
-      canvas.width  = rect.width * dpr
-      canvas.height = rect.height * dpr
-      const ctx = canvas.getContext('2d')
-      if (ctx) ctx.scale(dpr, dpr)
-      draw()
-    }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
+    const dpr = window.devicePixelRatio || 1
+    const rect = canvas.parentElement!.getBoundingClientRect()
+    canvas.width  = rect.width * dpr
+    canvas.height = rect.height * dpr
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.scale(dpr, dpr)
+    draw()
   }, [draw])
+
+  useEffect(() => {
+    syncCanvasSize()
+    window.addEventListener('resize', syncCanvasSize)
+    return () => window.removeEventListener('resize', syncCanvasSize)
+  }, [syncCanvasSize])
+
+  useEffect(() => {
+    const t = setTimeout(syncCanvasSize, 60)
+    return () => clearTimeout(t)
+  }, [fullscreen, syncCanvasSize])
+
+  useEffect(() => {
+    document.body.style.overflow = fullscreen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [fullscreen])
+
+  useEffect(() => {
+    if (!fullscreen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullscreen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fullscreen])
 
   const processSheets = (sheets: SheetData[]) => {
     const { nodes: n, edges: e } = buildGraph(sheets)
@@ -393,11 +419,12 @@ export default function DataBridgePage() {
       dragRef.current.x = mx; dragRef.current.y = my; draw(); return
     }
     const W = rect.width; const H = rect.height
+    const dimScale = dimScaleFor(H)
     const hit = nodesRef.current.find(n => {
       const p = project(n.x, n.y, n.z, W, H)
       const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
       const dx = mx - p.px!; const dy = my - p.py!
-      return dx * dx + dy * dy < (n.r * s + 6) ** 2
+      return dx * dx + dy * dy < (n.r * s * dimScale + 8) ** 2
     })
     setTooltip(hit ? { x: Math.min(mx + 12, W - 220), y: Math.max(my - 60, 0), node: hit } : null)
   }
@@ -435,10 +462,15 @@ export default function DataBridgePage() {
         </div>
 
         {/* Visualizador */}
-        <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', marginBottom: '20px' }}>
+        <div style={fullscreen ? {
+          position: 'fixed', inset: 0, zIndex: 200, background: '#080f1a',
+          padding: '18px 20px', display: 'flex', flexDirection: 'column',
+        } : {
+          background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', marginBottom: '20px',
+        }}>
 
           {/* Toolbar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de relaciones</span>
               <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
@@ -453,13 +485,16 @@ export default function DataBridgePage() {
                   </button>
                 ))}
                 <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
+                <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
+                  {fullscreen ? '✕' : '⛶'}
+                </button>
               </div>
             )}
           </div>
 
           {/* Canvas area */}
           <div
-            style={{ position: 'relative', width: '100%', height: '400px', background: '#080f1a', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
+            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#080f1a', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseDown={e => { if (phase !== 'ready') return; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); dragRef.current = { on: true, x: e.clientX - rect.left, y: e.clientY - rect.top } }}
             onMouseUp={() => { dragRef.current.on = false }}
@@ -544,7 +579,7 @@ export default function DataBridgePage() {
 
           {/* Leyenda */}
           {legendEntries.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '14px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginTop: '14px', flexShrink: 0 }}>
               {legendEntries.map(([label, c]) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: c, flexShrink: 0 }} />

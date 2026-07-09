@@ -208,15 +208,18 @@ export default function DataBridgePage() {
   const [stats, setStats]             = useState<{ table: string; color: string; count: number }[]>([])
   const [fullscreen, setFullscreen]   = useState(false)
 
-  const canvasRef    = useRef<HTMLCanvasElement>(null)
-  const camRef       = useRef({ rx: -25, ry: 30 })
-  const dragRef      = useRef({ on: false, x: 0, y: 0 })
-  const animRef      = useRef<number>(0)
-  const nodesRef     = useRef<Node3D[]>([])
-  const edgesRef     = useRef<Edge3D[]>([])
-  const hoverRef     = useRef<string | null>(null)
-  const viewRef      = useRef<'3d' | 'top'>('3d')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const canvasRef     = useRef<HTMLCanvasElement>(null)
+  const camRef        = useRef({ rx: -25, ry: 30 })
+  const panRef        = useRef({ x: 0, y: 0 })
+  const zoomRef       = useRef(1)
+  const interactedRef = useRef(false)
+  const dragRef       = useRef({ on: false, x: 0, y: 0 })
+  const animRef       = useRef<number>(0)
+  const nodesRef      = useRef<Node3D[]>([])
+  const edgesRef      = useRef<Edge3D[]>([])
+  const hoverRef      = useRef<string | null>(null)
+  const viewRef       = useRef<'3d' | 'top'>('3d')
+  const fileInputRef  = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
 
@@ -227,8 +230,10 @@ export default function DataBridgePage() {
   }, [])
 
   const project = useCallback((x: number, y: number, z: number, W: number, H: number) => {
-    const dimScale = dimScaleFor(H)
-    if (viewRef.current === 'top') return { px: x * dimScale + W / 2, py: -z * dimScale + H / 2, depth: 1 }
+    const dimScale = dimScaleFor(H) * zoomRef.current
+    const px0 = W / 2 + panRef.current.x
+    const py0 = H / 2 + panRef.current.y
+    if (viewRef.current === 'top') return { px: x * dimScale + px0, py: -z * dimScale + py0, depth: 1 }
     const rx = camRef.current.rx * Math.PI / 180
     const ry = camRef.current.ry * Math.PI / 180
     const y1 = y * Math.cos(rx) - z * Math.sin(rx)
@@ -236,7 +241,7 @@ export default function DataBridgePage() {
     const x2 = x * Math.cos(ry) + z1 * Math.sin(ry)
     const z2 = -x * Math.sin(ry) + z1 * Math.cos(ry)
     const fov = 500; const d = fov / (fov + z2 + 300)
-    return { px: x2 * d * dimScale + W / 2, py: y1 * d * dimScale + H / 2, depth: z2 }
+    return { px: x2 * d * dimScale + px0, py: y1 * d * dimScale + py0, depth: z2 }
   }, [])
 
   const draw = useCallback(() => {
@@ -252,7 +257,7 @@ export default function DataBridgePage() {
     const es = edgesRef.current
     if (!ns.length) return
 
-    const dimScale = dimScaleFor(H)
+    const dimScale = dimScaleFor(H) * zoomRef.current
     const fs = (px: number) => Math.round(px * dimScale)
 
     const proj = ns.map(n => ({ ...n, ...project(n.x, n.y, n.z, W, H) }))
@@ -336,7 +341,7 @@ export default function DataBridgePage() {
     let stopped = false
     const tick = () => {
       if (stopped) return
-      if (!dragRef.current.on) { camRef.current.ry += 0.12; draw() }
+      if (!dragRef.current.on && !interactedRef.current) { camRef.current.ry += 0.12; draw() }
       animRef.current = requestAnimationFrame(tick)
     }
     animRef.current = requestAnimationFrame(tick)
@@ -439,13 +444,18 @@ export default function DataBridgePage() {
     const rect = canvasRef.current.getBoundingClientRect()
     const mx = e.clientX - rect.left; const my = e.clientY - rect.top
     if (dragRef.current.on) {
-      camRef.current.ry += (mx - dragRef.current.x) * 0.4
-      camRef.current.rx += (my - dragRef.current.y) * 0.4
-      camRef.current.rx = Math.max(-80, Math.min(80, camRef.current.rx))
+      if (e.shiftKey) {
+        camRef.current.ry += (mx - dragRef.current.x) * 0.4
+        camRef.current.rx += (my - dragRef.current.y) * 0.4
+        camRef.current.rx = Math.max(-80, Math.min(80, camRef.current.rx))
+      } else {
+        panRef.current.x += mx - dragRef.current.x
+        panRef.current.y += my - dragRef.current.y
+      }
       dragRef.current.x = mx; dragRef.current.y = my; draw(); return
     }
     const W = rect.width; const H = rect.height
-    const dimScale = dimScaleFor(H)
+    const dimScale = dimScaleFor(H) * zoomRef.current
     const hit = nodesRef.current.find(n => {
       const p = project(n.x, n.y, n.z, W, H)
       const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
@@ -512,7 +522,7 @@ export default function DataBridgePage() {
                     {v === '3d' ? '3D' : 'Top'}
                   </button>
                 ))}
-                <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
+                <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
                 <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
                   {fullscreen ? '✕' : '⛶'}
                 </button>
@@ -524,9 +534,10 @@ export default function DataBridgePage() {
           <div
             style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#080f1a', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
-            onMouseDown={e => { if (phase !== 'ready') return; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); dragRef.current = { on: true, x: e.clientX - rect.left, y: e.clientY - rect.top } }}
+            onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); dragRef.current = { on: true, x: e.clientX - rect.left, y: e.clientY - rect.top } }}
             onMouseUp={() => { dragRef.current.on = false }}
             onMouseLeave={() => { dragRef.current.on = false; hoverRef.current = null; setTooltip(null); draw() }}
+            onWheel={e => { if (phase !== 'ready') return; e.preventDefault(); interactedRef.current = true; zoomRef.current = Math.min(3, Math.max(0.35, zoomRef.current - e.deltaY * 0.001)); draw() }}
           >
             {/* Fondo de partículas */}
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
@@ -600,7 +611,7 @@ export default function DataBridgePage() {
             {/* Hint */}
             {phase === 'ready' && (
               <div style={{ position: 'absolute', bottom: '12px', right: '12px', fontSize: '11px', color: '#334155', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                🖱 arrastrá para rotar · pasá el mouse sobre un campo para ver sus relaciones
+                🖐 arrastrá para mover · shift+arrastrar rota · scroll zoom
               </div>
             )}
           </div>

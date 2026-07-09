@@ -9,17 +9,15 @@ const FONT      = "'Syne', sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
 const PALETTE = ['#4f8ef7', '#34c97e', '#f7924f', '#c97fd4', '#f7d24f', '#22d3ee', '#fb7185', '#a3e635']
-const CENTRAL_COLOR = '#fbbf24'
-const KEYWORDS_CENTRAL = ['oportunidad', 'cliente', 'lead', 'vehiculo', 'vin', 'placa', 'cedula', 'documento']
 
 interface Node3D {
-  id: string; l: string; kind: 'table' | 'field' | 'central'; table: string
-  tipo?: string; color: string; isHub?: boolean; dense?: boolean
+  id: string; l: string; kind: 'table' | 'field'; table: string
+  tipo?: string; color: string; isHub?: boolean
   x: number; y: number; z: number; r: number
   px?: number; py?: number; depth?: number
 }
 
-interface Edge3D { a: string; b: string; w: number; kind: 'contains' | 'fk'; label?: string }
+interface Edge3D { a: string; b: string }
 
 interface SheetData { name: string; rows: Record<string, unknown>[] }
 
@@ -42,8 +40,6 @@ function inferType(raw: unknown[]): string {
   return 'texto'
 }
 
-const MAX_DEGREE_PER_FIELD = 4
-
 function isRealHeader(h: string): boolean {
   const t = h.trim()
   if (!t) return false
@@ -56,11 +52,9 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
   const nodes: Node3D[] = []
   const edges: Edge3D[] = []
   const pi2 = Math.PI * 2
-  const tableRadius = 190 + Math.max(0, sheets.length - 5) * 26
+  const tableRadius = 170 + Math.max(0, sheets.length - 4) * 30
 
-  nodes.push({ id: 'central', l: 'Oportunidad', kind: 'central', table: 'Oportunidad', color: CENTRAL_COLOR, x: 0, y: 0, z: 0, r: 26 })
-
-  interface ColInfo { id: string; sheetIdx: number; table: string; norm: string; values: Set<string> }
+  interface ColInfo { id: string; table: string; norm: string }
   const cols: ColInfo[] = []
 
   sheets.forEach((sheet, si) => {
@@ -75,7 +69,6 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
     const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
     const nF = headers.length
     const fieldRadius = 42 + Math.sqrt(nF) * 22
-    const dense = nF > 12
     const goldenAngle = Math.PI * (3 - Math.sqrt(5))
     headers.forEach((h, fi) => {
       const rawValues = sheet.rows.map(r => r[h])
@@ -89,45 +82,13 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
       const sx = Math.sin(phi) * Math.cos(theta) * fieldRadius
       const sy = Math.cos(phi) * fieldRadius * 0.7
       const sz = Math.sin(phi) * Math.sin(theta) * fieldRadius
-      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, dense, x: cx + sx, y: cy + sy, z: cz + sz, r: 9 })
-      edges.push({ a: hubId, b: id, w: 0.4, kind: 'contains' })
-      const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim().toLowerCase()))
-      cols.push({ id, sheetIdx: si, table: sheet.name, norm: normalize(h), values })
+      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, x: cx + sx, y: cy + sy, z: cz + sz, r: 9 })
+      edges.push({ a: hubId, b: id })
+      cols.push({ id, table: sheet.name, norm: normalize(h) })
     })
-
-    const hasCentralField = headers.some(h => KEYWORDS_CENTRAL.some(k => normalize(h).includes(k)))
-    if (hasCentralField) edges.push({ a: hubId, b: 'central', w: 1.6, kind: 'fk', label: 'vínculo a oportunidad' })
   })
 
-  interface Candidate { a: string; b: string; overlap: number; nameMatch: boolean }
-  const candidates: Candidate[] = []
-  for (let i = 0; i < cols.length; i++) {
-    for (let j = i + 1; j < cols.length; j++) {
-      const A = cols[i], B = cols[j]
-      if (A.sheetIdx === B.sheetIdx) continue
-      const nameMatch = A.norm.length >= 4 && B.norm.length >= 4 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
-      let overlap = 0
-      if (A.values.size >= 3 && B.values.size >= 3) {
-        let inter = 0
-        A.values.forEach(v => { if (B.values.has(v)) inter++ })
-        overlap = inter / Math.min(A.values.size, B.values.size)
-      }
-      if (overlap >= 0.5 || nameMatch) candidates.push({ a: A.id, b: B.id, overlap, nameMatch })
-    }
-  }
-  candidates.sort((x, y) => y.overlap - x.overlap)
-
-  const degree = new Map<string, number>()
-  candidates.forEach(c => {
-    const da = degree.get(c.a) ?? 0
-    const db = degree.get(c.b) ?? 0
-    if (da >= MAX_DEGREE_PER_FIELD || db >= MAX_DEGREE_PER_FIELD) return
-    const label = c.overlap >= 0.5 ? `mismo valor ${Math.round(c.overlap * 100)}%` : 'nombre similar'
-    edges.push({ a: c.a, b: c.b, w: 1 + c.overlap, kind: 'fk', label })
-    degree.set(c.a, da + 1)
-    degree.set(c.b, db + 1)
-  })
-
+  // campo cuyo nombre se repite en 3+ hojas: candidato a llave compartida (solo se marca, no se traza línea)
   const nameTableCount = new Map<string, Set<string>>()
   cols.forEach(c => {
     if (!nameTableCount.has(c.norm)) nameTableCount.set(c.norm, new Set())
@@ -275,32 +236,18 @@ export default function DataBridgePage() {
     proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
 
     const hoverId = hoverRef.current
-    const drawEdge = (e: Edge3D, emphasize: boolean) => {
+
+    ctx.setLineDash([3, 4])
+    es.forEach(e => {
       const a = proj.find(n => n.id === e.a)
       const b = proj.find(n => n.id === e.b)
       if (!a || !b) return
       ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
-      if (e.kind === 'fk') {
-        ctx.strokeStyle = emphasize ? 'rgba(14,165,233,0.9)' : hoverId ? 'rgba(14,165,233,0.08)' : 'rgba(14,165,233,0.28)'
-        ctx.lineWidth = (emphasize ? 1.8 : 0.7) * e.w * dimScale
-      } else {
-        ctx.strokeStyle = 'rgba(128,128,128,0.1)'; ctx.lineWidth = e.w * dimScale
-      }
+      ctx.strokeStyle = 'rgba(148,163,184,0.35)'
+      ctx.lineWidth = Math.max(1, dimScale)
       ctx.stroke()
-      if (e.kind === 'fk' && e.label && emphasize) {
-        const mx = (a.px! + b.px!) / 2
-        const my = (a.py! + b.py!) / 2
-        ctx.font = `${fs(10)}px system-ui`
-        const w = ctx.measureText(e.label).width
-        ctx.fillStyle = 'rgba(8,15,26,0.9)'
-        ctx.fillRect(mx - w / 2 - 4, my - fs(8), w + 8, fs(16))
-        ctx.fillStyle = 'rgba(125,211,252,1)'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(e.label, mx, my)
-      }
-    }
-    es.filter(e => e.kind === 'contains' || !(hoverId && (e.a === hoverId || e.b === hoverId))).forEach(e => drawEdge(e, false))
-    if (hoverId) es.filter(e => e.kind === 'fk' && (e.a === hoverId || e.b === hoverId)).forEach(e => drawEdge(e, true))
+    })
+    ctx.setLineDash([])
 
     proj.forEach(n => {
       const c = n.color
@@ -314,14 +261,7 @@ export default function DataBridgePage() {
       }
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2)
       ctx.fillStyle = c; ctx.fill()
-      if (n.kind === 'central') {
-        ctx.font = `800 ${fs(13)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.85)'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText('OP', n.px!, n.py!)
-        ctx.font = `800 ${fs(13)}px system-ui`; ctx.fillStyle = CENTRAL_COLOR
-        ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
-      } else if (n.kind === 'table') {
+      if (n.kind === 'table') {
         ctx.font = `700 ${fs(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
@@ -329,12 +269,12 @@ export default function DataBridgePage() {
         ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
       } else {
-        const revealed = !n.dense || n.id === hoverId
-        if (revealed) {
-          ctx.font = `${fs(11)}px system-ui`; ctx.fillStyle = n.id === hoverId ? '#f8fafc' : '#b6c2d4'
-          ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-          ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
-        }
+        const isHover = n.id === hoverId
+        ctx.font = `${isHover ? '600 ' : ''}${fs(11)}px system-ui`; ctx.fillStyle = isHover ? '#f8fafc' : '#cbd5e1'
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+        ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
+        ctx.font = `${fs(9)}px system-ui`; ctx.fillStyle = c
+        ctx.fillText(n.tipo || '', n.px!, n.py! + r + fs(17))
       }
     })
   }, [project])
@@ -406,7 +346,7 @@ export default function DataBridgePage() {
 
   const runProgress = (onDone: () => void) => {
     setPhase('processing')
-    const steps = ['Leyendo archivo...', 'Detectando columnas...', 'Comparando nombres entre hojas...', 'Cruzando valores en común...', 'Construyendo grafo 3D...', 'Listo']
+    const steps = ['Leyendo archivo...', 'Detectando hojas...', 'Detectando columnas...', 'Infiriendo tipos de dato...', 'Construyendo grafo 3D...', 'Listo']
     let i = 0
     const iv = setInterval(() => {
       i++
@@ -487,25 +427,13 @@ export default function DataBridgePage() {
     })
     const newHoverId = hit ? hit.id : null
     if (hoverRef.current !== newHoverId) { hoverRef.current = newHoverId; draw() }
-    setTooltip(hit ? { x: Math.min(mx + 12, W - 220), y: Math.max(my - 60, 0), node: hit } : null)
+    setTooltip(hit ? { x: Math.min(mx + 12, W - 260), y: Math.max(my - 60, 0), node: hit } : null)
   }
 
-  const connLines = (nodeId: string): string[] =>
-    edges
-      .filter(e => e.kind === 'fk' && (e.a === nodeId || e.b === nodeId))
-      .map(e => {
-        const otherId = e.a === nodeId ? e.b : e.a
-        const other = nodes.find(nn => nn.id === otherId)
-        if (!other) return null
-        const name = other.kind === 'central' ? 'Oportunidad' : `${other.table}.${other.l}`
-        return e.label ? `${name} (${e.label})` : name
-      })
-      .filter((v): v is string => Boolean(v))
+  const fieldsOfTable = (table: string): { l: string; tipo?: string }[] =>
+    nodes.filter(n => n.kind === 'field' && n.table === table).map(n => ({ l: n.l, tipo: n.tipo }))
 
-  const fieldsOfTable = (table: string): string[] =>
-    nodes.filter(n => n.kind === 'field' && n.table === table).map(n => n.l)
-
-  const legendEntries = Array.from(new Map(nodes.filter(n => n.kind !== 'field').map(n => [n.kind === 'central' ? 'Oportunidad' : n.table, n.color])).entries())
+  const legendEntries = Array.from(new Map(nodes.filter(n => n.kind === 'table').map(n => [n.table, n.color])).entries())
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
@@ -517,11 +445,11 @@ export default function DataBridgePage() {
             DataBridge 360
           </div>
           <h1 style={{ fontFamily: FONT, fontSize: 'clamp(24px,3vw,36px)', fontWeight: 800, letterSpacing: '-.5px', margin: '0 0 10px', color: '#f8fafc' }}>
-            Mapa de relaciones<br />
-            <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>de tus hojas en 3D</span>
+            Estructura de tus hojas<br />
+            <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>campos y tipos en 3D</span>
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.6, margin: 0, fontFamily: FONT_BODY }}>
-            Subí tu Excel o CSV. La IA detecta columnas, compara nombres y valores entre hojas, e identifica llaves automáticamente — y las visualiza en tiempo real.
+            Subí tu Excel, CSV o JSON. La IA detecta cada hoja, sus campos y el tipo de dato de cada uno — conectados con líneas punteadas a su tabla de origen.
           </p>
         </div>
 
@@ -536,9 +464,9 @@ export default function DataBridgePage() {
           {/* Toolbar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de relaciones</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de campos</span>
               <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
-                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : `${nodes.filter(n => n.kind === 'field').length} campos · ${edges.filter(e => e.kind === 'fk').length} relaciones detectadas`}
+                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : `${nodes.filter(n => n.kind === 'field').length} campos · ${nodes.filter(n => n.kind === 'table').length} tablas`}
               </span>
             </div>
             {phase === 'ready' && (
@@ -614,13 +542,8 @@ export default function DataBridgePage() {
                 {tooltip.node.kind === 'field' && (
                   <>
                     <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.table}.{tooltip.node.l}</div>
-                    <div style={{ color: tooltip.node.color }}>Tipo: {tooltip.node.tipo}{tooltip.node.isHub ? ' · candidato a hub' : ''}</div>
-                    <div style={{ color: '#475569', marginTop: '4px' }}>
-                      {connLines(tooltip.node.id).length === 0
-                        ? 'Sin relaciones detectadas'
-                        : connLines(tooltip.node.id).slice(0, 3).map((line, i) => <div key={i}>↔ {line}</div>)}
-                      {connLines(tooltip.node.id).length > 3 && <div>+{connLines(tooltip.node.id).length - 3} más</div>}
-                    </div>
+                    <div style={{ color: tooltip.node.color }}>Tipo: {tooltip.node.tipo}</div>
+                    {tooltip.node.isHub && <div style={{ color: '#475569', marginTop: '2px' }}>Aparece en varias hojas</div>}
                   </>
                 )}
                 {tooltip.node.kind === 'table' && (() => {
@@ -630,19 +553,12 @@ export default function DataBridgePage() {
                       <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.l}</div>
                       <div style={{ color: tooltip.node.color }}>Tabla / hoja · {fields.length} campos</div>
                       <div style={{ color: '#94a3b8', marginTop: '4px', fontSize: '11px', lineHeight: 1.5 }}>
-                        {fields.slice(0, 16).map((f, i) => <div key={i}>· {f}</div>)}
+                        {fields.slice(0, 16).map((f, i) => <div key={i}>· {f.l} <span style={{ color: '#475569' }}>({f.tipo})</span></div>)}
                         {fields.length > 16 && <div style={{ color: '#475569' }}>+{fields.length - 16} más</div>}
                       </div>
                     </>
                   )
                 })()}
-                {tooltip.node.kind === 'central' && (
-                  <>
-                    <div style={{ fontWeight: 700, marginBottom: '2px' }}>Oportunidad</div>
-                    <div style={{ color: CENTRAL_COLOR }}>Nodo central</div>
-                    <div style={{ color: '#475569', marginTop: '2px' }}>{edges.filter(e => e.kind === 'fk' && (e.a === 'central' || e.b === 'central')).length} tablas conectadas</div>
-                  </>
-                )}
               </div>
             )}
 
@@ -684,7 +600,7 @@ export default function DataBridgePage() {
           <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>Subí tu inventario real</div>
-              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Seleccioná varios archivos a la vez (ej. leads.xlsx + ventas.csv) para que la IA cruce campos y valores entre ellos.</div>
+              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Seleccioná uno o varios archivos a la vez — la IA arma el mapa de campos y tipos en segundos.</div>
             </div>
             <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
               Subir archivo →

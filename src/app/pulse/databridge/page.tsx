@@ -24,37 +24,46 @@ const LABELS: Record<string, string> = {
 }
 
 interface Node3D {
-  id: string; t: string; l: string
+  id: string; t: string; l: string; kind: 'table' | 'field'; table?: string
   x: number; y: number; z: number; r: number
   px?: number; py?: number; depth?: number
 }
 
-interface Edge3D { a: string; b: string; w: number }
+interface Edge3D { a: string; b: string; w: number; kind: 'contains' | 'fk' }
 
 function genDemoData(): { n: Node3D[]; e: Edge3D[] } {
   const n: Node3D[] = []
   const e: Edge3D[] = []
-  const veh = ['KIA Sportage','KIA Picanto','KIA Rio','KIA Stonic','KIA Sorento','KIA Carnival','KIA EV6','KIA Seltos']
-  const ase = ['Carlos R.','María V.','Andrés M.','Karime M.','Luis G.']
-  const ret = ['Toyota Corolla','Chevrolet Spark','Renault Logan','Hyundai Tucson']
-  const fin = ['Bancolombia','Davivienda','Banco de Bogotá','AV Villas']
-  const pol = ['SURA','Bolívar','Mapfre','Allianz']
   const rand = (a: number, b: number) => Math.random() * (b - a) + a
   const pi2 = Math.PI * 2
 
-  veh.forEach((l, i) => { const a = pi2 * i / veh.length; n.push({ id: 'v' + i, t: 'veh', l, x: Math.cos(a) * 140, y: rand(-40, 40), z: Math.sin(a) * 140, r: 14 }) })
-  ase.forEach((l, i) => { n.push({ id: 'a' + i, t: 'ase', l, x: rand(-80, 80), y: rand(60, 120), z: rand(-80, 80), r: 18 }) })
-  ret.forEach((l, i) => { const a = pi2 * i / ret.length + 0.4; n.push({ id: 'r' + i, t: 'ret', l, x: Math.cos(a) * 90, y: rand(-100, -50), z: Math.sin(a) * 90, r: 12 }) })
-  fin.forEach((l, i) => { n.push({ id: 'f' + i, t: 'fin', l, x: rand(-160, -80), y: rand(-30, 30), z: rand(-60, 60), r: 12 }) })
-  pol.forEach((l, i) => { n.push({ id: 'p' + i, t: 'pol', l, x: rand(80, 160), y: rand(-30, 30), z: rand(-60, 60), r: 11 }) })
+  const tables: { key: string; name: string; cx: number; cy: number; cz: number; fields: string[] }[] = [
+    { key: 'veh', name: 'pulse_vehiculos',    cx: 0,    cy: 0,   cz: 0,   fields: ['id', 'marca', 'modelo', 'precio', 'km', 'asesor_id', 'estado'] },
+    { key: 'ase', name: 'pulse_asesores',     cx: 0,    cy: 130, cz: -20, fields: ['id', 'nombre', 'email', 'meta_mensual'] },
+    { key: 'ret', name: 'pulse_retomas',      cx: -20,  cy: -120, cz: 60, fields: ['id', 'vehiculo_id', 'marca', 'valor_estimado'] },
+    { key: 'fin', name: 'pulse_financiacion', cx: -170, cy: 0,   cz: 20,  fields: ['id', 'vehiculo_id', 'banco', 'tasa'] },
+    { key: 'pol', name: 'pulse_polizas',      cx: 170,  cy: 0,   cz: -20, fields: ['id', 'vehiculo_id', 'aseguradora', 'prima'] },
+  ]
 
-  veh.forEach((_, i) => {
-    const ai = Math.floor(Math.random() * ase.length)
-    e.push({ a: 'v' + i, b: 'a' + ai, w: 0.9 })
-    if (Math.random() > 0.5) e.push({ a: 'v' + i, b: 'f' + Math.floor(Math.random() * fin.length), w: 0.5 })
-    if (Math.random() > 0.5) e.push({ a: 'v' + i, b: 'p' + Math.floor(Math.random() * pol.length), w: 0.5 })
-    if (Math.random() > 0.6) e.push({ a: 'v' + i, b: 'r' + Math.floor(Math.random() * ret.length), w: 0.4 })
+  tables.forEach(tab => {
+    const hubId = tab.key + '_hub'
+    n.push({ id: hubId, t: tab.key, l: tab.name.replace('pulse_', ''), kind: 'table', table: tab.key, x: tab.cx, y: tab.cy, z: tab.cz, r: 20 })
+    tab.fields.forEach((f, i) => {
+      const a = pi2 * i / tab.fields.length
+      const id = tab.key + '.' + f
+      n.push({ id, t: tab.key, l: f, kind: 'field', table: tab.key, x: tab.cx + Math.cos(a) * 55, y: tab.cy + rand(-20, 20), z: tab.cz + Math.sin(a) * 55, r: 9 })
+      e.push({ a: hubId, b: id, w: 0.4, kind: 'contains' })
+    })
   })
+
+  const fk = (fromTable: string, fromField: string, toTable: string, toField = 'id') => {
+    e.push({ a: fromTable + '.' + fromField, b: toTable + '.' + toField, w: 1.4, kind: 'fk' })
+  }
+  fk('veh', 'asesor_id', 'ase')
+  fk('ret', 'vehiculo_id', 'veh')
+  fk('fin', 'vehiculo_id', 'veh')
+  fk('pol', 'vehiculo_id', 'veh')
+
   return { n, e }
 }
 
@@ -118,7 +127,12 @@ export default function DataBridgePage() {
       const b = proj.find(n => n.id === e.b)
       if (!a || !b) return
       ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
-      ctx.strokeStyle = 'rgba(128,128,128,0.15)'; ctx.lineWidth = e.w; ctx.stroke()
+      if (e.kind === 'fk') {
+        ctx.strokeStyle = 'rgba(14,165,233,0.55)'; ctx.lineWidth = e.w
+      } else {
+        ctx.strokeStyle = 'rgba(128,128,128,0.12)'; ctx.lineWidth = e.w
+      }
+      ctx.stroke()
     })
 
     proj.forEach(n => {
@@ -129,16 +143,17 @@ export default function DataBridgePage() {
       ctx.fillStyle = c + '22'; ctx.fill()
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2)
       ctx.fillStyle = c; ctx.fill()
-      if (r > 10) {
-        ctx.font = `500 11px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.75)'
+      if (n.kind === 'table') {
+        ctx.font = `700 11px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(n.l.split(' ').map((w: string) => w[0]).join('').slice(0, 2), n.px!, n.py!)
-      }
-      if (r > 9) {
-        ctx.font = `10px system-ui`; ctx.fillStyle = '#888'
+        ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
+        ctx.font = `700 11px system-ui`; ctx.fillStyle = '#e2e8f0'
         ctx.textBaseline = 'top'
-        const label = n.l.length > 14 ? n.l.slice(0, 12) + '…' : n.l
-        ctx.fillText(label, n.px!, n.py! + r + 3)
+        ctx.fillText(n.l, n.px!, n.py! + r + 4)
+      } else {
+        ctx.font = `10px system-ui`; ctx.fillStyle = '#94a3b8'
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+        ctx.fillText(n.l, n.px!, n.py! + r + 3)
       }
     })
   }, [project])
@@ -197,11 +212,11 @@ export default function DataBridgePage() {
           const d = genDemoData()
           setNodes(d.n); setEdges(d.e)
           setStats({
-            veh: d.n.filter(n => n.t === 'veh').length,
-            ase: d.n.filter(n => n.t === 'ase').length,
-            ret: d.n.filter(n => n.t === 'ret').length,
-            fin: d.n.filter(n => n.t === 'fin').length,
-            pol: d.n.filter(n => n.t === 'pol').length,
+            veh: d.n.filter(n => n.t === 'veh' && n.kind === 'field').length,
+            ase: d.n.filter(n => n.t === 'ase' && n.kind === 'field').length,
+            ret: d.n.filter(n => n.t === 'ret' && n.kind === 'field').length,
+            fin: d.n.filter(n => n.t === 'fin' && n.kind === 'field').length,
+            pol: d.n.filter(n => n.t === 'pol' && n.kind === 'field').length,
           })
           setPhase('ready')
         }, 400)
@@ -255,7 +270,7 @@ export default function DataBridgePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de relaciones</span>
               <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
-                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : `${nodes.length} nodos · ${edges.length} relaciones`}
+                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : `${nodes.length} campos · ${edges.filter(e => e.kind === 'fk').length} llaves foráneas`}
               </span>
             </div>
             {phase === 'ready' && (
@@ -315,9 +330,13 @@ export default function DataBridgePage() {
             {/* Tooltip */}
             {tooltip && (
               <div style={{ position: 'absolute', left: tooltip.x, top: tooltip.y, background: 'rgba(13,27,46,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#e2e8f0', pointerEvents: 'none', fontFamily: FONT_BODY, lineHeight: 1.6, zIndex: 10 }}>
-                <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.l}</div>
-                <div style={{ color: COLORS[tooltip.node.t] }}>{LABELS[tooltip.node.t]}</div>
-                <div style={{ color: '#475569', marginTop: '2px' }}>{edges.filter(e => e.a === tooltip.node.id || e.b === tooltip.node.id).length} conexiones</div>
+                <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.kind === 'table' ? tooltip.node.l : `${tooltip.node.table}.${tooltip.node.l}`}</div>
+                <div style={{ color: COLORS[tooltip.node.t] }}>{tooltip.node.kind === 'table' ? `Tabla · ${LABELS[tooltip.node.t]}` : `Campo · ${LABELS[tooltip.node.t]}`}</div>
+                <div style={{ color: '#475569', marginTop: '2px' }}>
+                  {tooltip.node.kind === 'table'
+                    ? `${edges.filter(e => e.kind === 'contains' && e.a === tooltip.node.id).length} campos`
+                    : `${edges.filter(e => e.kind === 'fk' && (e.a === tooltip.node.id || e.b === tooltip.node.id)).length} llave(s) foránea(s)`}
+                </div>
               </div>
             )}
 
@@ -343,7 +362,7 @@ export default function DataBridgePage() {
         {/* Stats */}
         {phase === 'ready' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '10px', marginBottom: '20px' }}>
-            {([['veh','Vehículos'],['ase','Asesores'],['ret','Retomas'],['fin','Financiaciones'],['pol','Pólizas']] as const).map(([k, label]) => (
+            {([['veh','Campos · Vehículo'],['ase','Campos · Asesor'],['ret','Campos · Retoma'],['fin','Campos · Financiación'],['pol','Campos · Póliza']] as const).map(([k, label]) => (
               <div key={k} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
                 <div style={{ fontFamily: FONT, fontSize: '24px', fontWeight: 800, color: COLORS[k] }}>{stats[k]}</div>
                 <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', fontFamily: FONT_BODY }}>{label}</div>

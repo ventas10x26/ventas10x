@@ -14,7 +14,7 @@ const KEYWORDS_CENTRAL = ['oportunidad', 'cliente', 'lead', 'vehiculo', 'vin', '
 
 interface Node3D {
   id: string; l: string; kind: 'table' | 'field' | 'central'; table: string
-  tipo?: string; color: string; isHub?: boolean
+  tipo?: string; color: string; isHub?: boolean; dense?: boolean
   x: number; y: number; z: number; r: number
   px?: number; py?: number; depth?: number
 }
@@ -73,13 +73,23 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
     nodes.push({ id: hubId, l: sheet.name, kind: 'table', table: sheet.name, color, x: cx, y: cy, z: cz, r: 18 })
 
     const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
-    const fieldRadius = 55 + Math.max(0, headers.length - 6) * 4
+    const nF = headers.length
+    const fieldRadius = 42 + Math.sqrt(nF) * 22
+    const dense = nF > 12
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5))
     headers.forEach((h, fi) => {
       const rawValues = sheet.rows.map(r => r[h])
       const tipo = inferType(rawValues)
-      const fa = pi2 * fi / Math.max(headers.length, 1)
       const id = `f_${si}_${fi}`
-      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, x: cx + Math.cos(fa) * fieldRadius, y: cy + rand(-18, 18), z: cz + Math.sin(fa) * fieldRadius, r: 9 })
+      // distribución esférica (Fibonacci sphere) para que los campos se separen en las 3 dimensiones
+      // y no colapsen en un solo anillo plano al rotar la vista
+      const idx = fi + 0.5
+      const phi = Math.acos(1 - (2 * idx) / nF)
+      const theta = goldenAngle * fi
+      const sx = Math.sin(phi) * Math.cos(theta) * fieldRadius
+      const sy = Math.cos(phi) * fieldRadius * 0.7
+      const sz = Math.sin(phi) * Math.sin(theta) * fieldRadius
+      nodes.push({ id, l: h, kind: 'field', table: sheet.name, tipo, color, dense, x: cx + sx, y: cy + sy, z: cz + sz, r: 9 })
       edges.push({ a: hubId, b: id, w: 0.4, kind: 'contains' })
       const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim().toLowerCase()))
       cols.push({ id, sheetIdx: si, table: sheet.name, norm: normalize(h), values })
@@ -264,6 +274,7 @@ export default function DataBridgePage() {
     proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
 
     const hoverId = hoverRef.current
+    const hoveredTable = hoverId ? proj.find(n => n.id === hoverId)?.table : undefined
     const drawEdge = (e: Edge3D, emphasize: boolean) => {
       const a = proj.find(n => n.id === e.a)
       const b = proj.find(n => n.id === e.b)
@@ -318,9 +329,12 @@ export default function DataBridgePage() {
         ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
       } else {
-        ctx.font = `${fs(11)}px system-ui`; ctx.fillStyle = '#b6c2d4'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
+        const revealed = !n.dense || n.id === hoverId || n.table === hoveredTable
+        if (revealed) {
+          ctx.font = `${fs(11)}px system-ui`; ctx.fillStyle = n.id === hoverId ? '#f8fafc' : '#b6c2d4'
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+          ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
+        }
       }
     })
   }, [project])

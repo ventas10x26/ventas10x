@@ -206,7 +206,9 @@ function genDemoSheets(): SheetData[] {
 
 export default function DataBridgePage() {
   const [user, setUser]               = useState<{ nombre: string; email: string } | null>(null)
-  const [phase, setPhase]             = useState<'upload' | 'processing' | 'ready'>('upload')
+  const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
+  const [pendingSheets, setPendingSheets]         = useState<SheetData[]>([])
+  const [selectedSheetNames, setSelectedSheetNames] = useState<Set<string>>(new Set())
   const [progPct, setProgPct]         = useState(0)
   const [progLabel, setProgLabel]     = useState('Leyendo archivo...')
   const [view, setView]               = useState<'3d' | 'top'>('3d')
@@ -402,38 +404,67 @@ export default function DataBridgePage() {
 
   const startDemo = () => runProgress(() => processSheets(genDemoSheets()))
 
-  const handleFiles = (files: File[]) => {
-    runProgress(async () => {
-      try {
-        const allSheets: SheetData[] = []
-        for (const file of files) {
-          const baseName = file.name.replace(/\.[^.]+$/, '')
-          if (file.name.toLowerCase().endsWith('.json')) {
-            const text = await file.text()
-            const data = JSON.parse(text)
-            if (Array.isArray(data)) {
-              allSheets.push({ name: baseName, rows: data })
-            } else {
-              const keys = Object.entries(data)
-              keys.forEach(([name, rows]) => {
-                allSheets.push({ name: keys.length > 1 ? `${baseName} - ${name}` : baseName, rows: rows as Record<string, unknown>[] })
-              })
-            }
-          } else {
-            const buffer = await file.arrayBuffer()
-            const workbook = XLSX.read(buffer, { type: 'array' })
-            workbook.SheetNames.forEach(name => {
-              const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[name], { defval: '' })
-              allSheets.push({ name: workbook.SheetNames.length > 1 ? `${baseName} - ${name}` : baseName, rows })
-            })
-          }
+  const parseFiles = async (files: File[]): Promise<SheetData[]> => {
+    const allSheets: SheetData[] = []
+    for (const file of files) {
+      const baseName = file.name.replace(/\.[^.]+$/, '')
+      if (file.name.toLowerCase().endsWith('.json')) {
+        const text = await file.text()
+        const data = JSON.parse(text)
+        if (Array.isArray(data)) {
+          allSheets.push({ name: baseName, rows: data })
+        } else {
+          const keys = Object.entries(data)
+          keys.forEach(([name, rows]) => {
+            allSheets.push({ name: keys.length > 1 ? `${baseName} - ${name}` : baseName, rows: rows as Record<string, unknown>[] })
+          })
         }
-        const sheets = allSheets.filter(s => s.rows.length > 0)
-        processSheets(sheets.length ? sheets : genDemoSheets())
-      } catch {
-        processSheets(genDemoSheets())
+      } else {
+        const buffer = await file.arrayBuffer()
+        const workbook = XLSX.read(buffer, { type: 'array' })
+        workbook.SheetNames.forEach(name => {
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[name], { defval: '' })
+          allSheets.push({ name: workbook.SheetNames.length > 1 ? `${baseName} - ${name}` : baseName, rows })
+        })
       }
+    }
+    return allSheets.filter(s => s.rows.length > 0)
+  }
+
+  const handleFiles = async (files: File[]) => {
+    setPhase('processing')
+    setProgLabel('Leyendo archivo...')
+    setProgPct(15)
+    try {
+      const sheets = await parseFiles(files)
+      if (!sheets.length) { runProgress(() => processSheets(genDemoSheets())); return }
+      if (sheets.length === 1) { runProgress(() => processSheets(sheets)); return }
+      setPendingSheets(sheets)
+      setSelectedSheetNames(new Set(sheets.map(s => s.name)))
+      setPhase('selecting')
+    } catch {
+      runProgress(() => processSheets(genDemoSheets()))
+    }
+  }
+
+  const toggleSheetSelected = (name: string) => {
+    setSelectedSheetNames(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name); else next.add(name)
+      return next
     })
+  }
+
+  const confirmSheetSelection = () => {
+    const selected = pendingSheets.filter(s => selectedSheetNames.has(s.name))
+    if (!selected.length) return
+    runProgress(() => processSheets(selected))
+  }
+
+  const cancelSheetSelection = () => {
+    setPendingSheets([])
+    setSelectedSheetNames(new Set())
+    setPhase('upload')
   }
 
   const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -517,7 +548,7 @@ export default function DataBridgePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de campos</span>
               <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
-                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : `${nodes.filter(n => n.kind === 'field').length} campos · ${nodes.filter(n => n.kind === 'table').length} tablas`}
+                {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : phase === 'selecting' ? 'Elegí las hojas' : `${nodes.filter(n => n.kind === 'field').length} campos · ${nodes.filter(n => n.kind === 'table').length} tablas`}
               </span>
             </div>
             {phase === 'ready' && (
@@ -582,6 +613,35 @@ export default function DataBridgePage() {
                   <div style={{ height: '100%', width: `${progPct}%`, background: 'linear-gradient(90deg,#0ea5e9,#10b981)', borderRadius: '2px', transition: 'width .1s' }} />
                 </div>
                 <div style={{ fontSize: '12px', color: '#334155', fontFamily: FONT_BODY }}>{progPct}%</div>
+              </div>
+            )}
+
+            {/* Selección de hojas */}
+            {phase === 'selecting' && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', zIndex: 7, padding: '20px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>¿Qué hojas querés importar?</div>
+                <div style={{ fontSize: '12px', color: '#475569', fontFamily: FONT_BODY }}>
+                  Encontramos {pendingSheets.length} hojas — elegí cuáles cruzar
+                </div>
+                <div style={{ width: '100%', maxWidth: '420px', maxHeight: '220px', overflowY: 'auto', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '6px' }}>
+                  {pendingSheets.map(s => (
+                    <label key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 8px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY }}>
+                      <input type="checkbox" checked={selectedSheetNames.has(s.name)} onChange={() => toggleSheetSelected(s.name)} />
+                      <span style={{ fontSize: '13px', color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                      <span style={{ fontSize: '11px', color: '#475569', flexShrink: 0 }}>{s.rows.length} filas</span>
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '10px', fontSize: '12px' }}>
+                  <button onClick={() => setSelectedSheetNames(new Set(pendingSheets.map(s => s.name)))} style={{ background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Todas</button>
+                  <button onClick={() => setSelectedSheetNames(new Set())} style={{ background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Ninguna</button>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button onClick={cancelSheetSelection} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b', fontSize: '13px', cursor: 'pointer', fontFamily: FONT_BODY }}>Cancelar</button>
+                  <button onClick={confirmSheetSelection} disabled={selectedSheetNames.size === 0} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: selectedSheetNames.size === 0 ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#0ea5e9,#10b981)', color: selectedSheetNames.size === 0 ? '#475569' : '#fff', fontSize: '13px', fontWeight: 700, cursor: selectedSheetNames.size === 0 ? 'not-allowed' : 'pointer', fontFamily: FONT }}>
+                    Continuar ({selectedSheetNames.size}) →
+                  </button>
+                </div>
               </div>
             )}
 

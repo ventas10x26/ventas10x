@@ -234,6 +234,7 @@ export default function DataBridgePage() {
   const hoverRef      = useRef<string | null>(null)
   const viewRef       = useRef<'3d' | 'top'>('3d')
   const fileInputRef  = useRef<HTMLInputElement>(null)
+  const uploadMoreRef = useRef<HTMLInputElement>(null)
   const expandedRef   = useRef<Set<string>>(new Set())
   const clickStartRef = useRef({ x: 0, y: 0 })
 
@@ -579,6 +580,9 @@ export default function DataBridgePage() {
                   </button>
                 ))}
                 <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
+                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
+                <button onClick={() => uploadMoreRef.current?.click()} title="Subir otro archivo" style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.08)', color: '#7dd3fc' }}>⬆ Subir otro</button>
+                <input ref={uploadMoreRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
                 <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
                   {fullscreen ? '✕' : '⛶'}
                 </button>

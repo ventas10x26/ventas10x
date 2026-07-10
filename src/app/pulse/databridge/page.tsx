@@ -221,6 +221,7 @@ export default function DataBridgePage() {
   const [tableRelations, setTableRelations] = useState<TableRelation[]>([])
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
+  const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -398,7 +399,23 @@ export default function DataBridgePage() {
     setTableRelations(detectTableRelations(sheets))
     setSchemaHover(null)
     setExpandedTables(new Set())
+    setLoadedSheets(sheets)
     setPhase('ready')
+  }
+
+  // suma las hojas nuevas a las ya cargadas (en vez de reemplazarlas) para poder
+  // cruzar relaciones entre archivos subidos en momentos distintos
+  const mergeWithLoaded = (newSheets: SheetData[]): SheetData[] => {
+    if (!loadedSheets.length) return newSheets
+    const existingNames = new Set(loadedSheets.map(s => s.name))
+    const disambiguated = newSheets.map(s => {
+      let name = s.name
+      let i = 2
+      while (existingNames.has(name)) { name = `${s.name} (${i})`; i++ }
+      existingNames.add(name)
+      return { ...s, name }
+    })
+    return [...loadedSheets, ...disambiguated]
   }
 
   const runProgress = (onDone: () => void) => {
@@ -451,13 +468,13 @@ export default function DataBridgePage() {
     setProgPct(15)
     try {
       const sheets = await parseFiles(files)
-      if (!sheets.length) { runProgress(() => processSheets(genDemoSheets())); return }
-      if (sheets.length === 1) { runProgress(() => processSheets(sheets)); return }
+      if (!sheets.length) { runProgress(() => processSheets(loadedSheets.length ? loadedSheets : genDemoSheets())); return }
+      if (sheets.length === 1) { runProgress(() => processSheets(mergeWithLoaded(sheets))); return }
       setPendingSheets(sheets)
       setSelectedSheetNames(new Set(sheets.map(s => s.name)))
       setPhase('selecting')
     } catch {
-      runProgress(() => processSheets(genDemoSheets()))
+      runProgress(() => processSheets(loadedSheets.length ? loadedSheets : genDemoSheets()))
     }
   }
 
@@ -472,13 +489,13 @@ export default function DataBridgePage() {
   const confirmSheetSelection = () => {
     const selected = pendingSheets.filter(s => selectedSheetNames.has(s.name))
     if (!selected.length) return
-    runProgress(() => processSheets(selected))
+    runProgress(() => processSheets(mergeWithLoaded(selected)))
   }
 
   const cancelSheetSelection = () => {
     setPendingSheets([])
     setSelectedSheetNames(new Set())
-    setPhase('upload')
+    setPhase(loadedSheets.length ? 'ready' : 'upload')
   }
 
   const onFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -548,12 +565,16 @@ export default function DataBridgePage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Visualizador */}
-        <div style={{ flex: '1 1 600px', minWidth: 0 }}>
         <div style={fullscreen ? {
           position: 'fixed', inset: 0, zIndex: 200, background: '#080f1a',
-          padding: '18px 20px', display: 'flex', flexDirection: 'column',
+          padding: '18px 20px', display: 'flex', gap: '20px', alignItems: 'stretch',
+        } : {
+          display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap',
+        }}>
+        {/* Visualizador */}
+        <div style={fullscreen ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column' } : { flex: '1 1 600px', minWidth: 0 }}>
+        <div style={fullscreen ? {
+          flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
         } : {
           background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', marginBottom: '20px',
         }}>
@@ -738,7 +759,7 @@ export default function DataBridgePage() {
         </div>
 
         {/* Esquema de relaciones 2D */}
-        <div style={{ flex: '0 1 300px', minWidth: '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px' }}>
+        <div style={{ flex: fullscreen ? '0 0 320px' : '0 1 300px', minWidth: '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Esquema de relaciones</span>
             <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>

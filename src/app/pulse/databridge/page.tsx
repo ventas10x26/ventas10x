@@ -12,7 +12,7 @@ const PALETTE = ['#4f8ef7', '#34c97e', '#f7924f', '#c97fd4', '#f7d24f', '#22d3ee
 
 interface Node3D {
   id: string; l: string; kind: 'table' | 'field'; table: string
-  tipo?: string; color: string; isHub?: boolean
+  tipo?: string; color: string; isHub?: boolean; fieldCount?: number
   x: number; y: number; z: number; r: number
   px?: number; py?: number; depth?: number
 }
@@ -67,10 +67,10 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
     const cz = Math.sin(angle) * tableRadius
     const cy = (si % 2 === 0 ? -1 : 1) * 24
     const hubId = 'hub_' + si
-    nodes.push({ id: hubId, l: sheet.name, kind: 'table', table: sheet.name, color, x: cx, y: cy, z: cz, r: 18 })
-
     const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
     const nF = headers.length
+    nodes.push({ id: hubId, l: sheet.name, kind: 'table', table: sheet.name, color, fieldCount: nF, x: cx, y: cy, z: cz, r: 18 })
+
     const fieldRadius = 42 + Math.sqrt(nF) * 22
     const goldenAngle = Math.PI * (3 - Math.sqrt(5))
     headers.forEach((h, fi) => {
@@ -220,6 +220,7 @@ export default function DataBridgePage() {
   const [dragMode, setDragMode]       = useState<'rotate' | 'pan'>('rotate')
   const [tableRelations, setTableRelations] = useState<TableRelation[]>([])
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -233,6 +234,8 @@ export default function DataBridgePage() {
   const hoverRef      = useRef<string | null>(null)
   const viewRef       = useRef<'3d' | 'top'>('3d')
   const fileInputRef  = useRef<HTMLInputElement>(null)
+  const expandedRef   = useRef<Set<string>>(new Set())
+  const clickStartRef = useRef({ x: 0, y: 0 })
 
   const supabase = createClient()
 
@@ -266,8 +269,9 @@ export default function DataBridgePage() {
     const H = canvas.height / (window.devicePixelRatio || 1)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    const ns = nodesRef.current
-    const es = edgesRef.current
+    const visibleFieldIds = new Set(nodesRef.current.filter(n => n.kind === 'field' && expandedRef.current.has(n.table)).map(n => n.id))
+    const ns = nodesRef.current.filter(n => n.kind === 'table' || visibleFieldIds.has(n.id))
+    const es = edgesRef.current.filter(e => visibleFieldIds.has(e.b))
     if (!ns.length) return
 
     const dimScale = dimScaleFor(H) * zoomRef.current
@@ -303,12 +307,15 @@ export default function DataBridgePage() {
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2)
       ctx.fillStyle = c; ctx.fill()
       if (n.kind === 'table') {
+        const expanded = expandedRef.current.has(n.table)
         ctx.font = `700 ${fs(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
         ctx.font = `700 ${fs(12)}px system-ui`; ctx.fillStyle = '#e2e8f0'
         ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
+        ctx.font = `${fs(10)}px system-ui`; ctx.fillStyle = '#64748b'
+        ctx.fillText(`${n.fieldCount ?? 0} campos · ${expanded ? 'clic para contraer' : 'clic para ver'}`, n.px!, n.py! + r + fs(21))
       } else {
         const isHover = n.id === hoverId
         ctx.font = `${isHover ? '600 ' : ''}${fs(11)}px system-ui`; ctx.fillStyle = isHover ? '#f8fafc' : '#cbd5e1'
@@ -325,6 +332,11 @@ export default function DataBridgePage() {
     edgesRef.current = edges
     draw()
   }, [nodes, edges, draw])
+
+  useEffect(() => {
+    expandedRef.current = expandedTables
+    draw()
+  }, [expandedTables, draw])
 
   useEffect(() => {
     viewRef.current = view
@@ -384,6 +396,7 @@ export default function DataBridgePage() {
     setStats(computeTableStats(n))
     setTableRelations(detectTableRelations(sheets))
     setSchemaHover(null)
+    setExpandedTables(new Set())
     setPhase('ready')
   }
 
@@ -492,6 +505,7 @@ export default function DataBridgePage() {
     const W = rect.width; const H = rect.height
     const dimScale = dimScaleFor(H) * zoomRef.current
     const hit = nodesRef.current.find(n => {
+      if (n.kind === 'field' && !expandedTables.has(n.table)) return false
       const p = project(n.x, n.y, n.z, W, H)
       const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
       const dx = mx - p.px!; const dy = my - p.py!
@@ -576,8 +590,30 @@ export default function DataBridgePage() {
           <div
             style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#080f1a', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
-            onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); dragRef.current = { on: true, x: e.clientX - rect.left, y: e.clientY - rect.top } }}
-            onMouseUp={() => { dragRef.current.on = false }}
+            onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); const sx = e.clientX - rect.left; const sy = e.clientY - rect.top; dragRef.current = { on: true, x: sx, y: sy }; clickStartRef.current = { x: sx, y: sy } }}
+            onMouseUp={e => {
+              dragRef.current.on = false
+              if (phase !== 'ready' || !canvasRef.current) return
+              const rect = canvasRef.current.getBoundingClientRect()
+              const mx = e.clientX - rect.left; const my = e.clientY - rect.top
+              const moved = (mx - clickStartRef.current.x) ** 2 + (my - clickStartRef.current.y) ** 2
+              if (moved > 16) return
+              const W = rect.width; const H = rect.height
+              const dimScale = dimScaleFor(H) * zoomRef.current
+              const hit = nodesRef.current.find(n => {
+                if (n.kind !== 'table') return false
+                const p = project(n.x, n.y, n.z, W, H)
+                const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
+                const dx = mx - p.px!; const dy = my - p.py!
+                return dx * dx + dy * dy < (n.r * s * dimScale + 8) ** 2
+              })
+              if (!hit) return
+              setExpandedTables(prev => {
+                const next = new Set(prev)
+                if (next.has(hit.table)) next.delete(hit.table); else next.add(hit.table)
+                return next
+              })
+            }}
             onMouseLeave={() => { dragRef.current.on = false; hoverRef.current = null; setTooltip(null); draw() }}
             onWheel={e => { if (phase !== 'ready') return; e.preventDefault(); interactedRef.current = true; zoomRef.current = Math.min(3, Math.max(0.35, zoomRef.current - e.deltaY * 0.001)); draw() }}
           >
@@ -659,10 +695,12 @@ export default function DataBridgePage() {
                 )}
                 {tooltip.node.kind === 'table' && (() => {
                   const fields = fieldsOfTable(tooltip.node.table)
+                  const expanded = expandedTables.has(tooltip.node.table)
                   return (
                     <>
                       <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tooltip.node.l}</div>
                       <div style={{ color: tooltip.node.color }}>Tabla / hoja · {fields.length} campos</div>
+                      <div style={{ color: '#7dd3fc', marginTop: '2px' }}>Clic para {expanded ? 'contraer' : 'expandir'}</div>
                       <div style={{ color: '#94a3b8', marginTop: '4px', fontSize: '11px', lineHeight: 1.5 }}>
                         {fields.slice(0, 16).map((f, i) => <div key={i}>· {f.l} <span style={{ color: '#475569' }}>({f.tipo})</span></div>)}
                         {fields.length > 16 && <div style={{ color: '#475569' }}>+{fields.length - 16} más</div>}
@@ -676,7 +714,7 @@ export default function DataBridgePage() {
             {/* Hint */}
             {phase === 'ready' && (
               <div style={{ position: 'absolute', bottom: '12px', right: '12px', fontSize: '11px', color: '#334155', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {dragMode === 'rotate' ? '⟳ arrastrá para rotar' : '🖐 arrastrá para mover'} · shift invierte · scroll zoom
+                clic en una tabla para expandir · {dragMode === 'rotate' ? 'arrastrá para rotar' : 'arrastrá para mover'}
               </div>
             )}
           </div>

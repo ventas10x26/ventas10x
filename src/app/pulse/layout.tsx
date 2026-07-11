@@ -1,6 +1,13 @@
 // src/app/pulse/layout.tsx
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { Oswald, IBM_Plex_Mono, Inter } from 'next/font/google'
+
+// Fuentes del sistema turno/guardia (home) — next/font las autohospeda en build time,
+// evita depender de un <link> a Google Fonts en runtime (frágil: no garantiza carga en producción).
+const oswald = Oswald({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-oswald', display: 'swap' })
+const ibmPlexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-mono', display: 'swap' })
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-inter', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Pulse Motor — Responde a tus leads en 30 segundos',
@@ -23,12 +30,12 @@ const PULSE_GA_ID = 'G-M0KS0D3G5D'
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="pulse-root">
-      {/* Google Fonts — Syne + DM Sans (resto de /pulse) y Oswald + IBM Plex Mono + Inter (home, sistema turno/guardia) */}
+    <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable}`}>
+      {/* Google Fonts — Syne + DM Sans, usadas por el resto de /pulse (dashboard, signup, login, pricing, etc.) */}
       <Script id="pulse-fonts" strategy="beforeInteractive">{`
         const l = document.createElement('link');
         l.rel = 'stylesheet';
-        l.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap';
+        l.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap';
         document.head.appendChild(l);
       `}</Script>
 

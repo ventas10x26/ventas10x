@@ -31,9 +31,16 @@
     background: var(--amber); color: var(--bg-0);
     font-family: var(--f-display); text-transform: uppercase; font-weight: 600; font-size: 14px;
     letter-spacing: .5px; padding: 13px 24px; border-radius: 6px; border: none; cursor: pointer;
-    transition: background-color .15s ease;
+    transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
   }
-  .btn:hover { background: #ffc266; }
+  .btn:hover { background: #ffc266; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(242,169,59,0.35); }
+
+  /* ── Revelado por scroll (equivalente estático de src/hooks/useReveal.ts) ── */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .btn { transition: none; opacity: 1; transform: none; }
+  }
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 8px;
     background: transparent; color: var(--ink); border: 1px solid var(--line);
@@ -298,6 +305,26 @@
     </div>
   </section>
 
+  <!-- REVELADO POR SCROLL (demo de useReveal + useCountUp) -->
+  <section>
+    <p class="section-kicker">Revelado progresivo (demo)</p>
+    <h2 style="margin-bottom:32px">Bajá para descubrirlo</h2>
+    <div class="grid grid-3" id="reveal-demo">
+      <div class="reveal" style="transition-delay:0ms">
+        <h3 style="font-size:16px;margin-bottom:8px">Un solo mecanismo</h3>
+        <p class="dim" style="font-size:13px">IntersectionObserver + fade/translateY, reusado en toda la home vía <code>useReveal</code>.</p>
+      </div>
+      <div class="reveal" style="transition-delay:120ms">
+        <h3 style="font-size:16px;margin-bottom:8px">Stagger por grupo</h3>
+        <p class="dim" style="font-size:13px">Un observer por sección, no uno por celda — el desfasaje es <code>transitionDelay</code> por índice.</p>
+      </div>
+      <div class="reveal" style="transition-delay:240ms">
+        <div class="mono" style="font-family:var(--f-display);font-size:32px;color:var(--amber)" id="reveal-demo-stat">0%</div>
+        <p class="dim" style="font-size:13px">Cuenta ascendente (<code>useCountUp</code>) solo sobre cifras reales.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- CTA FINAL -->
   <section style="text-align:left;border-bottom:none">
     <p class="section-kicker">¿Cuántos leads se quedaron sin cobertura anoche?</p>
@@ -305,5 +332,36 @@
     <a href="#" class="btn">Cubrir mi turno →</a>
   </section>
 
+  <script>
+    // Equivalente vanilla de src/hooks/useReveal.ts + useCountUp.ts, solo para esta demo estática.
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var group = document.getElementById('reveal-demo');
+    var statEl = document.getElementById('reveal-demo-stat');
+    function countUp(el, target, suffix) {
+      if (reduced) { el.textContent = target + suffix; return; }
+      var start = performance.now(), duration = 900;
+      function tick(now) {
+        var p = Math.min((now - start) / duration, 1);
+        el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+    if (reduced) {
+      group.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in') });
+      statEl.textContent = '89%';
+    } else if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            group.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in') });
+            countUp(statEl, 89, '%');
+            obs.disconnect();
+          }
+        });
+      }, { threshold: 0.2 });
+      obs.observe(group);
+    }
+  </script>
 </body>
 </html>

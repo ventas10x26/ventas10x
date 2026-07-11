@@ -22,6 +22,13 @@ const TOOL_CALLS = [
 
 const LOGOS = ['AutoVía', 'MotorCorp', 'Grupo Andina', 'Pacífico Cars', 'Flota Pro', 'Virtue Motors']
 
+const NAV_ITEMS = [
+  { label:'Plataforma', id:'plataforma' },
+  { label:'Ecosistema 360°', id:'ecosistema' },
+  { label:'Segmentos', id:'segmentos' },
+  { label:'Precios', id:'precios' },
+]
+
 // ─── Ecosistema 360° — catálogo de puntos de fricción cubiertos, no pasos secuenciales ───
 const ECOSISTEMA = [
   { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.' },
@@ -69,10 +76,10 @@ const TESTIMONIOS_V2 = [
   { seg:'Vendedor individual · Medellín', texto:'Cerré tres retomas en una semana yo solo. Antes eso me tomaba un mes coordinando con crédito y seguros.', nombre:'Laura Betancur', cargo:'Asesora Comercial · Independiente' },
 ]
 
-function StatCell({ val, delta, label, active }: { val: string; delta: string; label: string; active: boolean }) {
+function StatCell({ val, delta, label, active, delayMs }: { val: string; delta: string; label: string; active: boolean; delayMs: number }) {
   const displayed = useCountUp(val, active)
   return (
-    <div className="stat-cell">
+    <div className={`reveal stat-cell${active?' in':''}`} style={{ transitionDelay:`${delayMs}ms` }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
         <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:800 }}>{displayed}</span>
         <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--green)' }}>{delta}</span>
@@ -86,9 +93,11 @@ export default function PulseMotorLanding() {
   const [usuarioLogueado, setUsuarioLogueado] = useState<string|null>(null)
   const [visible, setVisible]                 = useState(false)
   const [toolCallsVisible, setToolCallsVisible] = useState<number[]>([])
+  const [activeSection, setActiveSection]     = useState('plataforma')
   const supabase = createClient()
 
   const heroPanel      = useReveal<HTMLDivElement>()
+  const logosReveal     = useReveal<HTMLDivElement>()
   const ecoHeader       = useReveal<HTMLDivElement>()
   const ecoGrid         = useReveal<HTMLDivElement>()
   const segHeader       = useReveal<HTMLDivElement>()
@@ -98,6 +107,7 @@ export default function PulseMotorLanding() {
   const auditLog        = useReveal<HTMLDivElement>()
   const integHeader     = useReveal<HTMLDivElement>()
   const integGrid       = useReveal<HTMLDivElement>()
+  const testiHeader     = useReveal<HTMLDivElement>()
   const testiGrid       = useReveal<HTMLDivElement>()
   const ctaFinal        = useReveal<HTMLDivElement>()
 
@@ -107,6 +117,18 @@ export default function PulseMotorLanding() {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUsuarioLogueado(data.user.email ?? data.user.id)
     })
+  }, [])
+
+  // Scroll-spy: resalta en el nav la sección que está cruzando el centro del viewport.
+  useEffect(() => {
+    const els = NAV_ITEMS.map(item => document.getElementById(item.id)).filter((el): el is HTMLElement => !!el)
+    if (!els.length) return
+    const observer = new IntersectionObserver(
+      (entries) => { entries.forEach(entry => { if (entry.isIntersecting) setActiveSection(entry.target.id) }) },
+      { rootMargin: '-45% 0px -50% 0px', threshold: 0 }
+    )
+    els.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
   }, [])
 
   // Timeline de tool-calls: se revela fila por fila cuando el panel del hero entra en viewport.
@@ -202,20 +224,20 @@ export default function PulseMotorLanding() {
         .seg-check { display:flex; gap:10px; align-items:baseline; padding:6px 0; font-size:13px; color:var(--ink-dim); }
         .seg-check .mark { color:var(--green); font-family:${F_MONO}; flex-shrink:0; }
 
-        .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); transition:transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
+        .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
         .quote-card:hover { transform:translateY(-4px); box-shadow:0 16px 32px rgba(0,0,0,0.35); border-color:var(--line); }
 
-        .eco-cell { transition:transform .25s var(--ease-out-expo), background-color .25s ease; }
+        .eco-cell { transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), background-color .25s ease; }
         .eco-cell:hover { transform:translateY(-4px); background:var(--bg-2); }
         .eco-icon { display:inline-block; transition:transform .25s var(--ease-out-expo); }
         .eco-cell:hover .eco-icon { transform:scale(1.18); }
 
-        .integ-item { transition:transform .2s var(--ease-out-expo); }
+        .integ-item { transition:opacity .8s var(--ease-out-expo), transform .2s var(--ease-out-expo); }
         .integ-item:hover { transform:translateY(-3px); }
         .integ-icon { transition:border-color .2s ease, color .2s ease; }
         .integ-item:hover .integ-icon { border-color:var(--amber-dim); color:var(--amber); }
 
-        .stat-cell { transition:transform .2s var(--ease-out-expo); }
+        .stat-cell { transition:opacity .8s var(--ease-out-expo), transform .2s var(--ease-out-expo); }
         .stat-cell:hover { transform:translateY(-2px); }
 
         .log-row-data { transition:background-color .2s ease, opacity .5s ease, transform .5s ease; }
@@ -225,6 +247,8 @@ export default function PulseMotorLanding() {
         .pm-nav-link::after { content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--amber); transition:width .25s var(--ease-out-expo); }
         .pm-nav-link:hover { color:var(--ink); }
         .pm-nav-link:hover::after { width:100%; }
+        .pm-nav-link.active { color:var(--amber); }
+        .pm-nav-link.active::after { width:100%; }
 
         .logos-marquee { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
         .logos-track { display:flex; align-items:center; gap:56px; width:max-content; animation:logosScroll 26s linear infinite; }
@@ -273,8 +297,8 @@ export default function PulseMotorLanding() {
             <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
           </div>
           <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
-            {['Plataforma','Ecosistema 360°','Segmentos','Precios'].map(item => (
-              <a key={item} href={item==='Precios' ? '#precios' : item==='Segmentos' ? '#segmentos' : item==='Ecosistema 360°' ? '#ecosistema' : '#plataforma'} style={{ fontSize:'13px', textDecoration:'none' }} className="pm-nav-link">{item}</a>
+            {NAV_ITEMS.map(item => (
+              <a key={item.id} href={`#${item.id}`} style={{ fontSize:'13px', textDecoration:'none' }} className={`pm-nav-link${activeSection===item.id?' active':''}`}>{item.label}</a>
             ))}
           </nav>
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -347,10 +371,12 @@ export default function PulseMotorLanding() {
 
         {/* LOGOS */}
         <section style={{ padding:'32px 0 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
-          <p style={{ textAlign:'center', fontFamily:F_MONO, fontSize:'11px', letterSpacing:'1px', textTransform:'uppercase', color:'var(--ink-dim)', marginBottom:'24px' }}>Confían concesionarios en LatAm</p>
-          <div className="logos-marquee">
-            <div className="logos-track">
-              {[...LOGOS, ...LOGOS].map((l,i) => <span key={l+i} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
+          <div ref={logosReveal.ref} className={`reveal${logosReveal.inView?' in':''}`}>
+            <p style={{ textAlign:'center', fontFamily:F_MONO, fontSize:'11px', letterSpacing:'1px', textTransform:'uppercase', color:'var(--ink-dim)', marginBottom:'24px' }}>Confían concesionarios en LatAm</p>
+            <div className="logos-marquee">
+              <div className="logos-track">
+                {[...LOGOS, ...LOGOS].map((l,i) => <span key={l+i} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
+              </div>
             </div>
           </div>
         </section>
@@ -405,7 +431,8 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* ACTIVIDAD EN VIVO */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section style={{ background:'var(--bg-1)', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={activityHeader.ref} className={`reveal${activityHeader.inView?' in':''}`} style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' }}>
             <div>
               <p className="kicker">Actividad en vivo</p>
@@ -416,7 +443,7 @@ export default function PulseMotorLanding() {
           </div>
 
           <div ref={statsReveal.ref} className="grid-shared stats-grid" style={{ gridTemplateColumns:'repeat(4,1fr)', marginBottom:'1px' }}>
-            {STATS_V2.map(s => <StatCell key={s.label} val={s.val} delta={s.delta} label={s.label} active={statsReveal.inView} />)}
+            {STATS_V2.map((s,i) => <StatCell key={s.label} val={s.val} delta={s.delta} label={s.label} active={statsReveal.inView} delayMs={i*90} />)}
           </div>
 
           <div ref={auditLog.ref} className="panel" style={{ marginTop:'24px', boxShadow:'0 1px 2px rgba(0,0,0,0.3)' }}>
@@ -432,6 +459,7 @@ export default function PulseMotorLanding() {
               </div>
             ))}
           </div>
+        </div>
         </section>
 
         {/* INTEGRACIONES NATIVAS */}
@@ -453,7 +481,14 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* TESTIMONIOS */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section style={{ background:'var(--bg-1)', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
+          <div ref={testiHeader.ref} className={`reveal${testiHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
+            <p className="kicker">Lo dicen quienes ya lo usan</p>
+            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, color:'var(--ink)' }}>
+              El mismo agente, dos formas de cerrar.
+            </h2>
+          </div>
           <div ref={testiGrid.ref} className="testi-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>
             {TESTIMONIOS_V2.map((t,i) => (
               <div key={t.nombre} className={`quote-card reveal${testiGrid.inView?' in':''}`} style={{ transitionDelay:`${i*150}ms` }}>
@@ -466,6 +501,7 @@ export default function PulseMotorLanding() {
               </div>
             ))}
           </div>
+        </div>
         </section>
 
         {/* CTA FINAL */}

@@ -1,59 +1,68 @@
 ---
 name: pulsemotor-design
-description: Sistema de diseño y lineamientos de marca de Pulse Motor (pulsemotor.co), un agente de IA por WhatsApp para asesores de venta de carros en LatAm. Usar esta skill SIEMPRE que se construya, edite o revise cualquier UI, landing page, componente, email o pieza visual de Pulse Motor — incluso si el usuario no menciona "diseño" explícitamente, solo pide "una sección nueva", "un componente", "el hero", "la pricing page", etc. También usar si el usuario pregunta por la paleta, tipografía, tono de copy o el "arquetipo" de la marca. NO usar para Ventas10x.co ni para Almotores — es un sistema de marca distinto y específico de Pulse Motor.
+description: Sistema de diseño y lineamientos de marca de Pulse Motor (pulsemotor.co), un agente autónomo de IA que orquesta el contexto 360° de la venta automotriz (inventario, financiación, pólizas, retomas, accesorios) dentro de una sola conversación de WhatsApp, para concesionarios y asesores independientes en LatAm. Usar esta skill SIEMPRE que se construya, edite o revise cualquier UI, landing page, componente, email o pieza visual de Pulse Motor — incluso si el usuario no menciona "diseño" explícitamente, solo pide "una sección nueva", "un componente", "el hero", "la pricing page", etc. También usar si el usuario pregunta por la paleta, tipografía, tono de copy o el "arquetipo" de la marca. NO usar para Ventas10x.co ni para Almotores — es un sistema de marca distinto y específico de Pulse Motor.
 ---
 
 # Pulse Motor — Sistema de diseño
 
-## El arquetipo: el turno / la guardia
+## El arquetipo: el copiloto autónomo de venta 360°
 
-Pulse Motor no es "un chatbot de IA" genérico. Es un agente que cubre el turno de un asesor de ventas de carros cuando el asesor no puede estar — de noche, en fin de semana, mientras atiende a otro cliente en el concesionario.
+Pulse Motor no es "un chatbot que responde WhatsApp". Es un **agente autónomo** que orquesta *todo* el contexto de una venta de auto — vehículo, versión, financiación, póliza, retoma, accesorios — dentro de una sola conversación, y que **muestra su trabajo**: cada cotización, cada tasación, cada póliza calculada es una acción trazable (un "tool call") con su propio tiempo de ejecución, no una respuesta de caja negra.
 
-**Todo el lenguaje visual y de copy se ancla en el mundo del turno/guardia/despacho**, no en el mundo genérico de "SaaS de IA":
+**Todo el lenguaje visual y de copy se ancla en la transparencia y amplitud de ese agente**, no en genérico "SaaS de IA":
 
-- Bitácora, relevo, guardia, turno activo, cierre de turno, reporte, sello/stamp, cobertura
-- NUNCA: "dashboard", "asistente virtual", partículas flotantes, glow ambiental, mockups de celular como protagonista, iconografía de robot/chip/cerebro, cubos 3D decorativos
+- Agente autónomo, copiloto, orquesta, contexto 360°, ecosistema, timeline ejecutado, ruteo, auditable, conversión estimada
+- NUNCA: "asistente virtual" genérico, partículas flotantes, cubos 3D decorativos, mockup de celular como protagonista, iconografía de robot/chip/cerebro
 
-Antes de diseñar cualquier pieza nueva, preguntate: *¿esto se siente como un tablero de control de guardia que nunca duerme, o se siente como cualquier landing de IA?* Si es lo segundo, hay que rehacerlo.
+Antes de diseñar cualquier pieza nueva, preguntate: *¿esto muestra al agente haciendo un trabajo real y verificable, o es una promesa vaga de "IA"?* Si es lo segundo, hay que rehacerlo.
 
-**`src/app/pulse/page.tsx` ya implementa este arquetipo** (junto con `SegmentSelector.tsx` y `PulseContactModal.tsx`) — tratalo como la implementación canónica real, junto con `assets/reference-page.html` como catálogo de patrones aislado. Si en algún momento ves ahí fondo con gradiente, cubo 3D o mockup de celular como protagonista, es una regresión al diseño anterior, no el estado correcto — hay que revertirlo, no tomarlo como referencia.
+**`src/app/pulse/page.tsx` ya implementa este arquetipo** — tratalo como la implementación canónica, junto con `assets/reference-page.html` como catálogo de patrones aislado.
+
+## Los dos segmentos (ambos con el mismo agente)
+
+- **Concesionario (Enterprise)**: fuerza de ventas, inventario multi-punto, integra DMS (Siigo/SAP), atribución por asesor, compliance/auditoría.
+- **Vendedor individual (Pro)**: copiloto personal en su propio WhatsApp Business, cotiza y cierra sin depender de un área de crédito, precio de entrada bajo (self-serve).
+
+Nunca tratar esto como una sola persona genérica "el asesor" — el copy y las secciones deben distinguir explícitamente estos dos públicos (ver sección "Diseñado para cómo realmente se vende" en `page.tsx`).
 
 ## Reglas duras (no negociables)
 
-1. **Nunca usar numeración decorativa (01/02/03)** salvo que el contenido sea un proceso secuencial real. Preferir sellos de check (`✓ PASO 1`), timestamps, o etiquetas de estado.
-2. **Nunca partículas, cubos 3D decorativos, ni mockup de teléfono como elemento hero principal.** El WhatsApp es la prueba, no el protagonista. Esto **no** prohíbe profundidad real: sombras neutras suaves y grandes (elevación física, no halo de color) están permitidas y son deseables para que paneles clave (price card, hover de botones/cards) se sientan sólidos y premium en vez de planos. La línea es: *halo de color sangrando alrededor de un elemento* (glow, prohibido) vs. *sombra neutra que sugiere que el objeto está físicamente elevado* (permitido, recomendado).
-3. **El movimiento es funcional**, no decorativo: una bitácora que se actualiza como log real, un pulso de "en vivo", timing real de conversación. Una sola secuencia orquestada por sección, no efectos dispersos. En la home, cada sección (encabezado + su grid/lista) se revela al entrar en el viewport usando el hook compartido `useReveal` (`src/hooks/useReveal.ts`, IntersectionObserver + fade/translateY) — no inventar un mecanismo de scroll-reveal nuevo por sección. Las métricas reales (leads, tasa de respuesta, citas) cuentan hacia arriba al revelarse con `useCountUp` (`src/hooks/useCountUp.ts`) — es refuerzo del dato, no un efecto decorativo, así que no se agrega a texto que no sea una cifra real. El revelado puede ser más dramático en elementos de sección (offset mayor, easing con overshoot sutil) que en filas de lista densa (offset chico, snap rápido) — la escala de la animación comunica la escala del elemento.
-4. **Ámbar como familia de acento, no como color plano único.** El ámbar puede expresarse como degradé tonal dentro de su propia familia (p. ej. `#F2A93B → #C9770B`, siempre ámbar-sobre-ámbar) para dar dimensión a cifras clave, la palabra de énfasis en un titular, o el CTA primario — eso sigue siendo "un solo acento de marca", no una paleta multicolor. Lo que sigue prohibido: mezclar otros hues (azul, púrpura, rosa) como acento de marca. El verde es exclusivamente para estados on/off — nunca decorativo.
-5. **Nunca repetir la misma anatomía de sección en cadena.** Si tres secciones seguidas son todas "kicker centrado + h2 + p + grid de 3 columnas iguales", el resultado se siente genérico/templado sin importar qué tan bien ejecutada esté cada una individualmente. Alterná composición: asimetría (lista + panel fijo al costado), un elemento destacado más grande que el resto (testimonio protagonista + 2 secundarios), splits desiguales. La variedad de composición es tan parte del sistema como los tokens de color.
-6. **Jerarquía tipográfica con confianza**: los titulares de sección deben tener escala grande y contraste real contra el cuerpo — no uses el mismo tamaño clamp para todo. El titular del hero es el elemento más grande de toda la página; cada h2 de sección debe sentirse claramente subordinado a él pero todavía dominante en su sección.
-7. Respetar `prefers-reduced-motion` en todo componente animado.
+1. **Numeración catalogada permitida** (`01`–`05`) para listar capacidades/ecosistema — a diferencia de un onboarding, acá no describe una secuencia temporal sino un catálogo de puntos de fricción cubiertos, y por eso los números leen como índice, no como decoración vacía. Para procesos que sí son secuenciales en el tiempo, usar sellos (`✓ Paso 1`) en vez de números crudos.
+2. **Nunca partículas, cubos 3D decorativos, ni mockup de teléfono como elemento hero principal.** El WhatsApp es la prueba (una conversación real, recortada), no el protagonista visual — el protagonista es el **timeline de tool-calls** que se ve al lado. Sombras neutras grandes y suaves (elevación física) están permitidas y son deseables en paneles clave (hero panel, price card, segment cards en hover) — la línea sigue siendo *halo de color sangrando* (glow, prohibido) vs. *sombra neutra que sugiere objeto físicamente elevado* (permitido).
+3. **El movimiento es funcional**, no decorativo: el timeline de tool-calls se revela como una traza real de ejecución (uno por uno, con su tiempo), un pulso de "en vivo", timing real de conversación. Revelado por scroll con el hook compartido `useReveal` (`src/hooks/useReveal.ts`) en cada sección — no inventar mecanismos nuevos. Cifras reales cuentan hacia arriba con `useCountUp` (`src/hooks/useCountUp.ts`) al revelarse — solo para cifras reales (leads, retomas, pólizas, conversión), nunca como efecto de texto genérico.
+4. **Ámbar como familia de acento** (`--amber → --amber-2`, degradé tonal permitido para cifras clave y la palabra de énfasis del hero) — no mezclar otros hues como acento de marca. Verde exclusivo para estados on/off/en vivo/aprobado.
+5. **No repetir la misma anatomía de sección en cadena.** Alternar: grid catalogado, split de 2 cards de segmento, stats+tabla de auditoría, grid de integraciones, testimonios por segmento. La variedad de composición es parte del sistema.
+6. **Jerarquía tipográfica con confianza**: el H1 del hero es el elemento más grande de la página (`clamp(44px, 7vw, 88px)`); cada H2 de sección escala a partir de ahí, nunca al mismo tamaño para todo.
+7. **Titulares en minúscula/mixta con énfasis en negrita**, NO en mayúscula sostenida (`text-transform:none`, no uppercase) — a diferencia de una iteración anterior de esta skill que usaba Oswald todo en mayúsculas. Los titulares se leen como una frase con una palabra o cláusula resaltada en degradé ámbar, no como un cartel de guardia.
+8. Respetar `prefers-reduced-motion` en todo componente animado.
 
 ## Tokens de diseño
 
 Ver `references/tokens.md` para la tabla completa. Resumen rápido:
 
-- **Color:** negro cálido `#0B0D0C` / `#14120F` / `#1B1815` de base, ámbar de señal `#F2A93B` (con degradé tonal `#F2A93B → #C9770B` permitido para énfasis) como único acento, verde `#3ECF7E` solo para "activo/en vivo".
-- **Tipografía:** Oswald (condensada, uppercase) para titulares y headers de sección · IBM Plex Mono para timestamps, tags y cualquier dato · Inter para cuerpo de texto. Se cargan con `next/font/google` en `src/app/pulse/layout.tsx` (autohospedadas en build time), expuestas como `--font-oswald` / `--font-mono` / `--font-inter`. **No** uses un `<link>` a Google Fonts en runtime ni `@import` en un `<style>` — es frágil y en producción puede no cargar la fuente (ya pasó una vez).
+- **Color:** negro cálido `#0B0D0C` / `#14120F` / `#1B1815` de base, ámbar de señal `#F2A93B` (degradé tonal `#F2A93B → #C9770B` permitido) como único acento, verde `#3ECF7E` solo para "activo/en vivo/aprobado".
+- **Tipografía:** Inter (700–800) para titulares en minúscula/mixta con énfasis en degradé ámbar · IBM Plex Mono para timestamps, nombres de función del timeline (`tasar_retoma`, `calcular_financiacion`) y cualquier dato · Inter (400–600) para cuerpo. Cargadas con `next/font/google` en `src/app/pulse/layout.tsx` (autohospedadas en build time) — nunca un `<link>` a Google Fonts en runtime ni `@import` en un `<style>`.
 - **Bordes/radios:** rectos y contenidos, radio 3–8px máximo.
-- **Grids de contenido:** bordes de 1px compartidos entre celdas (`gap:1px` con `background:var(--line)`) en vez de cards flotantes con sombra.
+- **Grids de contenido:** bordes de 1px compartidos entre celdas (`gap:1px` con `background:var(--line)`) en vez de cards flotantes, salvo los segment cards y el hero panel, que sí llevan sombra de elevación real por ser los elementos protagonistas de su sección.
 
 ## Elementos de firma (signature elements)
 
-- **Badge de turno activo**: punto verde con pulso + "TURNO ACTIVO" + reloj en vivo + ubicación.
-- **Bitácora en vivo**: panel de eventos con timestamp, quién, qué pasó, y tag de estado — reemplaza cualquier "feed de actividad" o mockup de chat genérico.
-- **Reportes de cierre de turno**: testimonios en formato de reporte con hora + sede + estado "cerrado".
-- **Relevo de turno**: pasos de onboarding enmarcados como protocolo de entrega de guardia.
-- **Revelado progresivo por scroll**: cada sección se descubre al bajar (encabezado primero, luego su grid/lista con stagger de ~100–150ms entre celdas) vía `useReveal`. Las cifras reales cuentan hacia arriba con `useCountUp` al revelarse. Es el mecanismo que hace sentir la home como "un sistema que vas descubriendo", no una landing estática — no reemplazar por scroll-jacking, parallax, ni librerías de animación nuevas (no hay `framer-motion` ni similar en el proyecto; si hiciera falta algo más avanzado, decilo antes de agregar una dependencia).
-- **Barrido de guardia**: un arco cónico ámbar muy tenue (`conic-gradient`), rotando lento (8-12s) detrás del badge "turno activo" y de otros puntos de "vigilancia" — evoca un radar/sonar en guardia permanente. Es funcional al concepto (cobertura 24/7, nunca duerme), no decorativo genérico. Opacidad baja, nunca debe competir con el texto ni sentirse como partícula.
+- **Badge de agente activo**: punto verde con pulso + "Agente activo · 24/7/365". Puede llevar detrás el "barrido" cónico ámbar tenue (rotación lenta) como refuerzo visual de "siempre encendido" — nunca compite con el texto.
+- **Panel hero: conversación + timeline de tool-calls**: un mensaje real de lead, la respuesta del agente, y debajo una traza de 4 tool-calls (`nombre_funcion · Nms`) que se revelan una por una — es el elemento más distintivo de la marca, mostrando literalmente lo que el agente ejecutó, no una promesa. Cierra con una cifra de conversión estimada.
+- **Grid catalogado 01–05**: la cobertura del "ecosistema 360°" (vehículos, financiación, accesorios, retomas, pólizas) en un grid de borde compartido con números de índice.
+- **Segment cards**: dos tarjetas con sombra real (Concesionario/Enterprise vs. Vendedor individual/Pro), cada una con tag, título, subtítulo, 4 bullets de valor y su propio CTA — nunca fusionar ambos públicos en una sola tarjeta genérica.
+- **Actividad en vivo**: fila de 4 stats con delta (`+12%`, `+5pt`) + tabla auditable (timestamp / evento / canal / estado) de eventos reales del ecosistema (retomas, pólizas, financiación, citas, cross-sell) — no solo mensajes de WhatsApp.
+- **Integraciones nativas**: grid de badges de stack real (WhatsApp Business, DMS, aseguradoras, HubSpot/Salesforce) — comunica que el agente vive dentro del stack del concesionario, no como capa aparte.
+- **Revelado progresivo por scroll**: cada sección se descubre al bajar vía `useReveal`; cifras reales cuentan hacia arriba con `useCountUp`. No reemplazar por scroll-jacking, parallax, ni librerías nuevas (no hay `framer-motion` en el proyecto).
 
 ## Copy y tono
 
-- Verbos activos, en segunda persona ("vos"), directo.
-- Vocabulario que el asesor reconoce de su propio trabajo (turno, guardia, relevo, cierre), nunca jerga de sistema.
-- Nunca adjetivos vacíos ("revolucionario", "next-gen"). Específico: "responde en 30 segundos", no "respuestas instantáneas con IA de última generación".
+- Español neutro-LatAm, directo, en segunda persona cuando se habla al vendedor individual; en tercera/impersonal cuando se habla del concesionario como organización.
+- Vocabulario del negocio real: retoma, póliza, financiación, DMS, ruteo de leads, cross-sell — nunca jerga de sistema genérica ("dashboard", "insights").
+- Nunca adjetivos vacíos ("revolucionario", "next-gen"). Específico y verificable: "tasé su 2021 en $42.500.000", no "tasación instantánea con IA".
 
 ## Cómo trabajar con esta skill
 
 1. Leé `references/tokens.md` para valores exactos antes de construir cualquier pieza.
-2. Mirá `assets/reference-page.html` como catálogo estático de patrones de CSS (grids con `gap:1px`, la bitácora, los sellos), y `src/app/pulse/page.tsx` como la implementación real con estado/hooks — para revelado por scroll y cuentas ascendentes, reusá `useReveal`/`useCountUp` en vez de reinventarlos.
-3. Si el pedido choca con una regla dura (ej. "agregale un glow" o "ponele partículas"), decilo explícitamente y proponé la alternativa funcional en vez de aplicarlo en silencio.
+2. Mirá `assets/reference-page.html` como catálogo estático de patrones (segment cards, timeline de tool-calls, grid 01–05), y `src/app/pulse/page.tsx` como la implementación real con estado/hooks — para revelado por scroll y cuentas ascendentes, reusá `useReveal`/`useCountUp`.
+3. Si el pedido choca con una regla dura (ej. "ponele un mockup de celular gigante" o "fusioná los dos segmentos en una card"), decilo explícitamente y proponé la alternativa en vez de aplicarlo en silencio.

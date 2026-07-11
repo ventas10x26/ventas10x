@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Pulse Motor — design reference</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:#38bdf8; --green:#34d399; --purple:#a855f7;
+    --grad:linear-gradient(90deg,#38bdf8,#34d399,#a855f7);
+    --bg:#05070d; --bg-2:#080c16; --surface:rgba(255,255,255,0.045); --surface-2:rgba(255,255,255,0.07);
+    --border:rgba(255,255,255,0.09); --border-strong:rgba(255,255,255,0.16);
+    --text:#f3f5fa; --text-dim:#9aa3ba; --text-faint:#5c637a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    padding: 48px 32px 96px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  h1, h2, h3 { font-family: 'Syne', sans-serif; letter-spacing: -.3px; }
+  h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 700; margin: 56px 0 4px; }
+  p.lede { color: var(--text-dim); margin-bottom: 8px; }
+  p.caption { color: var(--text-faint); font-size: 12px; margin-top: 24px; }
+
+  .grad-text {
+    background-image: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
+  }
+
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+
+  /* ── Buttons ── */
+  .pm-btn {
+    padding: 14px 26px; border-radius: 10px; border: 1px solid transparent;
+    background: var(--grad); background-size: 200% auto;
+    color: #04060b; font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Syne', sans-serif; letter-spacing: -.2px;
+    box-shadow: 0 12px 30px rgba(56,189,248,0.18), 0 6px 18px rgba(168,85,247,0.14);
+    transition: all .3s cubic-bezier(.22,.68,0,1.2);
+  }
+  .pm-btn:hover { background-position: 100% center; transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(56,189,248,0.28), 0 8px 22px rgba(52,211,153,0.2); }
+
+  .pm-btn-outline {
+    padding: 13px 25px; border-radius: 10px; background: transparent;
+    border: 1px solid var(--border-strong); color: var(--text);
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ── Badges / pills ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-strong);
+    border-radius: 999px; padding: 5px 14px; font-size: 12px; font-weight: 500; color: var(--text-dim);
+  }
+  .badge-blue   { background: rgba(56,189,248,0.06);  border-color: rgba(56,189,248,0.3);  color: #7dd3fc; }
+  .badge-green  { background: rgba(52,211,153,0.06);  border-color: rgba(52,211,153,0.3);  color: #6ee7b7; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #25d366; display: inline-block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px; transition: all .3s ease;
+  }
+  .card:hover { border-color: rgba(56,189,248,0.35); transform: translateY(-4px);
+    box-shadow: 0 20px 44px rgba(0,0,0,0.45), 0 0 0 1px rgba(56,189,248,0.08); }
+  .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; }
+
+  /* ── Inputs ── */
+  .pm-input {
+    width: 100%; padding: 13px 16px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.03); color: var(--text); font-size: 15px;
+    font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .2s, box-shadow .2s;
+  }
+  .pm-input:focus { border-color: rgba(56,189,248,0.55); box-shadow: 0 0 0 4px rgba(56,189,248,0.12); }
+  .pm-input::placeholder { color: var(--text-faint); }
+
+  /* ── Cube face swatches ── */
+  .swatch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+  .swatch {
+    border-radius: 14px; padding: 16px; font-size: 13px; font-weight: 600;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  /* ── WhatsApp mockup (literal, never themed) ── */
+  .wa-frame { width: 260px; background: #1a1a2e; border-radius: 32px; padding: 10px; border: 2px solid rgba(255,255,255,0.12); margin-top: 18px; }
+  .wa-screen { background: #fff; border-radius: 22px; overflow: hidden; }
+  .wa-header { background: #075e54; padding: 10px 14px; color: #fff; font-size: 13px; font-weight: 600; }
+  .wa-body { background: #e5ddd5; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+  .wa-bubble-in  { align-self: flex-start; background: #fff;    border-radius: 12px 12px 12px 2px; padding: 7px 10px; font-size: 12px; max-width: 80%; }
+  .wa-bubble-out { align-self: flex-end;   background: #dcf8c6; border-radius: 12px 12px 2px 12px; padding: 7px 10px; font-size: 12px; max-width: 80%; }
+
+  code { font-family: monospace; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+  <span class="badge">Pulse Motor · design reference</span>
+  <h1 style="margin-top:16px">Tu agente entrenado, <span class="grad-text">respondiendo en tu WhatsApp</span></h1>
+  <p class="lede">Referencia visual estática de los tokens en <code>references/tokens.md</code>. No es una página del producto — es un catálogo de componentes para copiar patrones.</p>
+
+  <h2>Botones</h2>
+  <div class="row">
+    <button class="pm-btn">Crear mi agente gratis →</button>
+    <button class="pm-btn-outline">Empezar solo — 14 días gratis →</button>
+  </div>
+
+  <h2>Badges / pills</h2>
+  <div class="row">
+    <span class="badge">Para asesores y concesionarios automotrices</span>
+    <span class="badge badge-blue">Responde en &lt;30 seg</span>
+    <span class="badge badge-green"><span class="dot"></span>Agente respondiendo en vivo</span>
+  </div>
+
+  <h2>Cards</h2>
+  <div class="cards-grid">
+    <div class="card">
+      <div style="font-size:28px;margin-bottom:10px">⚡</div>
+      <h3 style="font-size:16px;margin-bottom:6px">Responde en 30 segundos</h3>
+      <p style="color:var(--text-dim);font-size:14px;line-height:1.5">El lead llega y el agente responde antes de que vos puedas leer la notificación.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:20px;margin-bottom:8px" class="grad-text">"</div>
+      <p style="color:var(--text-dim);font-size:14px;line-height:1.6;font-style:italic">Antes perdía leads porque estaba en prueba de manejo. Ahora el agente los atiende.</p>
+    </div>
+    <div class="card">
+      <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px">Plan único</p>
+      <div style="font-family:'DM Sans',sans-serif;font-size:36px;font-weight:800;color:var(--text)">$99k<span style="font-size:14px;color:var(--text-dim);font-weight:500">/mes</span></div>
+    </div>
+  </div>
+
+  <h2>Inputs</h2>
+  <div class="row" style="max-width:340px">
+    <input class="pm-input" placeholder="tu@email.com" />
+  </div>
+
+  <h2>Cube-face accents (CUBE_FACES)</h2>
+  <div class="swatch-grid">
+    <div class="swatch" style="background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.45);color:#7dd3fc">sky · rgba(14,165,233,*)</div>
+    <div class="swatch" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.45);color:#6ee7b7">emerald · rgba(16,185,129,*)</div>
+    <div class="swatch" style="background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.35);color:#6ee7b7">wa-green · rgba(37,211,102,*)</div>
+  </div>
+
+  <h2>WhatsApp mockup (literal colors, never themed)</h2>
+  <div class="wa-frame">
+    <div class="wa-screen">
+      <div class="wa-header">Agente Pulse Motor · en línea</div>
+      <div class="wa-body">
+        <div class="wa-bubble-in">Hola! Vi el Sportage NX5 😍</div>
+        <div class="wa-bubble-out">¡Hola! Desde $127M neto. ¿Te agendo el test drive? 🙌</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="caption">Fuente: src/app/pulse/page.tsx, src/components/pulse/SegmentSelector.tsx, src/components/pulse/PulseContactModal.tsx</p>
+
+</body>
+</html>

@@ -29,6 +29,32 @@ const NAV_ITEMS = [
   { label:'Precios', id:'precios' },
 ]
 
+const POR_QUE = [
+  'Responde en segundos, no en horas',
+  'Cotiza financiación y pólizas sin transferir la conversación',
+  'Aprende el tono y los precios de tu concesionario',
+  'Corre en tu WhatsApp Business de siempre, sin número nuevo',
+  'Deja registro auditable de cada decisión que toma',
+  'Se despliega en días, no en meses',
+]
+
+// ─── Cobertura 24/7 — mismo lenguaje visual del timeline/bitácora, aplicado a franjas horarias ───
+const COBERTURA = [
+  { rango:'00:00 – 06:00', evento:'Retoma tasada · Sedán 2020' },
+  { rango:'06:00 – 12:00', evento:'Cita agendada · Test drive' },
+  { rango:'12:00 – 18:00', evento:'Financiación pre-aprobada · 48m' },
+  { rango:'18:00 – 24:00', evento:'Póliza cotizada · Todo riesgo' },
+]
+
+const CUMPLIMIENTO = [
+  { icon:'🔒', label:'Cifrado end-to-end' },
+  { icon:'✅', label:'WhatsApp Business API verificado' },
+  { icon:'🌎', label:'Datos alojados en LatAm' },
+  { icon:'📋', label:'Cumplimiento Habeas Data (Ley 1581)' },
+  { icon:'🧾', label:'Auditoría exportable' },
+  { icon:'🔑', label:'Control de acceso por rol' },
+]
+
 // ─── Ecosistema 360° — catálogo de puntos de fricción cubiertos, no pasos secuenciales ───
 const ECOSISTEMA = [
   { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.' },
@@ -126,6 +152,8 @@ export default function PulseMotorLanding() {
 
   const heroPanel      = useReveal<HTMLDivElement>()
   const logosReveal     = useReveal<HTMLDivElement>()
+  const porQueText      = useReveal<HTMLDivElement>()
+  const coberturaPanel  = useReveal<HTMLDivElement>()
   const ecoHeader       = useReveal<HTMLDivElement>()
   const ecoGrid         = useReveal<HTMLDivElement>()
   const segHeader       = useReveal<HTMLDivElement>()
@@ -137,6 +165,8 @@ export default function PulseMotorLanding() {
   const integGrid       = useReveal<HTMLDivElement>()
   const testiHeader     = useReveal<HTMLDivElement>()
   const testiGrid       = useReveal<HTMLDivElement>()
+  const cumpleHeader    = useReveal<HTMLDivElement>()
+  const cumpleGrid      = useReveal<HTMLDivElement>()
   const ctaFinal        = useReveal<HTMLDivElement>()
   const pricingGrid     = useReveal<HTMLDivElement>()
 
@@ -464,6 +494,35 @@ export default function PulseMotorLanding() {
           </div>
         </section>
 
+        {/* POR QUÉ PULSE MOTOR */}
+        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+          <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center' }}>
+            <div ref={porQueText.ref} className={`reveal${porQueText.inView?' in':''}`} style={{ flex:'1', minWidth:'320px' }}>
+              <p className="kicker">Por qué Pulse Motor</p>
+              <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+                La cobertura que tu WhatsApp <span className="grad-amber">nunca tuvo.</span>
+              </h2>
+              <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'480px', lineHeight:1.6, marginBottom:'22px' }}>No reemplaza a tu equipo — cubre las horas y los picos que tu equipo no puede.</p>
+              <div>
+                {POR_QUE.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
+              </div>
+            </div>
+
+            <div ref={coberturaPanel.ref} className={`reveal${coberturaPanel.inView?' in':''}`} style={{ flex:'1', minWidth:'320px', maxWidth:'460px' }}>
+              <div className="panel">
+                <div className="panel-head"><span>Cobertura · 24/7/365</span><span style={{ color:'var(--green)' }}>Activo</span></div>
+                {COBERTURA.map((c,i) => (
+                  <div key={c.rango} className={`log-row log-row-data${coberturaPanel.inView?' in':''}`} style={{ gridTemplateColumns:'130px 1fr 100px', transitionDelay:`${i*90}ms` }}>
+                    <span className="log-time">{c.rango}</span>
+                    <span className="log-evento">{c.evento}</span>
+                    <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--green)', textAlign:'right' }}>✓ Cubierto</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ECOSISTEMA 360° */}
         <section id="ecosistema" style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={ecoHeader.ref} className={`reveal${ecoHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
@@ -587,6 +646,23 @@ export default function PulseMotorLanding() {
             ))}
           </div>
         </div>
+        </section>
+
+        {/* CUMPLIMIENTO Y SEGURIDAD */}
+        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+          <div ref={cumpleHeader.ref} className={`reveal${cumpleHeader.inView?' in':''}`} style={{ marginBottom:'32px' }}>
+            <p className="kicker">Cumplimiento y seguridad</p>
+            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Tu operación, protegida de punta a punta.</h2>
+            <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'520px', lineHeight:1.6 }}>El agente opera dentro de tu stack sin exponer datos de clientes fuera de tu control.</p>
+          </div>
+          <div ref={cumpleGrid.ref} className="grid-shared integ-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
+            {CUMPLIMIENTO.map((c,i) => (
+              <div key={c.label} className={`reveal integ-item${cumpleGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
+                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{c.icon}</div>
+                <span style={{ fontSize:'13px', color:'var(--ink)' }}>{c.label}</span>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* PRECIOS */}

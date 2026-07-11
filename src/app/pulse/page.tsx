@@ -53,6 +53,33 @@ const SEGMENTS = [
   },
 ]
 
+const PRICING_PLANS = {
+  individual: [
+    {
+      nombre:'Starter', precio:'$49', periodo:'/mes', para:'Para asesores que están empezando',
+      bullets:['Copiloto en tu WhatsApp Business', 'Cotización de financiación y pólizas', 'Hasta 100 leads/mes', 'Soporte por chat'],
+      cta:'Empezar gratis 14 días', href:'/pulse/signup', destacado:false,
+    },
+    {
+      nombre:'Pro', precio:'$99', periodo:'/mes', para:'Para alto volumen, sin límites',
+      bullets:['Todo lo de Starter', 'Leads ilimitados', 'Agenda automática de test drives', 'Reportes de conversión semanales'],
+      cta:'Empezar gratis 14 días', href:'/pulse/signup', destacado:true,
+    },
+  ],
+  concesionario: [
+    {
+      nombre:'Team', precio:'$199', periodo:'/mes', para:'Hasta 5 asesores',
+      bullets:['Panel director con atribución por asesor', 'Ruteo inteligente de leads', 'Integración WhatsApp Business', 'Auditoría de conversaciones'],
+      cta:'Solicitar acceso', href:'/pulse/databridge', destacado:false,
+    },
+    {
+      nombre:'Enterprise', precio:'A medida', periodo:'', para:'6 a 50+ asesores',
+      bullets:['Todo lo de Team', 'Integración con tu DMS (Siigo, SAP)', 'HubSpot / Salesforce nativo', 'Onboarding dedicado y SLA'],
+      cta:'Hablar con ventas', href:'/pulse/databridge', destacado:true,
+    },
+  ],
+} as const
+
 const STATS_V2 = [
   { val:'147', delta:'+12%', label:'Leads atendidos hoy' },
   { val:'38',  delta:'+11%', label:'Retomas tasadas' },
@@ -94,6 +121,7 @@ export default function PulseMotorLanding() {
   const [visible, setVisible]                 = useState(false)
   const [toolCallsVisible, setToolCallsVisible] = useState<number[]>([])
   const [activeSection, setActiveSection]     = useState('plataforma')
+  const [pricingSegment, setPricingSegment]   = useState<'individual'|'concesionario'>('individual')
   const supabase = createClient()
 
   const heroPanel      = useReveal<HTMLDivElement>()
@@ -110,6 +138,7 @@ export default function PulseMotorLanding() {
   const testiHeader     = useReveal<HTMLDivElement>()
   const testiGrid       = useReveal<HTMLDivElement>()
   const ctaFinal        = useReveal<HTMLDivElement>()
+  const pricingGrid     = useReveal<HTMLDivElement>()
 
   useEffect(() => { const t = setTimeout(() => setVisible(true), 100); return () => clearTimeout(t) }, [])
 
@@ -286,13 +315,37 @@ export default function PulseMotorLanding() {
         .cta-spotlight { position:relative; }
         .cta-spotlight::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; background:radial-gradient(ellipse 60% 70% at center, rgba(242,169,59,0.10), transparent 70%); pointer-events:none; }
 
+        .pricing-toggle { display:inline-flex; border:1px solid var(--line); border-radius:8px; padding:4px; gap:4px; background:var(--bg-1); }
+        .pricing-toggle button { border:none; background:transparent; color:var(--ink-dim); font-family:${F_BODY}; font-size:13px; font-weight:600; padding:9px 18px; border-radius:6px; cursor:pointer; transition:background-color .2s ease, color .2s ease; }
+        .pricing-toggle button.active { background:var(--amber); color:#1a1204; }
+
+        .price-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); position:relative; text-align:left; transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
+        .price-card:hover { transform:translateY(-4px); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+        .price-card.destacado { border-color:var(--amber-dim); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+        .price-card .badge-rec { position:absolute; top:-11px; left:32px; background:var(--amber); color:#1a1204; font-family:${F_MONO}; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:4px 10px; border-radius:3px; }
+        .price-card .precio-row { display:flex; align-items:baseline; gap:6px; margin:12px 0 4px; }
+        .price-card .precio-num { font-family:${F_DISPLAY}; font-size:36px; font-weight:800; color:var(--ink); }
+        .price-card .precio-per { font-family:${F_MONO}; font-size:13px; color:var(--ink-dim); }
+
+        @media(max-width:640px){
+          .pricing-toggle{ width:100%; }
+          .pricing-toggle button{ flex:1; }
+        }
+
+        .footer-col a { display:block; color:var(--ink-dim); text-decoration:none; font-size:13px; padding:5px 0; transition:color .15s ease; }
+        .footer-col a:hover { color:var(--ink); }
+        .footer-col h4 { font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); margin-bottom:12px; }
+        @media(max-width:700px){
+          .footer-grid{ grid-template-columns:1fr 1fr!important; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .live-dot, .guard-sweep::before { animation:none; }
           .log-row, .reveal, .tool-row { transition:none; opacity:1; transform:none; }
           .pm-btn:hover:not(:disabled) { transform:none; }
           .logos-track { animation:none; }
           .scroll-cue { animation:none; }
-          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after { transition:none; }
+          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card { transition:none; }
         }
 
         @media(max-width:700px){
@@ -400,6 +453,10 @@ export default function PulseMotorLanding() {
               <div className="logos-track">
                 {[...LOGOS, ...LOGOS].map((l,i) => <span key={l+i} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
               </div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap', marginTop:'32px' }}>
+              <p style={{ fontSize:'15px', color:'var(--ink)' }}><strong style={{ fontWeight:800 }}>+180 concesionarios</strong> ya despliegan agentes de Pulse Motor en LatAm.</p>
+              <a href="/pulse/databridge" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 22px', fontSize:'13px' }}>Agendar una demo<span className="btn-arrow">→</span></a>
             </div>
           </div>
         </section>
@@ -529,28 +586,73 @@ export default function PulseMotorLanding() {
         </div>
         </section>
 
-        {/* CTA FINAL */}
-        <section id="precios" className="cta-spotlight" style={{ maxWidth:'720px', margin:'0 auto', padding:'40px 24px 100px', textAlign:'center', scrollMarginTop:'80px' }}>
-          <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`}>
-            <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Accediendo en 3 min</p>
+        {/* PRECIOS */}
+        <section id="precios" className="cta-spotlight" style={{ maxWidth:'1000px', margin:'0 auto', padding:'80px 24px 100px', textAlign:'center', scrollMarginTop:'80px' }}>
+          <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`} style={{ marginBottom:'40px' }}>
+            <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Precios</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,4vw,48px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-              Escala tu facturación con <span className="grad-amber">agentes autónomos.</span>
+              Elegí el plan para <span className="grad-amber">tu forma de vender.</span>
             </h2>
-            <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'480px', margin:'0 auto 28px', lineHeight:1.6 }}>Sin costos por lead. Sin implementación oculta. Cobramos por resultado, no por promesas.</p>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap' }}>
-              <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>Desde $199 USD/mes</span>
-              <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 30px', textDecoration:'none' }}>Solicitar acceso<span className="btn-arrow">→</span></a>
+            <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'480px', margin:'0 auto 32px', lineHeight:1.6 }}>Sin costos por lead. Sin implementación oculta. Cobrás por resultado, no por promesas.</p>
+            <div className="pricing-toggle" role="tablist" aria-label="Segmento de precios">
+              <button type="button" role="tab" aria-selected={pricingSegment==='individual'} className={pricingSegment==='individual'?'active':''} onClick={() => setPricingSegment('individual')}>Vendedor individual</button>
+              <button type="button" role="tab" aria-selected={pricingSegment==='concesionario'} className={pricingSegment==='concesionario'?'active':''} onClick={() => setPricingSegment('concesionario')}>Concesionario</button>
             </div>
+          </div>
+
+          <div ref={pricingGrid.ref} className="seg-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>
+            {PRICING_PLANS[pricingSegment].map((plan,i) => (
+              <div key={plan.nombre} className={`price-card reveal${pricingGrid.inView?' in':''}${plan.destacado?' destacado':''}`} style={{ transitionDelay:`${i*140}ms` }}>
+                {plan.destacado && <span className="badge-rec">Recomendado</span>}
+                <h3 style={{ fontSize:'19px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>{plan.nombre}</h3>
+                <div className="precio-row">
+                  <span className="precio-num">{plan.precio}</span>
+                  {plan.periodo && <span className="precio-per">{plan.periodo}</span>}
+                </div>
+                <p style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)', marginBottom:'18px' }}>{plan.para}</p>
+                <div style={{ marginBottom:'22px' }}>
+                  {plan.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
+                </div>
+                <a href={plan.href} className={plan.destacado?'pm-btn':'pm-btn-outline'} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{plan.cta}<span className="btn-arrow">→</span></a>
+              </div>
+            ))}
           </div>
         </section>
 
-        <footer style={{ maxWidth:'1140px', margin:'0 auto', padding:'24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', fontSize:'12px', color:'var(--ink-dim)', borderTop:'1px solid var(--line)', fontFamily:F_MONO }}>
-          <span>Pulse Motor · © 2026 · LatAm HQ</span>
-          <div style={{ display:'flex', gap:'20px' }}>
-            <a href="/terminos" style={{ color:'var(--ink-dim)', textDecoration:'none' }}>Términos</a>
-            <a href="/privacidad" style={{ color:'var(--ink-dim)', textDecoration:'none' }}>Privacidad</a>
-            <a href="/seguridad" style={{ color:'var(--ink-dim)', textDecoration:'none' }}>Seguridad</a>
-            <a href="https://linkedin.com" style={{ color:'var(--ink-dim)', textDecoration:'none' }}>LinkedIn</a>
+        <footer style={{ borderTop:'1px solid var(--line)' }}>
+          <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'64px 24px 32px' }}>
+            <div className="footer-grid" style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:'32px', marginBottom:'48px' }}>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
+                  <div style={{ width:'10px', height:'10px', background:'var(--amber)', borderRadius:'2px' }} />
+                  <span style={{ fontSize:'15px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
+                </div>
+                <p style={{ fontSize:'13px', color:'var(--ink-dim)', lineHeight:1.6, maxWidth:'26ch' }}>Agentes autónomos que orquestan la venta automotriz 360° en LatAm.</p>
+              </div>
+              <div className="footer-col">
+                <h4>Plataforma</h4>
+                <a href="#ecosistema">Ecosistema 360°</a>
+                <a href="#segmentos">Segmentos</a>
+                <a href="#precios">Precios</a>
+                <a href="/pulse/pricing">Integraciones</a>
+              </div>
+              <div className="footer-col">
+                <h4>Producto</h4>
+                <a href="/pulse/signup">Ser agente</a>
+                <a href="/pulse/databridge">Concesionarios</a>
+                <a href="/pulse/login">Iniciar sesión</a>
+              </div>
+              <div className="footer-col">
+                <h4>Legal</h4>
+                <a href="/terminos">Términos</a>
+                <a href="/privacidad">Privacidad</a>
+                <a href="/seguridad">Seguridad</a>
+              </div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px', paddingTop:'24px', borderTop:'1px solid var(--line)', fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO }}>
+              <span>Pulse Motor · © 2026 · LatAm HQ</span>
+              <a href="https://linkedin.com" style={{ color:'var(--ink-dim)', textDecoration:'none' }}>LinkedIn</a>
+            </div>
           </div>
         </footer>
       </div>

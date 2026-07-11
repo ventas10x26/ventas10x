@@ -58,7 +58,7 @@ function StatCell({ val, label, active }: { val: string; label: string; active: 
   const displayed = useCountUp(val, active)
   return (
     <div style={{ textAlign:'center' }}>
-      <div style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:700, color:'var(--amber)' }}>{displayed}</div>
+      <div className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'40px', fontWeight:700 }}>{displayed}</div>
       <div style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'4px', fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px' }}>{label}</div>
     </div>
   )
@@ -84,6 +84,7 @@ export default function PulseMotorLanding() {
   // Revelado por scroll — un hook por bloque, reutilizado en toda la página (ver src/hooks/useReveal.ts)
   const relevoHeader   = useReveal<HTMLDivElement>()
   const relevoGrid     = useReveal<HTMLDivElement>()
+  const relevoPanel    = useReveal<HTMLDivElement>()
   const bitacoraHeader = useReveal<HTMLDivElement>()
   const statsReveal    = useReveal<HTMLDivElement>()
   const bitacoraLog    = useReveal<HTMLDivElement>()
@@ -159,10 +160,24 @@ export default function PulseMotorLanding() {
         :root {
           --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --line:#2A2620;
           --ink:#F3EFE7; --ink-dim:#9B958A;
-          --amber:#F2A93B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
+          --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
+          --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
+          --ease-out-expo: cubic-bezier(.16,1,.3,1);
         }
         body { background: var(--bg-0); }
         ::selection { background:rgba(242,169,59,0.35); color:#fff; }
+
+        .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+
+        /* ── Barrido de guardia: radar sutil, funcional al concepto de cobertura 24/7 ── */
+        .guard-sweep { position:relative; }
+        .guard-sweep::before {
+          content:''; position:absolute; inset:-60%; z-index:-1; border-radius:50%; pointer-events:none;
+          background: conic-gradient(from 0deg, transparent 0deg, rgba(242,169,59,0.18) 18deg, transparent 50deg);
+          animation: guardSweep 9s linear infinite;
+        }
+        @keyframes guardSweep { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .guard-sweep::before { animation:none; opacity:.5; } }
 
         .pm-input { width:100%; padding:13px 16px; border-radius:6px; border:1.5px solid var(--line); background:rgba(255,255,255,0.02); color:var(--ink); font-size:15px; font-family:${F_BODY}; outline:none; transition:border-color .15s; }
         .pm-input:focus { border-color:var(--amber-dim); }
@@ -181,19 +196,20 @@ export default function PulseMotorLanding() {
         .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(62,207,126,0.6); animation:livePulse 2s ease infinite; }
         @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(62,207,126,0.55)} 70%{box-shadow:0 0 0 6px rgba(62,207,126,0)} 100%{box-shadow:0 0 0 0 rgba(62,207,126,0)} }
 
-        /* ── Grid compartido: borde de 1px entre celdas, sin cards flotantes con sombra ── */
-        .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
-        .grid-shared > * { background:var(--bg-1); padding:28px; }
+        /* ── Grid compartido: borde de 1px entre celdas, elevación en hover en vez de card flotante fija ── */
+        .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
+        .grid-shared > * { background:var(--bg-1); padding:28px; position:relative; transition:background-color .25s ease; }
+        .grid-shared.hoverable > *:hover { background:var(--bg-2); z-index:1; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
         .grid-3 { grid-template-columns:repeat(3,1fr); }
 
         .stamp { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--green); border:1px solid var(--amber-dim); border-radius:3px; padding:3px 8px; }
 
         /* ── Revelado por scroll (un solo mecanismo, reutilizado en toda la home) ── */
-        .reveal { opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
-        .reveal.in { opacity:1; transform:translateY(0); }
+        .reveal { opacity:0; transform:translateY(28px) scale(.98); transition:opacity .8s var(--ease-out-expo), transform .8s var(--ease-out-expo); }
+        .reveal.in { opacity:1; transform:translateY(0) scale(1); }
 
         /* ── Bitácora en vivo ── */
-        .bitacora { border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+        .bitacora { border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.25); }
         .bitacora-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
         .log-row { display:grid; grid-template-columns:90px 150px 1fr 130px; gap:16px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
         .log-row:last-child { border-bottom:none; }
@@ -212,6 +228,8 @@ export default function PulseMotorLanding() {
 
         /* ── Reportes de cierre de turno ── */
         .reporte .quote { font-size:15px; color:var(--ink); margin:14px 0 18px; line-height:1.6; }
+        .reporte { transition:background-color .25s ease, box-shadow .25s ease; }
+        .reporte:hover { background:var(--bg-2); box-shadow:0 20px 40px rgba(0,0,0,0.4); position:relative; z-index:1; }
         .firma { display:flex; justify-content:space-between; gap:12px; font-family:${F_MONO}; font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
 
         /* ── Balance de turno ── */
@@ -220,8 +238,9 @@ export default function PulseMotorLanding() {
         .balance-row .label { color:var(--ink-dim); text-transform:uppercase; font-size:12px; letter-spacing:.5px; }
         .balance-row .sub { color:var(--ink-dim); font-size:11px; margin-top:2px; text-transform:none; letter-spacing:0; font-family:${F_BODY}; }
         .balance-row.total { background:var(--bg-2); }
-        .balance-row.total .val { color:var(--amber); font-size:20px; }
-        .price-card { border:1px solid var(--amber-dim); border-radius:6px; padding:32px; }
+        .balance-row.total .val { font-size:22px; font-weight:700; }
+        .balance-row.total .val.grad-amber { display:inline-block; }
+        .price-card { border:1px solid var(--amber-dim); border-radius:6px; padding:32px; box-shadow:0 32px 64px rgba(0,0,0,0.5), 0 12px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(242,169,59,0.08); }
         .checklist-row { display:flex; gap:10px; align-items:baseline; padding:7px 0; font-size:13px; color:var(--ink-dim); }
         .checklist-row .mark { color:var(--green); font-family:${F_MONO}; flex-shrink:0; }
 
@@ -239,6 +258,7 @@ export default function PulseMotorLanding() {
           .segment-grid{grid-template-columns:1fr!important}
           .log-row{grid-template-columns:70px 1fr!important}
           .log-row .log-detail{grid-column:span 2}
+          .reportes-layout{grid-template-columns:1fr!important}
         }
       `}</style>
 
@@ -271,17 +291,17 @@ export default function PulseMotorLanding() {
         {/* HERO */}
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'56px 24px 72px' }}>
           <div style={{ textAlign:'center', marginBottom:'40px' }}>
-            <div style={{ ...v(100), display:'flex', justifyContent:'center', marginBottom:'28px' }}>
-              <div className="turno-badge"><span className="live-dot" />Turno activo · {reloj || '00:00:00'} · Concesionario</div>
+            <div style={{ ...v(100), display:'flex', justifyContent:'center', marginBottom:'32px' }}>
+              <div className="turno-badge guard-sweep"><span className="live-dot" />Turno activo · {reloj || '00:00:00'} · Concesionario</div>
             </div>
 
             <SegmentSelector />
 
-            <h1 style={{ ...v(300), fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(32px,5.2vw,54px)', fontWeight:700, lineHeight:1.08, letterSpacing:'.5px', margin:'0 0 20px', color:'var(--ink)' }}>
+            <h1 style={{ ...v(300), fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(44px,8vw,96px)', fontWeight:700, lineHeight:0.98, letterSpacing:'-1px', margin:'0 0 24px', color:'var(--ink)' }}>
               El turno sigue.<br/>
-              <span style={{ color:'var(--amber)' }}>Aunque vos no estés.</span>
+              <span className="grad-amber">Aunque vos no estés.</span>
             </h1>
-            <p style={{ ...v(500), fontSize:'clamp(15px,2vw,18px)', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 auto 20px', lineHeight:1.65 }}>
+            <p style={{ ...v(500), fontSize:'clamp(16px,2.2vw,20px)', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto 24px', lineHeight:1.65 }}>
               Le entregás el protocolo de tu turno. Él cubre la guardia: responde leads en 30 segundos, hace el relevo día 1, 3 y 7, y agenda citas — desde tu número de siempre.
             </p>
             <div style={{ ...v(700), display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', flexWrap:'wrap' }}>
@@ -295,7 +315,7 @@ export default function PulseMotorLanding() {
           <div style={{ display:'flex', alignItems:'center', gap:'56px', justifyContent:'center', flexWrap:'wrap', marginTop:'64px', paddingTop:'64px', borderTop:'1px solid var(--line)' }}>
             <div style={{ flex:'1', minWidth:'280px', maxWidth:'420px' }}>
               <p className="stamp" style={{ marginBottom:'20px' }}>Mirá cómo cubre un turno</p>
-              <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(22px,3vw,34px)', fontWeight:700, lineHeight:1.15, letterSpacing:'.3px', margin:'0 0 16px', color:'var(--ink)' }}>
+              <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.4vw,40px)', fontWeight:700, lineHeight:1.15, letterSpacing:'.3px', margin:'0 0 16px', color:'var(--ink)' }}>
                 Ningún lead se queda<br/>sin cobertura
               </h2>
               <p style={{ fontSize:'15px', color:'var(--ink-dim)', lineHeight:1.7, margin:'0 0 28px' }}>En 60 segundos entendés por qué los asesores que usan Pulse Motor venden más — sin trabajar más horas.</p>
@@ -384,7 +404,7 @@ export default function PulseMotorLanding() {
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div ref={relevoHeader.ref} className={`reveal${relevoHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Relevo de turno</p>
-            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(32px,4.5vw,56px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Le entregás la guardia<br/>en 5 minutos
             </h2>
             <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 auto 24px', lineHeight:1.6 }}>
@@ -396,34 +416,52 @@ export default function PulseMotorLanding() {
             <p style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'10px', fontFamily:F_MONO }}>Te contactamos en menos de 24 hs · Sin compromiso</p>
           </div>
 
-          <div ref={relevoGrid.ref} className="grid-shared grid-3">
-            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'0ms' }}>
-              <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 1</span>
-              <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Entregás el protocolo</h3>
-              <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Respondés 2 preguntas: cómo hablás con tus clientes y cuál es tu mayor reto. 5 minutos máximo.</p>
-              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-                {['¿Cómo hablás con un cliente interesado?', '¿Cuál es tu mayor obstáculo para cerrar?'].map(q => (
-                  <div key={q} style={{ fontSize:'12px', color:'var(--ink-dim)', border:'1px solid var(--line)', borderRadius:'4px', padding:'8px 10px' }}>{q}</div>
-                ))}
-              </div>
+          <div style={{ display:'flex', gap:'56px', alignItems:'flex-start', flexWrap:'wrap' }} className="relevo-layout">
+            <div ref={relevoGrid.ref} style={{ flex:'1.3', minWidth:'320px', display:'flex', flexDirection:'column', gap:'0' }}>
+              {[
+                { paso:'Paso 1', titulo:'Entregás el protocolo', desc:'Respondés 2 preguntas: cómo hablás con tus clientes y cuál es tu mayor reto. 5 minutos máximo.', extra:['¿Cómo hablás con un cliente interesado?', '¿Cuál es tu mayor obstáculo para cerrar?'] },
+                { paso:'Paso 2', titulo:'Conectás la guardia', desc:'Escaneás un QR desde tu WhatsApp — igual que vincular WhatsApp Web. Tu número de siempre, sin SIM nueva.', extra:['Abrís WhatsApp → Dispositivos vinculados', 'Apuntás al QR en la pantalla', '30 segundos y quedó activo'] },
+                { paso:'Paso 3', titulo:'Empieza el turno', desc:'Llega un lead → responde en 30 segundos. No respondió → hace relevo el día 1, 3 y 7. Quiere test drive → lo agenda. Vos solo aparecés a cerrar.', extra:[] },
+              ].map((s,i,arr) => (
+                <div key={s.paso} className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms`, display:'flex', gap:'20px' }}>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+                    <div style={{ width:'32px', height:'32px', borderRadius:'50%', border:'1px solid var(--amber-dim)', color:'var(--amber)', fontFamily:F_MONO, fontSize:'13px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{i+1}</div>
+                    {i<arr.length-1 && <div style={{ width:'1px', flex:1, background:'var(--line)', marginTop:'8px', minHeight:'40px' }} />}
+                  </div>
+                  <div style={{ paddingBottom: i<arr.length-1 ? '36px' : 0 }}>
+                    <span className="stamp" style={{ marginBottom:'10px' }}>✓ {s.paso}</span>
+                    <h3 style={{ fontSize:'20px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'10px 0 8px', color:'var(--ink)' }}>{s.titulo}</h3>
+                    <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom: s.extra.length ? '14px' : 0, maxWidth:'46ch' }}>{s.desc}</p>
+                    {s.extra.length > 0 && (
+                      <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                        {s.extra.map(t => (
+                          <div key={t} style={{ fontSize:'12px', color:'var(--ink-dim)', display:'flex', gap:'8px', alignItems:'baseline' }}>
+                            <span style={{ color:'var(--green)', fontFamily:F_MONO, flexShrink:0 }}>›</span>{t}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'120ms' }}>
-              <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 2</span>
-              <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Conectás la guardia</h3>
-              <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Escaneás un QR desde tu WhatsApp — igual que vincular WhatsApp Web. Tu número de siempre, sin SIM nueva.</p>
-              <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-                {['Abrís WhatsApp → Dispositivos vinculados', 'Apuntás al QR en la pantalla', '30 segundos y quedó activo'].map(s => (
-                  <div key={s} style={{ display:'flex', gap:'8px', alignItems:'baseline', fontSize:'12px', color:'var(--ink-dim)' }}>
-                    <span style={{ color:'var(--green)', fontFamily:F_MONO }}>›</span>{s}
+
+            {/* Panel fijo: estado del relevo en vivo */}
+            <div ref={relevoPanel.ref} className={`reveal${relevoPanel.inView?' in':''}`} style={{ flex:'1', minWidth:'280px', maxWidth:'360px', position:'sticky', top:'90px', transitionDelay:'200ms' }}>
+              <div className="bitacora">
+                <div className="bitacora-head"><span>Estado del relevo</span><span className="live-dot" style={{ marginLeft:'auto' }} /></div>
+                {[
+                  { label:'Protocolo recibido', status:'Listo', ok:true },
+                  { label:'Guardia conectada por QR', status:'Listo', ok:true },
+                  { label:'Turno activo', status:'En curso', ok:true },
+                ].map((row,i) => (
+                  <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px', padding:'16px 18px', borderBottom: i<2 ? '1px solid var(--line)' : 'none' }}>
+                    <span style={{ fontSize:'13px', color:'var(--ink)' }}>{row.label}</span>
+                    <span style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--green)', flexShrink:0 }}>{row.status}</span>
                   </div>
                 ))}
               </div>
-            </div>
-            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'240ms' }}>
-              <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 3</span>
-              <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Empieza el turno</h3>
-              <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Llega un lead → responde en 30 segundos. No respondió → hace relevo el día 1, 3 y 7. Quiere test drive → lo agenda. Vos solo aparecés a cerrar.</p>
-              <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'11px 20px', fontSize:'12px', textDecoration:'none' }}>Empezar ahora →</a>
+              <p style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'14px', textAlign:'center' }}>Así se ve tu turno una vez entregado.</p>
             </div>
           </div>
         </section>
@@ -432,7 +470,7 @@ export default function PulseMotorLanding() {
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div ref={bitacoraHeader.ref} className={`reveal${bitacoraHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Bitácora de capacidades</p>
-            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(32px,4.5vw,56px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Todo lo que pasa en el turno,<br/>registrado
             </h2>
             <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 auto', lineHeight:1.6 }}>Nada se pierde entre relevos. Cada evento del turno queda asentado con hora, qué pasó, y estado.</p>
@@ -466,16 +504,23 @@ export default function PulseMotorLanding() {
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div ref={reportesHeader.ref} className={`reveal${reportesHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Reportes de cierre de turno</p>
-            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(24px,3.2vw,36px)', fontWeight:700, letterSpacing:'.3px', color:'var(--ink)' }}>Lo que dicen al recibir la guardia de vuelta</h2>
+            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(30px,4vw,48px)', fontWeight:700, letterSpacing:'.3px', color:'var(--ink)' }}>Lo que dicen al recibir la guardia de vuelta</h2>
           </div>
-          <div ref={reportesGrid.ref} className="grid-shared grid-3">
-            {REPORTES.map((r,i) => (
-              <div key={r.nombre} className={`reporte reveal${reportesGrid.inView?' in':''}`} style={{ transitionDelay:`${i*120}ms` }}>
-                <span className="stamp">Cerrado ✓ · {r.sede}</span>
-                <p className="quote">"{r.texto}"</p>
-                <div className="firma"><span>{r.nombre}</span><span>{r.cargo}</span></div>
-              </div>
-            ))}
+          <div ref={reportesGrid.ref} style={{ display:'grid', gridTemplateColumns:'1.3fr 1fr', gap:'1px', background:'var(--line)', border:'1px solid var(--line)', borderRadius:'6px', overflow:'hidden' }} className="reportes-layout">
+            <div className={`reveal${reportesGrid.inView?' in':''}`} style={{ background:'var(--bg-1)', padding:'40px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+              <span className="stamp" style={{ marginBottom:'18px' }}>Cerrado ✓ · {REPORTES[2].sede}</span>
+              <p style={{ fontSize:'22px', color:'var(--ink)', lineHeight:1.5, marginBottom:'22px', maxWidth:'42ch' }}>"{REPORTES[2].texto}"</p>
+              <div className="firma" style={{ fontSize:'12px' }}><span>{REPORTES[2].nombre}</span><span>{REPORTES[2].cargo}</span></div>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:'1px', background:'var(--line)' }}>
+              {[REPORTES[0], REPORTES[1]].map((r,i) => (
+                <div key={r.nombre} className={`reporte reveal${reportesGrid.inView?' in':''}`} style={{ background:'var(--bg-1)', padding:'28px', flex:1, transitionDelay:`${(i+1)*140}ms` }}>
+                  <span className="stamp">Cerrado ✓ · {r.sede}</span>
+                  <p className="quote" style={{ fontSize:'14px' }}>"{r.texto}"</p>
+                  <div className="firma"><span>{r.nombre}</span><span>{r.cargo}</span></div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -483,7 +528,7 @@ export default function PulseMotorLanding() {
         <section id="precios" style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px 96px', borderTop:'1px solid var(--line)', scrollMarginTop:'80px' }}>
           <div ref={balanceHeader.ref} className={`reveal${balanceHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Balance de turno</p>
-            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(32px,4.5vw,56px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Una venta recuperada<br/>cubre el mes entero
             </h2>
             <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'480px', margin:'0 auto', lineHeight:1.6 }}>Pulse Motor no es un gasto. Es la guardia que trabaja mientras vos dormís.</p>
@@ -502,7 +547,7 @@ export default function PulseMotorLanding() {
                 </div>
                 <div className="balance-row total">
                   <div><div className="label">Balance neto del mes</div><div className="sub">Con solo 1 lead recuperado</div></div>
-                  <span className="val">+ $401.000</span>
+                  <span className="val grad-amber">+ $401.000</span>
                 </div>
               </div>
 
@@ -528,7 +573,7 @@ export default function PulseMotorLanding() {
               <div className="price-card">
                 <span className="stamp" style={{ marginBottom:'20px' }}>Plan único · Todo incluido</span>
                 <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginTop:'16px', marginBottom:'4px' }}>
-                  <span style={{ fontFamily:F_DISPLAY, fontSize:'44px', fontWeight:700, color:'var(--ink)' }}>$99k</span>
+                  <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'56px', fontWeight:700 }}>$99k</span>
                   <span style={{ fontFamily:F_MONO, fontSize:'13px', color:'var(--ink-dim)' }}>/mes · COP</span>
                 </div>
                 <p style={{ fontSize:'13px', color:'var(--ink-dim)', marginBottom:'20px' }}>Cancelás cuando querás · Sin permanencia</p>
@@ -564,7 +609,7 @@ export default function PulseMotorLanding() {
         <section style={{ maxWidth:'680px', margin:'0 auto', padding:'0 24px 96px', textAlign:'left' }}>
           <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`} style={{ border:'1px solid var(--line)', borderRadius:'6px', padding:'40px 32px' }}>
             <p className="stamp" style={{ marginBottom:'16px' }}>¿Cuántos leads se quedaron sin cobertura anoche?</p>
-            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(22px,3vw,34px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.2, marginBottom:'20px', color:'var(--ink)', maxWidth:'20ch' }}>Con Pulse Motor, ninguno más.</h2>
+            <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.4vw,40px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.2, marginBottom:'20px', color:'var(--ink)', maxWidth:'20ch' }}>Con Pulse Motor, ninguno más.</h2>
             <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 30px', textDecoration:'none' }}>Cubrir mi turno →</a>
             <p style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'14px', fontFamily:F_MONO }}>14 días gratis · Sin tarjeta · Tu WhatsApp actual</p>
           </div>

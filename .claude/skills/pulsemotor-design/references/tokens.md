@@ -55,6 +55,22 @@ Consumidas como `fontFamily: "var(--font-inter), sans-serif"` (nunca el string l
 
 - **No repetir la misma composición en secciones consecutivas**: alternar grid catalogado (01–05), split de 2 segment cards, stats+tabla, grid de integraciones, testimonios.
 
+## Ritmo de fondo entre secciones
+
+La home ya no es 100% negro parejo. Se alterna en este orden fijo (hero → footer):
+
+| Sección | Fondo | Tarjetas/celdas |
+|---|---|---|
+| Hero, logos, ecosistema, segmentos | `--bg-0` `#0B0D0C` | `--bg-1` `#14120F` |
+| Actividad en vivo | `--paper` `#EDE7DB` (único tramo claro) | `--paper-1` `#E2DBCB` |
+| Integraciones nativas | `--bg-2` `#1B1815` | `--bg-3` `#241F1A` |
+| Testimonios | `--bg-3` `#241F1A` | `--bg-4` `#2D2721` |
+| CTA final | `--bg-0` `#0B0D0C` + spotlight | — |
+
+Se implementa con clases de scope (`.section-dim`, `.section-dim-2`, `.section-light`) que redefinen `--bg-1`/`--ink`/`--ink-dim`/`--amber`/`--amber-2`/`--green`/`--line` en el ancestro de la sección — no hace falta tocar cada componente porque todos ya leen color desde estas variables, y las custom properties de CSS se resuelven en cascada hasta el punto de uso (incluso dentro de otro `var()`, como `--grad-amber`).
+
+**Regla**: nunca reordenar esta secuencia sin revisar la dirección de elevación (celda siempre un tono más clara que su sección, tanto en oscuro como en el tramo claro) — invertirla hace que las tarjetas se vean "hundidas" en vez de elevadas. El tramo claro es uno solo (Actividad en vivo): no encadenar dos secciones claras seguidas, ni usarlo en el hero (necesita el negro para que el panel de conversación resalte).
+
 ## Elevación (sombra neutra, no glow)
 
 ```css

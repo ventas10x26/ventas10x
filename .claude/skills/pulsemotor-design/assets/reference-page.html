@@ -2,60 +2,63 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>Pulse Motor — design reference (turno/guardia)</title>
+<title>Pulse Motor — design reference (copiloto autónomo 360°)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
     --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --line:#2A2620;
     --ink:#F3EFE7; --ink-dim:#9B958A;
-    --amber:#F2A93B; --amber-dim:#8A6423; --green:#3ECF7E;
-    --f-display:'Oswald', sans-serif; --f-mono:'IBM Plex Mono', monospace; --f-body:'Inter', sans-serif;
+    --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
+    --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
+    --f-display:'Inter', sans-serif; --f-mono:'IBM Plex Mono', monospace; --f-body:'Inter', sans-serif;
   }
 
   body { background: var(--bg-0); color: var(--ink); font-family: var(--f-body); line-height: 1.5; }
 
-  h1, h2, h3 { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .5px; }
+  /* Titulares en minúscula/mixta, NUNCA uppercase — regla dura #7 del arquetipo "copiloto 360°" */
+  h1, h2, h3 { font-family: var(--f-display); font-weight: 800; letter-spacing: -0.5px; }
   .mono { font-family: var(--f-mono); letter-spacing: .3px; }
   .dim { color: var(--ink-dim); }
+  .grad-amber { background: var(--grad-amber); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
   a { color: inherit; }
 
-  section { padding: 64px 6vw; border-bottom: 1px solid var(--line); }
-  @media (min-width: 900px) { section { padding: 120px 6vw; } }
+  section { max-width: 1140px; margin: 0 auto; padding: 72px 24px; border-bottom: 1px solid var(--line); }
+  @media (max-width: 700px) { section { padding: 56px 20px; } }
 
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
     background: var(--amber); color: var(--bg-0);
-    font-family: var(--f-display); text-transform: uppercase; font-weight: 600; font-size: 14px;
-    letter-spacing: .5px; padding: 13px 24px; border-radius: 6px; border: none; cursor: pointer;
+    font-family: var(--f-body); font-weight: 700; font-size: 14px;
+    letter-spacing: 0; padding: 14px 28px; border-radius: 6px; border: none; cursor: pointer;
     transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
   }
-  .btn:hover { background: #ffc266; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(242,169,59,0.35); }
-
-  /* ── Revelado por scroll (equivalente estático de src/hooks/useReveal.ts) ── */
-  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
-  .reveal.in { opacity: 1; transform: translateY(0); }
-  @media (prefers-reduced-motion: reduce) {
-    .reveal, .btn { transition: none; opacity: 1; transform: none; }
-  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(242,169,59,0.35); }
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 8px;
     background: transparent; color: var(--ink); border: 1px solid var(--line);
-    font-family: var(--f-display); text-transform: uppercase; font-weight: 600; font-size: 13px;
-    letter-spacing: .5px; padding: 11px 20px; border-radius: 6px; cursor: pointer;
+    font-family: var(--f-body); font-weight: 600; font-size: 13px;
+    padding: 12px 24px; border-radius: 6px; cursor: pointer;
   }
 
-  /* ── Badge de turno activo (signature element) ── */
-  .turno-badge {
+  /* ── Revelado por scroll (equivalente estático de src/hooks/useReveal.ts) ── */
+  .reveal { opacity: 0; transform: translateY(28px) scale(.98); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1); }
+  .reveal.in { opacity: 1; transform: translateY(0) scale(1); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .btn, .tool-row { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
+
+  /* ── Badge de agente activo + barrido cónico (signature element) ── */
+  .badge {
     display: inline-flex; align-items: center; gap: 10px;
     border: 1px solid var(--line); border-radius: 3px; padding: 6px 12px;
-    font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    font-family: var(--f-mono); font-size: 12px; letter-spacing: .5px;
   }
   .live-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0;
     box-shadow: 0 0 0 0 rgba(62,207,126,0.6);
     animation: livePulse 2s ease infinite;
   }
@@ -64,304 +67,327 @@
     70%  { box-shadow: 0 0 0 6px rgba(62,207,126,0); }
     100% { box-shadow: 0 0 0 0 rgba(62,207,126,0); }
   }
+  .guard-sweep { position: relative; }
+  .guard-sweep::before {
+    content:''; position:absolute; inset:-60%; z-index:-1; border-radius:50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(242,169,59,0.18) 18deg, transparent 50deg);
+    animation: guardSweep 9s linear infinite;
+  }
+  @keyframes guardSweep { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .guard-sweep::before { animation:none; opacity:.5; } }
+
+  /* ── Header ── */
+  header { position: sticky; top: 0; z-index: 100; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; max-width: 1140px; margin: 0 auto; background: rgba(11,13,12,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  header nav { display: flex; gap: 28px; }
+  header nav a { font-size: 13px; color: var(--ink-dim); text-decoration: none; }
 
   /* ── Hero ── */
-  .hero h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1.05; margin: 20px 0 16px; max-width: 14ch; }
-  .hero p.lede { color: var(--ink-dim); max-width: 46ch; font-size: 16px; margin-bottom: 28px; }
-  .evidence {
-    margin-top: 40px; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
-    display: inline-flex; align-items: baseline; gap: 12px; max-width: 100%;
-  }
-  .evidence .tag { font-family: var(--f-mono); font-size: 11px; color: var(--green); text-transform: uppercase; flex-shrink: 0; }
-  .evidence .msg { font-size: 14px; color: var(--ink); }
-  .evidence .meta { font-family: var(--f-mono); font-size: 11px; color: var(--ink-dim); flex-shrink: 0; margin-left: auto; }
+  .hero-grid { display: flex; gap: 56px; align-items: center; flex-wrap: wrap; }
+  .hero-copy { flex: 1; min-width: 320px; }
+  .hero-copy h1 { font-size: clamp(44px, 6.2vw, 80px); line-height: 1.02; margin: 20px 0; }
+  .hero-copy p.lede { color: var(--ink-dim); max-width: 46ch; font-size: 17px; margin-bottom: 28px; line-height: 1.65; }
+  .trust-row { font-size: 12px; color: var(--ink-dim); font-family: var(--f-mono); margin-top: 20px; }
 
-  /* ── Shared grid pattern: 1px borders between cells, no floating shadow cards ── */
-  .grid { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .grid > * { background: var(--bg-1); padding: 28px; }
-  .grid-3 { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 800px) { .grid-3 { grid-template-columns: 1fr; } }
+  /* Elevación real (permitida en paneles protagonistas, no glow de color) */
+  .panel { flex: 1; min-width: 320px; max-width: 460px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg-1); box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim); }
 
-  .section-kicker { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); margin-bottom: 10px; }
-  .section-head h2 { font-size: clamp(24px, 3vw, 36px); margin-bottom: 14px; }
-  .section-head p { color: var(--ink-dim); max-width: 52ch; margin-bottom: 44px; }
-
-  /* ── Relevo de turno (onboarding as handoff protocol) ── */
-  .stamp {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: var(--f-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--green); border: 1px solid var(--amber-dim); border-radius: 3px; padding: 3px 8px; margin-bottom: 16px;
-  }
-  .grid-3 h3 { font-size: 18px; margin-bottom: 10px; }
-  .grid-3 p { color: var(--ink-dim); font-size: 14px; }
-
-  /* ── Bitácora en vivo (panel de eventos, reemplaza cualquier feed/lista genérica) ── */
-  .bitacora { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .bitacora-head {
+  /* ── Timeline de tool-calls (elemento más distintivo de la marca) ── */
+  .tool-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px; border-bottom: 1px solid var(--line);
-    font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-dim);
+    padding: 12px 18px; border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: 13px;
+    opacity: 0; transform: translateX(-8px);
+    animation: toolIn .5s ease forwards;
   }
-  .log-row {
-    display: grid; grid-template-columns: 90px 150px 1fr 130px;
-    gap: 16px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line);
-    font-size: 13px;
-    opacity: 0; transform: translateY(6px);
-    animation: logIn .5s ease forwards;
-  }
+  .tool-row:last-child { border-bottom: none; }
+  .tool-row:nth-child(1) { animation-delay: .15s; }
+  .tool-row:nth-child(2) { animation-delay: .40s; }
+  .tool-row:nth-child(3) { animation-delay: .65s; }
+  .tool-row:nth-child(4) { animation-delay: .90s; }
+  @keyframes toolIn { to { opacity: 1; transform: translateX(0); } }
+  .tool-row .fn { color: var(--ink); }
+  .tool-row .ms { color: var(--ink-dim); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Grids catalogados de borde compartido ── */
+  .grid-shared { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .grid-shared > * { background: var(--bg-1); padding: 24px; }
+  .eco-grid { grid-template-columns: repeat(5, 1fr); }
+  .integ-grid { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .eco-grid { grid-template-columns: repeat(2, 1fr); } .integ-grid { grid-template-columns: 1fr 1fr; } }
+
+  .kicker { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); margin-bottom: 10px; display: block; }
+  .section-head h2 { font-size: clamp(30px, 4vw, 52px); margin-bottom: 14px; line-height: 1.1; }
+  .section-head p { color: var(--ink-dim); max-width: 56ch; font-size: 16px; line-height: 1.6; }
+
+  /* ── Segment cards (elevación real, nunca fusionar los 2 públicos) ── */
+  .seg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 800px) { .seg-grid { grid-template-columns: 1fr; } }
+  .seg-card { border: 1px solid var(--line); border-radius: 8px; padding: 32px; background: var(--bg-1); box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+  .seg-tag { display: inline-block; font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 4px 10px; border-radius: 3px; margin-bottom: 16px; }
+  .seg-tag.amber { color: var(--amber); border: 1px solid var(--amber-dim); }
+  .seg-tag.green { color: var(--green); border: 1px solid var(--green); }
+  .seg-card h3 { font-size: 24px; margin-bottom: 4px; }
+  .seg-card .subtitulo { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-dim); margin-bottom: 16px; }
+  .seg-card p.desc { font-size: 14px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 18px; }
+  .seg-check { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 13px; }
+  .seg-check .mark { color: var(--green); font-family: var(--f-mono); flex-shrink: 0; }
+
+  /* ── Actividad en vivo (stats + tabla auditable) ── */
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 700px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+  .stat-val { font-size: 32px; font-weight: 800; }
+  .stat-delta { font-family: var(--f-mono); font-size: 11px; color: var(--green); margin-left: 8px; }
+  .stat-label { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+
+  .audit-panel { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 24px; }
+  .log-row { display: grid; grid-template-columns: 90px 1fr 130px 110px; gap: 16px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
   .log-row:last-child { border-bottom: none; }
-  .log-row:nth-child(2) { animation-delay: .1s; }
-  .log-row:nth-child(3) { animation-delay: .2s; }
-  .log-row:nth-child(4) { animation-delay: .3s; }
-  .log-row:nth-child(5) { animation-delay: .4s; }
-  @keyframes logIn { to { opacity: 1; transform: translateY(0); } }
   .log-time { font-family: var(--f-mono); color: var(--ink-dim); }
-  .log-event { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-dim); }
-  .log-detail { color: var(--ink); }
-  .log-status { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; text-align: right; }
-  .log-status.ok { color: var(--green); }
-  .log-status.pend { color: var(--amber); }
+  .log-canal { font-family: var(--f-mono); font-size: 11px; color: var(--ink-dim); }
+  .log-estado { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; text-align: right; }
+  .log-estado.ok { color: var(--green); }
+  .log-estado.pend { color: var(--amber); }
+  @media (max-width: 700px) { .log-row { grid-template-columns: 70px 1fr; } .log-row .log-canal, .log-row .log-estado { display: none; } }
 
-  /* ── Reportes de cierre de turno (testimonials as shift-close reports) ── */
-  .reporte .stamp { color: var(--green); }
-  .reporte .quote { font-size: 15px; margin: 14px 0 18px; }
-  .reporte .firma { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .5px; }
+  /* ── Testimonios segmentados ── */
+  .testi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 800px) { .testi-grid { grid-template-columns: 1fr; } }
+  .quote-card { border: 1px solid var(--line); border-radius: 8px; padding: 28px; background: var(--bg-1); }
+  .quote-card p.texto { font-size: 16px; line-height: 1.6; margin: 12px 0 18px; }
+  .quote-card .nombre { font-weight: 700; font-size: 13px; }
+  .quote-card .cargo { color: var(--ink-dim); font-size: 12px; }
 
-  /* ── Balance de turno (pricing/ROI as a ledger) ── */
-  .balance-row {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 16px 20px; border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: 14px;
-  }
-  .balance-row:last-child { border-bottom: none; }
-  .balance-row .label { color: var(--ink-dim); text-transform: uppercase; font-size: 12px; letter-spacing: .5px; }
-  .balance-row .val { font-size: 16px; }
-  .balance-row .val.pos { color: var(--green); }
-  .balance-row .val.neg { color: var(--ink-dim); }
-  .balance-row.total { background: var(--bg-2); }
-  .balance-row.total .val { color: var(--amber); font-size: 20px; }
-
-  .price-card { border: 1px solid var(--amber-dim); border-radius: 6px; padding: 32px; }
-  .price-card .amount { font-family: var(--f-display); font-size: 44px; color: var(--ink); }
-  .price-card .amount span { font-family: var(--f-mono); font-size: 13px; color: var(--ink-dim); text-transform: none; }
-  .checklist-row { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; font-size: 13px; }
-  .checklist-row .mark { color: var(--green); font-family: var(--f-mono); flex-shrink: 0; }
-
-  /* ── prefers-reduced-motion ── */
-  @media (prefers-reduced-motion: reduce) {
-    .live-dot { animation: none; }
-    .log-row { animation: none; opacity: 1; transform: none; }
-  }
+  footer { max-width: 1140px; margin: 0 auto; padding: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-dim); font-family: var(--f-mono); }
 </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <section style="padding-top:24px;padding-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+  <header>
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:10px;height:10px;background:var(--amber)"></div>
-      <span style="font-family:var(--f-display);text-transform:uppercase;font-weight:600;letter-spacing:1px">Pulse Motor</span>
+      <div style="width:10px;height:10px;background:var(--amber);border-radius:2px"></div>
+      <span style="font-family:var(--f-display);font-weight:800;font-size:16px">Pulse Motor</span>
     </div>
+    <nav>
+      <a href="#plataforma">Plataforma</a>
+      <a href="#ecosistema">Ecosistema 360°</a>
+      <a href="#segmentos">Segmentos</a>
+      <a href="#precios">Precios</a>
+    </nav>
     <div style="display:flex;gap:10px;align-items:center">
-      <a href="#" class="btn-ghost">Ingresar</a>
-      <a href="#" class="btn">Cubrir mi turno →</a>
+      <a href="#" class="btn-ghost">Login</a>
+      <a href="#" class="btn">Ser agente →</a>
     </div>
-  </section>
+  </header>
 
   <!-- HERO -->
-  <section class="hero">
-    <div class="turno-badge"><span class="live-dot"></span> TURNO ACTIVO · 23:14:07 · KIA CALI</div>
-    <h1>El turno sigue.<br/>Vos no tenés que estar.</h1>
-    <p class="lede">Pulse Motor cubre la guardia cuando estás con un cliente, cerraste el local, o son las 11 de la noche. Responde en 30 segundos, hace el relevo, y te deja la bitácora lista para cuando volvés.</p>
-    <a href="#" class="btn">Cubrir mi turno →</a>
-    <div class="evidence">
-      <span class="tag">WhatsApp · prueba</span>
-      <span class="msg">"¡Hola! Desde $127M neto. ¿Te agendo el test drive?"</span>
-      <span class="meta">28s · ✓✓</span>
-    </div>
-  </section>
-
-  <!-- RELEVO DE TURNO -->
-  <section>
-    <div class="section-head">
-      <p class="section-kicker">Relevo de turno</p>
-      <h2>Le entregás la guardia en 5 minutos</h2>
-      <p>No es un onboarding de software. Es el mismo protocolo de relevo que ya conocés: le pasás el contexto, confirma cobertura, empieza el turno.</p>
-    </div>
-    <div class="grid grid-3">
-      <div>
-        <span class="stamp">✓ Paso 1</span>
-        <h3>Entregás el protocolo</h3>
-        <p>Respondés 2 preguntas: cómo hablás con tus clientes y cuál es tu mayor reto. 5 minutos máximo.</p>
-      </div>
-      <div>
-        <span class="stamp">✓ Paso 2</span>
-        <h3>Conectás la guardia</h3>
-        <p>Escaneás un QR desde tu WhatsApp de siempre. Sin número nuevo, sin SIM extra.</p>
-      </div>
-      <div>
-        <span class="stamp">✓ Paso 3</span>
-        <h3>Empieza el turno</h3>
-        <p>El agente cubre mientras no estás. Vos solo aparecés a cerrar la venta.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- BITÁCORA DE CAPACIDADES -->
-  <section>
-    <div class="section-head">
-      <p class="section-kicker">Bitácora de capacidades</p>
-      <h2>Todo lo que pasa durante el turno, registrado</h2>
-      <p>Nada se pierde entre relevos. Cada evento del turno queda asentado con hora, qué pasó, y estado.</p>
-    </div>
-    <div class="bitacora">
-      <div class="bitacora-head"><span>Turno de Ricardo · Asesor KIA</span><span>Hoy</span></div>
-      <div class="log-row">
-        <span class="log-time mono">23:41:07</span>
-        <span class="log-event">Lead entrante</span>
-        <span class="log-detail">Sportage NX5 · Cali</span>
-        <span class="log-status ok">Respondido 28s</span>
-      </div>
-      <div class="log-row">
-        <span class="log-time mono">23:41:35</span>
-        <span class="log-event">Seguimiento día 3</span>
-        <span class="log-detail">Sin respuesta del cliente</span>
-        <span class="log-status pend">Enviado</span>
-      </div>
-      <div class="log-row">
-        <span class="log-time mono">23:42:10</span>
-        <span class="log-event">Cita</span>
-        <span class="log-detail">Test drive agendado sábado 10am</span>
-        <span class="log-status ok">Confirmado</span>
-      </div>
-      <div class="log-row">
-        <span class="log-time mono">23:44:02</span>
-        <span class="log-event">Entrenamiento</span>
-        <span class="log-detail">Ajustó respuesta de precio con tu estilo</span>
-        <span class="log-status ok">Aplicado</span>
-      </div>
-      <div class="log-row">
-        <span class="log-time mono">06:00:00</span>
-        <span class="log-event">Relevo</span>
-        <span class="log-detail">14 leads atendidos durante el turno</span>
-        <span class="log-status ok">Cerrado</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- REPORTES DE CIERRE DE TURNO -->
-  <section>
-    <div class="section-head">
-      <p class="section-kicker">Reportes de cierre de turno</p>
-      <h2>Lo que dicen al recibir la guardia de vuelta</h2>
-    </div>
-    <div class="grid grid-3">
-      <div class="reporte">
-        <span class="stamp">Cerrado ✓ · 23:58 · Kia Cali</span>
-        <p class="quote">"Antes perdía leads porque estaba en prueba de manejo. Ahora el agente cubre y cuando vuelvo ya están calientes."</p>
-        <div class="firma"><span>Andrés M.</span><span>Asesor Kia</span></div>
-      </div>
-      <div class="reporte">
-        <span class="stamp">Cerrado ✓ · 22:10 · Hyundai Bogotá</span>
-        <p class="quote">"Funciona con mi WhatsApp normal. Sin apps raras. El cliente ni sabe que fue el agente."</p>
-        <div class="firma"><span>Carolina V.</span><span>Vendedora Hyundai</span></div>
-      </div>
-      <div class="reporte">
-        <span class="stamp">Cerrado ✓ · 20:45 · Renault Medellín</span>
-        <p class="quote">"En el primer turno del mes recuperé 3 ventas que se me hubieran ido. El relevo automático es oro."</p>
-        <div class="firma"><span>Jorge P.</span><span>Asesor Renault</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- BALANCE DE TURNO -->
-  <section>
-    <div class="section-head">
-      <p class="section-kicker">Balance de turno</p>
-      <h2>Una venta recuperada cubre el mes entero</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:24px" class="balance-grid">
-      <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden">
-        <div class="balance-row">
-          <span class="label">Comisión por venta recuperada</span>
-          <span class="val pos">+ $500.000</span>
+  <section id="plataforma" style="border-bottom:none">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="badge guard-sweep"><span class="live-dot"></span>Agente activo · 24/7/365</span>
+        <h1>El copiloto que <span class="grad-amber">nunca deja de cerrar.</span></h1>
+        <p class="lede">Pulse Motor despliega agentes autónomos que gestionan cada lead del sector automotriz: vehículo nuevo, versiones, financiación, accesorios, retomas y pólizas — todo el contexto 360° en una sola conversación.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="#" class="btn">Desplegar agente →</a>
+          <a href="#ecosistema" class="btn-ghost">Ver arquitectura</a>
         </div>
-        <div class="balance-row">
-          <span class="label">Costo Pulse Motor / mes</span>
-          <span class="val neg">− $99.000</span>
+        <p class="trust-row">WhatsApp Business · DMS · CRM · Aliados financieros</p>
+      </div>
+
+      <!-- Panel hero: conversación real + timeline de tool-calls (elemento de firma) -->
+      <div class="panel">
+        <div class="panel-head"><span>Precio lead · Ruteo</span><span style="color:var(--green)">Live</span></div>
+        <div style="padding:16px 18px;border-bottom:1px solid var(--line)">
+          <div style="font-size:13px;margin-bottom:12px">
+            <span class="mono" style="font-size:11px;color:var(--ink-dim);margin-right:8px">[09:42]</span>
+            "Me interesa la SUV híbrida, tengo un sedán 2021 para retoma y necesito financiación a 60 meses."
+          </div>
+          <div class="mono" style="font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Pulse Agent · Respondiendo</div>
+          <div style="font-size:13px;color:var(--ink-dim);line-height:1.6">
+            Perfecto. Tasé preliminarmente su 2021 en $42.500.000. Con nuestro aliado bancario logro 1.9% MV y cuota cerrada con póliza todo riesgo. ¿Le envío la proyección por WhatsApp?
+          </div>
         </div>
-        <div class="balance-row total">
-          <span class="label">Balance neto del mes</span>
-          <span class="val">+ $401.000</span>
+        <div class="panel-head" style="border-bottom:1px solid var(--line)"><span>Timeline · Ejecutado</span></div>
+        <div>
+          <div class="tool-row"><span class="fn">tasar_retoma</span><span class="ms"><span style="color:var(--green)">✓</span>18ms</span></div>
+          <div class="tool-row"><span class="fn">calcular_financiacion</span><span class="ms"><span style="color:var(--green)">✓</span>12ms</span></div>
+          <div class="tool-row"><span class="fn">cotizar_poliza</span><span class="ms"><span style="color:var(--green)">✓</span>9ms</span></div>
+          <div class="tool-row"><span class="fn">reservar_inventario</span><span class="ms"><span style="color:var(--green)">✓</span>7ms</span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px">
+          <span class="mono" style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px">Conversión estimada</span>
+          <span class="grad-amber" style="font-size:22px;font-weight:800">87%</span>
         </div>
       </div>
-      <div class="price-card">
-        <div class="amount">$99k <span>/mes · COP</span></div>
-        <p class="dim" style="font-size:13px;margin:8px 0 20px">Cancelás cuando querás. Sin permanencia.</p>
-        <div class="checklist-row"><span class="mark">✓</span><span>Cobertura de turno 24/7 por WhatsApp</span></div>
-        <div class="checklist-row"><span class="mark">✓</span><span>Bitácora y relevo automático</span></div>
-        <div class="checklist-row"><span class="mark">✓</span><span>Reportes de cierre de turno</span></div>
-        <a href="#" class="btn" style="margin-top:20px;width:100%;justify-content:center">Cubrir mi turno →</a>
+    </div>
+  </section>
+
+  <!-- LOGOS -->
+  <section style="padding:32px 24px 56px">
+    <p class="mono dim" style="text-align:center;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:24px">Confían concesionarios en LatAm</p>
+    <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap">
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">AutoVía</span>
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">MotorCorp</span>
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">Grupo Andina</span>
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">Pacífico Cars</span>
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">Flota Pro</span>
+      <span style="font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink-dim)">Virtue Motors</span>
+    </div>
+  </section>
+
+  <!-- ECOSISTEMA 360° (grid catalogado 01-05, no secuencial) -->
+  <section id="ecosistema">
+    <div class="section-head reveal in" style="text-align:center;margin-bottom:44px">
+      <span class="kicker" style="text-align:center">Ecosistema 360°</span>
+      <h2>No es solo el auto. Es todo lo que rodea la venta.</h2>
+      <p style="margin:0 auto">Cada punto de fricción — versión, cuota, seguro, retoma — resuelto por el agente dentro de la misma conversación con el cliente.</p>
+    </div>
+    <div class="grid-shared eco-grid">
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:20px">🚗</span><span class="mono dim" style="font-size:11px">01</span></div>
+        <h3 style="font-size:15px;margin-bottom:6px">Vehículos nuevos</h3>
+        <p class="dim" style="font-size:12px;line-height:1.5">Inventario en vivo y todas las versiones cotizadas en segundos.</p>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:20px">%</span><span class="mono dim" style="font-size:11px">02</span></div>
+        <h3 style="font-size:15px;margin-bottom:6px">Financiación</h3>
+        <p class="dim" style="font-size:12px;line-height:1.5">Simulaciones y pre-aprobaciones con aliados bancarios integrados.</p>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:20px">＋</span><span class="mono dim" style="font-size:11px">03</span></div>
+        <h3 style="font-size:15px;margin-bottom:6px">Accesorios</h3>
+        <p class="dim" style="font-size:12px;line-height:1.5">Upselling contextual según modelo, uso y perfil del comprador.</p>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:20px">⇄</span><span class="mono dim" style="font-size:11px">04</span></div>
+        <h3 style="font-size:15px;margin-bottom:6px">Retomas</h3>
+        <p class="dim" style="font-size:12px;line-height:1.5">Tasación asistida por IA con histórico de mercado y estado real.</p>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span style="font-size:20px">🛡</span><span class="mono dim" style="font-size:11px">05</span></div>
+        <h3 style="font-size:15px;margin-bottom:6px">Pólizas</h3>
+        <p class="dim" style="font-size:12px;line-height:1.5">Todo riesgo y colisión cotizadas y emitidas dentro del mismo flujo.</p>
       </div>
     </div>
   </section>
 
-  <!-- REVELADO POR SCROLL (demo de useReveal + useCountUp) -->
+  <!-- SEGMENTOS (nunca fusionar en una sola card genérica) -->
+  <section id="segmentos">
+    <div class="section-head" style="margin-bottom:44px">
+      <span class="kicker">Dos segmentos, un agente</span>
+      <h2>Diseñado para cómo realmente se vende.</h2>
+    </div>
+    <div class="seg-grid">
+      <div class="seg-card">
+        <span class="seg-tag amber">Enterprise</span>
+        <h3>Concesionario</h3>
+        <p class="subtitulo">Fuerza de ventas · Inventario multi-punto</p>
+        <p class="desc">Orquesta decenas de asesores, integra tu DMS y captura cada oportunidad — incluso las que llegan a las 2 AM.</p>
+        <div style="margin-bottom:22px">
+          <div class="seg-check"><span class="mark">✓</span><span>Panel director con atribución 360° por asesor</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Ruteo inteligente de leads por sucursal o stock</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Integración con Siigo, SAP DMS, HubSpot, Salesforce</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Auditoría completa de conversaciones y compliance</span></div>
+        </div>
+        <a href="#" class="btn-ghost">Explorar plan Enterprise →</a>
+      </div>
+      <div class="seg-card">
+        <span class="seg-tag green">Pro</span>
+        <h3>Vendedor individual</h3>
+        <p class="subtitulo">Asesor independiente · Alto volumen</p>
+        <p class="desc">Tu copiloto personal en WhatsApp. Cotiza, retoma y cierra sin depender del área de crédito.</p>
+        <div style="margin-bottom:22px">
+          <div class="seg-check"><span class="mark">✓</span><span>Copiloto integrado a tu WhatsApp Business</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Cotización de póliza y financiación en segundos</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Agenda automática de citas y test drives</span></div>
+          <div class="seg-check"><span class="mark">✓</span><span>Cobra desde $49 USD/mes — sin costos por lead</span></div>
+        </div>
+        <a href="#" class="btn-ghost">Empezar gratis 14 días →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVIDAD EN VIVO -->
   <section>
-    <p class="section-kicker">Revelado progresivo (demo)</p>
-    <h2 style="margin-bottom:32px">Bajá para descubrirlo</h2>
-    <div class="grid grid-3" id="reveal-demo">
-      <div class="reveal" style="transition-delay:0ms">
-        <h3 style="font-size:16px;margin-bottom:8px">Un solo mecanismo</h3>
-        <p class="dim" style="font-size:13px">IntersectionObserver + fade/translateY, reusado en toda la home vía <code>useReveal</code>.</p>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:16px">
+      <div class="section-head">
+        <span class="kicker">Actividad en vivo</span>
+        <h2>Cada evento del turno, registrado.</h2>
+        <p>Timeline auditable de todo lo que el agente decide, cotiza y cierra — sin puntos ciegos.</p>
       </div>
-      <div class="reveal" style="transition-delay:120ms">
-        <h3 style="font-size:16px;margin-bottom:8px">Stagger por grupo</h3>
-        <p class="dim" style="font-size:13px">Un observer por sección, no uno por celda — el desfasaje es <code>transitionDelay</code> por índice.</p>
+      <span class="badge"><span class="live-dot"></span>Live · +7 hoy</span>
+    </div>
+    <div class="grid-shared stats-grid">
+      <div><div><span class="stat-val grad-amber">147</span><span class="stat-delta">+12%</span></div><div class="stat-label">Leads atendidos hoy</div></div>
+      <div><div><span class="stat-val grad-amber">38</span><span class="stat-delta">+11%</span></div><div class="stat-label">Retomas tasadas</div></div>
+      <div><div><span class="stat-val grad-amber">24</span><span class="stat-delta">+14%</span></div><div class="stat-label">Pólizas cotizadas</div></div>
+      <div><div><span class="stat-val grad-amber">89%</span><span class="stat-delta">+5pt</span></div><div class="stat-label">Cierre asistido</div></div>
+    </div>
+    <div class="audit-panel">
+      <div class="log-row" style="background:var(--bg-2)"><span class="mono dim" style="font-size:11px">Timestamp</span><span class="mono dim" style="font-size:11px">Evento</span><span class="mono dim" style="font-size:11px">Canal</span><span class="mono dim" style="font-size:11px;text-align:right">Estado</span></div>
+      <div class="log-row"><span class="log-time">14:22:41</span><span>Nuevo lead · SUV Híbrida</span><span class="log-canal">WhatsApp</span><span class="log-estado pend">Bajo cierre</span></div>
+      <div class="log-row"><span class="log-time">13:51:03</span><span>Retoma valorada · Sedán 2019</span><span class="log-canal">Portal web</span><span class="log-estado ok">Tasado</span></div>
+      <div class="log-row"><span class="log-time">14:09:12</span><span>Póliza todo riesgo cotizada</span><span class="log-canal">Chat DMS</span><span class="log-estado ok">Enviado</span></div>
+      <div class="log-row"><span class="log-time">14:19:55</span><span>Financiación pre-aprobada · 72m</span><span class="log-canal">Aliado bancario</span><span class="log-estado ok">Aprobado</span></div>
+      <div class="log-row"><span class="log-time">14:18:07</span><span>Cita agendada · Test drive</span><span class="log-canal">Concesionario Norte</span><span class="log-estado ok">Confirmado</span></div>
+      <div class="log-row"><span class="log-time">14:17:16</span><span>Cross-sell · Kit accesorios tech</span><span class="log-canal">Ecommerce #1843</span><span class="log-estado ok">Cerrado</span></div>
+    </div>
+  </section>
+
+  <!-- INTEGRACIONES NATIVAS -->
+  <section>
+    <div class="section-head" style="margin-bottom:32px">
+      <span class="kicker">Integraciones nativas</span>
+      <h2>Vive dentro de tu stack, no encima.</h2>
+      <p>El agente lee inventario, dispara cotizaciones y sincroniza el CRM sin exportaciones ni copiar-pegar.</p>
+    </div>
+    <div class="grid-shared integ-grid">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">WhatsApp Business</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">Siigo · SAP DMS</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">Aliados financieros</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">Aseguradoras LATAM</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">Portal de accesorios</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔗</div><span style="font-size:13px">HubSpot · Salesforce</span></div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIOS SEGMENTADOS -->
+  <section>
+    <div class="testi-grid">
+      <div class="quote-card">
+        <span class="kicker" style="margin-bottom:0">Concesionario · 32 agentes</span>
+        <p class="texto">"El agente configuró la financiación y la póliza de un cliente a las 2 AM. El lunes a las 8 AM solo tuvimos que imprimir el contrato."</p>
+        <div class="nombre">Ricardo Mendoza</div>
+        <div class="cargo">Gerente Comercial · Grupo Andina</div>
       </div>
-      <div class="reveal" style="transition-delay:240ms">
-        <div class="mono" style="font-family:var(--f-display);font-size:32px;color:var(--amber)" id="reveal-demo-stat">0%</div>
-        <p class="dim" style="font-size:13px">Cuenta ascendente (<code>useCountUp</code>) solo sobre cifras reales.</p>
+      <div class="quote-card">
+        <span class="kicker" style="margin-bottom:0">Vendedor individual · Medellín</span>
+        <p class="texto">"Cerré tres retomas en una semana yo solo. Antes eso me tomaba un mes coordinando con crédito y seguros."</p>
+        <div class="nombre">Laura Betancur</div>
+        <div class="cargo">Asesora Comercial · Independiente</div>
       </div>
     </div>
   </section>
 
   <!-- CTA FINAL -->
-  <section style="text-align:left;border-bottom:none">
-    <p class="section-kicker">¿Cuántos leads se quedaron sin cobertura anoche?</p>
-    <h2 style="max-width:20ch;margin-bottom:20px">Con Pulse Motor, ninguno más.</h2>
-    <a href="#" class="btn">Cubrir mi turno →</a>
+  <section id="precios" style="max-width:720px;text-align:center;border-bottom:none">
+    <span class="kicker" style="text-align:center">Accediendo en 3 min</span>
+    <h2 style="font-size:clamp(28px,4vw,48px)">Escala tu facturación con <span class="grad-amber">agentes autónomos.</span></h2>
+    <p class="dim" style="max-width:480px;margin:0 auto 28px;font-size:16px;line-height:1.6">Sin costos por lead. Sin implementación oculta. Cobramos por resultado, no por promesas.</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap">
+      <span class="grad-amber" style="font-size:22px;font-weight:800">Desde $199 USD/mes</span>
+      <a href="#" class="btn">Solicitar acceso →</a>
+    </div>
   </section>
 
-  <script>
-    // Equivalente vanilla de src/hooks/useReveal.ts + useCountUp.ts, solo para esta demo estática.
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var group = document.getElementById('reveal-demo');
-    var statEl = document.getElementById('reveal-demo-stat');
-    function countUp(el, target, suffix) {
-      if (reduced) { el.textContent = target + suffix; return; }
-      var start = performance.now(), duration = 900;
-      function tick(now) {
-        var p = Math.min((now - start) / duration, 1);
-        el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + suffix;
-        if (p < 1) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
-    if (reduced) {
-      group.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in') });
-      statEl.textContent = '89%';
-    } else if ('IntersectionObserver' in window) {
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            group.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in') });
-            countUp(statEl, 89, '%');
-            obs.disconnect();
-          }
-        });
-      }, { threshold: 0.2 });
-      obs.observe(group);
-    }
-  </script>
+  <footer>
+    <span>Pulse Motor · © 2026 · LatAm HQ</span>
+    <div style="display:flex;gap:20px">
+      <a href="#">Términos</a>
+      <a href="#">Privacidad</a>
+      <a href="#">Seguridad</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </footer>
+
 </body>
 </html>

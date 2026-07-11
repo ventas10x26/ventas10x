@@ -36,13 +36,13 @@ const SEGMENTS = [
     tag:'Enterprise', tagColor:'amber', titulo:'Concesionario', subtitulo:'Fuerza de ventas · Inventario multi-punto',
     desc:'Orquesta decenas de asesores, integra tu DMS y captura cada oportunidad — incluso las que llegan a las 2 AM.',
     bullets:['Panel director con atribución 360° por asesor', 'Ruteo inteligente de leads por sucursal o stock', 'Integración con Siigo, SAP DMS, HubSpot, Salesforce', 'Auditoría completa de conversaciones y compliance'],
-    cta:'Explorar plan Enterprise →', href:'/pulse/databridge',
+    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline',
   },
   {
     tag:'Pro', tagColor:'green', titulo:'Vendedor individual', subtitulo:'Asesor independiente · Alto volumen',
     desc:'Tu copiloto personal en WhatsApp. Cotiza, retoma y cierra sin depender del área de crédito.',
     bullets:['Copiloto integrado a tu WhatsApp Business', 'Cotización de póliza y financiación en segundos', 'Agenda automática de citas y test drives', 'Cobra desde $49 USD/mes — sin costos por lead'],
-    cta:'Empezar gratis 14 días →', href:'/pulse/signup',
+    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn',
   },
 ]
 
@@ -72,7 +72,7 @@ const TESTIMONIOS_V2 = [
 function StatCell({ val, delta, label, active }: { val: string; delta: string; label: string; active: boolean }) {
   const displayed = useCountUp(val, active)
   return (
-    <div>
+    <div className="stat-cell">
       <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
         <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:800 }}>{displayed}</span>
         <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--green)' }}>{delta}</span>
@@ -155,8 +155,15 @@ export default function PulseMotorLanding() {
         .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--amber); background:var(--amber); color:#1a1204; font-size:14px; font-weight:700; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s, transform .15s, box-shadow .15s; }
         .pm-btn:hover:not(:disabled) { background:#ffc266; border-color:#ffc266; transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.35); }
         .pm-btn:disabled { opacity:.5; cursor:not-allowed; }
-        .pm-btn-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); }
-        .pm-btn-ghost:hover:not(:disabled) { border-color:var(--ink-dim); background:transparent; }
+        .pm-btn-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); transition:border-color .15s, background-color .15s, transform .15s; }
+        .pm-btn-ghost:hover:not(:disabled) { border-color:var(--ink-dim); background:rgba(255,255,255,0.04); transform:translateY(-1px); }
+        .pm-btn-outline { background:transparent; border:1.5px solid var(--amber-dim); color:var(--amber); transition:border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
+        .pm-btn-outline:hover:not(:disabled) { border-color:var(--amber); background:rgba(242,169,59,0.08); color:var(--ink); transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.2); }
+
+        .btn-arrow { display:inline-block; margin-left:6px; transition:transform .2s var(--ease-out-expo); }
+        a:hover .btn-arrow, button:hover .btn-arrow { transform:translateX(4px); }
+
+        .link-arrow { display:inline-flex; align-items:center; }
 
         .badge { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:3px; padding:6px 12px; font-family:${F_MONO}; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
         .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(62,207,126,0.6); animation:livePulse 2s ease infinite; flex-shrink:0; }
@@ -195,12 +202,50 @@ export default function PulseMotorLanding() {
         .seg-check { display:flex; gap:10px; align-items:baseline; padding:6px 0; font-size:13px; color:var(--ink-dim); }
         .seg-check .mark { color:var(--green); font-family:${F_MONO}; flex-shrink:0; }
 
-        .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); }
+        .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); transition:transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
+        .quote-card:hover { transform:translateY(-4px); box-shadow:0 16px 32px rgba(0,0,0,0.35); border-color:var(--line); }
+
+        .eco-cell { transition:transform .25s var(--ease-out-expo), background-color .25s ease; }
+        .eco-cell:hover { transform:translateY(-4px); background:var(--bg-2); }
+        .eco-icon { display:inline-block; transition:transform .25s var(--ease-out-expo); }
+        .eco-cell:hover .eco-icon { transform:scale(1.18); }
+
+        .integ-item { transition:transform .2s var(--ease-out-expo); }
+        .integ-item:hover { transform:translateY(-3px); }
+        .integ-icon { transition:border-color .2s ease, color .2s ease; }
+        .integ-item:hover .integ-icon { border-color:var(--amber-dim); color:var(--amber); }
+
+        .stat-cell { transition:transform .2s var(--ease-out-expo); }
+        .stat-cell:hover { transform:translateY(-2px); }
+
+        .log-row-data { transition:background-color .2s ease, opacity .5s ease, transform .5s ease; }
+        .log-row-data:hover { background:var(--bg-2); }
+
+        .pm-nav-link { position:relative; padding-bottom:4px; color:var(--ink-dim); transition:color .2s ease; }
+        .pm-nav-link::after { content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--amber); transition:width .25s var(--ease-out-expo); }
+        .pm-nav-link:hover { color:var(--ink); }
+        .pm-nav-link:hover::after { width:100%; }
+
+        .logos-marquee { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+        .logos-track { display:flex; align-items:center; gap:56px; width:max-content; animation:logosScroll 26s linear infinite; }
+        .logos-track span { flex-shrink:0; transition:color .2s ease; }
+        .logos-track span:hover { color:var(--ink); }
+        @keyframes logosScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+        .scroll-cue { display:inline-flex; flex-direction:column; align-items:center; gap:6px; text-decoration:none; color:var(--ink-dim); font-family:${F_MONO}; font-size:11px; letter-spacing:.5px; text-transform:uppercase; animation:cueBounce 2.2s ease-in-out infinite; transition:color .2s ease; }
+        .scroll-cue:hover { color:var(--amber); }
+        @keyframes cueBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+        .cta-spotlight { position:relative; }
+        .cta-spotlight::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; background:radial-gradient(ellipse 60% 70% at center, rgba(242,169,59,0.10), transparent 70%); pointer-events:none; }
 
         @media (prefers-reduced-motion: reduce) {
           .live-dot, .guard-sweep::before { animation:none; }
           .log-row, .reveal, .tool-row { transition:none; opacity:1; transform:none; }
           .pm-btn:hover:not(:disabled) { transform:none; }
+          .logos-track { animation:none; }
+          .scroll-cue { animation:none; }
+          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after { transition:none; }
         }
 
         @media(max-width:700px){
@@ -229,16 +274,16 @@ export default function PulseMotorLanding() {
           </div>
           <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
             {['Plataforma','Ecosistema 360°','Segmentos','Precios'].map(item => (
-              <a key={item} href={item==='Precios' ? '#precios' : item==='Segmentos' ? '#segmentos' : item==='Ecosistema 360°' ? '#ecosistema' : '#plataforma'} style={{ fontSize:'13px', color:'var(--ink-dim)', textDecoration:'none' }}>{item}</a>
+              <a key={item} href={item==='Precios' ? '#precios' : item==='Segmentos' ? '#segmentos' : item==='Ecosistema 360°' ? '#ecosistema' : '#plataforma'} style={{ fontSize:'13px', textDecoration:'none' }} className="pm-nav-link">{item}</a>
             ))}
           </nav>
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
             {usuarioLogueado ? (
-              <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente →</a>
+              <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente<span className="btn-arrow">→</span></a>
             ) : (
               <>
                 <a href="/pulse/login" className="pm-btn pm-btn-ghost" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 16px', fontSize:'12px' }}>Login</a>
-                <a href="/pulse/signup" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 18px', fontSize:'12px' }}>Ser agente →</a>
+                <a href="/pulse/signup" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 18px', fontSize:'12px' }}>Ser agente<span className="btn-arrow">→</span></a>
               </>
             )}
           </div>
@@ -258,10 +303,14 @@ export default function PulseMotorLanding() {
                 Pulse Motor despliega agentes autónomos que gestionan cada lead del sector automotriz: vehículo nuevo, versiones, financiación, accesorios, retomas y pólizas — todo el contexto 360° en una sola conversación.
               </p>
               <div style={{ ...v(550), display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'20px' }}>
-                <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Desplegar agente →</a>
+                <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Desplegar agente<span className="btn-arrow">→</span></a>
                 <a href="#ecosistema" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver arquitectura</a>
               </div>
-              <p style={{ ...v(700), fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO }}>WhatsApp Business · DMS · CRM · Aliados financieros</p>
+              <p style={{ ...v(700), fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO, marginBottom:'36px' }}>WhatsApp Business · DMS · CRM · Aliados financieros</p>
+              <a href="#ecosistema" className="scroll-cue" style={{ opacity:visible?1:0, transition:'opacity 0.7s ease 850ms' }}>
+                Descubrí el ecosistema
+                <span aria-hidden="true">⌄</span>
+              </a>
             </div>
 
             {/* Panel hero: conversación real + timeline de tool-calls (elemento de firma) */}
@@ -297,10 +346,12 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* LOGOS */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'32px 24px 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        <section style={{ padding:'32px 0 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
           <p style={{ textAlign:'center', fontFamily:F_MONO, fontSize:'11px', letterSpacing:'1px', textTransform:'uppercase', color:'var(--ink-dim)', marginBottom:'24px' }}>Confían concesionarios en LatAm</p>
-          <div style={{ display:'flex', justifyContent:'center', gap:'40px', flexWrap:'wrap' }}>
-            {LOGOS.map(l => <span key={l} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
+          <div className="logos-marquee">
+            <div className="logos-track">
+              {[...LOGOS, ...LOGOS].map((l,i) => <span key={l+i} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
+            </div>
           </div>
         </section>
 
@@ -317,9 +368,9 @@ export default function PulseMotorLanding() {
           </div>
           <div ref={ecoGrid.ref} className="grid-shared eco-grid" style={{ gridTemplateColumns:'repeat(5,1fr)' }}>
             {ECOSISTEMA.map((e,i) => (
-              <div key={e.num} className={`reveal${ecoGrid.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms` }}>
+              <div key={e.num} className={`reveal eco-cell${ecoGrid.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms` }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-                  <span style={{ fontSize:'20px' }}>{e.icon}</span>
+                  <span className="eco-icon" style={{ fontSize:'20px' }}>{e.icon}</span>
                   <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>{e.num}</span>
                 </div>
                 <h3 style={{ fontSize:'15px', fontWeight:700, fontFamily:F_DISPLAY, marginBottom:'6px', color:'var(--ink)' }}>{e.titulo}</h3>
@@ -347,7 +398,7 @@ export default function PulseMotorLanding() {
                 <div style={{ marginBottom:'22px' }}>
                   {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
                 </div>
-                <a href={s.href} className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px' }}>{s.cta}</a>
+                <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>
               </div>
             ))}
           </div>
@@ -373,7 +424,7 @@ export default function PulseMotorLanding() {
               <span>Timestamp</span><span>Evento</span><span className="log-canal">Canal</span><span className="log-estado">Estado</span>
             </div>
             {AUDIT_LOG.map((row,i) => (
-              <div key={i} className={`log-row${auditLog.inView?' in':''}`} style={{ transitionDelay:`${i*70}ms` }}>
+              <div key={i} className={`log-row log-row-data${auditLog.inView?' in':''}`} style={{ transitionDelay:`${i*70}ms` }}>
                 <span className="log-time">{row.time}</span>
                 <span className="log-evento">{row.evento}</span>
                 <span className="log-canal">{row.canal}</span>
@@ -389,12 +440,12 @@ export default function PulseMotorLanding() {
             <p className="kicker">Integraciones nativas</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Vive dentro de tu stack, no encima.</h2>
             <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'520px', lineHeight:1.6, marginBottom:'18px' }}>El agente lee inventario, dispara cotizaciones y sincroniza el CRM sin exportaciones ni copiar-pegar.</p>
-            <a href="/pulse/pricing" style={{ fontSize:'13px', color:'var(--amber)', textDecoration:'none', fontFamily:F_MONO }}>Ver todas las integraciones →</a>
+            <a href="/pulse/pricing" className="link-arrow" style={{ fontSize:'13px', color:'var(--amber)', textDecoration:'none', fontFamily:F_MONO }}>Ver todas las integraciones<span className="btn-arrow">→</span></a>
           </div>
           <div ref={integGrid.ref} className="grid-shared integ-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
             {INTEGRACIONES.map((name,i) => (
-              <div key={name} className={`reveal${integGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
-                <div style={{ width:'32px', height:'32px', borderRadius:'6px', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>🔗</div>
+              <div key={name} className={`reveal integ-item${integGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
+                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>🔗</div>
                 <span style={{ fontSize:'13px', color:'var(--ink)' }}>{name}</span>
               </div>
             ))}
@@ -418,7 +469,7 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* CTA FINAL */}
-        <section id="precios" style={{ maxWidth:'720px', margin:'0 auto', padding:'40px 24px 100px', textAlign:'center', scrollMarginTop:'80px' }}>
+        <section id="precios" className="cta-spotlight" style={{ maxWidth:'720px', margin:'0 auto', padding:'40px 24px 100px', textAlign:'center', scrollMarginTop:'80px' }}>
           <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`}>
             <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Accediendo en 3 min</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,4vw,48px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
@@ -427,7 +478,7 @@ export default function PulseMotorLanding() {
             <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'480px', margin:'0 auto 28px', lineHeight:1.6 }}>Sin costos por lead. Sin implementación oculta. Cobramos por resultado, no por promesas.</p>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap' }}>
               <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>Desde $199 USD/mes</span>
-              <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 30px', textDecoration:'none' }}>Solicitar acceso →</a>
+              <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 30px', textDecoration:'none' }}>Solicitar acceso<span className="btn-arrow">→</span></a>
             </div>
           </div>
         </section>

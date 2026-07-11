@@ -46,22 +46,24 @@ const COBERTURA = [
   { rango:'18:00 – 24:00', evento:'Póliza cotizada · Todo riesgo' },
 ]
 
+// Chips de color decorativos por categoría (estilo Platzi) — solo para íconos de grids
+// catalogados, nunca para texto/CTA/fondo de sección. Ver "Chips de categoría" en tokens.md.
 const CUMPLIMIENTO = [
-  { icon:'🔒', label:'Cifrado end-to-end' },
-  { icon:'✅', label:'WhatsApp Business API verificado' },
-  { icon:'🌎', label:'Datos alojados en LatAm' },
-  { icon:'📋', label:'Cumplimiento Habeas Data (Ley 1581)' },
-  { icon:'🧾', label:'Auditoría exportable' },
-  { icon:'🔑', label:'Control de acceso por rol' },
+  { icon:'🔒', label:'Cifrado end-to-end', chip:'#4C8DFF' },
+  { icon:'✅', label:'WhatsApp Business API verificado', chip:'#2DD4BF' },
+  { icon:'🌎', label:'Datos alojados en LatAm', chip:'#A78BFA' },
+  { icon:'📋', label:'Cumplimiento Habeas Data (Ley 1581)', chip:'#FB7185' },
+  { icon:'🧾', label:'Auditoría exportable', chip:'#818CF8' },
+  { icon:'🔑', label:'Control de acceso por rol', chip:'#F2A93B' },
 ]
 
 // ─── Ecosistema 360° — catálogo de puntos de fricción cubiertos, no pasos secuenciales ───
 const ECOSISTEMA = [
-  { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.' },
-  { num:'02', icon:'%',  titulo:'Financiación',     desc:'Simulaciones y pre-aprobaciones con aliados bancarios integrados.' },
-  { num:'03', icon:'＋', titulo:'Accesorios',        desc:'Upselling contextual según modelo, uso y perfil del comprador.' },
-  { num:'04', icon:'⇄',  titulo:'Retomas',           desc:'Tasación asistida por IA con histórico de mercado y estado real.' },
-  { num:'05', icon:'🛡', titulo:'Pólizas',           desc:'Todo riesgo y colisión cotizadas y emitidas dentro del mismo flujo.' },
+  { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.', chip:'#4C8DFF' },
+  { num:'02', icon:'%',  titulo:'Financiación',     desc:'Simulaciones y pre-aprobaciones con aliados bancarios integrados.', chip:'#A78BFA' },
+  { num:'03', icon:'＋', titulo:'Accesorios',        desc:'Upselling contextual según modelo, uso y perfil del comprador.', chip:'#2DD4BF' },
+  { num:'04', icon:'⇄',  titulo:'Retomas',           desc:'Tasación asistida por IA con histórico de mercado y estado real.', chip:'#FB7185' },
+  { num:'05', icon:'🛡', titulo:'Pólizas',           desc:'Todo riesgo y colisión cotizadas y emitidas dentro del mismo flujo.', chip:'#818CF8' },
 ]
 
 const SEGMENTS = [
@@ -538,7 +540,7 @@ export default function PulseMotorLanding() {
             {ECOSISTEMA.map((e,i) => (
               <div key={e.num} className={`reveal eco-cell${ecoGrid.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms` }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-                  <span className="eco-icon" style={{ fontSize:'20px' }}>{e.icon}</span>
+                  <span className="eco-icon" style={{ fontSize:'17px', width:'36px', height:'36px', borderRadius:'8px', display:'inline-flex', alignItems:'center', justifyContent:'center', background:`${e.chip}22`, border:`1px solid ${e.chip}55` }}>{e.icon}</span>
                   <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>{e.num}</span>
                 </div>
                 <h3 style={{ fontSize:'15px', fontWeight:700, fontFamily:F_DISPLAY, marginBottom:'6px', color:'var(--ink)' }}>{e.titulo}</h3>
@@ -658,7 +660,7 @@ export default function PulseMotorLanding() {
           <div ref={cumpleGrid.ref} className="grid-shared integ-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
             {CUMPLIMIENTO.map((c,i) => (
               <div key={c.label} className={`reveal integ-item${cumpleGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
-                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{c.icon}</div>
+                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:`1px solid ${c.chip}55`, background:`${c.chip}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{c.icon}</div>
                 <span style={{ fontSize:'13px', color:'var(--ink)' }}>{c.label}</span>
               </div>
             ))}

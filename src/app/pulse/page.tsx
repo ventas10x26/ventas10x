@@ -4,10 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import PulseContactModal from '@/components/pulse/PulseContactModal'
 import { SegmentSelector } from '@/components/pulse/SegmentSelector'
+import { useReveal } from '@/hooks/useReveal'
+import { useCountUp } from '@/hooks/useCountUp'
 
-const F_DISPLAY = "'Oswald', sans-serif"
-const F_MONO    = "'IBM Plex Mono', monospace"
-const F_BODY    = "'Inter', sans-serif"
+// Las variables --font-oswald / --font-mono / --font-inter las define next/font/google
+// en src/app/pulse/layout.tsx (autohospedadas en build time, no dependen de una carga en runtime).
+const F_DISPLAY = "var(--font-oswald), sans-serif"
+const F_MONO    = "var(--font-mono), monospace"
+const F_BODY    = "var(--font-inter), sans-serif"
 
 const WA_SVG = <svg viewBox="0 0 24 24" fill="#25d366" style={{width:'14px',height:'14px',flexShrink:0}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.565 4.14 1.548 5.873L.057 23.57a.75.75 0 0 0 .92.921l5.697-1.491A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.95 9.95 0 0 1-5.192-1.457l-.372-.22-3.853 1.009 1.01-3.762-.241-.386A9.95 9.95 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
 
@@ -50,6 +54,16 @@ const COSTO_NO_TENERLO = [
   { label:'Sin relevo automático',  valor:'5x más trabajo',   desc:'para el mismo resultado' },
 ]
 
+function StatCell({ val, label, active }: { val: string; label: string; active: boolean }) {
+  const displayed = useCountUp(val, active)
+  return (
+    <div style={{ textAlign:'center' }}>
+      <div style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:700, color:'var(--amber)' }}>{displayed}</div>
+      <div style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'4px', fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px' }}>{label}</div>
+    </div>
+  )
+}
+
 export default function PulseMotorLanding() {
   const [email, setEmail]                     = useState('')
   const [nombre, setNombre]                   = useState('')
@@ -66,6 +80,19 @@ export default function PulseMotorLanding() {
   const [reloj, setReloj]                     = useState('')
   const chatRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Revelado por scroll — un hook por bloque, reutilizado en toda la página (ver src/hooks/useReveal.ts)
+  const relevoHeader   = useReveal<HTMLDivElement>()
+  const relevoGrid     = useReveal<HTMLDivElement>()
+  const bitacoraHeader = useReveal<HTMLDivElement>()
+  const statsReveal    = useReveal<HTMLDivElement>()
+  const bitacoraLog    = useReveal<HTMLDivElement>()
+  const reportesHeader = useReveal<HTMLDivElement>()
+  const reportesGrid   = useReveal<HTMLDivElement>()
+  const balanceHeader  = useReveal<HTMLDivElement>()
+  const balanceLedger  = useReveal<HTMLDivElement>()
+  const balancePrice   = useReveal<HTMLDivElement>()
+  const ctaFinal       = useReveal<HTMLDivElement>()
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
@@ -128,7 +155,6 @@ export default function PulseMotorLanding() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --line:#2A2620;
@@ -144,8 +170,8 @@ export default function PulseMotorLanding() {
         .pm-input::placeholder { color:var(--ink-dim); }
         select option { background:var(--bg-1); color:var(--ink); }
 
-        .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--amber); background:var(--amber); color:#1a1204; font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s; }
-        .pm-btn:hover:not(:disabled) { background:#ffc266; border-color:#ffc266; }
+        .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--amber); background:var(--amber); color:#1a1204; font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s, transform .15s, box-shadow .15s; }
+        .pm-btn:hover:not(:disabled) { background:#ffc266; border-color:#ffc266; transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.35); }
         .pm-btn:disabled { opacity:.5; cursor:not-allowed; }
         .pm-btn-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); }
         .pm-btn-ghost:hover:not(:disabled) { border-color:var(--ink-dim); background:transparent; }
@@ -162,13 +188,16 @@ export default function PulseMotorLanding() {
 
         .stamp { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--green); border:1px solid var(--amber-dim); border-radius:3px; padding:3px 8px; }
 
+        /* ── Revelado por scroll (un solo mecanismo, reutilizado en toda la home) ── */
+        .reveal { opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+        .reveal.in { opacity:1; transform:translateY(0); }
+
         /* ── Bitácora en vivo ── */
         .bitacora { border:1px solid var(--line); border-radius:6px; overflow:hidden; }
         .bitacora-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
-        .log-row { display:grid; grid-template-columns:90px 150px 1fr 130px; gap:16px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); animation:logIn .5s ease forwards; }
+        .log-row { display:grid; grid-template-columns:90px 150px 1fr 130px; gap:16px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
         .log-row:last-child { border-bottom:none; }
-        .log-row:nth-child(1){animation-delay:0s} .log-row:nth-child(2){animation-delay:.1s} .log-row:nth-child(3){animation-delay:.2s}
-        .log-row:nth-child(4){animation-delay:.3s} .log-row:nth-child(5){animation-delay:.4s} .log-row:nth-child(6){animation-delay:.5s}
+        .log-row.in { opacity:1; transform:translateY(0); }
         @keyframes logIn { to { opacity:1; transform:translateY(0); } }
         .log-time { font-family:${F_MONO}; color:var(--ink-dim); }
         .log-event { font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-dim); }
@@ -198,7 +227,8 @@ export default function PulseMotorLanding() {
 
         @media (prefers-reduced-motion: reduce) {
           .live-dot { animation:none; }
-          .log-row, .evidence-row { animation:none; opacity:1; transform:none; }
+          .log-row, .evidence-row, .reveal { animation:none; transition:none; opacity:1; transform:none; }
+          .pm-btn:hover:not(:disabled) { transform:none; }
         }
 
         @media(max-width:900px){
@@ -352,7 +382,7 @@ export default function PulseMotorLanding() {
 
         {/* RELEVO DE TURNO */}
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
-          <div style={{ textAlign:'center', marginBottom:'48px' }}>
+          <div ref={relevoHeader.ref} className={`reveal${relevoHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Relevo de turno</p>
             <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Le entregás la guardia<br/>en 5 minutos
@@ -366,8 +396,8 @@ export default function PulseMotorLanding() {
             <p style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'10px', fontFamily:F_MONO }}>Te contactamos en menos de 24 hs · Sin compromiso</p>
           </div>
 
-          <div className="grid-shared grid-3">
-            <div>
+          <div ref={relevoGrid.ref} className="grid-shared grid-3">
+            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'0ms' }}>
               <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 1</span>
               <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Entregás el protocolo</h3>
               <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Respondés 2 preguntas: cómo hablás con tus clientes y cuál es tu mayor reto. 5 minutos máximo.</p>
@@ -377,7 +407,7 @@ export default function PulseMotorLanding() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'120ms' }}>
               <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 2</span>
               <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Conectás la guardia</h3>
               <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Escaneás un QR desde tu WhatsApp — igual que vincular WhatsApp Web. Tu número de siempre, sin SIM nueva.</p>
@@ -389,7 +419,7 @@ export default function PulseMotorLanding() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className={`reveal${relevoGrid.inView?' in':''}`} style={{ transitionDelay:'240ms' }}>
               <span className="stamp" style={{ marginBottom:'16px' }}>✓ Paso 3</span>
               <h3 style={{ fontSize:'18px', fontWeight:600, fontFamily:F_DISPLAY, textTransform:'uppercase', letterSpacing:'.2px', margin:'16px 0 10px', color:'var(--ink)' }}>Empieza el turno</h3>
               <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'16px' }}>Llega un lead → responde en 30 segundos. No respondió → hace relevo el día 1, 3 y 7. Quiere test drive → lo agenda. Vos solo aparecés a cerrar.</p>
@@ -400,7 +430,7 @@ export default function PulseMotorLanding() {
 
         {/* BITÁCORA DE CAPACIDADES */}
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
-          <div style={{ textAlign:'center', marginBottom:'48px' }}>
+          <div ref={bitacoraHeader.ref} className={`reveal${bitacoraHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Bitácora de capacidades</p>
             <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Todo lo que pasa en el turno,<br/>registrado
@@ -408,19 +438,16 @@ export default function PulseMotorLanding() {
             <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 auto', lineHeight:1.6 }}>Nada se pierde entre relevos. Cada evento del turno queda asentado con hora, qué pasó, y estado.</p>
           </div>
 
-          <div className="grid-shared" style={{ gridTemplateColumns:'repeat(3,1fr)', marginBottom:'1px' }}>
+          <div ref={statsReveal.ref} className="grid-shared" style={{ gridTemplateColumns:'repeat(3,1fr)', marginBottom:'1px' }}>
             {STATS.map(s => (
-              <div key={s.label} style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:700, color:'var(--amber)' }}>{s.val}</div>
-                <div style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'4px', fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px' }}>{s.label}</div>
-              </div>
+              <StatCell key={s.label} val={s.val} label={s.label} active={statsReveal.inView} />
             ))}
           </div>
 
-          <div className="bitacora" style={{ marginTop:'24px' }}>
+          <div ref={bitacoraLog.ref} className="bitacora" style={{ marginTop:'24px' }}>
             <div className="bitacora-head"><span>Turno de Ricardo · Asesor KIA</span><span>Hoy</span></div>
             {BITACORA.map((row,i) => (
-              <div key={i} className="log-row">
+              <div key={i} className={`log-row${bitacoraLog.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms` }}>
                 <span className="log-time">{row.time}</span>
                 <span className="log-event">{row.evento}</span>
                 <span className="log-detail">{row.detalle}</span>
@@ -437,13 +464,13 @@ export default function PulseMotorLanding() {
 
         {/* REPORTES DE CIERRE DE TURNO */}
         <section style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
-          <div style={{ textAlign:'center', marginBottom:'40px' }}>
+          <div ref={reportesHeader.ref} className={`reveal${reportesHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Reportes de cierre de turno</p>
             <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(24px,3.2vw,36px)', fontWeight:700, letterSpacing:'.3px', color:'var(--ink)' }}>Lo que dicen al recibir la guardia de vuelta</h2>
           </div>
-          <div className="grid-shared grid-3">
-            {REPORTES.map(r => (
-              <div key={r.nombre} className="reporte">
+          <div ref={reportesGrid.ref} className="grid-shared grid-3">
+            {REPORTES.map((r,i) => (
+              <div key={r.nombre} className={`reporte reveal${reportesGrid.inView?' in':''}`} style={{ transitionDelay:`${i*120}ms` }}>
                 <span className="stamp">Cerrado ✓ · {r.sede}</span>
                 <p className="quote">"{r.texto}"</p>
                 <div className="firma"><span>{r.nombre}</span><span>{r.cargo}</span></div>
@@ -454,7 +481,7 @@ export default function PulseMotorLanding() {
 
         {/* BALANCE DE TURNO */}
         <section id="precios" style={{ maxWidth:'1100px', margin:'0 auto', padding:'72px 24px 96px', borderTop:'1px solid var(--line)', scrollMarginTop:'80px' }}>
-          <div style={{ textAlign:'center', marginBottom:'48px' }}>
+          <div ref={balanceHeader.ref} className={`reveal${balanceHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'48px' }}>
             <p className="stamp" style={{ marginBottom:'14px' }}>Balance de turno</p>
             <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(26px,3.8vw,42px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
               Una venta recuperada<br/>cubre el mes entero
@@ -463,7 +490,7 @@ export default function PulseMotorLanding() {
           </div>
 
           <div className="balance-grid" style={{ display:'grid', gridTemplateColumns:'1.1fr 1fr', gap:'24px', alignItems:'start' }}>
-            <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
+            <div ref={balanceLedger.ref} className={`reveal${balanceLedger.inView?' in':''}`} style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
               <div style={{ border:'1px solid var(--line)', borderRadius:'6px', overflow:'hidden' }}>
                 <div className="balance-row">
                   <div><div className="label">Comisión por venta recuperada</div><div className="sub">Un Picanto o Sportage vendido</div></div>
@@ -497,7 +524,7 @@ export default function PulseMotorLanding() {
               </div>
             </div>
 
-            <div style={{ position:'sticky', top:'90px' }}>
+            <div ref={balancePrice.ref} className={`reveal${balancePrice.inView?' in':''}`} style={{ position:'sticky', top:'90px', transitionDelay:'150ms' }}>
               <div className="price-card">
                 <span className="stamp" style={{ marginBottom:'20px' }}>Plan único · Todo incluido</span>
                 <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginTop:'16px', marginBottom:'4px' }}>
@@ -535,7 +562,7 @@ export default function PulseMotorLanding() {
 
         {/* CTA FINAL */}
         <section style={{ maxWidth:'680px', margin:'0 auto', padding:'0 24px 96px', textAlign:'left' }}>
-          <div style={{ border:'1px solid var(--line)', borderRadius:'6px', padding:'40px 32px' }}>
+          <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`} style={{ border:'1px solid var(--line)', borderRadius:'6px', padding:'40px 32px' }}>
             <p className="stamp" style={{ marginBottom:'16px' }}>¿Cuántos leads se quedaron sin cobertura anoche?</p>
             <h2 style={{ fontFamily:F_DISPLAY, textTransform:'uppercase', fontSize:'clamp(22px,3vw,34px)', fontWeight:700, letterSpacing:'.3px', lineHeight:1.2, marginBottom:'20px', color:'var(--ink)', maxWidth:'20ch' }}>Con Pulse Motor, ninguno más.</h2>
             <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 30px', textDecoration:'none' }}>Cubrir mi turno →</a>

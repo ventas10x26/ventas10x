@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const F_DISPLAY = "'Oswald', sans-serif"
-const F_MONO    = "'IBM Plex Mono', monospace"
-const F_BODY    = "'Inter', sans-serif"
+// Variables definidas por next/font/google en src/app/pulse/layout.tsx
+const F_DISPLAY = "var(--font-oswald), sans-serif"
+const F_MONO    = "var(--font-mono), monospace"
+const F_BODY    = "var(--font-inter), sans-serif"
 
 interface PulseContactModalProps {
   open: boolean

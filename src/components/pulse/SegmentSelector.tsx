@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const F_DISPLAY = "'Oswald', sans-serif"
-const F_MONO    = "'IBM Plex Mono', monospace"
+// Variables definidas por next/font/google en src/app/pulse/layout.tsx
+const F_DISPLAY = "var(--font-oswald), sans-serif"
+const F_MONO    = "var(--font-mono), monospace"
 
 export function SegmentSelector() {
   const router = useRouter()

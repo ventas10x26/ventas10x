@@ -27,6 +27,24 @@ Degradé de "momento en vivo" (fondo de sección, ver "Ritmo de fondo entre secc
 --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
 ```
 
+### Chips de categoría (excepción acotada, a pedido explícito del usuario)
+
+Inspirados en el grid multicolor de categorías de Platzi. Un color decorativo distinto por ítem, **solo** en el fondo/borde del ícono de grids catalogados (Ecosistema 360°, Cumplimiento y seguridad) — nunca en texto, CTAs, badges de estado ni fondo de sección, que siguen siendo ámbar/verde/neutro.
+
+| Uso | Hex |
+|---|---|
+| Vehículos nuevos / Cifrado | `#4C8DFF` (azul) |
+| Financiación / Datos LatAm | `#A78BFA` (violeta) |
+| Accesorios / WhatsApp API | `#2DD4BF` (teal) |
+| Retomas / Habeas Data | `#FB7185` (rosa) |
+| Pólizas / Auditoría | `#818CF8` (índigo) |
+
+Se aplica como fondo translúcido + borde sobre el propio color, usando sufijos de alpha en hex de 8 dígitos:
+```css
+background: ${chip}22;  /* ~13% opacidad */
+border: 1px solid ${chip}55;  /* ~33% opacidad */
+```
+
 ## Tipografía
 
 | Rol | Familia | Peso | Case |

@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const FONT = "'Syne', sans-serif"
-const FONT_BODY = "'DM Sans', sans-serif"
-const GRAD = 'linear-gradient(90deg, #38bdf8, #34d399, #a855f7)'
-const gradText: React.CSSProperties = { backgroundImage: GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }
+const F_DISPLAY = "'Oswald', sans-serif"
+const F_MONO    = "'IBM Plex Mono', monospace"
+const F_BODY    = "'Inter', sans-serif"
 
 interface PulseContactModalProps {
   open: boolean
@@ -74,8 +73,8 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
         onClick={(e) => { if (e.target === backdropRef.current) onClose() }}
         style={{
           position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(2,4,9,0.85)',
-          backdropFilter: 'blur(6px)',
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px',
           animation: 'fadeInBackdrop .2s ease',
@@ -83,14 +82,13 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
       >
         {/* Modal */}
         <div style={{
-          background: '#0a0e18',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
+          background: 'var(--bg-1, #14120F)',
+          border: '1px solid var(--line, #2A2620)',
+          borderRadius: '6px',
           padding: '40px',
           width: '100%', maxWidth: '480px',
           position: 'relative',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 60px rgba(56,189,248,0.08)',
-          animation: 'slideUpModal .25s cubic-bezier(.22,.68,0,1.2)',
+          animation: 'slideUpModal .25s ease',
         }}>
 
           {/* Botón cerrar */}
@@ -98,14 +96,14 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
             onClick={onClose}
             style={{
               position: 'absolute', top: '16px', right: '16px',
-              background: 'rgba(255,255,255,0.06)', border: 'none',
-              borderRadius: '8px', width: '32px', height: '32px',
-              cursor: 'pointer', color: '#9aa3ba', fontSize: '18px',
+              background: 'transparent', border: '1px solid var(--line, #2A2620)',
+              borderRadius: '4px', width: '30px', height: '30px',
+              cursor: 'pointer', color: 'var(--ink-dim, #9B958A)', fontSize: '16px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background .15s',
+              transition: 'border-color .15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink-dim, #9B958A)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--line, #2A2620)')}
           >
             ✕
           </button>
@@ -114,21 +112,25 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
             /* ── Estado éxito ── */
             <div style={{ textAlign: 'center', padding: '16px 0' }}>
               <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'rgba(52,211,153,0.12)', border: '2px solid rgba(52,211,153,0.4)',
+                width: '56px', height: '56px', borderRadius: '4px',
+                background: 'rgba(62,207,126,0.08)', border: '1px solid var(--green, #3ECF7E)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '28px', margin: '0 auto 24px', color: '#6ee7b7',
+                fontSize: '24px', margin: '0 auto 24px', color: 'var(--green, #3ECF7E)',
               }}>✓</div>
-              <h3 style={{ fontFamily: FONT, fontSize: '22px', fontWeight: 700, marginBottom: '12px', color: '#f3f5fa' }}>
-                ¡Listo! <span style={gradText}>Te contactamos pronto</span>
+              <h3 style={{ fontFamily: F_DISPLAY, textTransform: 'uppercase', fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: 'var(--ink, #F3EFE7)', letterSpacing: '.3px' }}>
+                Listo. Te contactamos pronto
               </h3>
-              <p style={{ fontFamily: FONT_BODY, fontSize: '15px', color: '#9aa3ba', lineHeight: 1.6, marginBottom: '28px' }}>
-                Recibimos tus datos. Un asesor de Pulse Motor te va a escribir en menos de 24 horas para armar tu agente personalizado.
+              <p style={{ fontFamily: F_BODY, fontSize: '15px', color: 'var(--ink-dim, #9B958A)', lineHeight: 1.6, marginBottom: '28px' }}>
+                Recibimos tus datos. Un asesor de Pulse Motor te va a escribir en menos de 24 horas para armar tu turno.
               </p>
               <button
                 onClick={onClose}
-                className="pm-btn"
-                style={{ width: 'auto', fontSize: '15px', padding: '12px 32px' }}
+                style={{
+                  fontFamily: F_DISPLAY, textTransform: 'uppercase', fontWeight: 600, fontSize: '14px', letterSpacing: '.5px',
+                  padding: '12px 32px', borderRadius: '6px',
+                  background: 'var(--amber, #F2A93B)',
+                  border: '1px solid var(--amber, #F2A93B)', color: '#1a1204', cursor: 'pointer',
+                }}
               >
                 Perfecto, gracias
               </button>
@@ -137,27 +139,26 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
             /* ── Formulario ── */
             <>
               {/* Badge */}
-              <div style={{
+              <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: '20px', padding: '4px 12px', marginBottom: '20px',
+                border: '1px solid var(--line, #2A2620)',
+                borderRadius: '3px', padding: '4px 10px', marginBottom: '20px',
+                fontFamily: F_MONO, fontSize: '11px', color: 'var(--ink-dim, #9B958A)', fontWeight: 500, letterSpacing: '.5px', textTransform: 'uppercase',
               }}>
-                <span style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#9aa3ba', fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase' }}>
-                  Lo hacemos por vos
-                </span>
-              </div>
+                Lo hacemos por vos
+              </span>
 
               <h2 style={{
-                fontFamily: FONT, fontSize: '24px', fontWeight: 700,
-                marginBottom: '10px', lineHeight: 1.2, color: '#f3f5fa',
+                fontFamily: F_DISPLAY, textTransform: 'uppercase', fontSize: '22px', fontWeight: 700, letterSpacing: '.3px',
+                marginBottom: '10px', lineHeight: 1.25, color: 'var(--ink, #F3EFE7)',
               }}>
-                Dejanos tus datos y <span style={gradText}>armamos tu agente</span>
+                Dejanos tus datos y armamos tu turno
               </h2>
               <p style={{
-                fontFamily: FONT_BODY, fontSize: '14px', color: '#9aa3ba',
+                fontFamily: F_BODY, fontSize: '14px', color: 'var(--ink-dim, #9B958A)',
                 lineHeight: 1.6, marginBottom: '28px',
               }}>
-                Vos no hacés nada. Nosotros te contactamos, te hacemos 2 preguntas y configuramos todo. En menos de 24 horas tu agente está listo.
+                Vos no hacés nada. Nosotros te contactamos, te hacemos 2 preguntas y configuramos todo. En menos de 24 horas tu turno está cubierto.
               </p>
 
               {/* Campos */}
@@ -169,9 +170,9 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
                 ].map(({ label, value, setter, type, placeholder, ref }, i) => (
                   <div key={i}>
                     <label style={{
-                      display: 'block', fontFamily: FONT_BODY, fontSize: '12px',
-                      fontWeight: 600, color: '#9aa3ba', marginBottom: '6px',
-                      letterSpacing: '.4px', textTransform: 'uppercase',
+                      display: 'block', fontFamily: F_MONO, fontSize: '11px',
+                      fontWeight: 500, color: 'var(--ink-dim, #9B958A)', marginBottom: '6px',
+                      letterSpacing: '.5px', textTransform: 'uppercase',
                     }}>
                       {label}
                     </label>
@@ -184,14 +185,14 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
                       onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
                       style={{
                         width: '100%', boxSizing: 'border-box',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '10px', padding: '12px 16px',
-                        fontFamily: FONT_BODY, fontSize: '15px', color: '#f3f5fa',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid var(--line, #2A2620)',
+                        borderRadius: '6px', padding: '12px 16px',
+                        fontFamily: F_BODY, fontSize: '15px', color: 'var(--ink, #F3EFE7)',
                         outline: 'none', transition: 'border-color .15s',
                       }}
-                      onFocus={e => (e.target.style.borderColor = 'rgba(56,189,248,0.55)')}
-                      onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+                      onFocus={e => (e.target.style.borderColor = 'var(--amber-dim, #8A6423)')}
+                      onBlur={e => (e.target.style.borderColor = 'var(--line, #2A2620)')}
                     />
                   </div>
                 ))}
@@ -200,9 +201,10 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
               {/* Error */}
               {errorMsg && (
                 <p style={{
-                  fontFamily: FONT_BODY, fontSize: '13px', color: '#fb7185',
+                  fontFamily: F_BODY, fontSize: '13px', color: 'var(--red, #E5484D)',
                   marginTop: '12px', padding: '10px 14px',
-                  background: 'rgba(251,113,133,0.08)', borderRadius: '8px',
+                  background: 'rgba(229,72,77,0.08)', borderRadius: '4px',
+                  border: '1px solid rgba(229,72,77,0.3)',
                 }}>
                   {errorMsg}
                 </p>
@@ -212,20 +214,20 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
               <button
                 onClick={handleSubmit}
                 disabled={estado === 'loading'}
-                className="pm-btn"
                 style={{
-                  marginTop: '24px',
-                  fontSize: '16px',
-                  padding: '15px',
-                  opacity: estado === 'loading' ? 0.5 : 1,
-                  cursor: estado === 'loading' ? 'not-allowed' : 'pointer',
+                  marginTop: '24px', width: '100%',
+                  fontFamily: F_DISPLAY, textTransform: 'uppercase', fontWeight: 600, fontSize: '15px', letterSpacing: '.5px',
+                  padding: '15px', borderRadius: '6px',
+                  background: estado === 'loading' ? 'var(--amber-dim, #8A6423)' : 'var(--amber, #F2A93B)',
+                  border: '1px solid var(--amber, #F2A93B)', color: '#1a1204', cursor: estado === 'loading' ? 'not-allowed' : 'pointer',
+                  transition: 'background-color .2s',
                 }}
               >
-                {estado === 'loading' ? 'Enviando...' : 'Quiero mi agente →'}
+                {estado === 'loading' ? 'Enviando...' : 'Quiero cubrir mi turno →'}
               </button>
 
               <p style={{
-                fontFamily: FONT_BODY, fontSize: '12px', color: '#5c637a',
+                fontFamily: F_MONO, fontSize: '11px', color: 'var(--ink-dim, #9B958A)', textTransform: 'uppercase', letterSpacing: '.3px',
                 textAlign: 'center', marginTop: '12px',
               }}>
                 Sin compromiso · Te contactamos en menos de 24 hs
@@ -241,8 +243,8 @@ export default function PulseContactModal({ open, onClose }: PulseContactModalPr
           to   { opacity: 1 }
         }
         @keyframes slideUpModal {
-          from { opacity: 0; transform: translateY(24px) scale(.97) }
-          to   { opacity: 1; transform: translateY(0) scale(1) }
+          from { opacity: 0; transform: translateY(16px) }
+          to   { opacity: 1; transform: translateY(0) }
         }
       `}</style>
     </>

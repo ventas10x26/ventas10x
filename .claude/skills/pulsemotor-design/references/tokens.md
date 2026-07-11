@@ -14,11 +14,17 @@
 | `--amber-2` | `#C9770B` | Extremo oscuro del degradé tonal ámbar (nunca solo) |
 | `--amber-dim` | `#8A6423` | Variante apagada del acento |
 | `--green` | `#3ECF7E` | EXCLUSIVO para activo/en vivo/aprobado |
+| `--green-2` | `#0F3D2B` | Extremo oscuro del degradé de "Actividad en vivo" (nunca solo) |
 | `--red` | `#E5484D` | Errores, costos negativos |
 
 Degradé de énfasis (cifras clave, palabra de énfasis en titulares, CTA primario):
 ```css
 --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
+```
+
+Degradé de "momento en vivo" (fondo de sección, ver "Ritmo de fondo entre secciones" más abajo — nunca para texto ni como acento suelto):
+```css
+--grad-green: linear-gradient(135deg, var(--green-2), var(--green));
 ```
 
 ## Tipografía
@@ -62,14 +68,23 @@ La home ya no es 100% negro parejo. Se alterna en este orden fijo (hero → foot
 | Sección | Fondo | Tarjetas/celdas |
 |---|---|---|
 | Hero, logos, ecosistema, segmentos | `--bg-0` `#0B0D0C` | `--bg-1` `#14120F` |
-| Actividad en vivo | `--paper` `#EDE7DB` (único tramo claro) | `--paper-1` `#E2DBCB` |
+| **Actividad en vivo** | `--grad-green` (degradé `#0F3D2B → #3ECF7E`, único momento no-negro) | vidrio esmerilado `rgba(6,20,14,.55)` |
 | Integraciones nativas | `--bg-2` `#1B1815` | `--bg-3` `#241F1A` |
 | Testimonios | `--bg-3` `#241F1A` | `--bg-4` `#2D2721` |
-| CTA final | `--bg-0` `#0B0D0C` + spotlight | — |
+| Precios | `--bg-0` `#0B0D0C` + spotlight ámbar | `--bg-1` (price-cards) |
 
-Se implementa con clases de scope (`.section-dim`, `.section-dim-2`, `.section-light`) que redefinen `--bg-1`/`--ink`/`--ink-dim`/`--amber`/`--amber-2`/`--green`/`--line` en el ancestro de la sección — no hace falta tocar cada componente porque todos ya leen color desde estas variables, y las custom properties de CSS se resuelven en cascada hasta el punto de uso (incluso dentro de otro `var()`, como `--grad-amber`).
+Se implementa con clases de scope (`.section-dim`, `.section-dim-2`, `.section-live`) que redefinen `--bg-1`/`--ink`/`--ink-dim`/`--line` (y en `.section-live` también el `background` del propio elemento) en el ancestro de la sección — no hace falta tocar cada componente porque todos ya leen color desde estas variables, y las custom properties de CSS se resuelven en cascada hasta el punto de uso (incluso dentro de otro `var()`, como `--grad-amber`).
 
-**Regla**: nunca reordenar esta secuencia sin revisar la dirección de elevación (celda siempre un tono más clara que su sección, tanto en oscuro como en el tramo claro) — invertirla hace que las tarjetas se vean "hundidas" en vez de elevadas. El tramo claro es uno solo (Actividad en vivo): no encadenar dos secciones claras seguidas, ni usarlo en el hero (necesita el negro para que el panel de conversación resalte).
+### El momento en vivo (`.section-live`)
+
+"Actividad en vivo" eleva el verde de estado (ya usado en el punto pulsante y en `aprobado/confirmado/cerrado`) a un **degradé de sección completo** — no es un hue nuevo, es la misma semántica de "activo/en vivo" llevada a escala hero, igual que el ámbar ya tiene su propio degradé para el hero. Reemplazó una versión anterior con fondo claro tipo papel que no funcionaba con la marca.
+
+- `--grad-green: linear-gradient(135deg, var(--green-2), var(--green))` — `--green-2:#0F3D2B` (extremo oscuro), `--green:#3ECF7E` (extremo vivo).
+- Las celdas/paneles (`grid-shared > *`, `.panel`) flotan como **vidrio esmerilado oscuro** encima del degradé (`--bg-1: rgba(6,20,14,.55)` + `backdrop-filter: blur(10px)`) — así el contenido interno (cifras en degradé ámbar, estados en verde/ámbar) sigue leyendo con los tokens normales sin perder contraste contra un fondo que cambia de tono en diagonal.
+- El texto que queda directo sobre el degradé (kicker, h2, párrafo, badge) pasa a `--ink:#fff` / `--ink-dim: rgba(255,255,255,.72)` dentro del scope de `.section-live`.
+- El punto pulsante verde se pierde sobre un fondo verde — por eso el badge "Live" de esta sección usa `.live-dot.on-gradient` (blanco, con su propio keyframe `livePulseWhite`) en vez del punto verde estándar.
+
+**Regla**: nunca reordenar esta secuencia sin revisar la dirección de elevación (celda siempre un tono más clara/vidriosa que su sección, tanto en oscuro como en el momento verde) — invertirla hace que las tarjetas se vean "hundidas" en vez de elevadas. El momento en vivo es uno solo (Actividad en vivo): no repetirlo en otra sección, ni usarlo en el hero (necesita el negro para que el panel de conversación resalte).
 
 ## Elevación (sombra neutra, no glow)
 

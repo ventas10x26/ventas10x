@@ -184,16 +184,14 @@ export default function PulseMotorLanding() {
           --ink:#F3EFE7; --ink-dim:#9B958A;
           --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
           --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
+          --green-2:#0F3D2B;
+          --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
           --ease-out-expo: cubic-bezier(.16,1,.3,1);
-          /* Paleta clara — usada solo en el único tramo claro de la página (ver .section-light) */
-          --paper:#EDE7DB; --paper-1:#E2DBCB; --paper-2:#D9D0BE; --line-paper:#D6CDBB;
-          --ink-paper:#1D1A14; --ink-paper-dim:#6B6455;
-          --amber-paper:#B9791E; --amber-paper-2:#8A5209; --green-paper:#1F8A4C;
         }
         body { background: var(--bg-0); }
         ::selection { background:rgba(242,169,59,0.35); color:#fff; }
 
-        /* ── Ritmo de fondo entre secciones: mezcla de tonos oscuros graduados + un único tramo claro ──
+        /* ── Ritmo de fondo entre secciones: tonos oscuros graduados + un momento en vivo ──
            Los componentes ya leen todo su color de estas variables, así que alcanza con
            redefinirlas en el ancestro de cada sección — cascadean solas al resto del árbol. */
         .section-dim {
@@ -204,12 +202,14 @@ export default function PulseMotorLanding() {
           background: var(--bg-3);
           --bg-1: var(--bg-4);
         }
-        .section-light {
-          background: var(--paper);
-          --bg-1: var(--paper-1); --bg-2: var(--paper-2); --line: var(--line-paper);
-          --ink: var(--ink-paper); --ink-dim: var(--ink-paper-dim);
-          --amber: var(--amber-paper); --amber-2: var(--amber-paper-2); --amber-dim: var(--amber-paper);
-          --green: var(--green-paper);
+        /* Momento "en vivo": eleva el verde de estado a degradé de sección — no es un hue nuevo,
+           es la misma semántica de "activo/en vivo" ya usada en el punto pulsante, ahora a escala hero.
+           Las celdas/paneles flotan como vidrio esmerilado oscuro encima del degradé (mismo patrón que
+           usa el ámbar en el hero), así el contenido interno sigue leyendo con los tokens normales. */
+        .section-live {
+          background: var(--grad-green);
+          --bg-1: rgba(6,20,14,0.55); --bg-2: rgba(6,20,14,0.75); --line: rgba(255,255,255,0.16);
+          --ink: #FFFFFF; --ink-dim: rgba(255,255,255,0.72);
         }
 
         .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
@@ -242,16 +242,19 @@ export default function PulseMotorLanding() {
         .badge { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:3px; padding:6px 12px; font-family:${F_MONO}; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
         .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(62,207,126,0.6); animation:livePulse 2s ease infinite; flex-shrink:0; }
         @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(62,207,126,0.55)} 70%{box-shadow:0 0 0 6px rgba(62,207,126,0)} 100%{box-shadow:0 0 0 0 rgba(62,207,126,0)} }
+        /* Sobre el degradé verde el punto verde se pierde — versión blanca para el badge "en vivo" de esa sección */
+        .live-dot.on-gradient { background:#fff; animation-name:livePulseWhite; }
+        @keyframes livePulseWhite { 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.55)} 70%{box-shadow:0 0 0 6px rgba(255,255,255,0)} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0)} }
 
         .kicker { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--amber); margin-bottom:14px; }
 
         .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
-        .grid-shared > * { background:var(--bg-1); padding:24px; transition:background-color .25s ease; }
+        .grid-shared > * { background:var(--bg-1); padding:24px; transition:background-color .25s ease; backdrop-filter:blur(10px); }
 
         .reveal { opacity:0; transform:translateY(28px) scale(.98); transition:opacity .8s var(--ease-out-expo), transform .8s var(--ease-out-expo); }
         .reveal.in { opacity:1; transform:translateY(0) scale(1); }
 
-        .panel { border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); background:var(--bg-1); }
+        .panel { border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); background:var(--bg-1); backdrop-filter:blur(10px); }
         .panel-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
         .log-row { display:grid; grid-template-columns:90px 1fr 150px 120px; gap:16px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
         .log-row:last-child { border-bottom:none; }
@@ -510,8 +513,8 @@ export default function PulseMotorLanding() {
           </div>
         </section>
 
-        {/* ACTIVIDAD EN VIVO — único tramo claro de la página */}
-        <section className="section-light" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        {/* ACTIVIDAD EN VIVO — el verde de estado elevado a degradé de sección, el único momento no-negro de la página */}
+        <section className="section-live" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
         <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={activityHeader.ref} className={`reveal${activityHeader.inView?' in':''}`} style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' }}>
             <div>
@@ -519,7 +522,7 @@ export default function PulseMotorLanding() {
               <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Cada evento del turno, registrado.</h2>
               <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'480px', lineHeight:1.6 }}>Timeline auditable de todo lo que el agente decide, cotiza y cierra — sin puntos ciegos.</p>
             </div>
-            <span className="badge"><span className="live-dot" />Live · +7 hoy</span>
+            <span className="badge"><span className="live-dot on-gradient" />Live · +7 hoy</span>
           </div>
 
           <div ref={statsReveal.ref} className="grid-shared stats-grid" style={{ gridTemplateColumns:'repeat(4,1fr)', marginBottom:'1px' }}>

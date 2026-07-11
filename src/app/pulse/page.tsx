@@ -151,14 +151,37 @@ export default function PulseMotorLanding() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --line:#2A2620;
+          --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
           --ink:#F3EFE7; --ink-dim:#9B958A;
           --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
           --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
           --ease-out-expo: cubic-bezier(.16,1,.3,1);
+          /* Paleta clara — usada solo en el único tramo claro de la página (ver .section-light) */
+          --paper:#EDE7DB; --paper-1:#E2DBCB; --paper-2:#D9D0BE; --line-paper:#D6CDBB;
+          --ink-paper:#1D1A14; --ink-paper-dim:#6B6455;
+          --amber-paper:#B9791E; --amber-paper-2:#8A5209; --green-paper:#1F8A4C;
         }
         body { background: var(--bg-0); }
         ::selection { background:rgba(242,169,59,0.35); color:#fff; }
+
+        /* ── Ritmo de fondo entre secciones: mezcla de tonos oscuros graduados + un único tramo claro ──
+           Los componentes ya leen todo su color de estas variables, así que alcanza con
+           redefinirlas en el ancestro de cada sección — cascadean solas al resto del árbol. */
+        .section-dim {
+          background: var(--bg-2);
+          --bg-1: var(--bg-3);
+        }
+        .section-dim-2 {
+          background: var(--bg-3);
+          --bg-1: var(--bg-4);
+        }
+        .section-light {
+          background: var(--paper);
+          --bg-1: var(--paper-1); --bg-2: var(--paper-2); --line: var(--line-paper);
+          --ink: var(--ink-paper); --ink-dim: var(--ink-paper-dim);
+          --amber: var(--amber-paper); --amber-2: var(--amber-paper-2); --amber-dim: var(--amber-paper);
+          --green: var(--green-paper);
+        }
 
         .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
 
@@ -430,8 +453,8 @@ export default function PulseMotorLanding() {
           </div>
         </section>
 
-        {/* ACTIVIDAD EN VIVO */}
-        <section style={{ background:'var(--bg-1)', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        {/* ACTIVIDAD EN VIVO — único tramo claro de la página */}
+        <section className="section-light" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
         <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={activityHeader.ref} className={`reveal${activityHeader.inView?' in':''}`} style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' }}>
             <div>
@@ -463,7 +486,8 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* INTEGRACIONES NATIVAS */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section className="section-dim" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={integHeader.ref} className={`reveal${integHeader.inView?' in':''}`} style={{ marginBottom:'32px' }}>
             <p className="kicker">Integraciones nativas</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Vive dentro de tu stack, no encima.</h2>
@@ -478,10 +502,11 @@ export default function PulseMotorLanding() {
               </div>
             ))}
           </div>
+        </div>
         </section>
 
         {/* TESTIMONIOS */}
-        <section style={{ background:'var(--bg-1)', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+        <section className="section-dim-2" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
         <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={testiHeader.ref} className={`reveal${testiHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
             <p className="kicker">Lo dicen quienes ya lo usan</p>

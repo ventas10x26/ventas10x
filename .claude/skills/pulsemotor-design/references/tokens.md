@@ -81,7 +81,12 @@ El H1 del hero debe ser visiblemente el elemento tipográfico más grande de tod
 - Pulso "en vivo": box-shadow expandiéndose/desvaneciendo cada 2s.
 - Filas de timeline/auditoría: fade + translateY(6px→0), 0.5s máximo, reveladas en secuencia (una por una) para simular una traza de ejecución real, no todas a la vez.
 - Botones primarios en hover: `translateY(-1px)` + glow ámbar sutil (`box-shadow: 0 4px 16px rgba(242,169,59,0.35)`).
-- Siempre con `@media (prefers-reduced-motion: reduce)`.
+- Flecha `→` de cierre de CTA: `<span>` separado que desliza `translateX(4px)` en hover del link/botón padre (`a:hover .btn-arrow`) — refuerza la dirección de la acción sin depender de color.
+- Elementos catalogados (grid 01–05, integraciones, quote-cards, filas de auditoría): `translateY(-3px/-4px)` sutil en hover + realce de fondo/borde — invita a explorar sin necesitar leer instrucciones.
+- Nav del header: subrayado ámbar que crece de 0 a 100% de ancho en hover (no color por defecto en inline style — la clase controla el color para que el hover funcione).
+- Fila de logos: marquee horizontal continuo (`translateX` en loop, contenido duplicado 2x, `mask-image` en los bordes) en vez de fila estática — refuerza "en vivo" sin ser parallax ni scroll-jacking.
+- CTA final: fondo `radial-gradient` ámbar muy tenue (`rgba(242,169,59,0.10)`) detrás del bloque de precio — vitrina/spotlight que dirige la mirada al último CTA sin usar glow sobre el texto o el botón.
+- Siempre con `@media (prefers-reduced-motion: reduce)` — incluyendo el marquee de logos y el rebote del scroll-cue.
 
 ### Revelado por scroll (`useReveal`)
 

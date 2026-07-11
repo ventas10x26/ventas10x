@@ -24,11 +24,11 @@ const PULSE_GA_ID = 'G-M0KS0D3G5D'
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="pulse-root">
-      {/* Google Fonts — Syne + DM Sans */}
+      {/* Google Fonts — Syne + DM Sans (resto de /pulse) y Oswald + IBM Plex Mono + Inter (home, sistema turno/guardia) */}
       <Script id="pulse-fonts" strategy="beforeInteractive">{`
         const l = document.createElement('link');
         l.rel = 'stylesheet';
-        l.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap';
+        l.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Oswald:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap';
         document.head.appendChild(l);
       `}</Script>
 

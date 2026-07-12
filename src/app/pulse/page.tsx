@@ -312,6 +312,11 @@ export default function PulseMotorLanding() {
         .tool-row .fn { color:var(--ink); }
         .tool-row .ms { color:var(--ink-dim); display:flex; align-items:center; gap:8px; }
 
+        /* Pista de progreso del trámite: el auto avanza a medida que se ejecutan los tool-calls */
+        .tool-road { position:relative; height:16px; margin:2px 18px 10px; }
+        .tool-road::before { content:''; position:absolute; top:50%; left:2px; right:2px; height:0; border-top:2px dashed var(--line); transform:translateY(-50%); }
+        .tool-road-car { position:absolute; top:50%; font-size:15px; line-height:1; transform:translate(-50%,-50%); transition:left .5s var(--ease-out-expo); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+
         .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:box-shadow .25s ease, border-color .25s ease; }
         .seg-card:hover { box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); border-color:var(--amber-dim); }
         .seg-tag { display:inline-flex; font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 10px; border-radius:3px; margin-bottom:16px; }
@@ -389,7 +394,7 @@ export default function PulseMotorLanding() {
           .pm-btn:hover:not(:disabled) { transform:none; }
           .logos-track { animation:none; }
           .scroll-cue { animation:none; }
-          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card { transition:none; }
+          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .tool-road-car { transition:none; }
         }
 
         @media(max-width:700px){
@@ -479,6 +484,10 @@ export default function PulseMotorLanding() {
                       <span className="ms"><span style={{ color:'var(--green)' }}>✓</span>{t.ms}ms</span>
                     </div>
                   ))}
+                </div>
+                {/* El trámite avanza: el auto recorre la pista al ritmo de los tool-calls ejecutados */}
+                <div className="tool-road" aria-hidden="true">
+                  <span className="tool-road-car" style={{ left:`${6 + (toolCallsVisible.length / TOOL_CALLS.length) * 88}%` }}>🚗</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px' }}>
                   <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>

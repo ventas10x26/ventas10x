@@ -29,7 +29,9 @@ Degradé de "momento en vivo" (fondo de sección, ver "Ritmo de fondo entre secc
 
 ### Chips de categoría (excepción acotada, a pedido explícito del usuario)
 
-Inspirados en el grid multicolor de categorías de Platzi. Un color decorativo distinto por ítem, **solo** en el fondo/borde del ícono de grids catalogados (Ecosistema 360°, Cumplimiento y seguridad) — nunca en texto, CTAs, badges de estado ni fondo de sección, que siguen siendo ámbar/verde/neutro.
+Inspirados en el grid multicolor de categorías de Platzi. Un color decorativo distinto por ítem, **solo** en el fondo/borde del ícono de grids catalogados (Ecosistema 360°, Cumplimiento y seguridad, Integraciones nativas) — nunca en texto, CTAs, badges de estado ni fondo de sección, que siguen siendo ámbar/verde/neutro.
+
+La misma paleta se repite en el **timeline de tool-calls del hero** (un punto de 6px antes de cada `nombre_funcion`) mapeando cada función a la categoría de Ecosistema que resuelve (`calcular_financiacion` → violeta, igual que "Financiación" en el grid). Es intencional: crea un hilo visual entre el hero y el resto de la página en vez de colores sueltos sin relación.
 
 | Uso | Hex |
 |---|---|

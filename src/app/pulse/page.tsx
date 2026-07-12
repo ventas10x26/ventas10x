@@ -13,11 +13,13 @@ const F_MONO    = "var(--font-mono), monospace"
 const F_BODY    = "var(--font-inter), sans-serif"
 
 // ─── Timeline de tool-calls (elemento de firma) — traza real de ejecución del agente ───
+// El chip de color de cada función espeja el mismo color de su categoría en Ecosistema 360°,
+// creando un hilo visual entre el hero y el grid (misma paleta de "Chips de categoría" de tokens.md).
 const TOOL_CALLS = [
-  { fn:'tasar_retoma',          ms:18 },
-  { fn:'calcular_financiacion', ms:12 },
-  { fn:'cotizar_poliza',        ms:9  },
-  { fn:'reservar_inventario',   ms:7  },
+  { fn:'tasar_retoma',          ms:18, chip:'#FB7185' }, // Retomas
+  { fn:'calcular_financiacion', ms:12, chip:'#A78BFA' }, // Financiación
+  { fn:'cotizar_poliza',        ms:9,  chip:'#818CF8' }, // Pólizas
+  { fn:'reservar_inventario',   ms:7,  chip:'#4C8DFF' }, // Vehículos nuevos
 ]
 
 const LOGOS = ['AutoVía', 'MotorCorp', 'Grupo Andina', 'Pacífico Cars', 'Flota Pro', 'Virtue Motors']
@@ -124,7 +126,14 @@ const AUDIT_LOG = [
   { time:'14:17:16', evento:'Cross-sell · Kit accesorios tech',    canal:'Ecommerce #1843',    estado:'Cerrado',      ok:true  },
 ]
 
-const INTEGRACIONES = ['WhatsApp Business', 'Siigo · SAP DMS', 'Aliados financieros', 'Aseguradoras LATAM', 'Portal de accesorios', 'HubSpot · Salesforce']
+const INTEGRACIONES = [
+  { name:'WhatsApp Business',    chip:'#4C8DFF' },
+  { name:'Siigo · SAP DMS',      chip:'#818CF8' },
+  { name:'Aliados financieros',  chip:'#A78BFA' },
+  { name:'Aseguradoras LATAM',   chip:'#FB7185' },
+  { name:'Portal de accesorios', chip:'#2DD4BF' },
+  { name:'HubSpot · Salesforce', chip:'#4C8DFF' },
+]
 
 const TESTIMONIOS_V2 = [
   { seg:'Concesionario · 32 agentes', texto:'El agente configuró la financiación y la póliza de un cliente a las 2 AM. El lunes a las 8 AM solo tuvimos que imprimir el contrato.', nombre:'Ricardo Mendoza', cargo:'Gerente Comercial · Grupo Andina' },
@@ -466,7 +475,7 @@ export default function PulseMotorLanding() {
                 <div>
                   {TOOL_CALLS.map((t,i) => (
                     <div key={t.fn} className={`tool-row${toolCallsVisible.includes(i)?' in':''}`}>
-                      <span className="fn">{t.fn}</span>
+                      <span className="fn"><span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:t.chip, marginRight:'8px' }} />{t.fn}</span>
                       <span className="ms"><span style={{ color:'var(--green)' }}>✓</span>{t.ms}ms</span>
                     </div>
                   ))}
@@ -616,10 +625,10 @@ export default function PulseMotorLanding() {
             <a href="/pulse/pricing" className="link-arrow" style={{ fontSize:'13px', color:'var(--amber)', textDecoration:'none', fontFamily:F_MONO }}>Ver todas las integraciones<span className="btn-arrow">→</span></a>
           </div>
           <div ref={integGrid.ref} className="grid-shared integ-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
-            {INTEGRACIONES.map((name,i) => (
-              <div key={name} className={`reveal integ-item${integGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
-                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:'1px solid var(--line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>🔗</div>
-                <span style={{ fontSize:'13px', color:'var(--ink)' }}>{name}</span>
+            {INTEGRACIONES.map((it,i) => (
+              <div key={it.name} className={`reveal integ-item${integGrid.inView?' in':''}`} style={{ transitionDelay:`${i*80}ms`, display:'flex', alignItems:'center', gap:'12px' }}>
+                <div className="integ-icon" style={{ width:'32px', height:'32px', borderRadius:'6px', border:`1px solid ${it.chip}55`, background:`${it.chip}22`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>🔗</div>
+                <span style={{ fontSize:'13px', color:'var(--ink)' }}>{it.name}</span>
               </div>
             ))}
           </div>

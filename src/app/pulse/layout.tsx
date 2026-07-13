@@ -31,6 +31,22 @@ const PULSE_GA_ID = 'G-M0KS0D3G5D'
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable}`}>
+      {/* Tokens de color del sistema de diseño (ver .claude/skills/pulsemotor-design) — scoped a
+          .pulse-root para que cualquier página o componente bajo /pulse pueda consumirlos sin
+          redefinirlos. El home (src/app/pulse/page.tsx) los declara también de forma local por
+          herencia histórica; los valores deben mantenerse en sync con tokens.md. */}
+      <style>{`
+        .pulse-root {
+          --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
+          --ink:#F3EFE7; --ink-dim:#9B958A;
+          --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --green-2:#0F3D2B; --red:#E5484D;
+          --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
+          --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
+          --ease-out-expo: cubic-bezier(.16,1,.3,1);
+        }
+        .pulse-root .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+      `}</style>
+
       {/* Google Fonts — Syne + DM Sans, usadas por el resto de /pulse (dashboard, signup, login, pricing, etc.) */}
       <Script id="pulse-fonts" strategy="beforeInteractive">{`
         const l = document.createElement('link');

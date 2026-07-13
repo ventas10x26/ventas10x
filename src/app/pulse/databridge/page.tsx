@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { createClient } from '@/lib/supabase/client'
@@ -240,6 +240,8 @@ export default function DataBridgePage() {
   const [tableRelations, setTableRelations] = useState<TableRelation[]>([])
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
   const [focusedRelation, setFocusedRelation] = useState<TableRelation | null>(null)
+  const [schemaViewMode, setSchemaViewMode] = useState<'radial' | 'tables'>('radial')
+  const [erLines, setErLines] = useState<{ key: string; x1: number; y1: number; x2: number; y2: number; rel: TableRelation; match: FieldMatch }[]>([])
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
@@ -261,6 +263,8 @@ export default function DataBridgePage() {
   const focusedRelationRef = useRef<TableRelation | null>(null)
   const clickStartRef = useRef({ x: 0, y: 0 })
   const dragCounterRef = useRef(0)
+  const erContentRef = useRef<HTMLDivElement>(null)
+  const erFieldRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   const supabase = createClient()
 
@@ -573,6 +577,45 @@ export default function DataBridgePage() {
     if (files.length) handleFiles(files)
   }
 
+  const setErFieldRef = (key: string) => (el: HTMLDivElement | null) => {
+    if (el) erFieldRefs.current.set(key, el)
+    else erFieldRefs.current.delete(key)
+  }
+
+  const recomputeErLines = useCallback(() => {
+    const content = erContentRef.current
+    if (!content) return
+    const originRect = content.getBoundingClientRect()
+    const next: { key: string; x1: number; y1: number; x2: number; y2: number; rel: TableRelation; match: FieldMatch }[] = []
+    tableRelations.forEach((rel, ri) => {
+      rel.matches.forEach((m, mi) => {
+        const aEl = erFieldRefs.current.get(`${rel.a}::${m.fieldA}`)
+        const bEl = erFieldRefs.current.get(`${rel.b}::${m.fieldB}`)
+        if (!aEl || !bEl) return
+        const aRect = aEl.getBoundingClientRect()
+        const bRect = bEl.getBoundingClientRect()
+        const aIsLeft = aRect.left <= bRect.left
+        const x1 = (aIsLeft ? aRect.right : aRect.left) - originRect.left
+        const x2 = (aIsLeft ? bRect.left : bRect.right) - originRect.left
+        const y1 = aRect.top + aRect.height / 2 - originRect.top
+        const y2 = bRect.top + bRect.height / 2 - originRect.top
+        next.push({ key: `${ri}_${mi}`, x1, y1, x2, y2, rel, match: m })
+      })
+    })
+    setErLines(next)
+  }, [tableRelations])
+
+  useLayoutEffect(() => {
+    if (schemaViewMode !== 'tables' || phase !== 'ready') return
+    recomputeErLines()
+    const onResize = () => recomputeErLines()
+    window.addEventListener('resize', onResize)
+    const content = erContentRef.current
+    const ro = new ResizeObserver(() => recomputeErLines())
+    if (content) ro.observe(content)
+    return () => { window.removeEventListener('resize', onResize); ro.disconnect() }
+  }, [schemaViewMode, phase, recomputeErLines])
+
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current || phase !== 'ready') return
     const rect = canvasRef.current.getBoundingClientRect()
@@ -620,6 +663,14 @@ export default function DataBridgePage() {
   })
 
   const displayInfo = schemaHover ?? (focusedRelation ? { type: 'relation' as const, rel: focusedRelation } : null)
+
+  const relatedFieldKeys = new Set<string>()
+  tableRelations.forEach(rel => {
+    rel.matches.forEach(m => {
+      relatedFieldKeys.add(`${rel.a}::${m.fieldA}`)
+      relatedFieldKeys.add(`${rel.b}::${m.fieldB}`)
+    })
+  })
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
@@ -854,18 +905,75 @@ export default function DataBridgePage() {
         </div>
 
         {/* Esquema de relaciones 2D */}
-        <div style={{ flex: fullscreen ? '0 0 320px' : '0 1 300px', minWidth: '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY }}>
+        <div style={{ flex: schemaViewMode === 'tables' ? '1 1 520px' : (fullscreen ? '0 0 320px' : '0 1 300px'), minWidth: schemaViewMode === 'tables' ? '380px' : '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY, flexWrap: 'wrap' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Esquema de relaciones</span>
             <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
               {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'}
             </span>
+            {phase === 'ready' && (
+              <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+                {(['radial', 'tables'] as const).map(v => (
+                  <button key={v} onClick={() => setSchemaViewMode(v)} title={v === 'radial' ? 'Vista compacta' : 'Vista de tablas (estilo Supabase)'} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: schemaViewMode === v ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: schemaViewMode === v ? 'rgba(14,165,233,0.1)' : 'transparent', color: schemaViewMode === v ? '#7dd3fc' : '#64748b', fontWeight: schemaViewMode === v ? 600 : 400 }}>
+                    {v === 'radial' ? '◎ Radial' : '▦ Tablas'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {phase !== 'ready' ? (
             <div style={{ fontSize: '12px', color: '#475569', fontFamily: FONT_BODY }}>Subí tus hojas para ver el esquema.</div>
           ) : (
             <>
+              {schemaViewMode === 'tables' ? (
+                <div style={{ overflow: 'auto', maxHeight: '380px', background: '#080f1a', borderRadius: '14px', padding: '14px' }}>
+                  <div ref={erContentRef} style={{ position: 'relative', display: 'inline-flex', gap: '20px', alignItems: 'flex-start' }}>
+                    {schemaTables.map(t => {
+                      const fields = fieldsOfTable(t.table)
+                      return (
+                        <div key={t.id} style={{ minWidth: '170px', maxWidth: '210px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
+                          <div onClick={() => setSchemaHover({ type: 'table', table: t.table })} style={{ background: t.color, color: 'rgba(0,0,0,0.82)', fontWeight: 700, fontSize: '12px', padding: '8px 10px', fontFamily: FONT_BODY, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {t.table}
+                          </div>
+                          <div>
+                            {fields.map((f, fi) => {
+                              const key = `${t.table}::${f.l}`
+                              const related = relatedFieldKeys.has(key)
+                              return (
+                                <div key={fi} ref={setErFieldRef(key)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', fontSize: '11px', fontFamily: FONT_BODY, borderTop: fi === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)', background: related ? 'rgba(52,211,153,0.05)' : 'transparent' }}>
+                                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: related ? '#34d399' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+                                  <span style={{ color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.l}</span>
+                                  <span style={{ color: '#475569', flexShrink: 0, fontSize: '10px' }}>{f.tipo}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }} width="100%" height="100%">
+                      {erLines.map(l => {
+                        const isFocused = focusedRelation === l.rel
+                        const isHoverActive = schemaHover?.type === 'relation' && schemaHover.rel === l.rel
+                        const dx = Math.max(24, Math.abs(l.x2 - l.x1) * 0.5)
+                        const path = `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`
+                        return (
+                          <path key={l.key} d={path} fill="none"
+                            stroke={isFocused ? 'rgba(52,211,153,0.95)' : isHoverActive ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.45)'}
+                            strokeWidth={isFocused || isHoverActive ? 2.2 : 1.3}
+                            strokeDasharray={isFocused ? undefined : '4 3'}
+                            style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
+                            onMouseEnter={() => setSchemaHover({ type: 'relation', rel: l.rel })}
+                            onMouseLeave={() => setSchemaHover(null)}
+                            onClick={() => setFocusedRelation(prev => prev === l.rel ? null : l.rel)}
+                          />
+                        )
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              ) : (
               <svg viewBox="0 0 280 280" style={{ width: '100%', height: 'auto', background: '#080f1a', borderRadius: '14px' }}>
                 {tableRelations.map((r, i) => {
                   const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
@@ -896,6 +1004,7 @@ export default function DataBridgePage() {
                   )
                 })}
               </svg>
+              )}
 
               <div style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, lineHeight: 1.6, minHeight: '60px' }}>
                 {!displayInfo && (tableRelations.length === 0

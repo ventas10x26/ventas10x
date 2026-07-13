@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-const FONT      = "'Syne', sans-serif"
+const FONT      = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
 function PagoExitosoContent() {
@@ -27,7 +27,7 @@ export default function PagoExitoso() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
         *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
         body { background:#080f1a; }
         @keyframes successPop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }

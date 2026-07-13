@@ -67,8 +67,18 @@ Ver `references/tokens.md` para la tabla completa. Resumen rápido:
 - Vocabulario del negocio real: retoma, póliza, financiación, DMS, ruteo de leads, cross-sell — nunca jerga de sistema genérica ("dashboard", "insights").
 - Nunca adjetivos vacíos ("revolucionario", "next-gen"). Específico y verificable: "tasé su 2021 en $42.500.000", no "tasación instantánea con IA".
 
+## Más allá del home: el dashboard interno (/pulse/dashboard, /agente, /pipeline, /metricas, /perfil, /databridge, etc.)
+
+Esta skill no es solo para la landing pública — aplica a **todo** `/pulse/**`, incluido el producto autenticado. Antes de esta skill, el dashboard interno usaba un tema navy+naranja completamente distinto (`#0f172a`/`#f97316`, `system-ui`, radios de 20px, ícono 🤖 para "Mi agente") heredado de una iteración anterior, sin relación con el sistema ámbar/negro del home.
+
+- Los tokens de color viven en `src/app/pulse/layout.tsx` (bloque `<style>` scoped a `.pulse-root`) — cualquier página o componente bajo `/pulse` puede usarlos vía `var(--bg-0)`, `var(--amber)`, etc. sin redefinirlos.
+- `PulseAppShell.tsx` (`src/components/pulse/`) es el shell compartido (sidebar + header + pill de créditos + paywall) usado por dashboard/agente/pipeline/métricas/perfil/databridge — ya migrado al sistema ámbar/negro. Es el punto de mayor apalancamiento: cualquier cambio ahí se propaga a las 6 páginas que lo usan.
+- La pill de créditos reusa la semántica de color ya establecida: verde = saldo saludable, ámbar = alerta temprana (no amarillo genérico), rojo = crítico — nunca un cuarto color.
+- El resto de las páginas del dashboard (login, signup, onboarding, pricing, pago-exitoso, playground, onboarding-demo) y los componentes de `src/components/pulse/` (PulseFollowUpPanel, PulsePipelineKanban, PulseAudioLogs, PulseVozRecorder, PulseWhatsappConnect, CreditosBanner, etc.) **todavía no están migrados** — siguen usando la fuente Syne/DM Sans cargada por `<Script>` en runtime (el mismo patrón fragil que ya se corrigió para el home con `next/font`) y sus propios colores sueltos. Migrar de a una página/componente por vez, verificando con capturas antes de dar por hecho el cambio.
+
 ## Cómo trabajar con esta skill
 
 1. Leé `references/tokens.md` para valores exactos antes de construir cualquier pieza.
 2. Mirá `assets/reference-page.html` como catálogo estático de patrones (segment cards, timeline de tool-calls, grid 01–05), y `src/app/pulse/page.tsx` como la implementación real con estado/hooks — para revelado por scroll y cuentas ascendentes, reusá `useReveal`/`useCountUp`.
-3. Si el pedido choca con una regla dura (ej. "ponele un mockup de celular gigante" o "fusioná los dos segmentos en una card"), decilo explícitamente y proponé la alternativa en vez de aplicarlo en silencio.
+3. Para el dashboard interno, `PulseAppShell.tsx` es la referencia canónica del shell ya migrado — replicá sus mismos tokens/patrones en vez de inventar variantes nuevas por página.
+4. Si el pedido choca con una regla dura (ej. "ponele un mockup de celular gigante", "fusioná los dos segmentos en una card", o un ícono de robot/chip/cerebro), decilo explícitamente y proponé la alternativa en vez de aplicarlo en silencio.

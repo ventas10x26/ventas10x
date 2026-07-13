@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CREDITOS_CONFIG } from '@/lib/pulse/creditos-config'
 
-const FONT      = "'Syne', sans-serif"
+const FONT      = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
 interface CreditosData {

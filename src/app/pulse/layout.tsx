@@ -45,13 +45,17 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
           --ease-out-expo: cubic-bezier(.16,1,.3,1);
         }
         .pulse-root .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+        /* globals.css define h1,h2,h3 { font-family: 'Syne' } para Ventas10x.co; se
+           sobreescribe acá (mayor especificidad, sin tocar el archivo compartido) para
+           que ningún título de /pulse dependa de esa fuente ancha. */
+        .pulse-root h1, .pulse-root h2, .pulse-root h3 { font-family: var(--font-inter), sans-serif; }
       `}</style>
 
-      {/* Google Fonts — Syne + DM Sans, usadas por el resto de /pulse (dashboard, signup, login, pricing, etc.) */}
+      {/* Google Fonts — DM Sans, usada como texto de cuerpo en componentes aún no migrados a next/font */}
       <Script id="pulse-fonts" strategy="beforeInteractive">{`
         const l = document.createElement('link');
         l.rel = 'stylesheet';
-        l.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap';
+        l.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap';
         document.head.appendChild(l);
       `}</Script>
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-const FONT = "'Syne', system-ui, sans-serif"
+const FONT = "var(--font-inter), system-ui, sans-serif"
 const FONT_BODY = "'DM Sans', system-ui, sans-serif"
 
 interface FollowUpContact {

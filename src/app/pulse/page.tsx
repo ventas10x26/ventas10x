@@ -72,15 +72,29 @@ const SEGMENTS = [
   {
     tag:'Enterprise', tagColor:'amber', titulo:'Concesionario', subtitulo:'Fuerza de ventas · Inventario multi-punto',
     desc:'Orquesta decenas de asesores, integra tu DMS y captura cada oportunidad — incluso las que llegan a las 2 AM.',
-    bullets:['Panel director con atribución 360° por asesor', 'Ruteo inteligente de leads por sucursal o stock', 'Integración con Siigo, SAP DMS, HubSpot, Salesforce', 'Auditoría completa de conversaciones y compliance'],
-    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline',
+    bullets:['Subís tu DMS o Excel — la IA arma el diagrama de tablas automáticamente (DataBridge)', 'Panel director con atribución 360° por asesor', 'Ruteo inteligente de leads por sucursal o stock', 'Auditoría completa de conversaciones y compliance'],
+    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline', diagram:true,
   },
   {
     tag:'Pro', tagColor:'green', titulo:'Vendedor individual', subtitulo:'Asesor independiente · Alto volumen',
     desc:'Tu copiloto personal en WhatsApp. Cotiza, retoma y cierra sin depender del área de crédito.',
     bullets:['Copiloto integrado a tu WhatsApp Business', 'Cotización de póliza y financiación en segundos', 'Agenda automática de citas y test drives', 'Cobra desde $49 USD/mes — sin costos por lead'],
-    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn',
+    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn', diagram:false,
   },
+]
+
+// ─── Preview de DataBridge (/pulse/databridge): mini diagrama de tablas detectadas por IA,
+// prueba visual real de "conectá tu DMS/Excel" para el segmento Concesionario ───
+const DB_NODES = [
+  { id:'leads',         label:'leads',         x:50, y:10, chip:'#4C8DFF' },
+  { id:'clientes',      label:'clientes',      x:86, y:34, chip:'#2DD4BF' },
+  { id:'inventario',    label:'inventario',    x:70, y:74, chip:'#A78BFA' },
+  { id:'financiacion',  label:'financiación',  x:30, y:74, chip:'#FB7185' },
+  { id:'polizas',       label:'pólizas',       x:14, y:34, chip:'#818CF8' },
+]
+const DB_LINKS: [string,string][] = [
+  ['leads','clientes'], ['leads','polizas'], ['leads','inventario'],
+  ['clientes','inventario'], ['inventario','financiacion'], ['financiacion','polizas'],
 ]
 
 const PRICING_PLANS = {
@@ -139,6 +153,27 @@ const TESTIMONIOS_V2 = [
   { seg:'Concesionario · 32 agentes', texto:'El agente configuró la financiación y la póliza de un cliente a las 2 AM. El lunes a las 8 AM solo tuvimos que imprimir el contrato.', nombre:'Ricardo Mendoza', cargo:'Gerente Comercial · Grupo Andina' },
   { seg:'Vendedor individual · Medellín', texto:'Cerré tres retomas en una semana yo solo. Antes eso me tomaba un mes coordinando con crédito y seguros.', nombre:'Laura Betancur', cargo:'Asesora Comercial · Independiente' },
 ]
+
+function SchemaPreview() {
+  return (
+    <div className="panel" style={{ marginBottom:'22px' }}>
+      <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
+      <div style={{ position:'relative', height:'150px', padding:'14px' }}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} aria-hidden="true">
+          {DB_LINKS.map(([a,b],i) => {
+            const na = DB_NODES.find(n=>n.id===a)!, nb = DB_NODES.find(n=>n.id===b)!
+            return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} stroke="var(--line)" strokeWidth="0.6" strokeDasharray="2,2" />
+          })}
+        </svg>
+        {DB_NODES.map(n => (
+          <div key={n.id} style={{ position:'absolute', left:`${n.x}%`, top:`${n.y}%`, transform:'translate(-50%,-50%)', display:'flex', alignItems:'center', gap:'5px', background:'var(--bg-2)', border:`1px solid ${n.chip}66`, borderRadius:'4px', padding:'4px 8px', fontFamily:F_MONO, fontSize:'10px', color:'var(--ink)', whiteSpace:'nowrap' }}>
+            <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:n.chip, flexShrink:0 }} />{n.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function StatCell({ val, delta, label, active, delayMs }: { val: string; delta: string; label: string; active: boolean; delayMs: number }) {
   const displayed = useCountUp(val, active)
@@ -586,6 +621,7 @@ export default function PulseMotorLanding() {
                 <div style={{ marginBottom:'22px' }}>
                   {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
                 </div>
+                {s.diagram && <SchemaPreview />}
                 <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>
               </div>
             ))}

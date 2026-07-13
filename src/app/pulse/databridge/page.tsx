@@ -222,6 +222,7 @@ export default function DataBridgePage() {
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
+  const [isDraggingFile, setIsDraggingFile] = useState(false)
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -238,6 +239,7 @@ export default function DataBridgePage() {
   const uploadMoreRef = useRef<HTMLInputElement>(null)
   const expandedRef   = useRef<Set<string>>(new Set())
   const clickStartRef = useRef({ x: 0, y: 0 })
+  const dragCounterRef = useRef(0)
 
   const supabase = createClient()
 
@@ -504,6 +506,32 @@ export default function DataBridgePage() {
     e.target.value = ''
   }
 
+  const onDropZoneDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (!e.dataTransfer.types.includes('Files')) return
+    dragCounterRef.current++
+    setIsDraggingFile(true)
+  }
+
+  const onDropZoneDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const onDropZoneDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
+    if (dragCounterRef.current === 0) setIsDraggingFile(false)
+  }
+
+  const onDropZoneDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setIsDraggingFile(false)
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length) handleFiles(files)
+  }
+
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current || phase !== 'ready') return
     const rect = canvasRef.current.getBoundingClientRect()
@@ -641,9 +669,22 @@ export default function DataBridgePage() {
             }}
             onMouseLeave={() => { dragRef.current.on = false; hoverRef.current = null; setTooltip(null); draw() }}
             onWheel={e => { if (phase !== 'ready') return; e.preventDefault(); interactedRef.current = true; zoomRef.current = Math.min(3, Math.max(0.35, zoomRef.current - e.deltaY * 0.001)); draw() }}
+            onDragEnter={onDropZoneDragEnter}
+            onDragOver={onDropZoneDragOver}
+            onDragLeave={onDropZoneDragLeave}
+            onDrop={onDropZoneDrop}
           >
             {/* Fondo de partículas */}
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+            {/* Overlay de arrastrar y soltar */}
+            {isDraggingFile && (
+              <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(14,165,233,0.1)', border: '2px dashed rgba(14,165,233,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
+                <div style={{ fontSize: '28px' }}>⬇</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Soltá para cargar</div>
+                <div style={{ fontSize: '12px', color: '#7dd3fc', fontFamily: FONT_BODY }}>Excel · CSV · JSON</div>
+              </div>
+            )}
 
             {/* Upload state */}
             {phase === 'upload' && (
@@ -651,7 +692,7 @@ export default function DataBridgePage() {
                 <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Subí tu inventario</div>
-                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Excel · CSV · JSON — podés elegir varios archivos juntos</div>
+                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Arrastrá y soltá tus archivos acá, o hacé clic para elegir — Excel · CSV · JSON, podés elegir varios juntos</div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     {['Excel', 'CSV', 'JSON'].map(f => (
                       <span key={f} style={{ fontSize: '11px', color: '#334155', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT_BODY }}>{f}</span>

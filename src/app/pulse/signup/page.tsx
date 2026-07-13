@@ -125,18 +125,16 @@ function PulseSignupForm() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
       color: '#fff',
-      fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
+      fontFamily: "var(--font-inter), sans-serif",
       padding: '24px 16px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');`}</style>
-
       {/* Header */}
       <header style={{ width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', paddingTop: '12px' }}>
         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 0 16px rgba(14,165,233,0.3)' }}>⚡</div>
-        <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px', fontFamily: "'Syne', sans-serif" }}>Pulse Motor</span>
+        <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.5px' }}>Pulse Motor</span>
       </header>
 
       <div style={{ width: '100%', maxWidth: '440px' }}>
@@ -152,7 +150,7 @@ function PulseSignupForm() {
           </div>
         )}
 
-        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px', margin: '0 0 6px', fontFamily: "'Syne', sans-serif" }}>Crea tu cuenta</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px', margin: '0 0 6px' }}>Crea tu cuenta</h1>
         <p style={{ fontSize: '14px', color: '#94a3b8', margin: '0 0 24px' }}>Tarda 30 segundos. Después cargás tu primer lead y ves la magia.</p>
 
         {/* ── BOTÓN GOOGLE ── */}

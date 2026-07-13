@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { createClient } from '@/lib/supabase/client'
 
-const FONT      = "'Syne', sans-serif"
+const FONT      = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
 const PALETTE = ['#4f8ef7', '#34c97e', '#f7924f', '#c97fd4', '#f7d24f', '#22d3ee', '#fb7185', '#a3e635']

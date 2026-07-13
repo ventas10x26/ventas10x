@@ -241,6 +241,7 @@ export default function DataBridgePage() {
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
   const [focusedRelation, setFocusedRelation] = useState<TableRelation | null>(null)
   const [schemaViewMode, setSchemaViewMode] = useState<'radial' | 'tables'>('radial')
+  const [schemaFullscreen, setSchemaFullscreen] = useState(false)
   const [erLines, setErLines] = useState<{ key: string; x1: number; y1: number; x2: number; y2: number; rel: TableRelation; match: FieldMatch }[]>([])
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
@@ -427,16 +428,20 @@ export default function DataBridgePage() {
   }, [fullscreen, syncCanvasSize])
 
   useEffect(() => {
-    document.body.style.overflow = fullscreen ? 'hidden' : ''
+    document.body.style.overflow = (fullscreen || schemaFullscreen) ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [fullscreen])
+  }, [fullscreen, schemaFullscreen])
 
   useEffect(() => {
-    if (!fullscreen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullscreen(false) }
+    if (!fullscreen && !schemaFullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setFullscreen(false)
+      setSchemaFullscreen(false)
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [fullscreen])
+  }, [fullscreen, schemaFullscreen])
 
   const processSheets = (sheets: SheetData[]) => {
     const { nodes: n, edges: e } = buildGraph(sheets)
@@ -905,7 +910,10 @@ export default function DataBridgePage() {
         </div>
 
         {/* Esquema de relaciones 2D */}
-        <div style={{ flex: schemaViewMode === 'tables' ? '1 1 520px' : (fullscreen ? '0 0 320px' : '0 1 300px'), minWidth: schemaViewMode === 'tables' ? '380px' : '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
+        <div style={schemaFullscreen ? {
+          position: 'fixed', inset: 0, zIndex: 200, background: '#0B0D0C',
+          padding: '20px 24px', overflowY: 'auto',
+        } : { flex: schemaViewMode === 'tables' ? '1 1 520px' : (fullscreen ? '0 0 320px' : '0 1 300px'), minWidth: schemaViewMode === 'tables' ? '380px' : '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY, flexWrap: 'wrap' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Esquema de relaciones</span>
             <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
@@ -918,6 +926,10 @@ export default function DataBridgePage() {
                     {v === 'radial' ? '◎ Radial' : '▦ Tablas'}
                   </button>
                 ))}
+                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
+                <button onClick={() => setSchemaFullscreen(f => !f)} title={schemaFullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
+                  {schemaFullscreen ? '✕' : '⛶'}
+                </button>
               </div>
             )}
           </div>
@@ -927,7 +939,7 @@ export default function DataBridgePage() {
           ) : (
             <>
               {schemaViewMode === 'tables' ? (
-                <div style={{ overflow: 'auto', maxHeight: '380px', background: '#080f1a', borderRadius: '14px', padding: '14px' }}>
+                <div style={{ overflow: 'auto', maxHeight: schemaFullscreen ? 'calc(100vh - 220px)' : '380px', background: '#080f1a', borderRadius: '14px', padding: '14px' }}>
                   <div ref={erContentRef} style={{ position: 'relative', display: 'inline-flex', gap: '20px', alignItems: 'flex-start' }}>
                     {schemaTables.map(t => {
                       const fields = fieldsOfTable(t.table)
@@ -974,7 +986,7 @@ export default function DataBridgePage() {
                   </div>
                 </div>
               ) : (
-              <svg viewBox="0 0 280 280" style={{ width: '100%', height: 'auto', background: '#080f1a', borderRadius: '14px' }}>
+              <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: schemaFullscreen ? '480px' : undefined, height: 'auto', background: '#080f1a', borderRadius: '14px', display: 'block', margin: schemaFullscreen ? '0 auto' : undefined }}>
                 {tableRelations.map((r, i) => {
                   const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
                   if (!p1 || !p2) return null

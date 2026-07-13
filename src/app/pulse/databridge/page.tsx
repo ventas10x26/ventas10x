@@ -141,6 +141,25 @@ function detectTableRelations(sheets: SheetData[]): TableRelation[] {
   return Array.from(pairMap.values()).map(r => ({ ...r, matches: r.matches.sort((x, y) => y.score - x.score).slice(0, 6) }))
 }
 
+function visibleFieldIdsFor(allNodes: Node3D[], expanded: Set<string>, focusedRel: TableRelation | null): Set<string> {
+  if (focusedRel) {
+    const ids = new Set<string>()
+    focusedRel.matches.forEach(m => {
+      const fa = allNodes.find(n => n.kind === 'field' && n.table === focusedRel.a && n.l === m.fieldA)
+      const fb = allNodes.find(n => n.kind === 'field' && n.table === focusedRel.b && n.l === m.fieldB)
+      if (fa) ids.add(fa.id)
+      if (fb) ids.add(fb.id)
+    })
+    return ids
+  }
+  return new Set(allNodes.filter(n => n.kind === 'field' && expanded.has(n.table)).map(n => n.id))
+}
+
+function visibleTableIdsFor(allNodes: Node3D[], focusedRel: TableRelation | null): Set<string> | null {
+  if (!focusedRel) return null
+  return new Set(allNodes.filter(n => n.kind === 'table' && (n.table === focusedRel.a || n.table === focusedRel.b)).map(n => n.id))
+}
+
 function computeTableStats(nodes: Node3D[]): { table: string; color: string; count: number }[] {
   const map = new Map<string, { color: string; count: number }>()
   nodes.filter(n => n.kind === 'field').forEach(n => {
@@ -220,6 +239,7 @@ export default function DataBridgePage() {
   const [dragMode, setDragMode]       = useState<'rotate' | 'pan'>('rotate')
   const [tableRelations, setTableRelations] = useState<TableRelation[]>([])
   const [schemaHover, setSchemaHover] = useState<{ type: 'table'; table: string } | { type: 'relation'; rel: TableRelation } | null>(null)
+  const [focusedRelation, setFocusedRelation] = useState<TableRelation | null>(null)
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
@@ -238,6 +258,7 @@ export default function DataBridgePage() {
   const fileInputRef  = useRef<HTMLInputElement>(null)
   const uploadMoreRef = useRef<HTMLInputElement>(null)
   const expandedRef   = useRef<Set<string>>(new Set())
+  const focusedRelationRef = useRef<TableRelation | null>(null)
   const clickStartRef = useRef({ x: 0, y: 0 })
   const dragCounterRef = useRef(0)
 
@@ -273,8 +294,10 @@ export default function DataBridgePage() {
     const H = canvas.height / (window.devicePixelRatio || 1)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    const visibleFieldIds = new Set(nodesRef.current.filter(n => n.kind === 'field' && expandedRef.current.has(n.table)).map(n => n.id))
-    const ns = nodesRef.current.filter(n => n.kind === 'table' || visibleFieldIds.has(n.id))
+    const focusedRel = focusedRelationRef.current
+    const visibleFieldIds = visibleFieldIdsFor(nodesRef.current, expandedRef.current, focusedRel)
+    const visibleTableIds = visibleTableIdsFor(nodesRef.current, focusedRel)
+    const ns = nodesRef.current.filter(n => n.kind === 'table' ? (!visibleTableIds || visibleTableIds.has(n.id)) : visibleFieldIds.has(n.id))
     const es = edgesRef.current.filter(e => visibleFieldIds.has(e.b))
     if (!ns.length) return
 
@@ -297,6 +320,18 @@ export default function DataBridgePage() {
       ctx.stroke()
     })
     ctx.setLineDash([])
+
+    if (focusedRel) {
+      focusedRel.matches.forEach(m => {
+        const a = proj.find(n => n.kind === 'field' && n.table === focusedRel.a && n.l === m.fieldA)
+        const b = proj.find(n => n.kind === 'field' && n.table === focusedRel.b && n.l === m.fieldB)
+        if (!a || !b) return
+        ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
+        ctx.strokeStyle = 'rgba(52,211,153,0.9)'
+        ctx.lineWidth = Math.max(1.5, 2 * dimScale)
+        ctx.stroke()
+      })
+    }
 
     proj.forEach(n => {
       const c = n.color
@@ -341,6 +376,11 @@ export default function DataBridgePage() {
     expandedRef.current = expandedTables
     draw()
   }, [expandedTables, draw])
+
+  useEffect(() => {
+    focusedRelationRef.current = focusedRelation
+    draw()
+  }, [focusedRelation, draw])
 
   useEffect(() => {
     viewRef.current = view
@@ -400,6 +440,7 @@ export default function DataBridgePage() {
     setStats(computeTableStats(n))
     setTableRelations(detectTableRelations(sheets))
     setSchemaHover(null)
+    setFocusedRelation(null)
     setExpandedTables(new Set())
     setLoadedSheets(sheets)
     setPhase('ready')
@@ -550,8 +591,11 @@ export default function DataBridgePage() {
     }
     const W = rect.width; const H = rect.height
     const dimScale = dimScaleFor(H) * zoomRef.current
+    const visibleFieldIds = visibleFieldIdsFor(nodesRef.current, expandedTables, focusedRelation)
+    const visibleTableIds = visibleTableIdsFor(nodesRef.current, focusedRelation)
     const hit = nodesRef.current.find(n => {
-      if (n.kind === 'field' && !expandedTables.has(n.table)) return false
+      if (n.kind === 'field' && !visibleFieldIds.has(n.id)) return false
+      if (n.kind === 'table' && visibleTableIds && !visibleTableIds.has(n.id)) return false
       const p = project(n.x, n.y, n.z, W, H)
       const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
       const dx = mx - p.px!; const dy = my - p.py!
@@ -574,6 +618,8 @@ export default function DataBridgePage() {
     const angle = -Math.PI / 2 + (2 * Math.PI * i) / schemaTables.length
     schemaPositions.set(t.table, { x: 140 + Math.cos(angle) * 95, y: 140 + Math.sin(angle) * 95 })
   })
+
+  const displayInfo = schemaHover ?? (focusedRelation ? { type: 'relation' as const, rel: focusedRelation } : null)
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
@@ -614,6 +660,12 @@ export default function DataBridgePage() {
               <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
                 {phase === 'upload' ? 'Esperando datos' : phase === 'processing' ? 'Procesando...' : phase === 'selecting' ? 'Elegí las hojas' : `${nodes.filter(n => n.kind === 'field').length} campos · ${nodes.filter(n => n.kind === 'table').length} tablas`}
               </span>
+              {phase === 'ready' && focusedRelation && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#7dd3fc', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '999px', padding: '2px 6px 2px 10px', fontWeight: 600 }}>
+                  Solo relación: {focusedRelation.a} ↔ {focusedRelation.b}
+                  <button onClick={() => setFocusedRelation(null)} title="Ver todo" style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '13px', padding: '2px 4px', lineHeight: 1 }}>✕</button>
+                </span>
+              )}
             </div>
             {phase === 'ready' && (
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -653,8 +705,10 @@ export default function DataBridgePage() {
               if (moved > 16) return
               const W = rect.width; const H = rect.height
               const dimScale = dimScaleFor(H) * zoomRef.current
+              const visibleTableIds = visibleTableIdsFor(nodesRef.current, focusedRelation)
               const hit = nodesRef.current.find(n => {
                 if (n.kind !== 'table') return false
+                if (visibleTableIds && !visibleTableIds.has(n.id)) return false
                 const p = project(n.x, n.y, n.z, W, H)
                 const s = view === '3d' ? (800 / (800 + (p.depth ?? 0) + 300)) : 1
                 const dx = mx - p.px!; const dy = my - p.py!
@@ -817,14 +871,16 @@ export default function DataBridgePage() {
                   const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
                   if (!p1 || !p2) return null
                   const strength = Math.min(1, r.matches.length / 3)
-                  const active = schemaHover?.type === 'relation' && schemaHover.rel === r
+                  const isFocused = focusedRelation === r
+                  const isHoverActive = schemaHover?.type === 'relation' && schemaHover.rel === r
                   return (
                     <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                      stroke={active ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.5)'}
-                      strokeWidth={(active ? 2 : 1) + strength * 1.5}
+                      stroke={isFocused ? 'rgba(52,211,153,0.95)' : isHoverActive ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.5)'}
+                      strokeWidth={(isFocused || isHoverActive ? 2 : 1) + strength * 1.5}
                       strokeDasharray="4 3"
                       onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
                       onMouseLeave={() => setSchemaHover(null)}
+                      onClick={() => setFocusedRelation(prev => prev === r ? null : r)}
                       style={{ cursor: 'pointer' }}
                     />
                   )
@@ -842,28 +898,34 @@ export default function DataBridgePage() {
               </svg>
 
               <div style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, lineHeight: 1.6, minHeight: '60px' }}>
-                {!schemaHover && (tableRelations.length === 0
+                {!displayInfo && (tableRelations.length === 0
                   ? 'No se detectaron relaciones entre tablas.'
-                  : 'Pasá el mouse sobre una tabla o línea para ver el detalle.')}
-                {schemaHover?.type === 'table' && (() => {
-                  const related = tableRelations.filter(r => r.a === schemaHover.table || r.b === schemaHover.table)
+                  : 'Pasá el mouse sobre una tabla o línea para ver el detalle · hacé clic en una línea para verla en el mapa 3D.')}
+                {displayInfo?.type === 'table' && (() => {
+                  const related = tableRelations.filter(r => r.a === displayInfo.table || r.b === displayInfo.table)
                   return (
                     <>
-                      <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{schemaHover.table}</div>
+                      <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{displayInfo.table}</div>
                       {related.length === 0
                         ? <div>Sin relaciones con otras tablas.</div>
                         : related.map((r, i) => (
-                            <div key={i}>↔ {r.a === schemaHover.table ? r.b : r.a} ({r.matches.length} campo{r.matches.length !== 1 ? 's' : ''})</div>
+                            <div key={i}>↔ {r.a === displayInfo.table ? r.b : r.a} ({r.matches.length} campo{r.matches.length !== 1 ? 's' : ''})</div>
                           ))}
                     </>
                   )
                 })()}
-                {schemaHover?.type === 'relation' && (
+                {displayInfo?.type === 'relation' && (
                   <>
-                    <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{schemaHover.rel.a} ↔ {schemaHover.rel.b}</div>
-                    {schemaHover.rel.matches.map((m, i) => (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <div style={{ fontWeight: 700, color: '#e2e8f0' }}>{displayInfo.rel.a} ↔ {displayInfo.rel.b}</div>
+                      {focusedRelation === displayInfo.rel && <span style={{ fontSize: '10px', color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>en el mapa 3D</span>}
+                    </div>
+                    {displayInfo.rel.matches.map((m, i) => (
                       <div key={i}>{m.fieldA} ↔ {m.fieldB} <span style={{ color: '#475569' }}>({m.label})</span></div>
                     ))}
+                    <button onClick={() => setFocusedRelation(prev => prev === displayInfo.rel ? null : displayInfo.rel)} style={{ marginTop: '6px', background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, fontSize: '11px', textDecoration: 'underline', padding: 0 }}>
+                      {focusedRelation === displayInfo.rel ? 'Ver todo en el mapa 3D' : 'Ver solo estos campos en el mapa 3D →'}
+                    </button>
                   </>
                 )}
               </div>

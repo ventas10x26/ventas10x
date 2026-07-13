@@ -225,6 +225,9 @@ function genDemoSheets(): SheetData[] {
 
 export default function DataBridgePage() {
   const [user, setUser]               = useState<{ nombre: string; email: string } | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [projectName, setProjectName] = useState('')
+  const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
   const [pendingSheets, setPendingSheets]         = useState<SheetData[]>([])
   const [selectedSheetNames, setSelectedSheetNames] = useState<Set<string>>(new Set())
@@ -272,8 +275,32 @@ export default function DataBridgePage() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser({ email: data.user.email ?? '', nombre: (data.user.user_metadata?.full_name as string) || data.user.email?.split('@')[0] || '' })
+      setAuthChecked(true)
     })
   }, [])
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('pulse_databridge_anon_projects')
+      if (raw) setAnonProjects(JSON.parse(raw))
+    } catch {}
+  }, [])
+
+  const saveAnonProject = (sheetsCount: number, fieldsCount: number, relationsCount: number) => {
+    const entry = {
+      id: crypto.randomUUID(),
+      name: projectName.trim() || 'Proyecto sin título',
+      createdAt: Date.now(),
+      sheets: sheetsCount,
+      fields: fieldsCount,
+      relations: relationsCount,
+    }
+    setAnonProjects(prev => {
+      const next = [entry, ...prev].slice(0, 5)
+      try { window.localStorage.setItem('pulse_databridge_anon_projects', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
 
   const project = useCallback((x: number, y: number, z: number, W: number, H: number) => {
     const dimScale = dimScaleFor(H) * zoomRef.current
@@ -445,14 +472,18 @@ export default function DataBridgePage() {
 
   const processSheets = (sheets: SheetData[]) => {
     const { nodes: n, edges: e } = buildGraph(sheets)
+    const relations = detectTableRelations(sheets)
     setNodes(n); setEdges(e)
     setStats(computeTableStats(n))
-    setTableRelations(detectTableRelations(sheets))
+    setTableRelations(relations)
     setSchemaHover(null)
     setFocusedRelation(null)
     setExpandedTables(new Set())
     setLoadedSheets(sheets)
     setPhase('ready')
+    if (authChecked && !user) {
+      saveAnonProject(sheets.length, n.filter(f => f.kind === 'field').length, relations.length)
+    }
   }
 
   // suma las hojas nuevas a las ya cargadas (en vez de reemplazarlas) para poder
@@ -677,6 +708,8 @@ export default function DataBridgePage() {
     })
   })
 
+  const isGated = authChecked && !user && phase === 'ready'
+
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
@@ -693,13 +726,34 @@ export default function DataBridgePage() {
           <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.6, margin: 0, fontFamily: FONT_BODY }}>
             Subí tu Excel, CSV o JSON. La IA detecta cada hoja, sus campos y el tipo de dato de cada uno — conectados con líneas punteadas a su tabla de origen.
           </p>
+
+          {authChecked && !user && phase === 'upload' && (
+            <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <input
+                value={projectName}
+                onChange={e => setProjectName(e.target.value)}
+                placeholder="Nombre del proyecto (ej: Inventario Kia julio)"
+                style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+              />
+              {anonProjects.length > 0 && (
+                <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
+                  Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
+                  <a href="/pulse/signup" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div style={fullscreen ? {
-          position: 'fixed', inset: 0, zIndex: 200, background: '#080f1a',
-          padding: '18px 20px', display: 'flex', gap: '20px', alignItems: 'stretch',
-        } : {
-          display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap',
+        <div style={{ position: 'relative' }}>
+        <div style={{
+          ...(fullscreen ? {
+            position: 'fixed', inset: 0, zIndex: 200, background: '#080f1a',
+            padding: '18px 20px', display: 'flex', gap: '20px', alignItems: 'stretch',
+          } : {
+            display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap',
+          }),
+          ...(isGated ? { filter: 'blur(10px) saturate(0.7)', pointerEvents: 'none', userSelect: 'none' } : {}),
         }}>
         {/* Visualizador */}
         <div style={fullscreen ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column' } : { flex: '1 1 600px', minWidth: 0 }}>
@@ -1055,8 +1109,31 @@ export default function DataBridgePage() {
         </div>
         </div>
 
+        {/* Muro de registro para visitantes sin sesión */}
+        {isGated && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5, padding: '20px' }}>
+            <div style={{ background: 'rgba(8,15,26,0.94)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '20px', padding: '32px 36px', maxWidth: '380px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔒</div>
+              <div style={{ fontFamily: FONT, fontSize: '18px', fontWeight: 800, color: '#f8fafc', marginBottom: '8px' }}>Tu esquema está listo</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '18px' }}>
+                Detectamos <strong style={{ color: '#7dd3fc' }}>{nodes.filter(n => n.kind === 'field').length} campos</strong> en{' '}
+                <strong style={{ color: '#7dd3fc' }}>{nodes.filter(n => n.kind === 'table').length} tablas</strong>, con{' '}
+                <strong style={{ color: '#34d399' }}>{tableRelations.length} {tableRelations.length === 1 ? 'relación posible' : 'relaciones posibles'}</strong>.
+                Creá una cuenta gratis para ver el mapa 3D completo y el esquema de relaciones.
+              </div>
+              <a href="/pulse/signup" style={{ display: 'inline-block', padding: '11px 24px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', marginBottom: '10px' }}>
+                Crear cuenta gratis →
+              </a>
+              <div style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b' }}>
+                ¿Ya tenés cuenta? <a href="/pulse/login" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Iniciá sesión</a>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
+
         {/* Stats */}
-        {phase === 'ready' && stats.length > 0 && (
+        {phase === 'ready' && user && stats.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: '10px', marginBottom: '20px' }}>
             {stats.map(s => (
               <div key={s.table} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
@@ -1068,7 +1145,7 @@ export default function DataBridgePage() {
         )}
 
         {/* CTA subir archivo real */}
-        {phase === 'ready' && (
+        {phase === 'ready' && user && (
           <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>Subí tu inventario real</div>

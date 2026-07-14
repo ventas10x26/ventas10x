@@ -1068,23 +1068,30 @@ export default function DataBridgePage() {
                         </div>
                     ))}
                     <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }} width="100%" height="100%">
-                      {erLines.map(l => {
-                        const isFocused = focusedRelation === l.rel
-                        const isHoverActive = schemaHover?.type === 'relation' && schemaHover.rel === l.rel
-                        const dx = Math.max(24, Math.abs(l.x2 - l.x1) * 0.5)
-                        const path = `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`
-                        return (
-                          <path key={l.key} d={path} fill="none"
-                            stroke={isFocused ? 'rgba(52,211,153,0.95)' : isHoverActive ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.45)'}
-                            strokeWidth={isFocused || isHoverActive ? 2.2 : 1.3}
-                            strokeDasharray={isFocused ? undefined : '4 3'}
-                            style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
-                            onMouseEnter={() => setSchemaHover({ type: 'relation', rel: l.rel })}
-                            onMouseLeave={() => setSchemaHover(null)}
-                            onClick={() => setFocusedRelation(prev => prev === l.rel ? null : l.rel)}
-                          />
-                        )
-                      })}
+                      {(() => {
+                        const isActive = (l: typeof erLines[number]) => focusedRelation === l.rel || (schemaHover?.type === 'relation' && schemaHover.rel === l.rel)
+                        const hasActive = erLines.some(isActive)
+                        const renderLine = (l: typeof erLines[number]) => {
+                          const active = isActive(l)
+                          const isFocused = focusedRelation === l.rel
+                          const dx = Math.max(24, Math.abs(l.x2 - l.x1) * 0.5)
+                          const path = `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`
+                          return (
+                            <path key={l.key} d={path} fill="none"
+                              stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(125,211,252,0.95)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.45)'}
+                              strokeWidth={active ? 2.4 : 1.3}
+                              strokeDasharray={isFocused ? undefined : '4 3'}
+                              style={{ cursor: 'pointer', pointerEvents: 'stroke', filter: active ? 'drop-shadow(0 0 4px rgba(125,211,252,0.55))' : undefined }}
+                              onMouseEnter={() => setSchemaHover({ type: 'relation', rel: l.rel })}
+                              onMouseLeave={() => setSchemaHover(null)}
+                              onClick={() => setFocusedRelation(prev => prev === l.rel ? null : l.rel)}
+                            />
+                          )
+                        }
+                        // Las relaciones activas (foco o hover) se dibujan al final para quedar
+                        // en primer plano por encima del resto, con brillo para destacarlas.
+                        return <>{erLines.filter(l => !isActive(l)).map(renderLine)}{erLines.filter(isActive).map(renderLine)}</>
+                      })()}
                     </svg>
                   </div>
                     )
@@ -1092,24 +1099,34 @@ export default function DataBridgePage() {
                 </div>
               ) : (
               <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: schemaFullscreen ? '480px' : undefined, height: 'auto', background: '#080f1a', borderRadius: '14px', display: 'block', margin: schemaFullscreen ? '0 auto' : undefined }}>
-                {tableRelations.map((r, i) => {
-                  const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
-                  if (!p1 || !p2) return null
-                  const strength = Math.min(1, r.matches.length / 3)
-                  const isFocused = focusedRelation === r
-                  const isHoverActive = schemaHover?.type === 'relation' && schemaHover.rel === r
-                  return (
-                    <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                      stroke={isFocused ? 'rgba(52,211,153,0.95)' : isHoverActive ? 'rgba(125,211,252,0.95)' : 'rgba(14,165,233,0.5)'}
-                      strokeWidth={(isFocused || isHoverActive ? 2 : 1) + strength * 1.5}
-                      strokeDasharray="4 3"
-                      onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
-                      onMouseLeave={() => setSchemaHover(null)}
-                      onClick={() => setFocusedRelation(prev => prev === r ? null : r)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  )
-                })}
+                {(() => {
+                  const isActive = (r: TableRelation) => focusedRelation === r || (schemaHover?.type === 'relation' && schemaHover.rel === r)
+                  const hasActive = tableRelations.some(isActive)
+                  const renderRel = (r: TableRelation, i: number) => {
+                    const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
+                    if (!p1 || !p2) return null
+                    const strength = Math.min(1, r.matches.length / 3)
+                    const isFocused = focusedRelation === r
+                    const active = isActive(r)
+                    return (
+                      <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                        stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(125,211,252,0.95)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.5)'}
+                        strokeWidth={(active ? 2 : 1) + strength * 1.5}
+                        strokeDasharray="4 3"
+                        onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
+                        onMouseLeave={() => setSchemaHover(null)}
+                        onClick={() => setFocusedRelation(prev => prev === r ? null : r)}
+                        style={{ cursor: 'pointer', filter: active ? 'drop-shadow(0 0 3px rgba(125,211,252,0.6))' : undefined }}
+                      />
+                    )
+                  }
+                  // Igual que en la vista de tablas: la relación activa se dibuja al final
+                  // (primer plano) y las demás se atenúan para que resalte.
+                  return <>
+                    {tableRelations.map((r, i) => !isActive(r) ? renderRel(r, i) : null)}
+                    {tableRelations.map((r, i) => isActive(r) ? renderRel(r, i) : null)}
+                  </>
+                })()}
                 {schemaTables.map(t => {
                   const p = schemaPositions.get(t.table)!
                   return (

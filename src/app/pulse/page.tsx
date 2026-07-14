@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useReveal } from '@/hooks/useReveal'
 import { useCountUp } from '@/hooks/useCountUp'
+import { useScrollProgress } from '@/hooks/useScrollProgress'
 
 // Las variables --font-oswald / --font-mono / --font-inter las define next/font/google
 // en src/app/pulse/layout.tsx (autohospedadas en build time). Titulares en Inter bold
@@ -154,23 +155,29 @@ const TESTIMONIOS_V2 = [
   { seg:'Vendedor individual · Medellín', texto:'Cerré tres retomas en una semana yo solo. Antes eso me tomaba un mes coordinando con crédito y seguros.', nombre:'Laura Betancur', cargo:'Asesora Comercial · Independiente' },
 ]
 
+function DataBridgeMiniDiagram() {
+  return (
+    <div style={{ position:'relative', height:'150px', padding:'14px' }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} aria-hidden="true">
+        {DB_LINKS.map(([a,b],i) => {
+          const na = DB_NODES.find(n=>n.id===a)!, nb = DB_NODES.find(n=>n.id===b)!
+          return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} stroke="var(--line)" strokeWidth="0.6" strokeDasharray="2,2" />
+        })}
+      </svg>
+      {DB_NODES.map(n => (
+        <div key={n.id} style={{ position:'absolute', left:`${n.x}%`, top:`${n.y}%`, transform:'translate(-50%,-50%)', display:'flex', alignItems:'center', gap:'5px', background:'var(--bg-2)', border:`1px solid ${n.chip}66`, borderRadius:'4px', padding:'4px 8px', fontFamily:F_MONO, fontSize:'10px', color:'var(--ink)', whiteSpace:'nowrap' }}>
+          <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:n.chip, flexShrink:0 }} />{n.label}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function SchemaPreview() {
   return (
     <div className="panel" style={{ marginBottom:'22px' }}>
       <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
-      <div style={{ position:'relative', height:'150px', padding:'14px' }}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} aria-hidden="true">
-          {DB_LINKS.map(([a,b],i) => {
-            const na = DB_NODES.find(n=>n.id===a)!, nb = DB_NODES.find(n=>n.id===b)!
-            return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} stroke="var(--line)" strokeWidth="0.6" strokeDasharray="2,2" />
-          })}
-        </svg>
-        {DB_NODES.map(n => (
-          <div key={n.id} style={{ position:'absolute', left:`${n.x}%`, top:`${n.y}%`, transform:'translate(-50%,-50%)', display:'flex', alignItems:'center', gap:'5px', background:'var(--bg-2)', border:`1px solid ${n.chip}66`, borderRadius:'4px', padding:'4px 8px', fontFamily:F_MONO, fontSize:'10px', color:'var(--ink)', whiteSpace:'nowrap' }}>
-            <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:n.chip, flexShrink:0 }} />{n.label}
-          </div>
-        ))}
-      </div>
+      <DataBridgeMiniDiagram />
     </div>
   )
 }
@@ -196,6 +203,7 @@ export default function PulseMotorLanding() {
   const [pricingSegment, setPricingSegment]   = useState<'individual'|'concesionario'>('individual')
   const supabase = createClient()
 
+  const heroScroll      = useScrollProgress<HTMLDivElement>()
   const heroPanel      = useReveal<HTMLDivElement>()
   const logosReveal     = useReveal<HTMLDivElement>()
   const porQueText      = useReveal<HTMLDivElement>()
@@ -250,6 +258,15 @@ export default function PulseMotorLanding() {
     transform: visible ? 'translateY(0)' : 'translateY(20px)',
     transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
   })
+
+  // Hero pineado (scroll-jacking): "grow" agranda el panel de tool-calls como si fuera
+  // el video reproduciéndose; "tilt" lo inclina en 3D y cruza al esquema real de DataBridge.
+  // El mockup inclinado muestra siempre trabajo real (DataBridge), nunca un dispositivo
+  // genérico decorativo — ver regla dura 2 de la skill pulsemotor-design.
+  const heroP = heroScroll.progress
+  const grow = Math.min(1, Math.max(0, (heroP - 0.12) / 0.38))
+  const tilt = Math.min(1, Math.max(0, (heroP - 0.55) / 0.4))
+  const crossfade = Math.min(1, Math.max(0, (tilt - 0.25) / 0.75))
 
   return (
     <>
@@ -473,10 +490,21 @@ export default function PulseMotorLanding() {
           </div>
         </header>
 
-        {/* HERO */}
-        <section id="plataforma" style={{ maxWidth:'1140px', margin:'0 auto', padding:'64px 24px 40px' }}>
-          <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center' }}>
-            <div style={{ flex:'1', minWidth:'320px' }}>
+        {/* HERO — sección pineada: el panel de tool-calls se agranda "reproduciéndose"
+            y después se inclina en 3D revelando el esquema real de DataBridge, al ritmo
+            del scroll. Con prefers-reduced-motion queda como el hero estático de siempre. */}
+        <div ref={heroScroll.ref} style={heroScroll.reduced ? undefined : { height:'300vh', position:'relative' }}>
+        <section id="plataforma" style={heroScroll.reduced ? { maxWidth:'1140px', margin:'0 auto', padding:'64px 24px 40px' } : {
+          position:'sticky', top:0, height:'100vh', overflow:'hidden',
+          maxWidth:'1140px', margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center',
+        }}>
+          <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%' }}>
+            <div style={heroScroll.reduced ? { flex:'1', minWidth:'320px' } : {
+              flex:'1', minWidth:'320px',
+              opacity: 1 - Math.min(1, grow / 0.7),
+              transform: `translateY(${-28 * grow}px)`,
+              pointerEvents: grow > 0.6 ? 'none' : undefined,
+            }}>
               <div style={{ ...v(100), marginBottom:'24px' }}>
                 <span className="badge guard-sweep"><span className="live-dot" />Agente activo · 24/7/365</span>
               </div>
@@ -491,47 +519,69 @@ export default function PulseMotorLanding() {
                 <a href="#ecosistema" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver arquitectura</a>
               </div>
               <p style={{ ...v(700), fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO, marginBottom:'36px' }}>WhatsApp Business · DMS · CRM · Aliados financieros</p>
-              <a href="#ecosistema" className="scroll-cue" style={{ opacity:visible?1:0, transition:'opacity 0.7s ease 850ms' }}>
+              <a href="#ecosistema" className="scroll-cue" style={{ opacity:(visible?1:0) * (heroScroll.reduced ? 1 : (1 - grow)), transition:'opacity 0.7s ease 850ms' }}>
                 Descubrí el ecosistema
                 <span aria-hidden="true">⌄</span>
               </a>
             </div>
 
-            {/* Panel hero: conversación real + timeline de tool-calls (elemento de firma) */}
-            <div ref={heroPanel.ref} className={`reveal${heroPanel.inView?' in':''}`} style={{ flex:'1', minWidth:'320px', maxWidth:'460px' }}>
-              <div className="panel">
-                <div className="panel-head"><span>Precio lead · Ruteo</span><span style={{ color:'var(--green)' }}>Live</span></div>
-                <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--line)' }}>
-                  <div style={{ fontSize:'13px', color:'var(--ink)', marginBottom:'12px' }}>
-                    <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)', marginRight:'8px' }}>[09:42]</span>
-                    "Me interesa la SUV híbrida, tengo un sedán 2021 para retoma y necesito financiación a 60 meses."
-                  </div>
-                  <div style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'10px' }}>Pulse Agent · Respondiendo</div>
-                  <div style={{ fontSize:'13px', color:'var(--ink-dim)', lineHeight:1.6 }}>
-                    Perfecto. Tasé preliminarmente su 2021 en $42.500.000. Con nuestro aliado bancario logro 1.9% MV y cuota cerrada con póliza todo riesgo. ¿Le envío la proyección por WhatsApp?
-                  </div>
-                </div>
-                <div className="panel-head" style={{ borderBottom:'1px solid var(--line)' }}><span>Timeline · Ejecutado</span></div>
-                <div>
-                  {TOOL_CALLS.map((t,i) => (
-                    <div key={t.fn} className={`tool-row${toolCallsVisible.includes(i)?' in':''}`}>
-                      <span className="fn"><span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:t.chip, marginRight:'8px' }} />{t.fn}</span>
-                      <span className="ms"><span style={{ color:'var(--green)' }}>✓</span>{t.ms}ms</span>
+            {/* Panel hero: conversación + timeline de tool-calls, que al hacer scroll se
+                agranda, se inclina en 3D y cruza al esquema real detectado por DataBridge. */}
+            <div
+              ref={heroPanel.ref}
+              className={`reveal${heroPanel.inView?' in':''}`}
+              style={heroScroll.reduced ? { flex:'1', minWidth:'320px', maxWidth:'460px' } : {
+                flex:'1', minWidth:'320px', maxWidth:'460px',
+                transform: `perspective(1200px) translateX(${-26 * grow + 8 * tilt}%) scale(${1 + 0.55 * grow - 0.4 * tilt}) rotateY(${20 * tilt}deg) rotateX(${-9 * tilt}deg)`,
+                willChange:'transform',
+              }}
+            >
+              <div className="panel" style={{ position:'relative', minHeight: heroScroll.reduced ? undefined : '412px' }}>
+                <div style={heroScroll.reduced ? undefined : { opacity:1 - crossfade, pointerEvents: crossfade > 0.5 ? 'none' : undefined, position: heroScroll.reduced ? undefined : 'absolute', inset: heroScroll.reduced ? undefined : 0 }}>
+                  <div className="panel-head"><span>Precio lead · Ruteo</span><span style={{ color:'var(--green)' }}>Live</span></div>
+                  <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--line)' }}>
+                    <div style={{ fontSize:'13px', color:'var(--ink)', marginBottom:'12px' }}>
+                      <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)', marginRight:'8px' }}>[09:42]</span>
+                      "Me interesa la SUV híbrida, tengo un sedán 2021 para retoma y necesito financiación a 60 meses."
                     </div>
-                  ))}
+                    <div style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'10px' }}>Pulse Agent · Respondiendo</div>
+                    <div style={{ fontSize:'13px', color:'var(--ink-dim)', lineHeight:1.6 }}>
+                      Perfecto. Tasé preliminarmente su 2021 en $42.500.000. Con nuestro aliado bancario logro 1.9% MV y cuota cerrada con póliza todo riesgo. ¿Le envío la proyección por WhatsApp?
+                    </div>
+                  </div>
+                  <div className="panel-head" style={{ borderBottom:'1px solid var(--line)' }}><span>Timeline · Ejecutado</span></div>
+                  <div>
+                    {TOOL_CALLS.map((t,i) => (
+                      <div key={t.fn} className={`tool-row${toolCallsVisible.includes(i)?' in':''}`}>
+                        <span className="fn"><span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:t.chip, marginRight:'8px' }} />{t.fn}</span>
+                        <span className="ms"><span style={{ color:'var(--green)' }}>✓</span>{t.ms}ms</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* El trámite avanza: el auto recorre la pista al ritmo de los tool-calls ejecutados */}
+                  <div className="tool-road" aria-hidden="true">
+                    <span className="tool-road-car" style={{ left:`${6 + (toolCallsVisible.length / TOOL_CALLS.length) * 88}%` }}>🚗</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px' }}>
+                    <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>
+                    <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>87%</span>
+                  </div>
                 </div>
-                {/* El trámite avanza: el auto recorre la pista al ritmo de los tool-calls ejecutados */}
-                <div className="tool-road" aria-hidden="true">
-                  <span className="tool-road-car" style={{ left:`${6 + (toolCallsVisible.length / TOOL_CALLS.length) * 88}%` }}>🚗</span>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px' }}>
-                  <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>
-                  <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>87%</span>
-                </div>
+
+                {!heroScroll.reduced && (
+                  <div style={{ opacity:crossfade, pointerEvents: crossfade > 0.5 ? undefined : 'none', position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                    <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
+                    <DataBridgeMiniDiagram />
+                    <div style={{ padding:'14px 18px', fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO, borderTop:'1px solid var(--line)' }}>
+                      Detectado desde tu Excel o DMS — sin escribir una sola línea de SQL.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </section>
+        </div>
 
         {/* LOGOS */}
         <section style={{ padding:'32px 0 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>

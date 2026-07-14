@@ -246,6 +246,7 @@ export default function DataBridgePage() {
   const [schemaViewMode, setSchemaViewMode] = useState<'radial' | 'tables'>('radial')
   const [schemaFullscreen, setSchemaFullscreen] = useState(false)
   const [erLines, setErLines] = useState<{ key: string; x1: number; y1: number; x2: number; y2: number; rel: TableRelation; match: FieldMatch }[]>([])
+  const [tablePositions, setTablePositions] = useState<Map<string, { x: number; y: number }>>(new Map())
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
@@ -269,6 +270,8 @@ export default function DataBridgePage() {
   const dragCounterRef = useRef(0)
   const erContentRef = useRef<HTMLDivElement>(null)
   const erFieldRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const erDragRef = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null)
+  const erJustDraggedRef = useRef(false)
 
   const supabase = createClient()
 
@@ -616,6 +619,41 @@ export default function DataBridgePage() {
   const setErFieldRef = (key: string) => (el: HTMLDivElement | null) => {
     if (el) erFieldRefs.current.set(key, el)
     else erFieldRefs.current.delete(key)
+  }
+
+  const ER_TABLE_WIDTH = 210
+  const ER_TABLE_GAP = 20
+
+  // Posición por defecto: mismo orden en fila que el layout original (antes de mover nada a mano).
+  const getTablePos = (tableId: string, index: number) =>
+    tablePositions.get(tableId) || { x: index * (ER_TABLE_WIDTH + ER_TABLE_GAP), y: 0 }
+
+  const onTableHeaderMouseDown = (tableId: string, index: number) => (e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const origin = getTablePos(tableId, index)
+    const drag = { id: tableId, startX: e.clientX, startY: e.clientY, origX: origin.x, origY: origin.y, moved: false }
+    erDragRef.current = drag
+
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - drag.startX
+      const dy = ev.clientY - drag.startY
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true
+      setTablePositions(prev => {
+        const next = new Map(prev)
+        next.set(drag.id, { x: Math.max(0, drag.origX + dx), y: Math.max(0, drag.origY + dy) })
+        return next
+      })
+      recomputeErLines()
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      erJustDraggedRef.current = drag.moved
+      erDragRef.current = null
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   const recomputeErLines = useCallback(() => {
@@ -994,12 +1032,24 @@ export default function DataBridgePage() {
             <>
               {schemaViewMode === 'tables' ? (
                 <div style={{ overflow: 'auto', maxHeight: schemaFullscreen ? 'calc(100vh - 220px)' : '380px', background: '#080f1a', borderRadius: '14px', padding: '14px' }}>
-                  <div ref={erContentRef} style={{ position: 'relative', display: 'inline-flex', gap: '20px', alignItems: 'flex-start' }}>
-                    {schemaTables.map(t => {
+                  {(() => {
+                    const boxes = schemaTables.map((t, i) => {
                       const fields = fieldsOfTable(t.table)
-                      return (
-                        <div key={t.id} style={{ minWidth: '170px', maxWidth: '210px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                          <div onClick={() => setSchemaHover({ type: 'table', table: t.table })} style={{ background: t.color, color: 'rgba(0,0,0,0.82)', fontWeight: 700, fontSize: '12px', padding: '8px 10px', fontFamily: FONT_BODY, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      const pos = getTablePos(t.id, i)
+                      const height = 34 + fields.length * 26
+                      return { t, i, fields, pos, height }
+                    })
+                    const containerW = Math.max(400, ...boxes.map(b => b.pos.x + ER_TABLE_WIDTH)) + 20
+                    const containerH = Math.max(200, ...boxes.map(b => b.pos.y + b.height)) + 20
+                    return (
+                  <div ref={erContentRef} style={{ position: 'relative', width: `${containerW}px`, height: `${containerH}px` }}>
+                    {boxes.map(({ t, i, fields, pos }) => (
+                        <div key={t.id} style={{ position: 'absolute', left: `${pos.x}px`, top: `${pos.y}px`, width: `${ER_TABLE_WIDTH}px`, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+                          <div
+                            onMouseDown={onTableHeaderMouseDown(t.id, i)}
+                            onClick={() => { if (erJustDraggedRef.current) { erJustDraggedRef.current = false; return }; setSchemaHover({ type: 'table', table: t.table }) }}
+                            title="Arrastrá para mover la tabla"
+                            style={{ background: t.color, color: 'rgba(0,0,0,0.82)', fontWeight: 700, fontSize: '12px', padding: '8px 10px', fontFamily: FONT_BODY, cursor: 'grab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', userSelect: 'none' }}>
                             {t.table}
                           </div>
                           <div>
@@ -1016,8 +1066,7 @@ export default function DataBridgePage() {
                             })}
                           </div>
                         </div>
-                      )
-                    })}
+                    ))}
                     <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'visible' }} width="100%" height="100%">
                       {erLines.map(l => {
                         const isFocused = focusedRelation === l.rel
@@ -1038,6 +1087,8 @@ export default function DataBridgePage() {
                       })}
                     </svg>
                   </div>
+                    )
+                  })()}
                 </div>
               ) : (
               <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: schemaFullscreen ? '480px' : undefined, height: 'auto', background: '#080f1a', borderRadius: '14px', display: 'block', margin: schemaFullscreen ? '0 auto' : undefined }}>

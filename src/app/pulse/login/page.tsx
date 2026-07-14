@@ -6,13 +6,25 @@
 
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function PulseLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <PulseLoginForm />
+    </Suspense>
+  )
+}
+
+function PulseLoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+  // Si viene de /pulse/databridge, lo devolvemos ahí (no al dashboard genérico) para
+  // que vea los resultados que ya había desbloqueado al crear/loguear su cuenta.
+  const destinoPostLogin = searchParams.get('from') === 'databridge' ? '/pulse/databridge' : '/pulse/dashboard'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,7 +55,7 @@ export default function PulseLoginPage() {
         return
       }
 
-      router.push('/pulse/dashboard')
+      router.push(destinoPostLogin)
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error inesperado')
@@ -58,7 +70,7 @@ export default function PulseLoginPage() {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://pulsemotor.co/pulse/auth/callback',
+          redirectTo: `https://pulsemotor.co/pulse/auth/callback?next=${encodeURIComponent(destinoPostLogin)}`,
         },
       })
       if (authError) {

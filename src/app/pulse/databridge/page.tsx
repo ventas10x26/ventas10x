@@ -738,7 +738,7 @@ export default function DataBridgePage() {
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
-                  <a href="/pulse/signup" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
+                  <a href="/pulse/signup?from=databridge" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
                 </div>
               )}
             </div>
@@ -1121,11 +1121,11 @@ export default function DataBridgePage() {
                 <strong style={{ color: '#34d399' }}>{tableRelations.length} {tableRelations.length === 1 ? 'relación posible' : 'relaciones posibles'}</strong>.
                 Creá una cuenta gratis para ver el mapa 3D completo y el esquema de relaciones.
               </div>
-              <a href="/pulse/signup" style={{ display: 'inline-block', padding: '11px 24px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', marginBottom: '10px' }}>
+              <a href="/pulse/signup?from=databridge" style={{ display: 'inline-block', padding: '11px 24px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', marginBottom: '10px' }}>
                 Crear cuenta gratis →
               </a>
               <div style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b' }}>
-                ¿Ya tenés cuenta? <a href="/pulse/login" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Iniciá sesión</a>
+                ¿Ya tenés cuenta? <a href="/pulse/login?from=databridge" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Iniciá sesión</a>
               </div>
             </div>
           </div>

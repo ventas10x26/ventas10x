@@ -41,6 +41,11 @@ function PulseSignupForm() {
   const [error, setError] = useState('')
   const [cuposDisponibles, setCuposDisponibles] = useState<number | null>(null)
   const [modoGoogle, setModoGoogle] = useState(false)
+  // Si viene de /pulse/databridge (subió fuentes de datos como visitante anónimo, plan
+  // Enterprise), saltamos el onboarding genérico de "pegá tu primer lead" — ya tiene
+  // trabajo real hecho y debe volver directo a ver sus resultados desbloqueados.
+  const from = searchParams.get('from')
+  const destinoPostRegistro = from === 'databridge' ? '/pulse/databridge' : '/pulse/onboarding'
 
   useEffect(() => {
     fetch('/api/pulse/early-adopter-status')
@@ -56,7 +61,7 @@ function PulseSignupForm() {
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/pulse/onboarding`,
+        redirectTo: `${window.location.origin}${destinoPostRegistro}`,
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
@@ -111,7 +116,7 @@ function PulseSignupForm() {
         console.error('post-signup falló:', e)
       }
 
-      router.push('/pulse/onboarding')
+      router.push(destinoPostRegistro)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error inesperado')
       setEstado('error')

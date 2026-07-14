@@ -24,6 +24,14 @@ interface SheetData { name: string; rows: Record<string, unknown>[] }
 interface FieldMatch { fieldA: string; fieldB: string; label: string; score: number }
 interface TableRelation { a: string; b: string; matches: FieldMatch[] }
 
+type Step = 'subir' | 'mapear' | 'relaciones' | 'confirmar'
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'subir', label: 'Subir' },
+  { key: 'mapear', label: 'Mapear' },
+  { key: 'relaciones', label: 'Relaciones' },
+  { key: 'confirmar', label: 'Confirmar' },
+]
+
 const rand = (a: number, b: number) => Math.random() * (b - a) + a
 
 const BASE_DIM = 400
@@ -229,6 +237,7 @@ export default function DataBridgePage() {
   const [projectName, setProjectName] = useState('')
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
+  const [step, setStep]               = useState<Step>('subir')
   const [pendingSheets, setPendingSheets]         = useState<SheetData[]>([])
   const [selectedSheetNames, setSelectedSheetNames] = useState<Set<string>>(new Set())
   const [progPct, setProgPct]         = useState(0)
@@ -484,6 +493,7 @@ export default function DataBridgePage() {
     setExpandedTables(new Set())
     setLoadedSheets(sheets)
     setPhase('ready')
+    setStep('mapear')
     if (authChecked && !user) {
       saveAnonProject(sheets.length, n.filter(f => f.kind === 'field').length, relations.length)
     }
@@ -748,6 +758,11 @@ export default function DataBridgePage() {
 
   const isGated = authChecked && !user && phase === 'ready'
 
+  const stepIndex = STEPS.findIndex(s => s.key === step)
+  const canReachStep = (s: Step) => s === 'subir' || phase === 'ready'
+  const canGoBack = stepIndex > 0
+  const canGoNext = stepIndex < STEPS.length - 1 && phase === 'ready'
+
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
@@ -783,6 +798,40 @@ export default function DataBridgePage() {
           )}
         </div>
 
+        {/* Stepper */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+          {STEPS.map((s, i) => {
+            const isDone = i < stepIndex
+            const isCurrent = i === stepIndex
+            const reachable = canReachStep(s.key)
+            return (
+              <div key={s.key} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : '0 0 auto' }}>
+                <button
+                  onClick={() => reachable && setStep(s.key)}
+                  disabled={!reachable}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', padding: '4px 0', cursor: reachable ? 'pointer' : 'default', fontFamily: FONT_BODY, whiteSpace: 'nowrap' }}
+                >
+                  <span style={{
+                    width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: 700, flexShrink: 0,
+                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : 'rgba(255,255,255,0.05)',
+                    color: isDone ? '#10b981' : isCurrent ? '#fff' : '#475569',
+                    border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    {isDone ? '✓' : i + 1}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#e2e8f0' : isDone ? '#94a3b8' : '#475569' }}>
+                    {s.label}
+                  </span>
+                </button>
+                {i < STEPS.length - 1 && (
+                  <div style={{ flex: 1, height: '1px', background: isDone ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)', margin: '0 12px', minWidth: '16px' }} />
+                )}
+              </div>
+            )
+          })}
+        </div>
+
         <div style={{ position: 'relative' }}>
         <div style={{
           ...(fullscreen ? {
@@ -794,6 +843,7 @@ export default function DataBridgePage() {
           ...(isGated ? { filter: 'blur(10px) saturate(0.7)', pointerEvents: 'none', userSelect: 'none' } : {}),
         }}>
         {/* Visualizador */}
+        {(step === 'subir' || step === 'mapear') && (
         <div style={fullscreen ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column' } : { flex: '1 1 600px', minWidth: 0 }}>
         <div style={fullscreen ? {
           flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
@@ -1000,8 +1050,10 @@ export default function DataBridgePage() {
           )}
         </div>
         </div>
+        )}
 
         {/* Esquema de relaciones 2D */}
+        {step === 'relaciones' && (
         <div style={schemaFullscreen ? {
           position: 'fixed', inset: 0, zIndex: 200, background: '#0B0D0C',
           padding: '20px 24px', overflowY: 'auto',
@@ -1175,6 +1227,41 @@ export default function DataBridgePage() {
             </>
           )}
         </div>
+        )}
+
+        {/* Confirmar */}
+        {step === 'confirmar' && (
+        <div style={{ flex: '1 1 600px', minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', fontFamily: FONT_BODY, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Resumen del proyecto</span>
+            <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
+              {nodes.filter(n => n.kind === 'table').length} tablas · {nodes.filter(n => n.kind === 'field').length} campos · {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'}
+            </span>
+          </div>
+
+          {stats.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: '10px', marginBottom: '20px' }}>
+              {stats.map(s => (
+                <div key={s.table} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
+                  <div style={{ fontFamily: FONT, fontSize: '24px', fontWeight: 800, color: s.color }}>{s.count}</div>
+                  <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', fontFamily: FONT_BODY }}>Campos · {s.table}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>¿Todo listo?</div>
+              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Podés subir más fuentes cuando quieras — la IA vuelve a cruzar todo automáticamente.</div>
+            </div>
+            <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
+              Subir otra fuente →
+              <input type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
+            </label>
+          </div>
+        </div>
+        )}
         </div>
 
         {/* Muro de registro para visitantes sin sesión */}
@@ -1200,31 +1287,32 @@ export default function DataBridgePage() {
         )}
         </div>
 
-        {/* Stats */}
-        {phase === 'ready' && user && stats.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: '10px', marginBottom: '20px' }}>
-            {stats.map(s => (
-              <div key={s.table} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
-                <div style={{ fontFamily: FONT, fontSize: '24px', fontWeight: 800, color: s.color }}>{s.count}</div>
-                <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', fontFamily: FONT_BODY }}>Campos · {s.table}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* CTA subir archivo real */}
-        {phase === 'ready' && user && (
-          <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>Subí tus fuentes de datos reales</div>
-              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Seleccioná uno o varios archivos a la vez — la IA arma el mapa de campos y tipos en segundos.</div>
-            </div>
-            <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
-              Subir archivo →
-              <input type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
-            </label>
-          </div>
-        )}
+        {/* Navegación entre pasos */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+          <button
+            onClick={() => canGoBack && setStep(STEPS[stepIndex - 1].key)}
+            disabled={!canGoBack}
+            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: canGoBack ? '#94a3b8' : '#334155', fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
+          >
+            ← Atrás
+          </button>
+          {stepIndex < STEPS.length - 1 ? (
+            <button
+              onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
+              disabled={!canGoNext}
+              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : 'rgba(255,255,255,0.08)', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+            >
+              Siguiente →
+            </button>
+          ) : (
+            <a
+              href={user ? '/pulse/dashboard' : '/pulse/signup?from=databridge'}
+              style={{ display: 'inline-block', padding: '10px 22px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}
+            >
+              {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
+            </a>
+          )}
+        </div>
       </div>
     </PulseAppShell>
   )

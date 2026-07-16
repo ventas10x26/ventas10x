@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import { Poppins } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
+import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -240,10 +241,9 @@ export default function FenixConsultoresPage() {
     <div className={`fenix-root ${poppins.variable}`} style={{
       fontFamily: "var(--font-poppins), system-ui, sans-serif",
       background: `
-        radial-gradient(1300px 800px at 50% -10%, ${ACCENT}4a 0%, transparent 62%),
-        radial-gradient(1000px 700px at 92% 38%, ${ACCENT}26 0%, transparent 58%),
-        radial-gradient(1000px 700px at 3% 72%, ${ACCENT}20 0%, transparent 58%),
-        radial-gradient(800px 600px at 50% 100%, ${ACCENT}18 0%, transparent 55%),
+        radial-gradient(1300px 800px at 50% -10%, ${ACCENT}40 0%, transparent 58%),
+        radial-gradient(700px 500px at 95% 15%, ${ACCENT}0f 0%, transparent 55%),
+        radial-gradient(700px 500px at 0% 20%, ${ACCENT}0c 0%, transparent 55%),
         ${DARK}
       `,
       minHeight: '100vh',
@@ -406,7 +406,7 @@ export default function FenixConsultoresPage() {
 
         <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
           {SERVICIOS.map(({ Icono, titulo, desc }) => (
-            <div key={titulo} className="fenix-service-card" style={{
+            <FenixGlowCard key={titulo} className="fenix-service-card" style={{
               position: 'relative', overflow: 'hidden',
               border: `1px solid ${ACCENT}45`, borderRadius: '22px',
               padding: '40px', minHeight: '480px',
@@ -429,7 +429,7 @@ export default function FenixConsultoresPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </FenixGlowCard>
           ))}
         </div>
       </section>
@@ -495,10 +495,10 @@ export default function FenixConsultoresPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
             {PILARES.map(p => (
-              <div key={p.titulo} className="fenix-tech-card" style={{ ...CARD_STYLE, padding: '30px' }}>
+              <FenixGlowCard key={p.titulo} className="fenix-tech-card" style={{ ...CARD_STYLE, padding: '30px' }}>
                 <div style={{ position: 'relative', fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>{p.titulo}</div>
                 <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{p.desc}</div>
-              </div>
+              </FenixGlowCard>
             ))}
             <a href="#contacto" style={{
               background: ACCENT, borderRadius: '18px', padding: '30px',
@@ -722,24 +722,13 @@ export default function FenixConsultoresPage() {
         .fenix-root h1, .fenix-root h2, .fenix-root h3 {
           font-family: var(--font-poppins), system-ui, sans-serif;
         }
-        .fenix-service-card {
+        .fenix-service-card, .fenix-tech-card {
           background: rgba(255,255,255,.012);
-          transition: background .45s ease, border-color .45s ease;
+          transition: background .4s ease, border-color .4s ease;
         }
-        .fenix-service-card:hover {
-          background:
-            radial-gradient(130% 110% at 100% 0%, ${ACCENT} 0%, ${ACCENT}dd 28%, ${ACCENT}70 52%, transparent 78%),
-            rgba(255,255,255,.012);
-          border-color: ${ACCENT};
-        }
-        .fenix-tech-card {
-          background: rgba(255,255,255,.012);
-          transition: background .45s ease, border-color .45s ease;
-        }
-        .fenix-tech-card:hover {
-          background:
-            radial-gradient(130% 110% at 100% 0%, ${ACCENT} 0%, ${ACCENT}dd 28%, ${ACCENT}70 52%, transparent 78%),
-            rgba(255,255,255,.012);
+        .fenix-service-card:hover, .fenix-service-card.is-active,
+        .fenix-tech-card:hover, .fenix-tech-card.is-active {
+          background: linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT} 42%, ${ACCENT}55 72%, transparent 100%);
           border-color: ${ACCENT};
         }
         .fenix-hero-rays {

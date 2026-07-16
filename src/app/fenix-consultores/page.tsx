@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Empresa dedicada a la defensa legal, con especialistas en consultoría empresarial, recaudo y saneamiento de cartera. Más de 12 años de experiencia.',
 }
 
-const DARK = '#0c0805'
+const DARK = '#150d07'
 const ACCENT = '#F5821F'
 
 // Icono pequeño de brújula/objetivo para Misión
@@ -240,9 +240,10 @@ export default function FenixConsultoresPage() {
     <div className={`fenix-root ${poppins.variable}`} style={{
       fontFamily: "var(--font-poppins), system-ui, sans-serif",
       background: `
-        radial-gradient(1200px 700px at 50% -8%, ${ACCENT}14 0%, transparent 60%),
-        radial-gradient(900px 600px at 90% 40%, ${ACCENT}0a 0%, transparent 55%),
-        radial-gradient(900px 600px at 5% 70%, ${ACCENT}08 0%, transparent 55%),
+        radial-gradient(1300px 800px at 50% -10%, ${ACCENT}4a 0%, transparent 62%),
+        radial-gradient(1000px 700px at 92% 38%, ${ACCENT}26 0%, transparent 58%),
+        radial-gradient(1000px 700px at 3% 72%, ${ACCENT}20 0%, transparent 58%),
+        radial-gradient(800px 600px at 50% 100%, ${ACCENT}18 0%, transparent 55%),
         ${DARK}
       `,
       minHeight: '100vh',
@@ -256,7 +257,7 @@ export default function FenixConsultoresPage() {
         <div style={{
           position: 'absolute', top: '-260px', left: '50%', transform: 'translateX(-50%)',
           width: '1000px', height: '1000px', borderRadius: '50%',
-          background: `radial-gradient(circle, ${ACCENT}38 0%, ${ACCENT}14 45%, transparent 70%)`,
+          background: `radial-gradient(circle, ${ACCENT}60 0%, ${ACCENT}28 45%, transparent 70%)`,
           filter: 'blur(10px)',
           pointerEvents: 'none',
         }} />

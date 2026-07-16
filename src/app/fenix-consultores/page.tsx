@@ -1,7 +1,14 @@
 // Ruta destino: src/app/fenix-consultores/page.tsx
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
+import { Poppins } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-poppins',
+})
 
 export const metadata: Metadata = {
   title: 'Fenix Consultores Empresariales S.A.S. | Bufete de abogados especializados',
@@ -230,8 +237,8 @@ const BLOG = [
 
 export default function FenixConsultoresPage() {
   return (
-    <div style={{
-      fontFamily: "var(--font-jakarta,'Plus Jakarta Sans',system-ui,sans-serif)",
+    <div className={`fenix-root ${poppins.variable}`} style={{
+      fontFamily: "var(--font-poppins), system-ui, sans-serif",
       background: `
         radial-gradient(1200px 700px at 50% -8%, ${ACCENT}14 0%, transparent 60%),
         radial-gradient(900px 600px at 90% 40%, ${ACCENT}0a 0%, transparent 55%),
@@ -306,7 +313,7 @@ export default function FenixConsultoresPage() {
         <div style={{ maxWidth: '820px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
           <h1 style={{
             fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800,
-            lineHeight: 1.1, letterSpacing: '-.04em', marginBottom: '1.5rem',
+            lineHeight: 1.1, letterSpacing: '-.02em', marginBottom: '1.5rem',
           }}>
             Fenix Consultores<br />Empresariales S.A.S.<br />
             <span style={{ color: ACCENT }}>defensa legal y recaudo de cartera.</span>
@@ -386,7 +393,7 @@ export default function FenixConsultoresPage() {
             <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
               Servicios
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, margin: 0, maxWidth: '440px' }}>
+            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, margin: 0, maxWidth: '440px' }}>
               Soluciones <span style={{ color: ACCENT }}>legales</span> integrales
             </h2>
           </div>
@@ -433,7 +440,7 @@ export default function FenixConsultoresPage() {
             <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
               Nosotros
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.5rem' }}>
               <span style={{ color: ACCENT }}>Más de una década</span> defendiendo sus intereses
             </h2>
             <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.85, marginBottom: '1.1rem' }}>
@@ -469,7 +476,7 @@ export default function FenixConsultoresPage() {
           <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
             Valores corporativos
           </div>
-          <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, marginBottom: '2.5rem', maxWidth: '560px' }}>
+          <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '2.5rem', maxWidth: '560px' }}>
             Los principios que guían <span style={{ color: ACCENT }}>cada proceso jurídico</span>
           </h2>
 
@@ -545,7 +552,7 @@ export default function FenixConsultoresPage() {
             <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
               Gestión de Cartera
             </div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.2, marginBottom: '1.1rem' }}>
+            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, marginBottom: '1.1rem' }}>
               Propuesta de <span style={{ color: ACCENT }}>valor única</span>
             </h2>
             <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1rem' }}>
@@ -571,7 +578,7 @@ export default function FenixConsultoresPage() {
             <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
               Nuestro compromiso
             </div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.2, margin: 0 }}>
+            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: 0 }}>
               Los números que nos respaldan
             </h2>
           </div>
@@ -602,7 +609,7 @@ export default function FenixConsultoresPage() {
               <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
                 Blog
               </div>
-              <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.2, margin: 0 }}>
+              <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: 0 }}>
                 Novedades en <span style={{ color: ACCENT }}>Recuperación</span>
               </h2>
             </div>
@@ -653,7 +660,7 @@ export default function FenixConsultoresPage() {
             background: `radial-gradient(circle, ${ACCENT}25 0%, transparent 70%)`,
             pointerEvents: 'none',
           }} />
-          <h2 style={{ position: 'relative', fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, marginBottom: '1.25rem' }}>
+          <h2 style={{ position: 'relative', fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.25rem' }}>
             ¿Necesita asesoría <span style={{ color: ACCENT }}>jurídica especializada?</span>
           </h2>
           <p style={{ position: 'relative', fontSize: '16px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7, marginBottom: '2rem' }}>
@@ -711,6 +718,9 @@ export default function FenixConsultoresPage() {
       </footer>
 
       <style>{`
+        .fenix-root h1, .fenix-root h2, .fenix-root h3 {
+          font-family: var(--font-poppins), system-ui, sans-serif;
+        }
         .fenix-service-card {
           background: rgba(255,255,255,.012);
           transition: background .45s ease, border-color .45s ease;

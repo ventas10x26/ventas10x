@@ -5,6 +5,7 @@ import { Space_Grotesk } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
 import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
+import { FenixStickyProspecting } from '@/components/fenix/FenixStickyProspecting'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -246,6 +247,7 @@ export default function FenixConsultoresPage() {
       color: '#fff',
     }}>
       <FenixNav />
+      <FenixStickyProspecting />
 
       {/* ── HERO ── */}
       <section id="inicio" style={{ padding: '7rem 1.5rem 4rem', position: 'relative', overflow: 'hidden' }}>

@@ -26,7 +26,12 @@ const LABEL_STYLE: CSSProperties = {
 
 type Status = 'idle' | 'loading' | 'ok' | 'error'
 
-export function FenixLeadForm() {
+type Props = {
+  compact?: boolean
+  onSuccess?: () => void
+}
+
+export function FenixLeadForm({ compact = false, onSuccess }: Props) {
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -36,12 +41,13 @@ export function FenixLeadForm() {
     setErrorMsg('')
 
     const form = e.currentTarget
+    const mensajeEl = form.elements.namedItem('mensaje') as HTMLTextAreaElement | null
     const data = {
       empresa: (form.elements.namedItem('empresa') as HTMLInputElement).value.trim(),
       nombre: (form.elements.namedItem('nombre') as HTMLInputElement).value.trim(),
       email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
       telefono: (form.elements.namedItem('telefono') as HTMLInputElement).value.trim(),
-      mensaje: (form.elements.namedItem('mensaje') as HTMLTextAreaElement).value.trim(),
+      mensaje: mensajeEl?.value.trim() || '',
     }
 
     try {
@@ -54,6 +60,7 @@ export function FenixLeadForm() {
       if (!res.ok) throw new Error(json.error || 'No se pudo enviar el formulario')
       setStatus('ok')
       form.reset()
+      onSuccess?.()
     } catch (err) {
       setStatus('error')
       setErrorMsg(err instanceof Error ? err.message : 'Error inesperado')
@@ -74,9 +81,12 @@ export function FenixLeadForm() {
     )
   }
 
+  const gap = compact ? '12px' : '16px'
+  const rowCols = compact ? '1fr' : '1fr 1fr'
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="fenix-form-row">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap, textAlign: 'left' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
         <div>
           <label style={LABEL_STYLE} htmlFor="empresa">Empresa *</label>
           <input id="empresa" name="empresa" required style={INPUT_STYLE} placeholder="Nombre de su empresa" />
@@ -87,7 +97,7 @@ export function FenixLeadForm() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="fenix-form-row">
+      <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
         <div>
           <label style={LABEL_STYLE} htmlFor="email">Correo *</label>
           <input id="email" name="email" type="email" required style={INPUT_STYLE} placeholder="correo@empresa.com" />
@@ -98,10 +108,12 @@ export function FenixLeadForm() {
         </div>
       </div>
 
-      <div>
-        <label style={LABEL_STYLE} htmlFor="mensaje">¿Qué necesita su empresa?</label>
-        <textarea id="mensaje" name="mensaje" rows={3} style={{ ...INPUT_STYLE, resize: 'vertical' }} placeholder="Recaudo de cartera, derecho preventivo, consultoría empresarial..." />
-      </div>
+      {!compact && (
+        <div>
+          <label style={LABEL_STYLE} htmlFor="mensaje">¿Qué necesita su empresa?</label>
+          <textarea id="mensaje" name="mensaje" rows={3} style={{ ...INPUT_STYLE, resize: 'vertical' }} placeholder="Recaudo de cartera, derecho preventivo, consultoría empresarial..." />
+        </div>
+      )}
 
       {status === 'error' && (
         <div style={{ fontSize: '13px', color: '#ff8080' }}>{errorMsg}</div>
@@ -109,12 +121,12 @@ export function FenixLeadForm() {
 
       <button type="submit" disabled={status === 'loading'} style={{
         background: ACCENT, color: '#050302', border: 'none',
-        padding: '15px', borderRadius: '999px', fontSize: '14px', fontWeight: 700,
+        padding: compact ? '13px' : '15px', borderRadius: '999px', fontSize: '14px', fontWeight: 700,
         cursor: status === 'loading' ? 'default' : 'pointer',
         opacity: status === 'loading' ? 0.7 : 1,
         boxShadow: `0 8px 30px ${ACCENT}45`,
       }}>
-        {status === 'loading' ? 'Enviando…' : 'Solicitar asesoría para mi empresa →'}
+        {status === 'loading' ? 'Enviando…' : compact ? 'Enviar →' : 'Solicitar asesoría para mi empresa →'}
       </button>
 
       <style>{`

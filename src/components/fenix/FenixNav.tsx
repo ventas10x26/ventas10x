@@ -49,10 +49,10 @@ export function FenixNav() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a href="#contacto" className="fenix-nav-desktop" style={{
-            background: ACCENT, color: '#fff',
-            padding: '10px 20px', borderRadius: '10px',
+            background: ACCENT, color: '#050505',
+            padding: '10px 22px', borderRadius: '999px',
             fontSize: '13px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
-            boxShadow: `0 4px 14px ${ACCENT}55`,
+            boxShadow: `0 4px 18px ${ACCENT}55`,
           }}>
             Contáctanos!
           </a>
@@ -91,7 +91,7 @@ export function FenixNav() {
           ))}
           <a href="#contacto" onClick={() => setOpen(false)} style={{
             marginTop: '8px', padding: '16px', textAlign: 'center',
-            background: ACCENT, color: '#fff', borderRadius: '12px',
+            background: ACCENT, color: '#050505', borderRadius: '999px',
             fontSize: '16px', fontWeight: 700, textDecoration: 'none',
             display: 'block', boxShadow: `0 4px 20px ${ACCENT}55`,
           }}>

@@ -389,6 +389,7 @@ export default function FenixConsultoresPage() {
           filter: 'blur(20px)',
           pointerEvents: 'none',
         }} />
+        <div style={{ maxWidth: '1340px', margin: '0 auto', position: 'relative' }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
           flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem', position: 'relative',
@@ -434,6 +435,7 @@ export default function FenixConsultoresPage() {
               </div>
             </FenixGlowCard>
           ))}
+        </div>
         </div>
       </section>
 

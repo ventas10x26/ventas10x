@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 import { Space_Grotesk } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
+import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -661,28 +662,42 @@ export default function FenixConsultoresPage() {
       {/* ── CTA / CONTACTO ── */}
       <section id="contacto" style={{ padding: '1rem 1.5rem 6rem' }}>
         <div style={{
-          maxWidth: '700px', margin: '0 auto', textAlign: 'center', position: 'relative', overflow: 'hidden',
-          border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3.5rem 2rem',
-        }}>
+          maxWidth: '1100px', margin: '0 auto', position: 'relative', overflow: 'hidden',
+          border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3rem',
+          display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1.1fr)', gap: '2.5rem',
+        }} className="fenix-grid-2">
           <div style={{
-            position: 'absolute', top: '-140px', left: '50%', transform: 'translateX(-50%)',
+            position: 'absolute', top: '-140px', left: '10%',
             width: '420px', height: '420px', borderRadius: '50%',
-            background: `radial-gradient(circle, ${ACCENT}25 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${ACCENT}22 0%, transparent 70%)`,
             pointerEvents: 'none',
           }} />
-          <h2 style={{ position: 'relative', fontSize: 'clamp(26px, 3.5vw, 44px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.25rem' }}>
-            ¿Necesita asesoría <span style={{ color: ACCENT }}>jurídica especializada?</span>
-          </h2>
-          <p style={{ position: 'relative', fontSize: '16px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7, marginBottom: '2rem' }}>
-            Hable con nuestro equipo. Atención 24 horas para nuestros clientes afiliados.
-          </p>
-          <div style={{ position: 'relative', display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="tel:+573215036414" style={PILL_SOLID}>
-              +57 321 5036414
-            </a>
-            <a href="tel:3104159173" style={PILL_OUTLINE}>
-              310 4159173
-            </a>
+          <div style={{ position: 'relative' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
+              Para empresas
+            </div>
+            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.1rem' }}>
+              Lleve su cartera y su riesgo legal a <span style={{ color: ACCENT }}>manos expertas</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '2rem' }}>
+              Cuéntenos las necesidades jurídicas o de cartera de su empresa y un especialista
+              de Fenix Consultores le contactará en menos de 24 horas.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <a href="tel:+573215036414" style={{ ...PILL_OUTLINE, justifyContent: 'flex-start' }}>
+                <IconPhone /> +57 321 5036414
+              </a>
+              <a href="tel:3104159173" style={{ ...PILL_OUTLINE, justifyContent: 'flex-start' }}>
+                <IconPhone /> 310 4159173
+              </a>
+            </div>
+          </div>
+
+          <div style={{
+            position: 'relative', background: 'rgba(255,255,255,.02)',
+            border: '1px solid rgba(255,255,255,.08)', borderRadius: '18px', padding: '28px',
+          }}>
+            <FenixLeadForm />
           </div>
         </div>
       </section>

@@ -741,11 +741,11 @@ export default function FenixConsultoresPage() {
         }
         .fenix-service-card:hover .fenix-card-text, .fenix-service-card.is-active .fenix-card-text,
         .fenix-tech-card:hover .fenix-card-text, .fenix-tech-card.is-active .fenix-card-text {
-          color: #140902 !important;
+          color: #fff !important;
         }
         .fenix-service-card:hover .fenix-card-arrow, .fenix-service-card.is-active .fenix-card-arrow {
-          border-color: #140902 !important;
-          color: #140902;
+          border-color: #fff !important;
+          color: #fff;
         }
         .fenix-hero-rays {
           animation: fenix-spin 40s linear infinite;

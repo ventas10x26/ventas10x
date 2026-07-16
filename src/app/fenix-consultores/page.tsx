@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description: 'Empresa dedicada a la defensa legal, con especialistas en consultoría empresarial, recaudo y saneamiento de cartera. Más de 12 años de experiencia.',
 }
 
-const DARK = '#150d07'
+const DARK = '#000000'
 const ACCENT = '#F5821F'
 
 // Icono pequeño de brújula/objetivo para Misión
@@ -240,12 +240,7 @@ export default function FenixConsultoresPage() {
   return (
     <div className={`fenix-root ${poppins.variable}`} style={{
       fontFamily: "var(--font-poppins), system-ui, sans-serif",
-      background: `
-        radial-gradient(1300px 800px at 50% -10%, ${ACCENT}40 0%, transparent 58%),
-        radial-gradient(700px 500px at 95% 15%, ${ACCENT}0f 0%, transparent 55%),
-        radial-gradient(700px 500px at 0% 20%, ${ACCENT}0c 0%, transparent 55%),
-        ${DARK}
-      `,
+      background: DARK,
       minHeight: '100vh',
       color: '#fff',
     }}>
@@ -413,14 +408,14 @@ export default function FenixConsultoresPage() {
               display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             }}>
               <ReticleDot />
-              <div style={{ position: 'relative', color: 'rgba(255,255,255,.75)' }}>
+              <div className="fenix-card-text" style={{ position: 'relative', color: 'rgba(255,255,255,.75)' }}>
                 <Icono />
               </div>
               <div style={{ position: 'relative' }}>
-                <div style={{ fontSize: '26px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-.02em' }}>{titulo}</div>
+                <div className="fenix-card-text" style={{ fontSize: '26px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-.02em' }}>{titulo}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
-                  <div style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6, maxWidth: '82%' }}>{desc}</div>
-                  <div style={{
+                  <div className="fenix-card-text" style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6, maxWidth: '82%' }}>{desc}</div>
+                  <div className="fenix-card-arrow" style={{
                     flexShrink: 0, width: '48px', height: '48px', borderRadius: '50%',
                     border: '1px solid rgba(255,255,255,.4)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -496,8 +491,8 @@ export default function FenixConsultoresPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
             {PILARES.map(p => (
               <FenixGlowCard key={p.titulo} className="fenix-tech-card" style={{ ...CARD_STYLE, padding: '30px' }}>
-                <div style={{ position: 'relative', fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>{p.titulo}</div>
-                <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{p.desc}</div>
+                <div className="fenix-card-text" style={{ position: 'relative', fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>{p.titulo}</div>
+                <div className="fenix-card-text" style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{p.desc}</div>
               </FenixGlowCard>
             ))}
             <a href="#contacto" style={{
@@ -724,12 +719,25 @@ export default function FenixConsultoresPage() {
         }
         .fenix-service-card, .fenix-tech-card {
           background: rgba(255,255,255,.012);
-          transition: background .4s ease, border-color .4s ease;
+          transition: background .3s, border-color .3s, box-shadow .3s, transform .4s ease-out;
+        }
+        .fenix-service-card * , .fenix-tech-card * {
+          transition: color .3s ease-out;
         }
         .fenix-service-card:hover, .fenix-service-card.is-active,
         .fenix-tech-card:hover, .fenix-tech-card.is-active {
-          background: linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT} 42%, ${ACCENT}55 72%, transparent 100%);
+          background: linear-gradient(0deg, ${ACCENT} 0%, rgba(0,0,0,0) 100%);
           border-color: ${ACCENT};
+          transform: translateY(-20px);
+          box-shadow: 0 30px 50px rgba(0,0,0,.55);
+        }
+        .fenix-service-card:hover .fenix-card-text, .fenix-service-card.is-active .fenix-card-text,
+        .fenix-tech-card:hover .fenix-card-text, .fenix-tech-card.is-active .fenix-card-text {
+          color: #140902 !important;
+        }
+        .fenix-service-card:hover .fenix-card-arrow, .fenix-service-card.is-active .fenix-card-arrow {
+          border-color: #140902 !important;
+          color: #140902;
         }
         .fenix-hero-rays {
           animation: fenix-spin 40s linear infinite;

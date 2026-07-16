@@ -19,29 +19,53 @@ function IconScale() {
   )
 }
 
-function IconBriefcase() {
+// Iconos grandes de línea para las cards de servicios, estilo Liquitty (Outcourt/Incourt/NPLS)
+function IconRadar() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="7" width="18" height="13" rx="2" />
-      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18" />
+    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <circle cx="32" cy="32" r="19" />
+      <line x1="32" y1="4" x2="32" y2="13" />
+      <line x1="32" y1="51" x2="32" y2="60" />
+      <line x1="4" y1="32" x2="13" y2="32" />
+      <line x1="51" y1="32" x2="60" y2="32" />
+      <line x1="11.7" y1="11.7" x2="18" y2="18" />
+      <line x1="46" y1="46" x2="52.3" y2="52.3" />
+      <line x1="52.3" y1="11.7" x2="46" y2="18" />
+      <line x1="18" y1="46" x2="11.7" y2="52.3" />
     </svg>
   )
 }
 
-function IconBuilding() {
+function IconCubeOutline() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="3" width="16" height="18" rx="1" />
-      <path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1M10 21v-3h4v3" />
+    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <path d="M32 7 L55 20 V44 L32 57 L9 44 V20 Z" />
+      <path d="M9 20 L32 33 L55 20" />
+      <path d="M32 33 V57" />
     </svg>
   )
 }
 
-function IconGavel() {
+function IconTriangleUp() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 4l6 6M6.5 11.5l6-6 4 4-6 6zM3 21l6-6M15 15l6 6M2 22h8" />
+    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <path d="M32 8 L57 52 H7 Z" />
     </svg>
+  )
+}
+
+// Pequeño retículo decorativo, estilo Liquitty
+function ReticleDot() {
+  return (
+    <div style={{
+      position: 'absolute', top: '46%', right: '44px',
+      width: '26px', height: '26px', borderRadius: '50%',
+      border: '1px solid rgba(255,255,255,.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      pointerEvents: 'none',
+    }}>
+      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,.6)' }} />
+    </div>
   )
 }
 
@@ -106,17 +130,17 @@ const PILL_OUTLINE: CSSProperties = {
 
 const SERVICIOS = [
   {
-    Icono: IconGavel,
+    Icono: IconRadar,
     titulo: 'Derecho Preventivo',
-    desc: 'Consultoría jurídica, contable y administrativa para que su empresa racionalice recursos y agilice diligencias antes de que se conviertan en litigios.',
+    desc: 'Consultoría jurídica, contable y administrativa para racionalizar recursos y agilizar diligencias antes de que se conviertan en litigios.',
   },
   {
-    Icono: IconBriefcase,
+    Icono: IconCubeOutline,
     titulo: 'Recaudo y Saneamiento de Cartera',
     desc: 'Gestión del cobro de cartera del sector Real y de entidades del sector Salud, con procesos jurídicos ordenados y eficientes.',
   },
   {
-    Icono: IconBuilding,
+    Icono: IconTriangleUp,
     titulo: 'Consultoría Empresarial',
     desc: 'Acompañamiento permanente a empresas y particulares con herramientas técnicas, jurídicas y tecnológicas para una defensa legal integral.',
   },
@@ -261,41 +285,51 @@ export default function FenixConsultoresPage() {
 
       {/* ── SERVICIOS ── */}
       <section id="servicios" style={{ padding: '6rem 1.5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3.5rem',
-          }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-                Servicios
-              </div>
-              <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, margin: 0, maxWidth: '440px' }}>
-                Soluciones <span style={{ color: ACCENT }}>legales</span> integrales
-              </h2>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+          flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem',
+        }}>
+          <div>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
+              Servicios
             </div>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '360px', margin: 0 }}>
-              Herramientas técnicas, jurídicas y tecnológicas que respaldan la salud
-              financiera y legal de su empresa.
-            </p>
+            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, margin: 0, maxWidth: '440px' }}>
+              Soluciones <span style={{ color: ACCENT }}>legales</span> integrales
+            </h2>
           </div>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '360px', margin: 0 }}>
+            Herramientas técnicas, jurídicas y tecnológicas que respaldan la salud
+            financiera y legal de su empresa.
+          </p>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            {SERVICIOS.map(({ Icono, titulo, desc }) => (
-              <div key={titulo} style={{ ...CARD_STYLE, padding: '34px 28px' }}>
-                <CornerGlow />
-                <div style={{
-                  position: 'relative', width: '54px', height: '54px', borderRadius: '14px',
-                  border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '22px',
-                }}>
-                  <Icono />
-                </div>
-                <div style={{ position: 'relative', fontSize: '19px', fontWeight: 700, marginBottom: '10px' }}>{titulo}</div>
-                <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{desc}</div>
+        <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+          {SERVICIOS.map(({ Icono, titulo, desc }) => (
+            <div key={titulo} className="fenix-service-card" style={{
+              position: 'relative', overflow: 'hidden',
+              border: `1px solid ${ACCENT}45`, borderRadius: '22px',
+              padding: '40px', minHeight: '480px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            }}>
+              <ReticleDot />
+              <div style={{ position: 'relative', color: 'rgba(255,255,255,.75)' }}>
+                <Icono />
               </div>
-            ))}
-          </div>
+              <div style={{ position: 'relative' }}>
+                <div style={{ fontSize: '26px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-.02em' }}>{titulo}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
+                  <div style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6, maxWidth: '82%' }}>{desc}</div>
+                  <div style={{
+                    flexShrink: 0, width: '48px', height: '48px', borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -518,8 +552,21 @@ export default function FenixConsultoresPage() {
       </footer>
 
       <style>{`
+        .fenix-service-card {
+          background: rgba(255,255,255,.012);
+          transition: background .45s ease, border-color .45s ease;
+        }
+        .fenix-service-card:hover {
+          background:
+            radial-gradient(130% 110% at 100% 0%, ${ACCENT} 0%, ${ACCENT}dd 28%, ${ACCENT}70 52%, transparent 78%),
+            rgba(255,255,255,.012);
+          border-color: ${ACCENT};
+        }
         @media (max-width: 760px) {
           .fenix-grid-2 { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 900px) {
+          .fenix-services-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

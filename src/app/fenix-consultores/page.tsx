@@ -1,14 +1,14 @@
 // Ruta destino: src/app/fenix-consultores/page.tsx
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
-import { Poppins } from 'next/font/google'
+import { Space_Grotesk } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
 
-const poppins = Poppins({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-poppins',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
 })
 
 export const metadata: Metadata = {
@@ -238,8 +238,8 @@ const BLOG = [
 
 export default function FenixConsultoresPage() {
   return (
-    <div className={`fenix-root ${poppins.variable}`} style={{
-      fontFamily: "var(--font-poppins), system-ui, sans-serif",
+    <div className={`fenix-root ${spaceGrotesk.variable}`} style={{
+      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
       background: DARK,
       minHeight: '100vh',
       color: '#fff',
@@ -380,10 +380,18 @@ export default function FenixConsultoresPage() {
       </section>
 
       {/* ── SERVICIOS ── */}
-      <section id="servicios" style={{ padding: '6rem 1.5rem' }}>
+      <section id="servicios" style={{ padding: '6rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
+        {/* Glow ambiental superior-central, se filtra a través de las cards */}
+        <div style={{
+          position: 'absolute', top: '-120px', left: '50%', transform: 'translateX(-50%)',
+          width: '1100px', height: '620px', borderRadius: '50%',
+          background: `radial-gradient(ellipse, ${ACCENT}3a 0%, ${ACCENT}14 40%, transparent 70%)`,
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+        }} />
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-          flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem',
+          flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem', position: 'relative',
         }}>
           <div>
             <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
@@ -399,11 +407,11 @@ export default function FenixConsultoresPage() {
           </p>
         </div>
 
-        <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+        <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', position: 'relative' }}>
           {SERVICIOS.map(({ Icono, titulo, desc }) => (
             <FenixGlowCard key={titulo} className="fenix-service-card" style={{
               position: 'relative', overflow: 'hidden',
-              border: `1px solid ${ACCENT}45`, borderRadius: '22px',
+              border: `2.4px solid ${ACCENT}`, borderRadius: '22px',
               padding: '40px', minHeight: '480px',
               display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             }}>
@@ -715,7 +723,7 @@ export default function FenixConsultoresPage() {
 
       <style>{`
         .fenix-root h1, .fenix-root h2, .fenix-root h3 {
-          font-family: var(--font-poppins), system-ui, sans-serif;
+          font-family: var(--font-space-grotesk), sans-serif;
         }
         .fenix-service-card, .fenix-tech-card {
           background: rgba(255,255,255,.012);

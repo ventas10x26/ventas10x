@@ -370,8 +370,101 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ── VALORES CORPORATIVOS ── */}
+      {/* ── TECNOLOGÍA ── */}
       <section style={{ padding: '6rem 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'minmax(260px, 0.85fr) minmax(340px, 1.4fr)',
+            gap: '2.5rem', alignItems: 'center', marginBottom: '2.5rem',
+          }} className="fenix-grid-2">
+            <div>
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '14px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                  Tecnología
+                </div>
+                <div style={{
+                  position: 'absolute', top: '-16px', left: '38px',
+                  width: '30px', height: '30px', borderRadius: '50%',
+                  border: `1px solid ${ACCENT}70`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  pointerEvents: 'none',
+                }}>
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: ACCENT }} />
+                </div>
+              </div>
+              <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.15, marginBottom: '1.1rem', color: ACCENT }}>
+                De lo análogo a lo digital
+              </h2>
+              <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8 }}>
+                La evolución del modelo de negocio: conozca cómo Fenix Consultores digitaliza
+                cada etapa de la gestión judicial y el recaudo de cartera, con trazabilidad
+                y seguimiento en tiempo real para cada proceso.
+              </p>
+            </div>
+
+            <div style={{
+              position: 'relative', overflow: 'hidden', minHeight: '320px',
+              clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 38% 100%, 38% 78%, 0% 78%)',
+              background: `
+                radial-gradient(circle at 25% 25%, ${ACCENT}50 0%, transparent 42%),
+                radial-gradient(circle at 82% 65%, ${ACCENT}30 0%, transparent 45%),
+                repeating-linear-gradient(115deg, ${ACCENT}1a 0px, ${ACCENT}1a 1px, transparent 1px, transparent 42px),
+                repeating-linear-gradient(25deg, ${ACCENT}12 0px, ${ACCENT}12 1px, transparent 1px, transparent 58px),
+                linear-gradient(160deg, #0d0d0d, #050505)
+              `,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{
+                position: 'relative', fontSize: 'clamp(36px, 4.2vw, 60px)', fontWeight: 800,
+                letterSpacing: '-.03em', color: '#fff',
+              }}>
+                Fenix<span style={{ color: ACCENT }}>.</span>
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }} className="fenix-tech-grid">
+            {PILARES.map((p, i) => (
+              <div key={p.titulo} className="fenix-tech-card" style={{
+                position: 'relative', overflow: 'hidden',
+                border: `1px solid ${ACCENT}45`, borderRadius: '22px', padding: '30px',
+              }}>
+                <div style={{
+                  position: 'relative', width: '44px', height: '44px', borderRadius: '50%',
+                  border: '1px solid rgba(255,255,255,.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '28px',
+                }}>
+                  <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>
+                </div>
+                <div style={{ position: 'relative', fontSize: '26px', fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: '10px' }}>
+                  Fenix<span style={{ color: ACCENT }}>{i === 0 ? 'Judicial' : 'Cobranza'}</span>
+                </div>
+                <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6 }}>{p.desc}</div>
+              </div>
+            ))}
+            <a href="#contacto" style={{
+              position: 'relative', background: ACCENT, borderRadius: '22px', padding: '30px',
+              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              textDecoration: 'none', color: '#050505',
+              boxShadow: `0 8px 32px ${ACCENT}45`,
+            }}>
+              <div style={{
+                alignSelf: 'flex-end', width: '44px', height: '44px', borderRadius: '50%',
+                border: '1px solid rgba(5,5,5,.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '28px',
+              }}>
+                <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800 }}>Conoce más</div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── VALORES CORPORATIVOS ── */}
+      <section style={{ padding: '0 1.5rem 6rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
             Valores corporativos
@@ -380,7 +473,7 @@ export default function FenixConsultoresPage() {
             Los principios que guían <span style={{ color: ACCENT }}>cada proceso jurídico</span>
           </h2>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '3.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {VALORES.map(v => (
               <div key={v} style={{
                 background: 'transparent', border: '1px solid rgba(255,255,255,.18)',
@@ -390,25 +483,6 @@ export default function FenixConsultoresPage() {
                 {v}
               </div>
             ))}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
-            {PILARES.map(p => (
-              <div key={p.titulo} style={{ ...CARD_STYLE, padding: '30px' }}>
-                <CornerGlow />
-                <div style={{ position: 'relative', fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>{p.titulo}</div>
-                <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{p.desc}</div>
-              </div>
-            ))}
-            <a href="#contacto" style={{
-              background: ACCENT, borderRadius: '18px', padding: '30px',
-              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start',
-              gap: '10px', textDecoration: 'none', color: '#050505',
-              boxShadow: `0 8px 32px ${ACCENT}45`,
-            }}>
-              <div style={{ fontSize: '17px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>Conoce más <IconArrow /></div>
-              <div style={{ fontSize: '13px', opacity: 0.75, fontWeight: 500 }}>Hable con un especialista de Fenix Consultores.</div>
-            </a>
           </div>
         </div>
       </section>
@@ -565,8 +639,19 @@ export default function FenixConsultoresPage() {
         @media (max-width: 760px) {
           .fenix-grid-2 { grid-template-columns: 1fr !important; }
         }
+        .fenix-tech-card {
+          background: rgba(255,255,255,.012);
+          transition: background .45s ease, border-color .45s ease;
+        }
+        .fenix-tech-card:hover {
+          background:
+            radial-gradient(130% 110% at 100% 0%, ${ACCENT} 0%, ${ACCENT}dd 28%, ${ACCENT}70 52%, transparent 78%),
+            rgba(255,255,255,.012);
+          border-color: ${ACCENT};
+        }
         @media (max-width: 900px) {
           .fenix-services-grid { grid-template-columns: 1fr !important; }
+          .fenix-tech-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

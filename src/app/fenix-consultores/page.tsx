@@ -55,7 +55,7 @@ function IconUsers() {
 // Iconos grandes de línea para las cards de servicios, estilo Liquitty (Outcourt/Incourt/NPLS)
 function IconRadar() {
   return (
-    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
       <circle cx="32" cy="32" r="19" />
       <line x1="32" y1="4" x2="32" y2="13" />
       <line x1="32" y1="51" x2="32" y2="60" />
@@ -71,7 +71,7 @@ function IconRadar() {
 
 function IconCubeOutline() {
   return (
-    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
       <path d="M32 7 L55 20 V44 L32 57 L9 44 V20 Z" />
       <path d="M9 20 L32 33 L55 20" />
       <path d="M32 33 V57" />
@@ -81,7 +81,7 @@ function IconCubeOutline() {
 
 function IconTriangleUp() {
   return (
-    <svg width="52" height="52" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
       <path d="M32 8 L57 52 H7 Z" />
     </svg>
   )
@@ -239,7 +239,7 @@ const BLOG = [
 export default function FenixConsultoresPage() {
   return (
     <div className={`fenix-root ${spaceGrotesk.variable}`} style={{
-      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      fontFamily: "var(--font-jakarta,'Plus Jakarta Sans'), sans-serif",
       background: DARK,
       minHeight: '100vh',
       color: '#fff',
@@ -411,21 +411,21 @@ export default function FenixConsultoresPage() {
           {SERVICIOS.map(({ Icono, titulo, desc }) => (
             <FenixGlowCard key={titulo} className="fenix-service-card" style={{
               position: 'relative', overflow: 'hidden',
-              border: `2.4px solid ${ACCENT}`, borderRadius: '22px',
-              padding: '40px', minHeight: '480px',
+              border: `3px solid ${ACCENT}`, borderRadius: '15px',
+              padding: '20px', minHeight: '400px',
               display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             }}>
               <ReticleDot />
-              <div className="fenix-card-text" style={{ position: 'relative', color: 'rgba(255,255,255,.75)' }}>
+              <div className="fenix-card-text" style={{ position: 'relative', color: 'rgba(255,255,255,.85)' }}>
                 <Icono />
               </div>
               <div style={{ position: 'relative' }}>
-                <div className="fenix-card-text" style={{ fontSize: '26px', fontWeight: 700, marginBottom: '14px', letterSpacing: '-.02em' }}>{titulo}</div>
+                <div className="fenix-card-text" style={{ fontSize: 'clamp(34px, 3.6vw, 50px)', fontWeight: 400, lineHeight: 1, marginBottom: '14px', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{titulo}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
-                  <div className="fenix-card-text" style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6, maxWidth: '82%' }}>{desc}</div>
+                  <div className="fenix-card-text" style={{ fontSize: '18px', fontWeight: 400, color: 'rgba(255,255,255,.4)', lineHeight: 1.55, maxWidth: '78%' }}>{desc}</div>
                   <div className="fenix-card-arrow" style={{
-                    flexShrink: 0, width: '48px', height: '48px', borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,.4)',
+                    flexShrink: 0, width: '52px', height: '52px', borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,.9)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>

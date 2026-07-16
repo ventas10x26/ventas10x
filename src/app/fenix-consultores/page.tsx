@@ -256,13 +256,12 @@ export default function FenixConsultoresPage() {
           filter: 'blur(10px)',
           pointerEvents: 'none',
         }} />
-        {/* Rayos radiantes */}
-        <div className="fenix-hero-rays" style={{
-          position: 'absolute', top: '-160px', left: '50%', transform: 'translateX(-50%)',
-          width: '820px', height: '820px', borderRadius: '50%',
-          background: `conic-gradient(from 0deg, transparent 0deg, ${ACCENT}22 3deg, transparent 9deg, transparent 27deg, ${ACCENT}1a 30deg, transparent 36deg, transparent 63deg, ${ACCENT}22 66deg, transparent 72deg, transparent 100deg, ${ACCENT}18 103deg, transparent 109deg, transparent 150deg, ${ACCENT}22 153deg, transparent 159deg, transparent 190deg, ${ACCENT}1a 193deg, transparent 199deg, transparent 230deg, ${ACCENT}22 233deg, transparent 239deg, transparent 280deg, ${ACCENT}18 283deg, transparent 289deg, transparent 330deg, ${ACCENT}22 333deg, transparent 339deg)`,
-          maskImage: 'radial-gradient(circle, black 15%, transparent 68%)',
-          WebkitMaskImage: 'radial-gradient(circle, black 15%, transparent 68%)',
+        {/* Tubo de neón (anillo grueso difuminado) */}
+        <div className="fenix-hero-tube" style={{
+          position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)',
+          width: '540px', height: '540px', borderRadius: '50%',
+          background: `radial-gradient(circle, transparent 60%, ${ACCENT}90 66%, ${ACCENT}ff 70%, ${ACCENT}90 74%, transparent 80%)`,
+          filter: 'blur(6px)',
           pointerEvents: 'none',
         }} />
         {/* Chispas dispersas */}
@@ -308,8 +307,8 @@ export default function FenixConsultoresPage() {
 
         <div style={{ maxWidth: '820px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
           <h1 style={{
-            fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 800,
-            lineHeight: 1.1, letterSpacing: '-.02em', marginBottom: '1.5rem',
+            fontSize: 'clamp(30px, 4.6vw, 62px)', fontWeight: 300,
+            lineHeight: 1.1, letterSpacing: '-2px', marginBottom: '1.5rem',
           }}>
             Fenix Consultores<br />Empresariales S.A.S.<br />
             <span style={{ color: ACCENT }}>defensa legal y recaudo de cartera.</span>
@@ -327,8 +326,13 @@ export default function FenixConsultoresPage() {
             <a href="#contacto" style={PILL_SOLID}>
               Conocer Más <IconArrow />
             </a>
-            <a href="tel:+573215036414" style={PILL_OUTLINE}>
-              <IconPhone /> Llamar ahora
+            <a href="tel:+573215036414" aria-label="Llamar ahora" style={{
+              width: '46px', height: '46px', borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,.35)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff',
+            }}>
+              <IconPhone />
             </a>
           </div>
 
@@ -749,22 +753,22 @@ export default function FenixConsultoresPage() {
           border-color: #fff !important;
           color: #fff;
         }
-        .fenix-hero-rays {
-          animation: fenix-spin 40s linear infinite;
+        .fenix-hero-tube {
+          animation: fenix-tube-pulse 3.5s ease-in-out infinite;
         }
         .fenix-hero-ring {
           animation: fenix-pulse 4s ease-in-out infinite;
         }
-        @keyframes fenix-spin {
-          from { transform: translateX(-50%) rotate(0deg); }
-          to { transform: translateX(-50%) rotate(360deg); }
+        @keyframes fenix-tube-pulse {
+          0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+          50% { opacity: 1; transform: translateX(-50%) scale(1.03); }
         }
         @keyframes fenix-pulse {
           0%, 100% { box-shadow: 0 0 40px ${ACCENT}45, inset 0 0 40px ${ACCENT}25; }
           50% { box-shadow: 0 0 60px ${ACCENT}65, inset 0 0 55px ${ACCENT}40; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .fenix-hero-rays, .fenix-hero-ring { animation: none; }
+          .fenix-hero-tube, .fenix-hero-ring { animation: none; }
         }
         @media (max-width: 760px) {
           .fenix-grid-2 { grid-template-columns: 1fr !important; }

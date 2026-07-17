@@ -75,13 +75,13 @@ const SEGMENTS = [
     tag:'Enterprise', tagColor:'amber', titulo:'Concesionario', subtitulo:'Fuerza de ventas · Inventario multi-punto',
     desc:'Orquesta decenas de asesores, integra tu DMS y captura cada oportunidad — incluso las que llegan a las 2 AM.',
     bullets:['Subís tu DMS o Excel — la IA arma el diagrama de tablas automáticamente (DataBridge)', 'Panel director con atribución 360° por asesor', 'Ruteo inteligente de leads por sucursal o stock', 'Auditoría completa de conversaciones y compliance'],
-    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline', diagram:true, liveStat:'+180 concesionarios activos',
+    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline', diagram:true, chat:false, liveStat:'+180 concesionarios activos',
   },
   {
     tag:'Pro', tagColor:'green', titulo:'Vendedor individual', subtitulo:'Asesor independiente · Alto volumen',
     desc:'Tu copiloto personal en WhatsApp. Cotiza, retoma y cierra sin depender del área de crédito.',
     bullets:['Copiloto integrado a tu WhatsApp Business', 'Cotización de póliza y financiación en segundos', 'Agenda automática de citas y test drives', 'Cobra desde $49 USD/mes — sin costos por lead'],
-    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn', diagram:false, liveStat:'+500 asesores conectados',
+    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn', diagram:false, chat:true, liveStat:'+500 asesores conectados',
   },
 ]
 
@@ -179,6 +179,31 @@ function SchemaPreview() {
     <div className="panel" style={{ marginBottom:'22px' }}>
       <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
       <DataBridgeMiniDiagram />
+    </div>
+  )
+}
+
+// ─── Preview de conversación real (sin marco de celular): prueba visual de
+// "cotiza y cierra por WhatsApp" para el segmento Vendedor individual, con el
+// mismo tratamiento de revelado progresivo que el timeline de tool-calls del hero ───
+const WA_MESSAGES = [
+  { from:'lead',  text:'Hola! Me interesa el Rio 2024, ¿tienen para financiar a 48 meses?' },
+  { from:'agent', text:'Con tu perfil la cuota estimada es $980.000/mes a 48 meses. ¿Te armo la póliza también?' },
+  { from:'lead',  text:'Sí, dale' },
+  { from:'agent', text:'Póliza todo riesgo: $145.000/mes. ¿Agendamos la firma esta semana?' },
+] as const
+
+function WhatsAppMiniPreview({ active }: { active: boolean }) {
+  return (
+    <div className="panel" style={{ marginBottom:'22px' }}>
+      <div className="panel-head"><span>WhatsApp Business · Copiloto activo</span><span style={{ color:'var(--green)' }}>● en vivo</span></div>
+      <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:'8px' }}>
+        {WA_MESSAGES.map((m,i) => (
+          <div key={i} className={`reveal wa-bubble wa-${m.from}${active?' in':''}`} style={{ transitionDelay:`${i*220}ms` }}>
+            {m.text}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -367,6 +392,9 @@ export default function PulseMotorLanding() {
 
         .panel { border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); background:var(--bg-1); backdrop-filter:blur(10px); }
         .panel-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
+        .wa-bubble { max-width:82%; padding:8px 12px; font-size:12.5px; line-height:1.5; font-family:${F_BODY}; border-radius:10px; }
+        .wa-lead { align-self:flex-start; background:var(--bg-2); color:var(--ink); border-bottom-left-radius:2px; }
+        .wa-agent { align-self:flex-end; background:var(--grad-green); color:#04150c; font-weight:600; border-bottom-right-radius:2px; }
         .log-row { display:grid; grid-template-columns:90px 1fr 150px 120px; gap:16px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
         .log-row:last-child { border-bottom:none; }
         .log-row.in { opacity:1; transform:translateY(0); }
@@ -646,6 +674,7 @@ export default function PulseMotorLanding() {
                   ))}
                 </div>
                 {s.diagram && <SchemaPreview />}
+                {s.chat && <WhatsAppMiniPreview active={segGrid.inView} />}
                 <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>
               </div>
             ))}

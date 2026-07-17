@@ -583,6 +583,31 @@ export default function PulseMotorLanding() {
         </section>
         </div>
 
+        {/* SEGMENTOS */}
+        <section id="segmentos" style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+          <div ref={segHeader.ref} className={`reveal${segHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
+            <p className="kicker">Dos segmentos, un agente</p>
+            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(30px,4vw,52px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.1, color:'var(--ink)' }}>
+              Diseñado para cómo realmente se vende.
+            </h2>
+          </div>
+          <div ref={segGrid.ref} className="seg-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>
+            {SEGMENTS.map((s,i) => (
+              <div key={s.titulo} className={`seg-card reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
+                <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
+                <h3 style={{ fontSize:'24px', fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
+                <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--ink-dim)', marginBottom:'16px' }}>{s.subtitulo}</p>
+                <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'18px' }}>{s.desc}</p>
+                <div style={{ marginBottom:'22px' }}>
+                  {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
+                </div>
+                {s.diagram && <SchemaPreview />}
+                <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* LOGOS */}
         <section style={{ padding:'32px 0 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
           <div ref={logosReveal.ref} className={`reveal${logosReveal.inView?' in':''}`}>
@@ -648,31 +673,6 @@ export default function PulseMotorLanding() {
                 </div>
                 <h3 style={{ fontSize:'15px', fontWeight:700, fontFamily:F_DISPLAY, marginBottom:'6px', color:'var(--ink)' }}>{e.titulo}</h3>
                 <p style={{ fontSize:'12px', color:'var(--ink-dim)', lineHeight:1.5 }}>{e.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* SEGMENTOS */}
-        <section id="segmentos" style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
-          <div ref={segHeader.ref} className={`reveal${segHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
-            <p className="kicker">Dos segmentos, un agente</p>
-            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(30px,4vw,52px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.1, color:'var(--ink)' }}>
-              Diseñado para cómo realmente se vende.
-            </h2>
-          </div>
-          <div ref={segGrid.ref} className="seg-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>
-            {SEGMENTS.map((s,i) => (
-              <div key={s.titulo} className={`seg-card reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
-                <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
-                <h3 style={{ fontSize:'24px', fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
-                <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--ink-dim)', marginBottom:'16px' }}>{s.subtitulo}</p>
-                <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'18px' }}>{s.desc}</p>
-                <div style={{ marginBottom:'22px' }}>
-                  {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
-                </div>
-                {s.diagram && <SchemaPreview />}
-                <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>
               </div>
             ))}
           </div>

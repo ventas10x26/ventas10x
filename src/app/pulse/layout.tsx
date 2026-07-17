@@ -1,13 +1,16 @@
 // src/app/pulse/layout.tsx
 import type { Metadata } from 'next'
 import Script from 'next/script'
-import { Oswald, IBM_Plex_Mono, Inter } from 'next/font/google'
+import { Oswald, IBM_Plex_Mono, Inter, Plus_Jakarta_Sans } from 'next/font/google'
 
 // Fuentes del sistema turno/guardia (home) — next/font las autohospeda en build time,
 // evita depender de un <link> a Google Fonts en runtime (frágil: no garantiza carga en producción).
 const oswald = Oswald({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-oswald', display: 'swap' })
 const ibmPlexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-mono', display: 'swap' })
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-inter', display: 'swap' })
+// Display geométrica de terminales redondeados (misma familia visual que las tarjetas de
+// referencia tipo Outcourt/Incourt) para h1/h2/h3 — Inter se mantiene para texto de cuerpo.
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-display', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Pulse Motor — Responde a tus leads en 30 segundos',
@@ -30,7 +33,7 @@ const PULSE_GA_ID = 'G-M0KS0D3G5D'
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable}`}>
+    <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable} ${plusJakarta.variable}`}>
       {/* Tokens de color del sistema de diseño (ver .claude/skills/pulsemotor-design) — scoped a
           .pulse-root para que cualquier página o componente bajo /pulse pueda consumirlos sin
           redefinirlos. El home (src/app/pulse/page.tsx) los declara también de forma local por
@@ -48,7 +51,7 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
         /* globals.css define h1,h2,h3 { font-family: 'Syne' } para Ventas10x.co; se
            sobreescribe acá (mayor especificidad, sin tocar el archivo compartido) para
            que ningún título de /pulse dependa de esa fuente ancha. */
-        .pulse-root h1, .pulse-root h2, .pulse-root h3 { font-family: var(--font-inter), sans-serif; }
+        .pulse-root h1, .pulse-root h2, .pulse-root h3 { font-family: var(--font-display), sans-serif; }
       `}</style>
 
       {/* Google Fonts — DM Sans, usada como texto de cuerpo en componentes aún no migrados a next/font */}

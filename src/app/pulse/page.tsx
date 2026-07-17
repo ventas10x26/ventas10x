@@ -7,9 +7,10 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 
 // Las variables --font-oswald / --font-mono / --font-inter las define next/font/google
-// en src/app/pulse/layout.tsx (autohospedadas en build time). Titulares en Inter bold
-// mixta (no uppercase) — ver skill pulsemotor-design, arquetipo "copiloto autónomo 360°".
-const F_DISPLAY = "var(--font-inter), sans-serif"
+// en src/app/pulse/layout.tsx (autohospedadas en build time). Titulares en Plus Jakarta Sans
+// (geométrica de terminales redondeados) mixta (no uppercase) — ver skill pulsemotor-design,
+// arquetipo "copiloto autónomo 360°".
+const F_DISPLAY = "var(--font-display), sans-serif"
 const F_MONO    = "var(--font-mono), monospace"
 const F_BODY    = "var(--font-inter), sans-serif"
 

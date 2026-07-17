@@ -396,6 +396,10 @@ export default function PulseMotorLanding() {
         .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
         .seg-card-green:hover { border-color:var(--green); }
         .seg-card-icon { margin-bottom:20px; opacity:0.95; }
+        .seg-card-title { font-size:24px; color:var(--ink); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
+        .seg-card-subtitle { font-size:11px; color:var(--ink-dim); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
+        .seg-card:hover .seg-card-title { font-size:28px; color:#fff; }
+        .seg-card:hover .seg-card-subtitle { font-size:12px; color:#fff; }
         .seg-card-arrow { position:absolute; top:24px; right:24px; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; line-height:1; transition:transform .25s var(--ease-out-expo); }
         .seg-card-amber .seg-card-arrow { color:var(--amber); border:2.5px solid var(--amber); background:rgba(242,169,59,0.08); }
         .seg-card-green .seg-card-arrow { color:var(--green); border:2.5px solid var(--green); background:rgba(62,207,126,0.08); }
@@ -626,8 +630,8 @@ export default function PulseMotorLanding() {
                 <span className="seg-card-arrow" aria-hidden="true">↗</span>
                 <div className="seg-card-icon"><SegIcon variant={s.tagColor as 'amber' | 'green'} /></div>
                 <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
-                <h3 style={{ fontSize:'24px', fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
-                <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--ink-dim)', marginBottom:'16px' }}>{s.subtitulo}</p>
+                <h3 className="seg-card-title" style={{ fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
+                <p className="seg-card-subtitle" style={{ fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'16px' }}>{s.subtitulo}</p>
                 <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'18px' }}>{s.desc}</p>
                 <div style={{ marginBottom:'22px' }}>
                   {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}

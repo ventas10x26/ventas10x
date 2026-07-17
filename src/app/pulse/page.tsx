@@ -310,6 +310,9 @@ export default function PulseMotorLanding() {
   const grow = Math.min(1, Math.max(0, (heroP - 0.12) / 0.38))
   const tilt = Math.min(1, Math.max(0, (heroP - 0.55) / 0.4))
   const crossfade = Math.min(1, Math.max(0, (tilt - 0.25) / 0.75))
+  // Destello blanco a mitad del giro (pico en tilt=0.5, cero en los extremos) — refuerzo
+  // funcional para que el momento exacto del scroll que dispara el giro 3D sea inconfundible.
+  const flash = Math.max(0, 1 - Math.abs(tilt - 0.5) * 2)
 
   return (
     <>
@@ -599,7 +602,10 @@ export default function PulseMotorLanding() {
                 willChange:'transform',
               }}
             >
-              <div className="panel" style={{ position:'relative', minHeight: heroScroll.reduced ? undefined : '412px' }}>
+              <div className="panel" style={{
+                position:'relative', minHeight: heroScroll.reduced ? undefined : '412px',
+                boxShadow: heroScroll.reduced ? undefined : `0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3), 0 0 ${56 * flash}px ${6 * flash}px rgba(255,255,255,${0.6 * flash})`,
+              }}>
                 <div style={heroScroll.reduced ? undefined : { opacity:1 - crossfade, pointerEvents: crossfade > 0.5 ? 'none' : undefined, position: heroScroll.reduced ? undefined : 'absolute', inset: heroScroll.reduced ? undefined : 0 }}>
                   <div className="panel-head"><span>Precio lead · Ruteo</span><span style={{ color:'var(--green)' }}>Live</span></div>
                   <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--line)' }}>

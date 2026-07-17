@@ -662,16 +662,28 @@ export default function FenixConsultoresPage() {
       </section>
 
       {/* ── CTA / CONTACTO ── */}
-      <section id="contacto" style={{ padding: '1rem 1.5rem 6rem' }}>
+      <section id="contacto" style={{ padding: '1rem 1.5rem 8rem' }}>
         <div style={{
           maxWidth: '1100px', margin: '0 auto', position: 'relative', overflow: 'hidden',
           border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3rem',
           display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1.1fr)', gap: '2.5rem',
+          alignItems: 'start',
         }} className="fenix-grid-2">
-          <div style={{
-            position: 'absolute', top: '-140px', left: '10%',
-            width: '420px', height: '420px', borderRadius: '50%',
-            background: `radial-gradient(circle, ${ACCENT}22 0%, transparent 70%)`,
+          <div className="fenix-contacto-glow" style={{
+            position: 'absolute', top: '-160px', left: '5%',
+            width: '520px', height: '520px', borderRadius: '50%',
+            background: `radial-gradient(circle, ${ACCENT}30 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          }} />
+          <div className="fenix-contacto-sparks" style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `
+              radial-gradient(1.5px 1.5px at 20% 20%, #fff, transparent),
+              radial-gradient(1.5px 1.5px at 80% 15%, ${ACCENT}, transparent),
+              radial-gradient(1.5px 1.5px at 60% 75%, #fff, transparent),
+              radial-gradient(1.5px 1.5px at 12% 70%, ${ACCENT}, transparent)
+            `,
+            opacity: 0.7,
             pointerEvents: 'none',
           }} />
           <div style={{ position: 'relative' }}>
@@ -695,9 +707,11 @@ export default function FenixConsultoresPage() {
             </div>
           </div>
 
-          <div style={{
-            position: 'relative', background: 'rgba(255,255,255,.02)',
-            border: '1px solid rgba(255,255,255,.08)', borderRadius: '18px', padding: '28px',
+          <div className="fenix-contacto-form-panel" style={{
+            position: 'sticky', top: '96px', alignSelf: 'start',
+            background: 'rgba(255,255,255,.02)',
+            border: `1px solid ${ACCENT}30`, borderRadius: '18px', padding: '28px',
+            boxShadow: `0 0 40px ${ACCENT}12`,
           }}>
             <FenixLeadForm />
           </div>
@@ -784,11 +798,26 @@ export default function FenixConsultoresPage() {
           0%, 100% { box-shadow: 0 0 40px ${ACCENT}45, inset 0 0 40px ${ACCENT}25; }
           50% { box-shadow: 0 0 60px ${ACCENT}65, inset 0 0 55px ${ACCENT}40; }
         }
+        .fenix-contacto-glow {
+          animation: fenix-contacto-pulse 5s ease-in-out infinite;
+        }
+        .fenix-contacto-sparks {
+          animation: fenix-twinkle 3s ease-in-out infinite;
+        }
+        @keyframes fenix-contacto-pulse {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.08); }
+        }
+        @keyframes fenix-twinkle {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.9; }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .fenix-hero-tube, .fenix-hero-ring { animation: none; }
+          .fenix-hero-tube, .fenix-hero-ring, .fenix-contacto-glow, .fenix-contacto-sparks { animation: none; }
         }
         @media (max-width: 760px) {
           .fenix-grid-2 { grid-template-columns: 1fr !important; }
+          .fenix-contacto-form-panel { position: static !important; }
         }
         @media (max-width: 900px) {
           .fenix-services-grid { grid-template-columns: 1fr !important; }

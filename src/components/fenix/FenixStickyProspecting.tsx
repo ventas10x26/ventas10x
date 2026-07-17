@@ -14,17 +14,8 @@ function IconClose() {
   )
 }
 
-function IconArrow() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  )
-}
-
 export function FenixStickyProspecting() {
   const [visible, setVisible] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
@@ -68,64 +59,61 @@ export function FenixStickyProspecting() {
   }
 
   return (
-    <div style={{
+    <div className="fenix-sticky-widget" style={{
       position: 'fixed', bottom: '20px', right: '20px', zIndex: 60,
-      maxWidth: expanded ? '380px' : '260px',
-      width: 'calc(100vw - 40px)',
-    }} className="fenix-sticky-widget">
-      {!expanded ? (
-        <div style={{
-          position: 'relative', overflow: 'hidden',
-          background: DARK_CARD_BG, border: `3px solid ${ACCENT}`, borderRadius: '15px',
-          padding: '16px 18px', boxShadow: '0 20px 50px rgba(0,0,0,.5)',
-          display: 'flex', alignItems: 'center', gap: '10px',
+      maxWidth: '340px', width: 'calc(100vw - 40px)',
+      maxHeight: '82vh', overflowY: 'auto',
+    }}>
+      <div style={{
+        position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(165deg, rgba(20,12,4,.98), rgba(4,2,1,.98))',
+        border: `3px solid ${ACCENT}`, borderRadius: '15px',
+        padding: '22px', boxShadow: '0 20px 50px rgba(0,0,0,.55)',
+      }}>
+        <div className="fenix-sticky-glow" style={{
+          position: 'absolute', top: '-70px', left: '-40px',
+          width: '220px', height: '220px', borderRadius: '50%',
+          background: `radial-gradient(circle, ${ACCENT}45 0%, transparent 70%)`,
+          pointerEvents: 'none',
+        }} />
+
+        <button onClick={handleDismiss} aria-label="Cerrar" style={{
+          position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none',
+          color: 'rgba(255,255,255,.5)', cursor: 'pointer', padding: '4px', display: 'flex', zIndex: 1,
         }}>
-          <button onClick={handleDismiss} aria-label="Cerrar" style={{
-            position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none',
-            color: 'rgba(255,255,255,.5)', cursor: 'pointer', padding: '4px', display: 'flex',
-          }}>
-            <IconClose />
-          </button>
-          <button onClick={() => setExpanded(true)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-            display: 'flex', alignItems: 'center', gap: '12px', width: '100%', paddingRight: '18px',
-          }}>
-            <div style={{
-              flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%',
-              background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#050302',
-            }}>
-              <IconArrow />
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: ACCENT, letterSpacing: '.06em', textTransform: 'uppercase' }}>Para empresas</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Solicitar asesoría</div>
-            </div>
-          </button>
-        </div>
-      ) : (
-        <div style={{
-          position: 'relative', overflow: 'hidden',
-          background: DARK_CARD_BG, border: `3px solid ${ACCENT}`, borderRadius: '15px',
-          padding: '22px', boxShadow: '0 20px 50px rgba(0,0,0,.5)',
-          maxHeight: '80vh', overflowY: 'auto',
-        }}>
-          <button onClick={handleDismiss} aria-label="Cerrar" style={{
-            position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none',
-            color: 'rgba(255,255,255,.5)', cursor: 'pointer', padding: '4px', display: 'flex', zIndex: 1,
-          }}>
-            <IconClose />
-          </button>
+          <IconClose />
+        </button>
+
+        <div style={{ position: 'relative' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: ACCENT, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: '4px' }}>
             Para empresas
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '14px' }}>
+          <h3 style={{ fontSize: '19px', fontWeight: 700, color: '#fff', marginBottom: '14px', lineHeight: 1.2 }}>
             Solicite su asesoría
-          </div>
+          </h3>
           <FenixLeadForm compact />
         </div>
-      )}
+      </div>
+
+      <style>{`
+        .fenix-sticky-widget {
+          animation: fenix-sticky-in .5s ease-out;
+        }
+        .fenix-sticky-glow {
+          animation: fenix-sticky-pulse 4s ease-in-out infinite;
+        }
+        @keyframes fenix-sticky-in {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fenix-sticky-pulse {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.15); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fenix-sticky-widget, .fenix-sticky-glow { animation: none; }
+        }
+      `}</style>
     </div>
   )
 }
-
-const DARK_CARD_BG = 'linear-gradient(180deg, rgba(20,12,4,.98), rgba(5,3,2,.98))'

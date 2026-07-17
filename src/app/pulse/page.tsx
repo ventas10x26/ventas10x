@@ -503,7 +503,7 @@ export default function PulseMotorLanding() {
       <div style={{ minHeight:'100vh', background:'var(--bg-0)', color:'var(--ink)', fontFamily:F_BODY, lineHeight:1.5 }}>
 
         {/* HEADER */}
-        <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1140px', margin:'0 auto', background:'rgba(11,13,12,0.85)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)' }}>
+        <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'rgba(11,13,12,0.85)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
             <div style={{ width:'10px', height:'10px', background:'var(--amber)', borderRadius:'2px' }} />
             <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
@@ -529,9 +529,9 @@ export default function PulseMotorLanding() {
             y después se inclina en 3D revelando el esquema real de DataBridge, al ritmo
             del scroll. Con prefers-reduced-motion queda como el hero estático de siempre. */}
         <div ref={heroScroll.ref} style={heroScroll.reduced ? undefined : { height:'300vh', position:'relative' }}>
-        <section id="plataforma" style={heroScroll.reduced ? { maxWidth:'1140px', margin:'0 auto', padding:'64px 24px 40px' } : {
+        <section id="plataforma" style={heroScroll.reduced ? { maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' } : {
           position:'sticky', top:0, height:'100vh', overflow:'hidden',
-          maxWidth:'1140px', margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center',
+          maxWidth:'1280px', margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center',
         }}>
           <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%' }}>
             <div style={heroScroll.reduced ? { flex:'1', minWidth:'320px' } : {
@@ -619,7 +619,7 @@ export default function PulseMotorLanding() {
         </div>
 
         {/* SEGMENTOS */}
-        <section id="segmentos" style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section id="segmentos" style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div ref={segHeader.ref} className={`reveal${segHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
             <p className="kicker">Dos segmentos, un agente</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(30px,4vw,52px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.1, color:'var(--ink)' }}>
@@ -669,7 +669,7 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* POR QUÉ PULSE MOTOR */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center' }}>
             <div ref={porQueText.ref} className={`reveal${porQueText.inView?' in':''}`} style={{ flex:'1', minWidth:'320px' }}>
               <p className="kicker">Por qué Pulse Motor</p>
@@ -698,7 +698,7 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* ECOSISTEMA 360° */}
-        <section id="ecosistema" style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
+        <section id="ecosistema" style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={ecoHeader.ref} className={`reveal${ecoHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
             <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Ecosistema 360°</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(30px,4vw,52px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.1, marginBottom:'14px', color:'var(--ink)' }}>
@@ -724,7 +724,7 @@ export default function PulseMotorLanding() {
 
         {/* ACTIVIDAD EN VIVO — el verde de estado elevado a degradé de sección, el único momento no-negro de la página */}
         <section className="section-live" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
-        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
+        <div style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={activityHeader.ref} className={`reveal${activityHeader.inView?' in':''}`} style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' }}>
             <div>
               <p className="kicker">Actividad en vivo</p>
@@ -756,7 +756,7 @@ export default function PulseMotorLanding() {
 
         {/* INTEGRACIONES NATIVAS */}
         <section className="section-dim" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
-        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
+        <div style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={integHeader.ref} className={`reveal${integHeader.inView?' in':''}`} style={{ marginBottom:'32px' }}>
             <p className="kicker">Integraciones nativas</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Vive dentro de tu stack, no encima.</h2>
@@ -776,7 +776,7 @@ export default function PulseMotorLanding() {
 
         {/* TESTIMONIOS */}
         <section className="section-dim-2" style={{ borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
-        <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px' }}>
+        <div style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px' }}>
           <div ref={testiHeader.ref} className={`reveal${testiHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
             <p className="kicker">Lo dicen quienes ya lo usan</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, color:'var(--ink)' }}>
@@ -799,7 +799,7 @@ export default function PulseMotorLanding() {
         </section>
 
         {/* CUMPLIMIENTO Y SEGURIDAD */}
-        <section style={{ maxWidth:'1140px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
+        <section style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
           <div ref={cumpleHeader.ref} className={`reveal${cumpleHeader.inView?' in':''}`} style={{ marginBottom:'32px' }}>
             <p className="kicker">Cumplimiento y seguridad</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Tu operación, protegida de punta a punta.</h2>
@@ -849,7 +849,7 @@ export default function PulseMotorLanding() {
         </section>
 
         <footer style={{ borderTop:'1px solid var(--line)' }}>
-          <div style={{ maxWidth:'1140px', margin:'0 auto', padding:'64px 24px 32px' }}>
+          <div style={{ maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 32px' }}>
             <div className="footer-grid" style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:'32px', marginBottom:'48px' }}>
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>

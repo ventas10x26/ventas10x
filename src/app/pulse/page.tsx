@@ -75,13 +75,13 @@ const SEGMENTS = [
     tag:'Enterprise', tagColor:'amber', titulo:'Concesionario', subtitulo:'Fuerza de ventas · Inventario multi-punto',
     desc:'Orquesta decenas de asesores, integra tu DMS y captura cada oportunidad — incluso las que llegan a las 2 AM.',
     bullets:['Subís tu DMS o Excel — la IA arma el diagrama de tablas automáticamente (DataBridge)', 'Panel director con atribución 360° por asesor', 'Ruteo inteligente de leads por sucursal o stock', 'Auditoría completa de conversaciones y compliance'],
-    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline', diagram:true,
+    cta:'Explorar plan Enterprise', href:'/pulse/databridge', ctaClass:'pm-btn-outline', diagram:true, liveStat:'+180 concesionarios activos',
   },
   {
     tag:'Pro', tagColor:'green', titulo:'Vendedor individual', subtitulo:'Asesor independiente · Alto volumen',
     desc:'Tu copiloto personal en WhatsApp. Cotiza, retoma y cierra sin depender del área de crédito.',
     bullets:['Copiloto integrado a tu WhatsApp Business', 'Cotización de póliza y financiación en segundos', 'Agenda automática de citas y test drives', 'Cobra desde $49 USD/mes — sin costos por lead'],
-    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn', diagram:false,
+    cta:'Empezar gratis 14 días', href:'/pulse/signup', ctaClass:'pm-btn', diagram:false, liveStat:'+500 asesores conectados',
   },
 ]
 
@@ -409,6 +409,8 @@ export default function PulseMotorLanding() {
         .seg-tag.green { color:var(--green); border:1px solid rgba(62,207,126,0.4); }
         .seg-check { display:flex; gap:10px; align-items:baseline; padding:6px 0; font-size:13px; color:var(--ink-dim); }
         .seg-check .mark { color:var(--green); font-family:${F_MONO}; flex-shrink:0; }
+        .seg-check-mark { display:inline-block; transition:transform .2s var(--ease-out-expo); }
+        .seg-check:hover .seg-check-mark { transform:scale(1.4) rotate(-8deg); }
 
         .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
         .quote-card:hover { transform:translateY(-4px); box-shadow:0 16px 32px rgba(0,0,0,0.35); border-color:var(--line); }
@@ -479,7 +481,7 @@ export default function PulseMotorLanding() {
           .pm-btn:hover:not(:disabled) { transform:none; }
           .logos-track { animation:none; }
           .scroll-cue { animation:none; }
-          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .seg-card-arrow, .tool-road-car { transition:none; }
+          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .seg-card-arrow, .seg-check-mark, .tool-road-car { transition:none; }
         }
 
         @media(max-width:700px){
@@ -629,12 +631,19 @@ export default function PulseMotorLanding() {
               <div key={s.titulo} className={`seg-card seg-card-${s.tagColor} reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
                 <span className="seg-card-arrow" aria-hidden="true">↗</span>
                 <div className="seg-card-icon"><SegIcon variant={s.tagColor as 'amber' | 'green'} /></div>
-                <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', marginBottom:'14px' }}>
+                  <span className={`seg-tag ${s.tagColor}`} style={{ marginBottom:0 }}>{s.tag}</span>
+                  <span className="badge" style={{ padding:'4px 10px', fontSize:'10px', border:'1px solid rgba(255,255,255,0.35)', color:'#fff' }}><span className="live-dot on-gradient" />{s.liveStat}</span>
+                </div>
                 <h3 className="seg-card-title" style={{ fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
                 <p className="seg-card-subtitle" style={{ fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'16px' }}>{s.subtitulo}</p>
                 <p style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6, marginBottom:'18px' }}>{s.desc}</p>
                 <div style={{ marginBottom:'22px' }}>
-                  {s.bullets.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
+                  {s.bullets.map((b,bi) => (
+                    <div key={b} className={`seg-check reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140 + 200 + bi*80}ms` }}>
+                      <span className="mark seg-check-mark">✓</span><span>{b}</span>
+                    </div>
+                  ))}
                 </div>
                 {s.diagram && <SchemaPreview />}
                 <a href={s.href} className={s.ctaClass} style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 20px', fontSize:'13px', borderRadius:'6px' }}>{s.cta}<span className="btn-arrow">→</span></a>

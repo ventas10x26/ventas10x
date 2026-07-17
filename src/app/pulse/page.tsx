@@ -392,7 +392,7 @@ export default function PulseMotorLanding() {
         .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%); }
         .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
         .seg-card-amber:hover { border-color:var(--amber); }
-        .seg-card-green { position:relative; overflow:hidden; border:1.5px solid rgba(62,207,126,0.4); background:linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%); }
+        .seg-card-green { position:relative; overflow:hidden; border:1.5px solid #1F7A4E; background:linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%); }
         .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
         .seg-card-green:hover { border-color:var(--green); }
         .seg-card-icon { margin-bottom:20px; opacity:0.95; }

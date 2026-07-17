@@ -377,10 +377,10 @@ export default function PulseMotorLanding() {
         .seg-card-green { position:relative; overflow:hidden; background:radial-gradient(circle at 88% 6%, rgba(62,207,126,0.5) 0%, rgba(62,207,126,0.16) 32%, var(--bg-1) 62%); }
         .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
         .seg-card-green:hover { border-color:rgba(62,207,126,0.4); }
-        .seg-card-arrow { position:absolute; top:24px; right:24px; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; transition:transform .25s var(--ease-out-expo); }
-        .seg-card-amber .seg-card-arrow { color:var(--amber); border:1px solid var(--amber-dim); }
-        .seg-card-green .seg-card-arrow { color:var(--green); border:1px solid rgba(62,207,126,0.4); }
-        .seg-card:hover .seg-card-arrow { transform:translate(3px,-3px); }
+        .seg-card-arrow { position:absolute; top:24px; right:24px; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; line-height:1; transition:transform .25s var(--ease-out-expo); }
+        .seg-card-amber .seg-card-arrow { color:var(--amber); border:2.5px solid var(--amber); background:rgba(242,169,59,0.08); }
+        .seg-card-green .seg-card-arrow { color:var(--green); border:2.5px solid var(--green); background:rgba(62,207,126,0.08); }
+        .seg-card:hover .seg-card-arrow { transform:translate(4px,-4px); }
         .seg-tag { display:inline-flex; font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 10px; border-radius:3px; margin-bottom:16px; }
         .seg-tag.amber { color:var(--amber); border:1px solid var(--amber-dim); }
         .seg-tag.green { color:var(--green); border:1px solid rgba(62,207,126,0.4); }

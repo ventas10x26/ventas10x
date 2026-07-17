@@ -388,7 +388,7 @@ export default function PulseMotorLanding() {
         .tool-road-car { position:absolute; top:50%; font-size:15px; line-height:1; transform:translate(-50%,-50%); transition:left .5s var(--ease-out-expo); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 
         .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
-        .seg-card:hover { transform:translateY(-8px); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+        .seg-card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
         .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%); }
         .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
         .seg-card-amber:hover { border-color:var(--amber); }

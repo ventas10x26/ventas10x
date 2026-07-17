@@ -182,6 +182,23 @@ function SchemaPreview() {
   )
 }
 
+function SegIcon({ variant }: { variant: 'amber' | 'green' }) {
+  const color = variant === 'amber' ? 'var(--amber)' : 'var(--green)'
+  return variant === 'amber' ? (
+    // Red hub-and-spoke: eco del esquema de DataBridge (multi-sucursal)
+    <svg width="52" height="52" viewBox="0 0 56 56" fill="none" stroke={color} strokeWidth="1.4" aria-hidden="true">
+      <circle cx="28" cy="14" r="5" /><circle cx="12" cy="36" r="5" /><circle cx="44" cy="36" r="5" /><circle cx="28" cy="48" r="4" />
+      <path d="M28 19v25M24.5 16.7 14 32.5M31.5 16.7 42 32.5" />
+    </svg>
+  ) : (
+    // Burbuja de chat con líneas de texto: copiloto en WhatsApp
+    <svg width="52" height="52" viewBox="0 0 56 56" fill="none" stroke={color} strokeWidth="1.4" aria-hidden="true">
+      <path d="M10 14h36a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H24l-8 8v-8h-6a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z" />
+      <path d="M18 24h20M18 31h13" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function StatCell({ val, delta, label, active, delayMs }: { val: string; delta: string; label: string; active: boolean; delayMs: number }) {
   const displayed = useCountUp(val, active)
   return (
@@ -371,12 +388,13 @@ export default function PulseMotorLanding() {
 
         .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
         .seg-card:hover { transform:translateY(-8px); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
-        .seg-card-amber { position:relative; overflow:hidden; background:radial-gradient(circle at 88% 6%, rgba(242,169,59,0.5) 0%, rgba(242,169,59,0.16) 32%, var(--bg-1) 62%); }
+        .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%); }
         .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
-        .seg-card-amber:hover { border-color:var(--amber-dim); }
-        .seg-card-green { position:relative; overflow:hidden; background:radial-gradient(circle at 88% 6%, rgba(62,207,126,0.5) 0%, rgba(62,207,126,0.16) 32%, var(--bg-1) 62%); }
+        .seg-card-amber:hover { border-color:var(--amber); }
+        .seg-card-green { position:relative; overflow:hidden; border:1.5px solid rgba(62,207,126,0.4); background:linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%); }
         .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
-        .seg-card-green:hover { border-color:rgba(62,207,126,0.4); }
+        .seg-card-green:hover { border-color:var(--green); }
+        .seg-card-icon { margin-bottom:20px; opacity:0.95; }
         .seg-card-arrow { position:absolute; top:24px; right:24px; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; line-height:1; transition:transform .25s var(--ease-out-expo); }
         .seg-card-amber .seg-card-arrow { color:var(--amber); border:2.5px solid var(--amber); background:rgba(242,169,59,0.08); }
         .seg-card-green .seg-card-arrow { color:var(--green); border:2.5px solid var(--green); background:rgba(62,207,126,0.08); }
@@ -605,6 +623,7 @@ export default function PulseMotorLanding() {
             {SEGMENTS.map((s,i) => (
               <div key={s.titulo} className={`seg-card seg-card-${s.tagColor} reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
                 <span className="seg-card-arrow" aria-hidden="true">↗</span>
+                <div className="seg-card-icon"><SegIcon variant={s.tagColor as 'amber' | 'green'} /></div>
                 <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
                 <h3 style={{ fontSize:'24px', fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
                 <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--ink-dim)', marginBottom:'16px' }}>{s.subtitulo}</p>

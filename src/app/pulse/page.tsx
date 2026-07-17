@@ -369,8 +369,16 @@ export default function PulseMotorLanding() {
         .tool-road::before { content:''; position:absolute; top:50%; left:2px; right:2px; height:0; border-top:2px dashed var(--line); transform:translateY(-50%); }
         .tool-road-car { position:absolute; top:50%; font-size:15px; line-height:1; transform:translate(-50%,-50%); transition:left .5s var(--ease-out-expo); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 
-        .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:box-shadow .25s ease, border-color .25s ease; }
-        .seg-card:hover { box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); border-color:var(--amber-dim); }
+        .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
+        .seg-card:hover { transform:translateY(-8px); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+        .seg-card-amber { position:relative; overflow:hidden; background:linear-gradient(180deg, rgba(242,169,59,0.05) 0%, var(--bg-1) 220px); }
+        .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
+        .seg-card-amber::after { content:''; position:absolute; top:-70px; right:-70px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle, rgba(242,169,59,0.14) 0%, transparent 70%); pointer-events:none; }
+        .seg-card-amber:hover { border-color:var(--amber-dim); }
+        .seg-card-green { position:relative; overflow:hidden; background:linear-gradient(180deg, rgba(62,207,126,0.05) 0%, var(--bg-1) 220px); }
+        .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
+        .seg-card-green::after { content:''; position:absolute; top:-70px; right:-70px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle, rgba(62,207,126,0.14) 0%, transparent 70%); pointer-events:none; }
+        .seg-card-green:hover { border-color:rgba(62,207,126,0.4); }
         .seg-tag { display:inline-flex; font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 10px; border-radius:3px; margin-bottom:16px; }
         .seg-tag.amber { color:var(--amber); border:1px solid var(--amber-dim); }
         .seg-tag.green { color:var(--green); border:1px solid rgba(62,207,126,0.4); }
@@ -446,7 +454,7 @@ export default function PulseMotorLanding() {
           .pm-btn:hover:not(:disabled) { transform:none; }
           .logos-track { animation:none; }
           .scroll-cue { animation:none; }
-          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .tool-road-car { transition:none; }
+          .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .tool-road-car { transition:none; }
         }
 
         @media(max-width:700px){
@@ -593,7 +601,7 @@ export default function PulseMotorLanding() {
           </div>
           <div ref={segGrid.ref} className="seg-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>
             {SEGMENTS.map((s,i) => (
-              <div key={s.titulo} className={`seg-card reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
+              <div key={s.titulo} className={`seg-card seg-card-${s.tagColor} reveal${segGrid.inView?' in':''}`} style={{ transitionDelay:`${i*140}ms` }}>
                 <span className={`seg-tag ${s.tagColor}`}>{s.tag}</span>
                 <h3 style={{ fontSize:'24px', fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
                 <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'.5px', color:'var(--ink-dim)', marginBottom:'16px' }}>{s.subtitulo}</p>

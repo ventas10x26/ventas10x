@@ -14,6 +14,9 @@ export const F_MONO    = "var(--font-mono), monospace"
 export const F_BODY    = "var(--font-inter), sans-serif"
 
 export type NavItem = { label: string; href: string }
+export type PulseTheme = 'soft' | 'dark'
+
+const THEME_STORAGE_KEY = 'pulse-theme'
 
 // ─── Timeline de tool-calls (elemento de firma) — traza real de ejecución del agente ───
 export const TOOL_CALLS = [
@@ -164,6 +167,26 @@ export function useUsuarioLogueado() {
   return usuarioLogueado
 }
 
+// Tema claro (soft, default) / oscuro — toggle persistido en localStorage y compartido
+// por las 3 páginas públicas de Pulse Motor (home, concesionario, asesor). El estado
+// inicial siempre es 'soft' (coincide con el render del servidor); localStorage se lee
+// recién en el efecto para no romper la hidratación.
+export function usePulseTheme() {
+  const [theme, setTheme] = useState<PulseTheme>('soft')
+  useEffect(() => {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (stored === 'dark' || stored === 'soft') setTheme(stored)
+  }, [])
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next: PulseTheme = prev === 'soft' ? 'dark' : 'soft'
+      window.localStorage.setItem(THEME_STORAGE_KEY, next)
+      return next
+    })
+  }
+  return { theme, toggleTheme }
+}
+
 // Scroll-spy: resalta en el nav la sección local (href que empieza con "#") que cruza
 // el centro del viewport. Los items con href absoluto (a otra página) se ignoran.
 export function useSectionScrollSpy(navItems: NavItem[]) {
@@ -207,11 +230,11 @@ export function DataBridgeMiniDiagram() {
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} aria-hidden="true">
         {DB_LINKS.map(([a,b],i) => {
           const na = DB_NODES.find(n=>n.id===a)!, nb = DB_NODES.find(n=>n.id===b)!
-          return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} stroke="var(--line)" strokeWidth="0.6" strokeDasharray="2,2" />
+          return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} stroke="var(--panel-line)" strokeWidth="0.6" strokeDasharray="2,2" />
         })}
       </svg>
       {DB_NODES.map(n => (
-        <div key={n.id} style={{ position:'absolute', left:`${n.x}%`, top:`${n.y}%`, transform:'translate(-50%,-50%)', display:'flex', alignItems:'center', gap:'5px', background:'var(--bg-2)', border:`1px solid ${n.chip}66`, borderRadius:'4px', padding:'4px 8px', fontFamily:F_MONO, fontSize:'10px', color:'var(--ink)', whiteSpace:'nowrap' }}>
+        <div key={n.id} style={{ position:'absolute', left:`${n.x}%`, top:`${n.y}%`, transform:'translate(-50%,-50%)', display:'flex', alignItems:'center', gap:'5px', background:'var(--panel-bg-2)', border:`1px solid ${n.chip}66`, borderRadius:'4px', padding:'4px 8px', fontFamily:F_MONO, fontSize:'10px', color:'var(--panel-ink)', whiteSpace:'nowrap' }}>
           <span style={{ width:'5px', height:'5px', borderRadius:'50%', background:n.chip, flexShrink:0 }} />{n.label}
         </div>
       ))}
@@ -266,9 +289,28 @@ export function StatCell({ val, delta, label, active, delayMs }: { val: string; 
 
 // ─── Header / Footer compartidos ───
 
-export function PulseHeader({ navItems, activeSection, usuarioLogueado }: { navItems: NavItem[]; activeSection?: string; usuarioLogueado: string | null }) {
+export function ThemeToggle({ theme, onToggle }: { theme: PulseTheme; onToggle: () => void }) {
+  const isDark = theme === 'dark'
   return (
-    <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'rgba(11,13,12,0.85)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)' }}>
+    <button
+      type="button"
+      onClick={onToggle}
+      className="theme-toggle"
+      aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+      title={isDark ? 'Tema claro' : 'Tema oscuro'}
+    >
+      {isDark ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z" /></svg>
+      )}
+    </button>
+  )
+}
+
+export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, onToggleTheme }: { navItems: NavItem[]; activeSection?: string; usuarioLogueado: string | null; theme: PulseTheme; onToggleTheme: () => void }) {
+  return (
+    <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'var(--header-bg)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)' }}>
       <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
         <div style={{ width:'10px', height:'10px', background:'var(--amber)', borderRadius:'2px' }} />
         <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
@@ -279,6 +321,7 @@ export function PulseHeader({ navItems, activeSection, usuarioLogueado }: { navI
         ))}
       </nav>
       <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         {usuarioLogueado ? (
           <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente<span className="btn-arrow">→</span></a>
         ) : (
@@ -580,17 +623,58 @@ export function PulseStyles() {
   return (
     <style>{`
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      :root {
-        --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
-        --ink:#F3EFE7; --ink-dim:#9B958A;
+      /* ── Tema: soft (claro, default) / dark ──
+         :root define los valores soft — el fallback global mientras cualquiera de las 3
+         páginas públicas de Pulse Motor está montada. .pulse-theme-root[data-theme='dark']
+         reescribe esos mismos nombres de variable solo dentro del wrapper de la página
+         cuando el usuario alterna a oscuro con el botón del header (ThemeToggle). Los
+         paneles "pantalla de producto" (timeline del hero, preview de DataBridge, preview
+         de WhatsApp, panel de Cobertura, tabla de auditoría) usan un set de variables
+         --panel-* aparte que NUNCA cambia con el tema — son dispositivos que siempre se
+         ven como una captura real del producto, no parte del lienzo de la página. */
+      /* :root Y .pulse-theme-root reciben los mismos valores soft explícitamente (no solo
+         :root con .pulse-theme-root heredando): layout.tsx envuelve estas páginas en su
+         propio .pulse-root con tokens oscuros FIJOS para el dashboard autenticado, y al ser
+         un ancestro más cercano que :root, .pulse-theme-root heredaría esos oscuros si no
+         los redeclarara acá directamente encima suyo. */
+      :root, .pulse-theme-root {
+        --bg-0:#FDFBF7; --bg-1:#FFFFFF; --bg-2:#F5F1E9; --bg-3:#F7F3EC; --bg-4:#F1EAE0; --line:#E7E0D2;
+        --ink:#1A1712; --ink-dim:#726B5E;
         --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
         --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
         --green-2:#0F3D2B;
         --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
         --ease-out-expo: cubic-bezier(.16,1,.3,1);
+
+        --panel-bg:#14120F; --panel-bg-2:#1B1815; --panel-line:#2A2620; --panel-ink:#F3EFE7; --panel-ink-dim:#9B958A;
+
+        --header-bg: rgba(253,251,247,0.85);
+        --shadow-lg: 0 20px 40px rgba(30,24,15,0.10), 0 6px 14px rgba(30,24,15,0.06);
+        --shadow-sm: 0 1px 2px rgba(30,24,15,0.05);
+        --seg-wash-amber: linear-gradient(165deg, rgba(242,169,59,0.16) 0%, rgba(242,169,59,0.05) 44%, var(--bg-1) 80%);
+        --seg-wash-green: linear-gradient(165deg, rgba(62,207,126,0.16) 0%, rgba(62,207,126,0.05) 44%, var(--bg-1) 80%);
+        --seg-badge-border: var(--line); --seg-badge-ink: var(--ink-dim);
+        --seg-badge-dot: var(--green); --seg-badge-dot-shadow: rgba(62,207,126,0.55);
+        --seg-hover-ink: var(--ink);
+        --hero-mesh: radial-gradient(560px circle at 6% -12%, rgba(242,169,59,0.14), transparent 62%), radial-gradient(560px circle at 97% -12%, rgba(62,207,126,0.12), transparent 62%);
+      }
+      .pulse-theme-root[data-theme='dark'] {
+        --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
+        --ink:#F3EFE7; --ink-dim:#9B958A;
+
+        --header-bg: rgba(11,13,12,0.85);
+        --shadow-lg: 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3);
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+        --seg-wash-amber: linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%);
+        --seg-wash-green: linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%);
+        --seg-badge-border: rgba(255,255,255,0.35); --seg-badge-ink: #fff;
+        --seg-badge-dot: #fff; --seg-badge-dot-shadow: rgba(255,255,255,0.55);
+        --seg-hover-ink: #fff;
+        --hero-mesh: none;
       }
       body { background: var(--bg-0); }
       ::selection { background:rgba(242,169,59,0.35); color:#fff; }
+      .pulse-theme-root { background-color:var(--bg-0); background-image:var(--hero-mesh); background-repeat:no-repeat; transition:background-color .3s ease; }
 
       /* ── Ritmo de fondo entre secciones: tonos oscuros graduados + un momento en vivo ──
          Los componentes ya leen todo su color de estas variables, así que alcanza con
@@ -643,37 +727,46 @@ export function PulseStyles() {
       .badge { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:3px; padding:6px 12px; font-family:${F_MONO}; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
       .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(62,207,126,0.6); animation:livePulse 2s ease infinite; flex-shrink:0; }
       @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(62,207,126,0.55)} 70%{box-shadow:0 0 0 6px rgba(62,207,126,0)} 100%{box-shadow:0 0 0 0 rgba(62,207,126,0)} }
-      /* Sobre el degradé verde el punto verde se pierde — versión blanca para el badge "en vivo" de esa sección */
+      /* Sobre el degradé verde (siempre verde, sin importar el tema) el punto verde se pierde
+         — versión blanca fija para el badge "en vivo" de esa sección. */
       .live-dot.on-gradient { background:#fff; animation-name:livePulseWhite; }
       @keyframes livePulseWhite { 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.55)} 70%{box-shadow:0 0 0 6px rgba(255,255,255,0)} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0)} }
+      /* Variante para el badge de prueba social dentro del seg-card: ese fondo SÍ sigue el
+         tema (wash intenso en dark, wash tenue en soft), así que el punto necesita adaptarse
+         — blanco sobre el wash saturado de dark, verde normal sobre el wash tenue de soft. */
+      .live-dot.on-tint { background:var(--seg-badge-dot); animation-name:livePulseTint; }
+      @keyframes livePulseTint { 0%{box-shadow:0 0 0 0 var(--seg-badge-dot-shadow)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+
+      .theme-toggle { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease, background-color .15s ease; }
+      .theme-toggle:hover { color:var(--ink); border-color:var(--ink-dim); background:rgba(128,128,128,0.08); }
 
       .kicker { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--amber); margin-bottom:14px; }
 
-      .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.3); }
+      .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:var(--shadow-sm); }
       .grid-shared > * { background:var(--bg-1); padding:24px; transition:background-color .25s ease; backdrop-filter:blur(10px); }
 
       .reveal { opacity:0; transform:translateY(28px) scale(.98); transition:opacity .8s var(--ease-out-expo), transform .8s var(--ease-out-expo); }
       .reveal.in { opacity:1; transform:translateY(0) scale(1); }
 
-      .panel { border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); background:var(--bg-1); backdrop-filter:blur(10px); }
-      .panel-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
+      .panel { border:1px solid var(--panel-line); border-radius:6px; overflow:hidden; box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); background:var(--panel-bg); backdrop-filter:blur(10px); }
+      .panel-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--panel-line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--panel-ink-dim); }
       .wa-bubble { max-width:82%; padding:8px 12px; font-size:12.5px; line-height:1.5; font-family:${F_BODY}; border-radius:10px; }
-      .wa-lead { align-self:flex-start; background:var(--bg-2); color:var(--ink); border-bottom-left-radius:2px; }
+      .wa-lead { align-self:flex-start; background:var(--panel-bg-2); color:var(--panel-ink); border-bottom-left-radius:2px; }
       .wa-agent { align-self:flex-end; background:var(--grad-green); color:#04150c; font-weight:600; border-bottom-right-radius:2px; }
-      .log-row { display:grid; grid-template-columns:90px 1fr 150px 120px; gap:16px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
+      .log-row { display:grid; grid-template-columns:90px 1fr 150px 120px; gap:16px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--panel-line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
       .log-row:last-child { border-bottom:none; }
       .log-row.in { opacity:1; transform:translateY(0); }
-      .log-time, .log-canal { font-family:${F_MONO}; color:var(--ink-dim); font-size:12px; }
-      .log-evento { color:var(--ink); }
+      .log-time, .log-canal { font-family:${F_MONO}; color:var(--panel-ink-dim); font-size:12px; }
+      .log-evento { color:var(--panel-ink); }
       .log-estado { font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:.5px; text-align:right; }
       .log-estado.ok { color:var(--green); }
       .log-estado.pend { color:var(--amber); }
 
-      .tool-row { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--line); font-family:${F_MONO}; font-size:13px; opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .4s ease; }
+      .tool-row { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--panel-line); font-family:${F_MONO}; font-size:13px; opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .4s ease; }
       .tool-row:last-child { border-bottom:none; }
       .tool-row.in { opacity:1; transform:translateX(0); }
-      .tool-row .fn { color:var(--ink); }
-      .tool-row .ms { color:var(--ink-dim); display:flex; align-items:center; gap:8px; }
+      .tool-row .fn { color:var(--panel-ink); }
+      .tool-row .ms { color:var(--panel-ink-dim); display:flex; align-items:center; gap:8px; }
 
       /* Pista de progreso del trámite: el auto avanza a medida que se ejecutan los tool-calls */
       .tool-road { position:relative; height:16px; margin:2px 18px 10px; }
@@ -681,18 +774,18 @@ export function PulseStyles() {
       .tool-road-car { position:absolute; top:50%; font-size:15px; line-height:1; transform:translate(-50%,-50%); transition:left .5s var(--ease-out-expo); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 
       .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; display:block; text-decoration:none; }
-      .seg-card:hover { transform:translateY(-8px) scale(1.03); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
-      .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%); }
+      .seg-card:hover { transform:translateY(-8px) scale(1.03); box-shadow:var(--shadow-lg); }
+      .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:var(--seg-wash-amber); }
       .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
       .seg-card-amber:hover { border-color:var(--amber); }
-      .seg-card-green { position:relative; overflow:hidden; border:1.5px solid #1F7A4E; background:linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%); }
+      .seg-card-green { position:relative; overflow:hidden; border:1.5px solid #1F7A4E; background:var(--seg-wash-green); }
       .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
       .seg-card-green:hover { border-color:var(--green); }
       .seg-card-icon { margin-bottom:20px; opacity:0.95; }
       .seg-card-title { font-size:24px; color:var(--ink); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
       .seg-card-subtitle { font-size:11px; color:var(--ink-dim); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
-      .seg-card:hover .seg-card-title { font-size:28px; color:#fff; }
-      .seg-card:hover .seg-card-subtitle { font-size:12px; color:#fff; }
+      .seg-card:hover .seg-card-title { font-size:28px; color:var(--seg-hover-ink); }
+      .seg-card:hover .seg-card-subtitle { font-size:12px; color:var(--seg-hover-ink); }
       .seg-card-arrow { position:absolute; top:24px; right:24px; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; line-height:1; transition:transform .25s var(--ease-out-expo); }
       .seg-card-amber .seg-card-arrow { color:var(--amber); border:2.5px solid var(--amber); background:rgba(242,169,59,0.08); }
       .seg-card-green .seg-card-arrow { color:var(--green); border:2.5px solid var(--green); background:rgba(62,207,126,0.08); }
@@ -706,7 +799,7 @@ export function PulseStyles() {
       .seg-check:hover .seg-check-mark { transform:scale(1.4) rotate(-8deg); }
 
       .quote-card { border:1px solid var(--line); border-radius:6px; padding:28px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
-      .quote-card:hover { transform:translateY(-4px); box-shadow:0 16px 32px rgba(0,0,0,0.35); border-color:var(--line); }
+      .quote-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); border-color:var(--line); }
 
       .eco-cell { transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), background-color .25s ease; }
       .eco-cell:hover { transform:translateY(-4px); background:var(--bg-2); }
@@ -722,7 +815,7 @@ export function PulseStyles() {
       .stat-cell:hover { transform:translateY(-2px); }
 
       .log-row-data { transition:background-color .2s ease, opacity .5s ease, transform .5s ease; }
-      .log-row-data:hover { background:var(--bg-2); }
+      .log-row-data:hover { background:var(--panel-bg-2); }
 
       .pm-nav-link { position:relative; padding-bottom:4px; color:var(--ink-dim); transition:color .2s ease; }
       .pm-nav-link::after { content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--amber); transition:width .25s var(--ease-out-expo); }
@@ -749,8 +842,8 @@ export function PulseStyles() {
       .pricing-toggle button.active { background:var(--amber); color:#1a1204; }
 
       .price-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); position:relative; text-align:left; transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
-      .price-card:hover { transform:translateY(-4px); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
-      .price-card.destacado { border-color:var(--amber-dim); box-shadow:0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3); }
+      .price-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+      .price-card.destacado { border-color:var(--amber-dim); box-shadow:var(--shadow-lg); }
       .price-card .badge-rec { position:absolute; top:-11px; left:32px; background:var(--amber); color:#1a1204; font-family:${F_MONO}; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:4px 10px; border-radius:3px; }
       .price-card .precio-row { display:flex; align-items:baseline; gap:6px; margin:12px 0 4px; }
       .price-card .precio-num { font-family:${F_DISPLAY}; font-size:36px; font-weight:800; color:var(--ink); }

@@ -4,7 +4,7 @@ import { useReveal } from '@/hooks/useReveal'
 import {
   F_DISPLAY, F_MONO, F_BODY, SEGMENTS, TESTIMONIOS_V2,
   PulseStyles, PulseHeader, PulseFooter,
-  useUsuarioLogueado, useSectionScrollSpy,
+  useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
   SegIcon, WhatsAppMiniPreview,
   LogosSection, PorQueSection, EcosistemaSection, ActividadEnVivoSection,
   IntegracionesSection, CumplimientoSection, TestimoniosSection, PreciosSection,
@@ -22,14 +22,15 @@ const TESTIMONIOS_ASESOR = TESTIMONIOS_V2.filter(t => t.seg.startsWith('Vendedor
 
 export default function AsesorLanding() {
   const usuarioLogueado = useUsuarioLogueado()
+  const { theme, toggleTheme } = usePulseTheme()
   const activeSection = useSectionScrollSpy(NAV_ITEMS)
   const heroReveal = useReveal<HTMLDivElement>()
 
   return (
     <>
       <PulseStyles />
-      <div style={{ minHeight:'100vh', background:'var(--bg-0)', color:'var(--ink)', fontFamily:F_BODY, lineHeight:1.5 }}>
-        <PulseHeader navItems={NAV_ITEMS} activeSection={activeSection} usuarioLogueado={usuarioLogueado} />
+      <div className="pulse-theme-root" data-theme={theme} style={{ minHeight:'100vh', color:'var(--ink)', fontFamily:F_BODY, lineHeight:1.5 }}>
+        <PulseHeader navItems={NAV_ITEMS} activeSection={activeSection} usuarioLogueado={usuarioLogueado} theme={theme} onToggleTheme={toggleTheme} />
 
         {/* HERO — landing dedicada del segmento Vendedor individual (Pro): expande la
             card de la home con el detalle completo de la oferta para este segmento. */}

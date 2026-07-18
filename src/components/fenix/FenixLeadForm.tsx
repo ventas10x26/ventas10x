@@ -1,34 +1,23 @@
 // Ruta destino: src/components/fenix/FenixLeadForm.tsx
 'use client'
-import { useState, type FormEvent, type CSSProperties } from 'react'
+import { useState, type FormEvent } from 'react'
 
 const ACCENT = '#F5821F'
-
-const INPUT_STYLE: CSSProperties = {
-  width: '100%',
-  background: 'rgba(255,255,255,.04)',
-  border: '1px solid rgba(255,255,255,.15)',
-  borderRadius: '10px',
-  padding: '13px 16px',
-  fontSize: '14px',
-  color: '#fff',
-  fontFamily: 'inherit',
-  outline: 'none',
-}
-
-const LABEL_STYLE: CSSProperties = {
-  display: 'block',
-  fontSize: '12px',
-  fontWeight: 600,
-  color: 'rgba(255,255,255,.55)',
-  marginBottom: '6px',
-}
 
 type Status = 'idle' | 'loading' | 'ok' | 'error'
 
 type Props = {
   compact?: boolean
   onSuccess?: () => void
+}
+
+function IconLock() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
 }
 
 export function FenixLeadForm({ compact = false, onSuccess }: Props) {
@@ -70,11 +59,19 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
   if (status === 'ok') {
     return (
       <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-        <div style={{ fontSize: '40px', marginBottom: '1rem' }}>✅</div>
+        <div style={{
+          width: '52px', height: '52px', borderRadius: '50%', margin: '0 auto 1rem',
+          background: `${ACCENT}18`, border: `1px solid ${ACCENT}55`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
         <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
           Solicitud recibida
         </div>
-        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)' }}>
+        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6 }}>
           Un especialista de Fenix Consultores se pondrá en contacto con su empresa muy pronto.
         </div>
       </div>
@@ -88,30 +85,30 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap, textAlign: 'left' }}>
       <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
         <div>
-          <label style={LABEL_STYLE} htmlFor="empresa">Empresa *</label>
-          <input id="empresa" name="empresa" required style={INPUT_STYLE} placeholder="Nombre de su empresa" />
+          <label className="fenix-label" htmlFor="empresa">Empresa *</label>
+          <input id="empresa" name="empresa" required className="fenix-input" placeholder="Nombre de su empresa" />
         </div>
         <div>
-          <label style={LABEL_STYLE} htmlFor="nombre">Nombre de contacto *</label>
-          <input id="nombre" name="nombre" required style={INPUT_STYLE} placeholder="Su nombre" />
+          <label className="fenix-label" htmlFor="nombre">Nombre de contacto *</label>
+          <input id="nombre" name="nombre" required className="fenix-input" placeholder="Su nombre" />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
         <div>
-          <label style={LABEL_STYLE} htmlFor="email">Correo *</label>
-          <input id="email" name="email" type="email" required style={INPUT_STYLE} placeholder="correo@empresa.com" />
+          <label className="fenix-label" htmlFor="email">Correo *</label>
+          <input id="email" name="email" type="email" required className="fenix-input" placeholder="correo@empresa.com" />
         </div>
         <div>
-          <label style={LABEL_STYLE} htmlFor="telefono">WhatsApp / Teléfono *</label>
-          <input id="telefono" name="telefono" type="tel" required style={INPUT_STYLE} placeholder="+57 300 000 0000" />
+          <label className="fenix-label" htmlFor="telefono">WhatsApp / Teléfono *</label>
+          <input id="telefono" name="telefono" type="tel" required className="fenix-input" placeholder="+57 300 000 0000" />
         </div>
       </div>
 
       {!compact && (
         <div>
-          <label style={LABEL_STYLE} htmlFor="mensaje">¿Qué necesita su empresa?</label>
-          <textarea id="mensaje" name="mensaje" rows={3} style={{ ...INPUT_STYLE, resize: 'vertical' }} placeholder="Recaudo de cartera, derecho preventivo, consultoría empresarial..." />
+          <label className="fenix-label" htmlFor="mensaje">¿Qué necesita su empresa?</label>
+          <textarea id="mensaje" name="mensaje" rows={3} className="fenix-input" style={{ resize: 'vertical' }} placeholder="Recaudo de cartera, derecho preventivo, consultoría empresarial..." />
         </div>
       )}
 
@@ -119,19 +116,67 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
         <div style={{ fontSize: '13px', color: '#ff8080' }}>{errorMsg}</div>
       )}
 
-      <button type="submit" disabled={status === 'loading'} style={{
-        background: ACCENT, color: '#050302', border: 'none',
-        padding: compact ? '13px' : '15px', borderRadius: '999px', fontSize: '14px', fontWeight: 700,
+      <button type="submit" disabled={status === 'loading'} className="fenix-submit-btn" style={{
+        padding: compact ? '13px' : '15px',
         cursor: status === 'loading' ? 'default' : 'pointer',
         opacity: status === 'loading' ? 0.7 : 1,
-        boxShadow: `0 8px 30px ${ACCENT}45`,
       }}>
         {status === 'loading' ? 'Enviando…' : compact ? 'Enviar →' : 'Solicitar asesoría para mi empresa →'}
       </button>
 
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11.5px', color: 'rgba(255,255,255,.35)' }}>
+        <IconLock /> Sus datos están protegidos y no se comparten con terceros
+      </div>
+
       <style>{`
+        .fenix-input {
+          width: 100%;
+          background: rgba(255,255,255,.04);
+          border: 1px solid rgba(255,255,255,.15);
+          border-radius: 10px;
+          padding: 13px 16px;
+          font-size: 14px;
+          color: #fff;
+          font-family: inherit;
+          outline: none;
+          transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        }
+        .fenix-input::placeholder { color: rgba(255,255,255,.32); }
+        .fenix-input:hover { border-color: rgba(255,255,255,.28); }
+        .fenix-input:focus {
+          border-color: ${ACCENT};
+          background: rgba(255,255,255,.06);
+          box-shadow: 0 0 0 3px ${ACCENT}28;
+        }
+        .fenix-label {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,.55);
+          margin-bottom: 6px;
+        }
+        .fenix-submit-btn {
+          width: 100%;
+          background: ${ACCENT};
+          color: #050302;
+          border: none;
+          border-radius: 999px;
+          font-size: 14px;
+          font-weight: 700;
+          box-shadow: 0 8px 30px ${ACCENT}45;
+          transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+        }
+        .fenix-submit-btn:hover:not(:disabled) {
+          background: #ff9a3d;
+          transform: translateY(-2px);
+          box-shadow: 0 12px 36px ${ACCENT}65;
+        }
+        .fenix-submit-btn:active:not(:disabled) { transform: translateY(0); }
         @media (max-width: 560px) {
           .fenix-form-row { grid-template-columns: 1fr !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fenix-submit-btn:hover:not(:disabled) { transform: none; }
         }
       `}</style>
     </form>

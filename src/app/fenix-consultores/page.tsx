@@ -155,14 +155,6 @@ const PILL_SOLID: CSSProperties = {
   boxShadow: `0 0 0 1px ${ACCENT}, 0 8px 30px ${ACCENT}55`,
 }
 
-const PILL_OUTLINE: CSSProperties = {
-  background: 'transparent', color: '#fff',
-  padding: '15px 28px', borderRadius: '999px', fontSize: '14px',
-  fontWeight: 600, textDecoration: 'none', display: 'inline-flex',
-  alignItems: 'center', gap: '8px',
-  border: '1px solid rgba(255,255,255,.22)',
-}
-
 const SERVICIOS = [
   {
     Icono: IconRadar,
@@ -666,6 +658,7 @@ export default function FenixConsultoresPage() {
         <div style={{
           maxWidth: '1100px', margin: '0 auto', position: 'relative', overflow: 'hidden',
           border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3rem',
+          boxShadow: `0 40px 100px rgba(0,0,0,.45)`,
           display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1.1fr)', gap: '2.5rem',
           alignItems: 'start',
         }} className="fenix-grid-2">
@@ -686,9 +679,26 @@ export default function FenixConsultoresPage() {
             opacity: 0.7,
             pointerEvents: 'none',
           }} />
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5,
+            backgroundImage: `linear-gradient(${ACCENT}0a 1px, transparent 1px), linear-gradient(90deg, ${ACCENT}0a 1px, transparent 1px)`,
+            backgroundSize: '46px 46px',
+            maskImage: 'radial-gradient(circle at 15% 20%, black, transparent 65%)',
+            WebkitMaskImage: 'radial-gradient(circle at 15% 20%, black, transparent 65%)',
+          }} />
           <div style={{ position: 'relative' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-              Para empresas
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                Para empresas
+              </div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '7px',
+                border: '1px solid rgba(255,255,255,.18)', borderRadius: '999px',
+                padding: '4px 11px 4px 9px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,.6)',
+              }}>
+                <span className="fenix-live-dot" />
+                Especialistas disponibles ahora
+              </div>
             </div>
             <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.1rem' }}>
               Lleve su cartera y su riesgo legal a <span style={{ color: ACCENT }}>manos expertas</span>
@@ -697,13 +707,33 @@ export default function FenixConsultoresPage() {
               Cuéntenos las necesidades jurídicas o de cartera de su empresa y un especialista
               de Fenix Consultores le contactará en menos de 24 horas.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <a href="tel:+573215036414" style={{ ...PILL_OUTLINE, justifyContent: 'flex-start' }}>
-                <IconPhone /> +57 321 5036414
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.75rem' }}>
+              <a href="tel:+573215036414" className="fenix-phone-pill">
+                <span className="fenix-phone-icon"><IconPhone /></span>
+                <span>
+                  <span className="fenix-phone-label">Línea principal</span>
+                  <span className="fenix-phone-number">+57 321 5036414</span>
+                </span>
               </a>
-              <a href="tel:3104159173" style={{ ...PILL_OUTLINE, justifyContent: 'flex-start' }}>
-                <IconPhone /> 310 4159173
+              <a href="tel:3104159173" className="fenix-phone-pill">
+                <span className="fenix-phone-icon"><IconPhone /></span>
+                <span>
+                  <span className="fenix-phone-label">Línea secundaria</span>
+                  <span className="fenix-phone-number">310 4159173</span>
+                </span>
               </a>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(255,255,255,.4)' }}>
+              <span style={{ display: 'flex' }}>
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{
+                    width: '26px', height: '26px', borderRadius: '50%',
+                    background: `${ACCENT}22`, border: `1.5px solid ${ACCENT}70`,
+                    marginLeft: i === 0 ? 0 : '-8px',
+                  }} />
+                ))}
+              </span>
+              <strong style={{ color: 'rgba(255,255,255,.75)' }}>+200 empresas</strong>&nbsp;ya confiaron su cartera a Fenix
             </div>
           </div>
 
@@ -713,6 +743,13 @@ export default function FenixConsultoresPage() {
             border: `1px solid ${ACCENT}30`, borderRadius: '18px', padding: '28px',
             boxShadow: `0 0 40px ${ACCENT}12`,
           }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '18px',
+              border: `1px solid ${ACCENT}40`, borderRadius: '999px', padding: '5px 12px',
+              fontSize: '11px', fontWeight: 700, color: ACCENT, letterSpacing: '.04em',
+            }}>
+              ⏱ Respuesta en menos de 24h
+            </div>
             <FenixLeadForm />
           </div>
         </div>
@@ -812,8 +849,43 @@ export default function FenixConsultoresPage() {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.9; }
         }
+        .fenix-live-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #3ecf7e; flex-shrink: 0;
+          box-shadow: 0 0 0 0 rgba(62,207,126,.6);
+          animation: fenix-live-pulse 2s ease infinite;
+        }
+        @keyframes fenix-live-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(62,207,126,.55); }
+          70% { box-shadow: 0 0 0 6px rgba(62,207,126,0); }
+          100% { box-shadow: 0 0 0 0 rgba(62,207,126,0); }
+        }
+        .fenix-phone-pill {
+          display: flex; align-items: center; gap: 14px;
+          background: rgba(255,255,255,.02);
+          border: 1px solid rgba(255,255,255,.14);
+          border-radius: 14px; padding: 12px 18px;
+          text-decoration: none; color: #fff;
+          transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+        }
+        .fenix-phone-pill:hover {
+          border-color: ${ACCENT}70;
+          background: ${ACCENT}0f;
+          transform: translateY(-2px);
+        }
+        .fenix-phone-icon {
+          width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+          background: ${ACCENT}18; color: ${ACCENT};
+          display: flex; align-items: center; justify-content: center;
+        }
+        .fenix-phone-label {
+          display: block; font-size: 11px; color: rgba(255,255,255,.4);
+          text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px;
+        }
+        .fenix-phone-number { display: block; font-size: 16px; font-weight: 700; }
         @media (prefers-reduced-motion: reduce) {
-          .fenix-hero-tube, .fenix-hero-ring, .fenix-contacto-glow, .fenix-contacto-sparks { animation: none; }
+          .fenix-hero-tube, .fenix-hero-ring, .fenix-contacto-glow, .fenix-contacto-sparks, .fenix-live-dot { animation: none; }
+          .fenix-phone-pill:hover { transform: none; }
         }
         @media (max-width: 760px) {
           .fenix-grid-2 { grid-template-columns: 1fr !important; }

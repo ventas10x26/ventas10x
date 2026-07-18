@@ -80,7 +80,7 @@ export default function PulseMotorLanding() {
           <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%' }}>
             <div style={heroScroll.reduced ? { flex:'1', minWidth:'320px' } : {
               flex:'1', minWidth:'320px',
-              opacity: 1 - Math.min(1, grow / 0.7),
+              opacity: Math.max(0.4, 1 - grow / 0.7),
               transform: `translateY(${-28 * grow}px)`,
               pointerEvents: grow > 0.6 ? 'none' : undefined,
             }}>

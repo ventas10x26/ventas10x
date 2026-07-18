@@ -9,6 +9,7 @@ import {
   LogosSection, PorQueSection, EcosistemaSection, ActividadEnVivoSection,
   IntegracionesSection, CumplimientoSection, TestimoniosSection, PreciosSection,
 } from '../_shared/sections'
+import { PulseStickyDemoWidget } from '@/components/pulse/PulseStickyDemoWidget'
 
 const NAV_ITEMS = [
   { label:'Inicio', href:'/pulse' },
@@ -78,6 +79,8 @@ export default function ConcesionarioLanding() {
         <PreciosSection initialSegment="concesionario" showToggle={false} />
 
         <PulseFooter />
+
+        <PulseStickyDemoWidget />
       </div>
     </>
   )

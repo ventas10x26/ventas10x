@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useReveal } from '@/hooks/useReveal'
 import { useCountUp } from '@/hooks/useCountUp'
+import { PULSE_DEMO_OPEN_EVENT } from '@/components/pulse/PulseStickyDemoWidget'
 
 export const F_DISPLAY = "var(--font-display), sans-serif"
 export const F_MONO    = "var(--font-mono), monospace"
@@ -390,7 +391,7 @@ export function LogosSection() {
         </div>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap', marginTop:'32px' }}>
           <p style={{ fontSize:'15px', color:'var(--ink)' }}><strong style={{ fontWeight:800 }}>+180 concesionarios</strong> ya despliegan agentes de Pulse Motor en LatAm.</p>
-          <a href="/pulse/databridge" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', textDecoration:'none', padding:'11px 22px', fontSize:'13px' }}>Agendar una demo<span className="btn-arrow">→</span></a>
+          <button onClick={() => window.dispatchEvent(new Event(PULSE_DEMO_OPEN_EVENT))} className="pm-btn" style={{ width:'auto', display:'inline-flex', padding:'11px 22px', fontSize:'13px' }}>Agendar una demo<span className="btn-arrow">→</span></button>
         </div>
       </div>
     </section>

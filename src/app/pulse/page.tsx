@@ -121,17 +121,17 @@ export default function PulseMotorLanding() {
               }}>
                 <div style={heroScroll.reduced ? undefined : { opacity:1 - crossfade, pointerEvents: crossfade > 0.5 ? 'none' : undefined, position: heroScroll.reduced ? undefined : 'absolute', inset: heroScroll.reduced ? undefined : 0 }}>
                   <div className="panel-head"><span>Precio lead · Ruteo</span><span style={{ color:'var(--green)' }}>Live</span></div>
-                  <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--line)' }}>
-                    <div style={{ fontSize:'13px', color:'var(--ink)', marginBottom:'12px' }}>
-                      <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)', marginRight:'8px' }}>[09:42]</span>
+                  <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--panel-line)' }}>
+                    <div style={{ fontSize:'13px', color:'var(--panel-ink)', marginBottom:'12px' }}>
+                      <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--panel-ink-dim)', marginRight:'8px' }}>[09:42]</span>
                       "Me interesa la SUV híbrida, tengo un sedán 2021 para retoma y necesito financiación a 60 meses."
                     </div>
                     <div style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'10px' }}>Pulse Agent · Respondiendo</div>
-                    <div style={{ fontSize:'13px', color:'var(--ink-dim)', lineHeight:1.6 }}>
+                    <div style={{ fontSize:'13px', color:'var(--panel-ink-dim)', lineHeight:1.6 }}>
                       Perfecto. Tasé preliminarmente su 2021 en $42.500.000. Con nuestro aliado bancario logro 1.9% MV y cuota cerrada con póliza todo riesgo. ¿Le envío la proyección por WhatsApp?
                     </div>
                   </div>
-                  <div className="panel-head" style={{ borderBottom:'1px solid var(--line)' }}><span>Timeline · Ejecutado</span></div>
+                  <div className="panel-head" style={{ borderBottom:'1px solid var(--panel-line)' }}><span>Timeline · Ejecutado</span></div>
                   <div>
                     {TOOL_CALLS.map((t,i) => (
                       <div key={t.fn} className={`tool-row${toolCallsVisible.includes(i)?' in':''}`}>
@@ -145,7 +145,7 @@ export default function PulseMotorLanding() {
                     <span className="tool-road-car" style={{ left:`${6 + (toolCallsVisible.length / TOOL_CALLS.length) * 88}%` }}>🚗</span>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px' }}>
-                    <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>
+                    <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--panel-ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>
                     <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>87%</span>
                   </div>
                 </div>
@@ -154,7 +154,7 @@ export default function PulseMotorLanding() {
                   <div style={{ opacity:crossfade, pointerEvents: crossfade > 0.5 ? undefined : 'none', position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
                     <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
                     <DataBridgeMiniDiagram />
-                    <div style={{ padding:'14px 18px', fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO, borderTop:'1px solid var(--line)' }}>
+                    <div style={{ padding:'14px 18px', fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO, borderTop:'1px solid var(--panel-line)' }}>
                       Detectado desde tu Excel o DMS — sin escribir una sola línea de SQL.
                     </div>
                   </div>

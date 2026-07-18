@@ -770,7 +770,7 @@ export function PulseStyles() {
 
       /* Pista de progreso del trámite: el auto avanza a medida que se ejecutan los tool-calls */
       .tool-road { position:relative; height:16px; margin:2px 18px 10px; }
-      .tool-road::before { content:''; position:absolute; top:50%; left:2px; right:2px; height:0; border-top:2px dashed var(--line); transform:translateY(-50%); }
+      .tool-road::before { content:''; position:absolute; top:50%; left:2px; right:2px; height:0; border-top:2px dashed var(--panel-line); transform:translateY(-50%); }
       .tool-road-car { position:absolute; top:50%; font-size:15px; line-height:1; transform:translate(-50%,-50%); transition:left .5s var(--ease-out-expo); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 
       .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; display:block; text-decoration:none; }

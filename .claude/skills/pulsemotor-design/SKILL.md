@@ -37,12 +37,13 @@ Nunca tratar esto como una sola persona genérica "el asesor" — el copy y las 
 6. **Jerarquía tipográfica con confianza**: el H1 del hero es el elemento más grande de la página (`clamp(44px, 7vw, 88px)`); cada H2 de sección escala a partir de ahí, nunca al mismo tamaño para todo.
 7. **Titulares en minúscula/mixta con énfasis en negrita**, NO en mayúscula sostenida (`text-transform:none`, no uppercase) — a diferencia de una iteración anterior de esta skill que usaba Oswald todo en mayúsculas. Los titulares se leen como una frase con una palabra o cláusula resaltada en degradé ámbar, no como un cartel de guardia.
 8. Respetar `prefers-reduced-motion` en todo componente animado.
+9. **Las 3 páginas públicas tienen dos temas — soft (claro) y dark — con soft como default.** El toggle vive en el header (`ThemeToggle`, ícono luna/sol) y persiste en `localStorage` compartido entre `/pulse`, `/pulse/concesionario` y `/pulse/asesor`. Cualquier pieza nueva debe leer color de `var(--bg-*)`/`var(--ink*)`/`var(--line)` (que ya cambian solos con el tema) en vez de hardcodear un hex o un `rgba(0,0,0,...)`/`rgba(255,255,255,...)` — ver "Tokens de tema derivados" en `tokens.md` para la lista de casos ya resueltos (sombras, wash de segment card, badge de prueba social) que necesitaron su propia variable en vez de solo recolorear fondo/texto. Excepción: los paneles "pantalla de producto" (timeline del hero, previews de DataBridge/WhatsApp, panel de Cobertura, tabla de auditoría — todo lo que lleva `.panel`) siempre quedan oscuros, en los dos temas, porque son una captura del producto real, no parte del lienzo de la página — usan el set de variables `--panel-*` en vez de los tokens de tema.
 
 ## Tokens de diseño
 
 Ver `references/tokens.md` para la tabla completa. Resumen rápido:
 
-- **Color:** negro cálido `#0B0D0C` / `#14120F` / `#1B1815` de base, ámbar de señal `#F2A93B` (degradé tonal `#F2A93B → #C9770B` permitido) como único acento, verde `#3ECF7E` solo para "activo/en vivo/aprobado".
+- **Color:** ámbar de señal `#F2A93B` (degradé tonal `#F2A93B → #C9770B` permitido) como único acento y verde `#3ECF7E` solo para "activo/en vivo/aprobado" — estos dos no cambian entre temas. El fondo/texto sí cambia: negro cálido `#0B0D0C`/`#14120F`/`#1B1815` en dark, blanco cálido `#FDFBF7`/`#FFFFFF`/`#F5F1E9` en soft (default).
 - **Tipografía:** Inter (700–800) para titulares en minúscula/mixta con énfasis en degradé ámbar · IBM Plex Mono para timestamps, nombres de función del timeline (`tasar_retoma`, `calcular_financiacion`) y cualquier dato · Inter (400–600) para cuerpo. Cargadas con `next/font/google` en `src/app/pulse/layout.tsx` (autohospedadas en build time) — nunca un `<link>` a Google Fonts en runtime ni `@import` en un `<style>`.
 - **Bordes/radios:** rectos y contenidos, radio 3–8px máximo.
 - **Grids de contenido:** bordes de 1px compartidos entre celdas (`gap:1px` con `background:var(--line)`) en vez de cards flotantes, salvo los segment cards y el hero panel, que sí llevan sombra de elevación real por ser los elementos protagonistas de su sección.
@@ -60,6 +61,7 @@ Ver `references/tokens.md` para la tabla completa. Resumen rápido:
 - **Actividad en vivo**: fila de 4 stats con delta (`+12%`, `+5pt`) + tabla auditable (timestamp / evento / canal / estado) de eventos reales del ecosistema (retomas, pólizas, financiación, citas, cross-sell) — no solo mensajes de WhatsApp.
 - **Integraciones nativas**: grid de badges de stack real (WhatsApp Business, DMS, aseguradoras, HubSpot/Salesforce) — comunica que el agente vive dentro del stack del concesionario, no como capa aparte.
 - **Revelado progresivo por scroll**: cada sección se descubre al bajar vía `useReveal`; cifras reales cuentan hacia arriba con `useCountUp`. No reemplazar por scroll-jacking, parallax, ni librerías nuevas (no hay `framer-motion` en el proyecto).
+- **Toggle de tema (soft/dark)**: botón circular con ícono de luna (en soft, invita a pasar a oscuro) o sol (en dark, invita a volver a soft) en el header, junto a Login/Ser agente. Soft es el tema por default; ver regla dura 9 y "Tema: soft (claro, default) / dark" en `tokens.md` para la arquitectura completa de tokens.
 
 ## Copy y tono
 

@@ -6,7 +6,7 @@ import { useScrollProgress } from '@/hooks/useScrollProgress'
 import {
   F_DISPLAY, F_MONO, F_BODY, TOOL_CALLS, SEGMENTS,
   PulseStyles, PulseHeader, PulseFooter,
-  useUsuarioLogueado, useSectionScrollSpy,
+  useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
   SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram,
 } from './_shared/sections'
 
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
 
 export default function PulseMotorLanding() {
   const usuarioLogueado = useUsuarioLogueado()
+  const { theme, toggleTheme } = usePulseTheme()
   const [visible, setVisible]                 = useState(false)
   const [toolCallsVisible, setToolCallsVisible] = useState<number[]>([])
   const activeSection = useSectionScrollSpy(NAV_ITEMS)
@@ -64,9 +65,9 @@ export default function PulseMotorLanding() {
     <>
       <PulseStyles />
 
-      <div style={{ minHeight:'100vh', background:'var(--bg-0)', color:'var(--ink)', fontFamily:F_BODY, lineHeight:1.5 }}>
+      <div className="pulse-theme-root" data-theme={theme} style={{ minHeight:'100vh', color:'var(--ink)', fontFamily:F_BODY, lineHeight:1.5 }}>
 
-        <PulseHeader navItems={NAV_ITEMS} activeSection={activeSection} usuarioLogueado={usuarioLogueado} />
+        <PulseHeader navItems={NAV_ITEMS} activeSection={activeSection} usuarioLogueado={usuarioLogueado} theme={theme} onToggleTheme={toggleTheme} />
 
         {/* HERO — sección pineada: el panel de tool-calls se agranda "reproduciéndose"
             y después se inclina en 3D revelando el esquema real de DataBridge, al ritmo
@@ -182,7 +183,7 @@ export default function PulseMotorLanding() {
                 <div className="seg-card-icon"><SegIcon variant={s.tagColor} /></div>
                 <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', marginBottom:'14px' }}>
                   <span className={`seg-tag ${s.tagColor}`} style={{ marginBottom:0 }}>{s.tag}</span>
-                  <span className="badge" style={{ padding:'4px 10px', fontSize:'10px', border:'1px solid rgba(255,255,255,0.35)', color:'#fff' }}><span className="live-dot on-gradient" />{s.liveStat}</span>
+                  <span className="badge" style={{ padding:'4px 10px', fontSize:'10px', border:'1px solid var(--seg-badge-border)', color:'var(--seg-badge-ink)' }}><span className="live-dot on-tint" />{s.liveStat}</span>
                 </div>
                 <h3 className="seg-card-title" style={{ fontWeight:800, fontFamily:F_DISPLAY, marginBottom:'4px', color:'var(--ink)' }}>{s.titulo}</h3>
                 <p className="seg-card-subtitle" style={{ fontFamily:F_MONO, textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'16px' }}>{s.subtitulo}</p>

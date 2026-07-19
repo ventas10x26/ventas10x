@@ -16,6 +16,21 @@ const LABEL_STYLE: CSSProperties = {
 
 type Status = 'idle' | 'loading' | 'ok' | 'error'
 
+type FormData = { concesionario: string; nombre: string; email: string; telefono: string; mensaje: string }
+
+const PULSE_DEMO_WHATSAPP = '573004339418'
+
+function buildWhatsAppFallbackUrl(data: FormData) {
+  const lineas = [
+    'Hola, quiero agendar una demo de Pulse Motor.',
+    `Concesionario: ${data.concesionario}`,
+    `Nombre: ${data.nombre}`,
+    `Correo: ${data.email}`,
+    data.mensaje ? `Mensaje: ${data.mensaje}` : null,
+  ].filter(Boolean)
+  return `https://wa.me/${PULSE_DEMO_WHATSAPP}?text=${encodeURIComponent(lineas.join('\n'))}`
+}
+
 type Props = {
   compact?: boolean
   onSuccess?: () => void
@@ -24,6 +39,7 @@ type Props = {
 export function PulseDemoForm({ compact = false, onSuccess }: Props) {
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [lastData, setLastData] = useState<FormData | null>(null)
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -32,13 +48,14 @@ export function PulseDemoForm({ compact = false, onSuccess }: Props) {
 
     const form = e.currentTarget
     const mensajeEl = form.elements.namedItem('mensaje') as HTMLTextAreaElement | null
-    const data = {
+    const data: FormData = {
       concesionario: (form.elements.namedItem('concesionario') as HTMLInputElement).value.trim(),
       nombre: (form.elements.namedItem('nombre') as HTMLInputElement).value.trim(),
       email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
       telefono: (form.elements.namedItem('telefono') as HTMLInputElement).value.trim(),
       mensaje: mensajeEl?.value.trim() || '',
     }
+    setLastData(data)
 
     try {
       const res = await fetch('/api/pulse/demo-contacto', {
@@ -106,7 +123,20 @@ export function PulseDemoForm({ compact = false, onSuccess }: Props) {
       )}
 
       {status === 'error' && (
-        <div style={{ fontSize: '12px', color: 'var(--red)', fontFamily: F_BODY }}>{errorMsg}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--red)', fontFamily: F_BODY, lineHeight: 1.4 }}>{errorMsg}</div>
+          {lastData && (
+            <a
+              href={buildWhatsAppFallbackUrl(lastData)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pm-btn-outline"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: compact ? '11px' : '13px', fontSize: '13px', borderRadius: '6px', textDecoration: 'none' }}
+            >
+              Escribir por WhatsApp<span className="btn-arrow">→</span>
+            </a>
+          )}
+        </div>
       )}
 
       <button type="submit" disabled={status === 'loading'} className="pm-btn" style={{ width: '100%', padding: compact ? '12px' : '14px', fontSize: '13px' }}>

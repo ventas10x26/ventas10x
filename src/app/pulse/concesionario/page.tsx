@@ -6,7 +6,7 @@ import {
   PulseStyles, PulseHeader, PulseFooter,
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
   SegIcon, SchemaPreview, BlueprintCarWatermark,
-  DiferenciadoresSection, PorQueSection, EcosistemaSection, ActividadEnVivoSection,
+  DiferenciadoresSection, EmbudoSection, PorQueSection, EcosistemaSection, ActividadEnVivoSection,
   IntegracionesSection, CumplimientoSection, TestimoniosSection, PreciosSection,
 } from '../_shared/sections'
 import { PulseStickyDemoWidget } from '@/components/pulse/PulseStickyDemoWidget'
@@ -71,6 +71,7 @@ export default function ConcesionarioLanding() {
         </section>
 
         <DiferenciadoresSection />
+        <EmbudoSection />
         <PorQueSection />
         <EcosistemaSection />
         <ActividadEnVivoSection />

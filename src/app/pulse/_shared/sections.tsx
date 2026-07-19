@@ -462,6 +462,71 @@ export function DiferenciadoresSection() {
   )
 }
 
+// Embudo ilustrativo del método — cifras de ejemplo redondeadas para explicar la forma del
+// embudo, no datos reales de ningún concesionario o marca específica (ver skill
+// pulsemotor-strategy: la integralidad 360° es transversal al sector, nunca se exhiben datos
+// ni PI de un cliente puntual en la landing pública).
+export const EMBUDO_ETAPAS = [
+  { etapa:'Oportunidades', valor:100, conv:null as string | null },
+  { etapa:'Citas',         valor:55,  conv:'55% agenda' },
+  { etapa:'Show Up',       valor:38,  conv:'70% asiste' },
+  { etapa:'Cotizaciones',  valor:30,  conv:'79% cotiza' },
+  { etapa:'Pedidos',       valor:12,  conv:'40% cierra' },
+  { etapa:'Matrículas',    valor:9,   conv:'75% matricula' },
+]
+
+export function EmbudoSection() {
+  const header = useReveal<HTMLDivElement>()
+  const funnel = useReveal<HTMLDivElement>()
+  const loop = useReveal<HTMLDivElement>()
+  const max = EMBUDO_ETAPAS[0].valor
+  return (
+    <section style={{ padding:'72px 24px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+      <div style={{ maxWidth:'1000px', margin:'0 auto' }}>
+        <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
+          <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Cómo funciona</p>
+          <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            Un embudo que se mide <span className="grad-amber">en cada etapa.</span>
+          </h2>
+          <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto', lineHeight:1.6 }}>
+            Desde el primer contacto hasta la matrícula — sin importar la marca que vendas, el método es el mismo. Ejemplo ilustrativo:
+          </p>
+        </div>
+
+        <div ref={funnel.ref} style={{ display:'flex', flexDirection:'column', gap:'10px', marginBottom:'48px' }}>
+          {EMBUDO_ETAPAS.map((e,i) => (
+            <div key={e.etapa} className={`reveal${funnel.inView?' in':''}`} style={{ display:'grid', gridTemplateColumns:'130px 1fr 120px', alignItems:'center', gap:'16px', transitionDelay:`${i*90}ms` }}>
+              <span style={{ fontSize:'14px', fontWeight:700, color:'var(--ink)', textAlign:'right' }}>{e.etapa}</span>
+              <div style={{ position:'relative', height:'32px', background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'6px', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:0, bottom:0, left:0, right:`${funnel.inView ? 100 - (e.valor / max) * 100 : 100}%`, background:'var(--grad-amber)', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:'10px', transition:`right .8s var(--ease-out-expo) ${i*90}ms` }}>
+                  <span style={{ fontFamily:F_MONO, fontSize:'12px', fontWeight:700, color:'#1a1204' }}>{e.valor}</span>
+                </div>
+              </div>
+              <span style={{ fontFamily:F_MONO, fontSize:'12px', color:'var(--ink-dim)' }}>{e.conv ?? 'base'}</span>
+            </div>
+          ))}
+        </div>
+
+        <div ref={loop.ref} className={`reveal${loop.inView?' in':''}`} style={{ textAlign:'center' }}>
+          <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 auto 20px', lineHeight:1.6 }}>
+            La venta no termina en la matrícula — la integralidad 360° existe para retener al cliente hasta su próxima compra.
+          </p>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', flexWrap:'wrap', gap:'0' }}>
+            {['Venta', 'Mantenimiento', 'Renovación'].map((etapa, i) => (
+              <div key={etapa} style={{ display:'flex', alignItems:'center' }}>
+                <div style={{ background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'8px', padding:'14px 20px', textAlign:'center', minWidth:'130px' }}>
+                  <span style={{ fontSize:'14px', fontWeight:700, color:'var(--ink)' }}>{etapa}</span>
+                </div>
+                {i < 2 && <span style={{ color:'var(--amber-dim)', fontSize:'18px', padding:'0 12px' }}>→</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function PorQueSection() {
   const porQueText = useReveal<HTMLDivElement>()
   const coberturaPanel = useReveal<HTMLDivElement>()

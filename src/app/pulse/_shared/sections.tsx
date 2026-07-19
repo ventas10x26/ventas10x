@@ -214,44 +214,6 @@ export function useSectionScrollSpy(navItems: NavItem[]) {
   return activeId
 }
 
-// ─── Fondo decorativo del hero: silueta de SUV genérica en estilo "plano técnico"
-// (grid + arcos de compás + contorno que se dibuja al entrar en viewport) — dibujo
-// original, no un modelo de marca específica. Puramente ambiental (mismo espíritu que
-// --hero-mesh): nunca compite con el timeline de tool-calls, que sigue siendo el
-// protagonista real del hero — ver regla dura 2 de la skill pulsemotor-design. ───
-export function BlueprintCarWatermark() {
-  const reveal = useReveal<HTMLDivElement>()
-  return (
-    <div
-      ref={reveal.ref}
-      aria-hidden="true"
-      className={`bp-car-watermark${reveal.inView ? ' in' : ''}`}
-      style={{ position:'absolute', inset:0, zIndex:0, overflow:'hidden', pointerEvents:'none' }}
-    >
-      <svg viewBox="0 0 440 240" style={{ position:'absolute', top:'50%', right:'-4%', transform:'translateY(-50%)', width:'min(680px, 58%)', minWidth:'360px', opacity:0.16 }} fill="none">
-        <defs>
-          <pattern id="bp-grid" width="22" height="22" patternUnits="userSpaceOnUse">
-            <path d="M22 0H0V22" stroke="var(--amber-dim)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="440" height="240" fill="url(#bp-grid)" opacity="0.6" />
-        <circle cx="360" cy="60" r="34" stroke="var(--amber-dim)" strokeWidth="0.7" />
-        <circle cx="360" cy="60" r="54" stroke="var(--amber-dim)" strokeWidth="0.7" />
-        <g className="bp-car-outline" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M50 190 C45 170 55 150 80 145 L120 140 C130 100 170 75 220 72 L320 72 C355 75 380 95 395 130 L405 140 C415 142 420 150 420 165 L420 190 Z" />
-          <path d="M130 140 C140 105 175 85 215 82 L300 82 C325 84 345 98 360 122 L362 140" />
-          <path d="M230 140 L226 186" />
-          <path d="M92 150 L400 150" />
-          <circle cx="112" cy="190" r="28" />
-          <circle cx="112" cy="190" r="12" />
-          <circle cx="330" cy="190" r="28" />
-          <circle cx="330" cy="190" r="12" />
-        </g>
-      </svg>
-    </div>
-  )
-}
-
 // ─── Componentes de presentación pequeños ───
 
 export function SegIcon({ variant }: { variant: 'amber' | 'green' }) {
@@ -958,9 +920,6 @@ export function PulseStyles() {
       .scroll-cue:hover { color:var(--amber); }
       @keyframes cueBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
-      .bp-car-outline path, .bp-car-outline circle { stroke-dasharray:1000; stroke-dashoffset:1000; transition:stroke-dashoffset 1.6s var(--ease-out-expo); }
-      .bp-car-watermark.in .bp-car-outline path, .bp-car-watermark.in .bp-car-outline circle { stroke-dashoffset:0; }
-
       .cta-spotlight { position:relative; }
       .cta-spotlight::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; background:radial-gradient(ellipse 60% 70% at center, rgba(242,169,59,0.10), transparent 70%); pointer-events:none; }
 
@@ -994,7 +953,6 @@ export function PulseStyles() {
         .pm-btn:hover:not(:disabled) { transform:none; }
         .scroll-cue { animation:none; }
         .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .seg-card-arrow, .seg-check-mark, .tool-road-car { transition:none; }
-        .bp-car-outline path, .bp-car-outline circle { stroke-dashoffset:0; transition:none; }
       }
 
       @media(max-width:700px){

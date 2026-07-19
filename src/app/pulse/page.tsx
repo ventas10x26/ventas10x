@@ -7,7 +7,7 @@ import {
   F_DISPLAY, F_MONO, F_BODY, TOOL_CALLS, SEGMENTS,
   PulseStyles, PulseHeader, PulseFooter,
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
-  SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram, BlueprintCarWatermark,
+  SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram,
 } from './_shared/sections'
 
 // La landing pública ahora termina en "Segmentos" (screen 1): cada card lleva a su
@@ -73,12 +73,11 @@ export default function PulseMotorLanding() {
             y después se inclina en 3D revelando el esquema real de DataBridge, al ritmo
             del scroll. Con prefers-reduced-motion queda como el hero estático de siempre. */}
         <div ref={heroScroll.ref} style={heroScroll.reduced ? undefined : { height:'300vh', position:'relative' }}>
-        <section id="plataforma" style={heroScroll.reduced ? { position:'relative', overflow:'hidden', maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' } : {
+        <section id="plataforma" style={heroScroll.reduced ? { maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' } : {
           position:'sticky', top:0, height:'100vh', overflow:'hidden',
           maxWidth:'1280px', margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center',
         }}>
-          <BlueprintCarWatermark />
-          <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%', position:'relative', zIndex:1 }}>
+          <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%' }}>
             <div style={heroScroll.reduced ? { flex:'1', minWidth:'320px' } : {
               flex:'1', minWidth:'320px',
               opacity: Math.max(0.4, 1 - grow / 0.7),

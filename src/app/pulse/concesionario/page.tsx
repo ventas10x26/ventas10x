@@ -5,7 +5,7 @@ import {
   F_DISPLAY, F_MONO, F_BODY, SEGMENTS, TESTIMONIOS_V2,
   PulseStyles, PulseHeader, PulseFooter,
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
-  SegIcon, SchemaPreview, BlueprintCarWatermark,
+  SegIcon, SchemaPreview,
   DiferenciadoresSection, EmbudoSection, PorQueSection, EcosistemaSection, ActividadEnVivoSection,
   IntegracionesSection, CumplimientoSection, TestimoniosSection, PreciosSection,
 } from '../_shared/sections'
@@ -35,9 +35,8 @@ export default function ConcesionarioLanding() {
 
         {/* HERO — landing dedicada del segmento Concesionario (Enterprise): expande la
             card de la home con el detalle completo de la oferta para este segmento. */}
-        <section id="plataforma" style={{ position:'relative', overflow:'hidden', maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' }}>
-          <BlueprintCarWatermark />
-          <div ref={heroReveal.ref} className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', position:'relative', zIndex:1 }}>
+        <section id="plataforma" style={{ maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' }}>
+          <div ref={heroReveal.ref} className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center' }}>
             <div style={{ flex:'1', minWidth:'320px' }}>
               <div style={{ marginBottom:'20px' }}>
                 <span className="badge guard-sweep"><span className="live-dot" />{SEG.liveStat}</span>

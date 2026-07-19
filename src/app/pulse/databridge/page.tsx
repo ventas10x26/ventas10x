@@ -181,8 +181,8 @@ function computeTableStats(nodes: Node3D[]): { table: string; color: string; cou
 function genDemoSheets(): SheetData[] {
   const vins = ['KNAJ23415P7012345', 'KNAJ23415P7098234', 'KNAJ23415P7055678', 'KNAJ23415P7011122', 'KNAJ23415P7099887', 'KNAJ23415P7044556']
   const cedulas = ['1023456789', '1098765432', '1045678912', '1076543219', '1034567891', '1087654321']
-  const asesores = ['carlos.r@kia.co', 'maria.v@kia.co', 'andres.m@kia.co', 'karime.m@kia.co']
-  const marcas = ['KIA Sportage', 'KIA Picanto', 'KIA Rio', 'KIA Stonic', 'KIA Sorento', 'KIA Carnival']
+  const asesores = ['carlos.r@concesionario.com', 'maria.v@concesionario.com', 'andres.m@concesionario.com', 'karime.m@concesionario.com']
+  const marcas = ['SUV Compacta', 'Sedán Urbano', 'Hatchback', 'Crossover', 'SUV Familiar', 'Van de Pasajeros']
 
   const ventas = vins.map((vin, i) => ({
     oportunidad_id: 'OP-' + (1000 + i),
@@ -785,7 +785,7 @@ export default function DataBridgePage() {
               <input
                 value={projectName}
                 onChange={e => setProjectName(e.target.value)}
-                placeholder="Nombre del proyecto (ej: Inventario Kia julio)"
+                placeholder="Nombre del proyecto (ej: Inventario julio)"
                 style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
               />
               {anonProjects.length > 0 && (

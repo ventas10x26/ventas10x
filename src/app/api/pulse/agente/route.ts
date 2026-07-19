@@ -39,6 +39,15 @@ async function resolverUserId(req: NextRequest): Promise<string | null> {
   return user?.id ?? null
 }
 
+// Marca real capturada en /pulse/signup (user_metadata.pulse_marca) — nunca asumir KIA
+// como default (ver skill pulsemotor-strategy, "no casarse con ninguna marca de autos").
+async function resolverMarcaAuth(req: NextRequest): Promise<string | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const marca = user?.user_metadata?.pulse_marca
+  return typeof marca === 'string' && marca.trim() ? marca.trim() : null
+}
+
 async function cargarPorEmail(email: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabaseAdmin.from('pulse_waitlist') as any)
@@ -58,7 +67,8 @@ async function cargarPorEmail(email: string) {
 async function sincronizarPulseAgente(
   email: string,
   userId: string | null,
-  botActivo: boolean
+  botActivo: boolean,
+  marca: string | null
 ): Promise<void> {
   try {
     // Derivar instance_name del email (igual que el webhook)
@@ -73,35 +83,38 @@ async function sincronizarPulseAgente(
     // Verificar si ya existe
     const { data: existente } = await db
       .from('pulse_agentes')
-      .select('id, user_id')
+      .select('id, user_id, marca')
       .eq('instance_name', instanceName)
       .maybeSingle()
 
+    const marcaFinal = marca || 'tu marca'
+
     if (existente) {
-      // Actualizar user_id si falta, y bot_activo
+      // Actualizar user_id si falta, bot_activo, y marca solo si aún no tenía una real
       const patch: Record<string, unknown> = { bot_activo: botActivo }
       if (!existente.user_id && userId) patch.user_id = userId
+      if (marca && !existente.marca) patch.marca = marca
       await db
         .from('pulse_agentes')
         .update(patch)
         .eq('instance_name', instanceName)
       console.log('[pulse/agente] pulse_agentes actualizado:', instanceName)
     } else {
-      // Crear nuevo registro con defaults
+      // Crear nuevo registro con defaults — marca real del asesor, nunca hardcodeada
       await db
         .from('pulse_agentes')
         .insert({
           user_id: userId,
           instance_name: instanceName,
           bot_activo: botActivo,
-          marca: 'KIA',
+          marca: marcaFinal,
           followup_activo: true,
           followup_dia1: true,
           followup_dia3: true,
           followup_dia7: true,
-          followup_msg_dia1: '¡Hola {nombre}! 👋 Soy {asesor} de KIA. Solo quería confirmar si pudiste ver la info del {modelo}. ¿Tienes alguna pregunta? 🚗',
-          followup_msg_dia3: '¡Hola {nombre}! 😊 Quería saber si pudiste revisar el catálogo del {modelo}. Esta semana tenemos disponibilidad para test drive. ¿Te interesa?',
-          followup_msg_dia7: 'Hola {nombre}, es mi último mensaje 🙏. Si en algún momento querés info sobre el {modelo} u otro vehículo KIA, acá estoy. ¡Que tengas un excelente día!',
+          followup_msg_dia1: `¡Hola {nombre}! 👋 Soy {asesor} de ${marcaFinal}. Solo quería confirmar si pudiste ver la info del {modelo}. ¿Tienes alguna pregunta? 🚗`,
+          followup_msg_dia3: `¡Hola {nombre}! 😊 Quería saber si pudiste revisar el catálogo del {modelo}. Esta semana tenemos disponibilidad para test drive. ¿Te interesa?`,
+          followup_msg_dia7: `Hola {nombre}, es mi último mensaje 🙏. Si en algún momento querés info sobre el {modelo} u otro vehículo de ${marcaFinal}, acá estoy. ¡Que tengas un excelente día!`,
         })
       console.log('[pulse/agente] pulse_agentes CREADO:', instanceName)
     }
@@ -160,7 +173,8 @@ export async function GET(req: NextRequest) {
     // Sincronizar pulse_agentes en el GET también (garantiza existencia al cargar la página)
     const userId = await resolverUserId(req)
     const botActivo = (meta as any)?.bot_activo !== false
-    sincronizarPulseAgente(email, userId, botActivo).catch(e =>
+    const marcaAuth = await resolverMarcaAuth(req)
+    sincronizarPulseAgente(email, userId, botActivo, agente.marca || marcaAuth).catch(e =>
       console.error('[pulse/agente GET] sync bg error:', e)
     )
 
@@ -180,11 +194,13 @@ async function regenerarConIA(
   nombre: string,
   meta: PulseAgentMetadata
 ): Promise<PulseAgentMetadata['agent_config']> {
+  const marca = meta.marca?.trim() || 'vehículos nuevos (marca no especificada por el asesor)'
   const { anthropic, CLAUDE_MODEL } = await import('@/lib/anthropic')
   const msg = await anthropic.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 1400,
-    system: `Experto en asistentes IA para asesores KIA Colombia.
+    system: `Experto en asistentes IA para asesores de venta de vehículos nuevos en Colombia.
+Genera la configuración para un asesor de la marca: ${marca}. Nunca asumas otra marca.
 Responde SOLO JSON válido:
 {
   "perfil": "string",
@@ -197,6 +213,7 @@ Responde SOLO JSON válido:
       {
         role: 'user',
         content: `Asesor: ${nombre}
+Marca: ${marca}
 Estilo: ${meta.estilo_venta || ''}
 Obstáculo: ${meta.obstaculo || ''}
 Voz: ${meta.muestra_voz || ''}
@@ -271,7 +288,8 @@ export async function PUT(req: NextRequest) {
     // ── Sincronizar pulse_agentes automáticamente ──────────────────────────
     const userId = await resolverUserId(req)
     const botActivo = (meta as any)?.bot_activo !== false
-    await sincronizarPulseAgente(email, userId, botActivo)
+    const marcaAuth = await resolverMarcaAuth(req)
+    await sincronizarPulseAgente(email, userId, botActivo, meta.marca || marcaAuth)
 
     const agente = metadataToDTO(
       { id: row.id, email: row.email, nombre: patch.nombre || row.nombre, metadata: meta },

@@ -18,7 +18,7 @@ type Meta = {
   output_tokens: number
 }
 
-const SYSTEM_PROMPT_DEFAULT = `Eres el asistente de ventas de Carlos Sanabria, asesor KIA. Estilo: cuando me llega alguien interesado en una Sportage, yo primero le pregunto para qué la necesita, luego le hablo de los accesorios que más le van a servir y le ofrezco simular la cuota con KIA Crédito antes de hablar de precio. Así cierro más rápido.... Obstáculo a resolver: A veces me entra un lead cotizando el nuevo KIA K3 o una Sportage y por estar en capacitaciones de marca o entregando otros carros nuevos me tardo 2 horas en contestar sobre accesorios o tasas de interés, perdiendo la venta.`
+const SYSTEM_PROMPT_DEFAULT = `Eres el asistente de ventas de Carlos Sanabria, asesor de vehículos nuevos. Estilo: cuando me llega alguien interesado en un modelo puntual, yo primero le pregunto para qué lo necesita, luego le hablo de los accesorios que más le van a servir y le ofrezco simular la cuota de financiación antes de hablar de precio. Así cierro más rápido.... Obstáculo a resolver: A veces me entra un lead cotizando un modelo nuevo y por estar en capacitaciones de marca o entregando otros carros nuevos me tardo 2 horas en contestar sobre accesorios o tasas de interés, perdiendo la venta.`
 
 const REGLAS = `REGLAS ESTRICTAS:
 - Responde en español colombiano, tono cercano y natural
@@ -27,17 +27,17 @@ const REGLAS = `REGLAS ESTRICTAS:
 - Suena como el asesor, no como un bot
 - NUNCA inventes datos: ciudad, precios exactos, tasas, fechas de entrega
 - Si no sabes algo con certeza, di "te confirmo ese dato" o "déjame verificar"
-- Si mencionan inicial + crédito + plazo: di que vas a simular la cuota con KIA Crédito y pide confirmar el modelo exacto
+- Si mencionan inicial + crédito + plazo: di que vas a simular la cuota de financiación y pide confirmar el modelo exacto
 - Si quieren ver el carro: ofrece enviar la foto y el enlace del concesionario`
 
 const SUGERENCIAS = [
-  'Hola, me interesa la KIA Sportage',
-  'Cuánto vale la Seltos 2025?',
+  'Hola, me interesa el SUV que tienen en promoción',
+  'Cuánto vale el sedán 2025?',
   'Tengo 30 millones de inicial y quiero financiar el resto, qué cuota me sale?',
-  'Qué diferencia hay entre la Sportage híbrida y la normal?',
-  'Tiene disponible la K3 Cross en color blanco?',
-  'Cuál es la tasa de KIA Crédito actualmente?',
-  'Me puede enviar la ficha técnica de la Stonic?',
+  'Qué diferencia hay entre la versión híbrida y la normal?',
+  'Tienen disponible el modelo cross en color blanco?',
+  'Cuál es la tasa de financiación actualmente?',
+  'Me puede enviar la ficha técnica del modelo urbano?',
   'Vivo en Cali, puedo ir a una concesionaria hoy?',
 ]
 
@@ -185,7 +185,7 @@ export default function PlaygroundPage() {
                 <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>Comportamiento idéntico al bot real</span>
               {catalogoCargado && (
                 <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}>
-                  📋 Catálogo KIA cargado
+                  📋 Catálogo cargado
                 </span>
               )}
               </div>
@@ -204,7 +204,7 @@ export default function PlaygroundPage() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20 }}>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{ fontSize: 32, margin: '0 0 8px' }}>🤖</p>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', margin: '0 0 4px' }}>Playground del Agente KIA</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0', margin: '0 0 4px' }}>Playground del Agente</p>
                   <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Escribe como si fueras un lead. El bot responde exactamente igual que en WhatsApp.</p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 560 }}>

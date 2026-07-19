@@ -13,7 +13,7 @@ import FollowUpConfig from '@/components/pulse/FollowUpConfig'
 import CreditosBanner from '@/components/pulse/CreditosBanner'   // ← NUEVO
 
 const EMPTY: PulseAgenteDTO = {
-  agent_id: null, email: '', nombre: '', whatsapp: '',
+  agent_id: null, email: '', nombre: '', marca: '', whatsapp: '',
   estilo_venta: '', obstaculo: '', muestra_voz: '', duracion_voz_seg: null,
   manejo_objeciones: '', respuestas_tipo: '', voz_historial: [],
   perfil: '', especializacion: '', propuesta_valor: '', primer_mensaje: '',
@@ -179,7 +179,7 @@ export default function PulseAgentePage() {
   )
 
   const guion = form.nombre
-    ? `Hola, soy ${form.nombre.split(' ')[0]}. Soy asesor KIA. Así le hablo a un cliente interesado en un carro nuevo…`
+    ? `Hola, soy ${form.nombre.split(' ')[0]}. Soy asesor${form.marca ? ` ${form.marca}` : ''}. Así le hablo a un cliente interesado en un carro nuevo…`
     : undefined
 
   const tabs: { id: typeof tab; label: string }[] = [
@@ -207,7 +207,7 @@ export default function PulseAgentePage() {
         {/* ── Cabecera ── */}
         <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px', letterSpacing: -0.5 }}>Mi agente IA KIA</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px', letterSpacing: -0.5 }}>Mi agente IA{form.marca ? ` ${form.marca}` : ''}</h1>
             <p style={{ fontSize: 14, color: '#94a3b8', margin: 0, maxWidth: 520 }}>
               Entrena voz, objeciones y respuestas. Todo lo que guardes aquí se usa al generar mensajes para tus leads en el dashboard.
             </p>
@@ -297,7 +297,7 @@ export default function PulseAgentePage() {
               <>
                 <Section title="Manejo de objeciones" badge="PERSONALIZADO">
                   <label style={labelStyle}>Cómo respondes objeciones (precio, competencia, "lo pienso", etc.)</label>
-                  <textarea value={form.manejo_objeciones} onChange={(e) => patch({ manejo_objeciones: e.target.value })} placeholder="Ej: Si dicen que está caro, les muestro el valor de equipamiento y simulo KIA Crédito con cuota mensual…" rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
+                  <textarea value={form.manejo_objeciones} onChange={(e) => patch({ manejo_objeciones: e.target.value })} placeholder="Ej: Si dicen que está caro, les muestro el valor de equipamiento y simulo la financiación con cuota mensual…" rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
                 </Section>
                 <Section title="Respuestas tipo">
                   <label style={labelStyle}>Guiones o frases que usás seguido</label>
@@ -309,7 +309,7 @@ export default function PulseAgentePage() {
                     <input style={inputStyle} value={form.perfil} onChange={(e) => patch({ perfil: e.target.value })} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Especialización KIA</label>
+                    <label style={labelStyle}>Especialización{form.marca ? ` ${form.marca}` : ''}</label>
                     <input style={inputStyle} value={form.especializacion} onChange={(e) => patch({ especializacion: e.target.value })} />
                   </div>
                 </div>

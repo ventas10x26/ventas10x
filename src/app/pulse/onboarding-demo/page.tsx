@@ -24,6 +24,10 @@ const FONT = "'DM Sans', system-ui, -apple-system, sans-serif"
 const VOZ_MIN_CARACTERES = 40
 const VOZ_MIN_SEGUNDOS = 8
 
+// Mismo listado que /pulse/signup — Pulse Motor no se casa con ninguna marca de autos
+// (ver skill pulsemotor-strategy).
+const MARCAS = ['KIA', 'Hyundai', 'Renault', 'Chevrolet', 'Toyota', 'Mazda', 'Nissan', 'Otro']
+
 function limpiarTranscripcion(texto: string): string {
   return texto.replace(/\s+/g, ' ').trim().replace(/\b(\w+)(\s+\1\b)+/gi, '$1')
 }
@@ -39,6 +43,7 @@ export default function OnboardingDemo() {
   const [respuesta1, setRespuesta1] = useState('')
   const [respuesta2, setRespuesta2] = useState('')
   const [nombre, setNombre] = useState('')
+  const [marca, setMarca] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [email, setEmail] = useState('')
   const [agentConfig, setAgentConfig] = useState<AgentConfig | null>(null)
@@ -63,8 +68,12 @@ export default function OnboardingDemo() {
   useEffect(() => { grabandoEntrenamientoRef.current = grabandoEntrenamiento }, [grabandoEntrenamiento])
   useEffect(() => { muestraVozRef.current = muestraVoz }, [muestraVoz])
 
-  // Pre-llenar nombre y email desde Supabase Auth (Google) o sessionStorage (landing)
+  // Pre-llenar nombre, email y marca desde Supabase Auth (Google/signup), la URL, o
+  // sessionStorage (landing) — nunca asumir KIA por default.
   useEffect(() => {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    const urlMarca = params?.get('marca') || ''
+
     const prefill = async () => {
       try {
         const { createClient } = await import('@/lib/supabase/client')
@@ -74,8 +83,10 @@ export default function OnboardingDemo() {
           const fullName =
             (data.user.user_metadata?.full_name as string) ||
             (data.user.user_metadata?.name as string) || ''
+          const marcaAuth = (data.user.user_metadata?.pulse_marca as string) || ''
           if (fullName) setNombre((prev) => prev || fullName)
           if (data.user.email) setEmail((prev) => prev || data.user!.email!)
+          if (marcaAuth || urlMarca) setMarca((prev) => prev || marcaAuth || urlMarca)
           return
         }
       } catch { /* ignorar */ }
@@ -83,8 +94,10 @@ export default function OnboardingDemo() {
       if (typeof window !== 'undefined') {
         const sEmail = sessionStorage.getItem('pulse_onboarding_email') || ''
         const sNombre = sessionStorage.getItem('pulse_onboarding_nombre') || ''
+        const sMarca = sessionStorage.getItem('pulse_onboarding_marca') || ''
         if (sEmail) setEmail((prev) => prev || sEmail)
         if (sNombre) setNombre((prev) => prev || sNombre)
+        if (sMarca || urlMarca) setMarca((prev) => prev || sMarca || urlMarca)
       }
     }
     prefill()
@@ -185,7 +198,7 @@ export default function OnboardingDemo() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nombre: nombre.trim(), whatsapp: whatsapp.trim(), email: email.trim(),
+          nombre: nombre.trim(), marca: marca.trim(), whatsapp: whatsapp.trim(), email: email.trim(),
           estilo_venta: respuesta1.trim(), obstaculo: respuesta2.trim(),
           muestra_voz: muestraVoz.trim(), duracion_voz_seg: duracionVoz,
         }),
@@ -204,30 +217,34 @@ export default function OnboardingDemo() {
       }
 
       setAgentConfig({ perfil: data.perfil, especializacion: data.especializacion, propuesta_valor: data.propuesta_valor, primer_mensaje: data.primer_mensaje, agent_id: data.agent_id })
-      if (typeof window !== 'undefined') sessionStorage.setItem('pulse_onboarding_email', email.trim().toLowerCase())
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pulse_onboarding_email', email.trim().toLowerCase())
+        if (marca.trim()) sessionStorage.setItem('pulse_onboarding_marca', marca.trim())
+      }
       setPaso('exito')
     } catch (e) {
       setPaso('voz')
       setConfigError(e instanceof Error ? e.message : 'No pudimos configurar el asistente. Intenta de nuevo.')
     }
-  }, [nombre, whatsapp, email, respuesta1, respuesta2, muestraVoz, duracionVoz])
+  }, [nombre, marca, whatsapp, email, respuesta1, respuesta2, muestraVoz, duracionVoz])
 
-  const [loadingText, setLoadingText] = useState('Cargando catálogo KIA...')
+  const [loadingText, setLoadingText] = useState('Cargando catálogo...')
   useEffect(() => {
     if (paso === 'analizando') {
+      const marcaTxt = marca.trim() || 'tu marca'
       const texts = [
-        'Cargando catálogo KIA (Picanto, K3, Sportage, Niro, EV6)...',
-        'Modelando fichas técnicas de la gama KIA...',
-        'Diseñando flujo de seguimiento con KIA Crédito...',
-        'Optimizando respuestas para leads KIA...',
+        `Cargando catálogo ${marcaTxt}...`,
+        `Modelando fichas técnicas de la gama ${marcaTxt}...`,
+        'Diseñando flujo de seguimiento con financiación...',
+        `Optimizando respuestas para leads ${marcaTxt}...`,
         'Entrenando tu tono de voz en el agente...',
-        'Activando tu asistente Speed-to-Lead KIA...'
+        'Activando tu asistente Speed-to-Lead...'
       ]
       let i = 0
       const interval = setInterval(() => { i++; if (i < texts.length) setLoadingText(texts[i]) }, 1300)
       return () => clearInterval(interval)
     }
-  }, [paso])
+  }, [paso, marca])
 
   const getPasoIndice = (): number | null => {
     if (paso === 'voz') return 4
@@ -238,11 +255,19 @@ export default function OnboardingDemo() {
     switch (paso) { case 1: return 25; case 2: return 50; case 3: return 75; case 'voz': return 100; default: return 100 }
   }
 
-  const guionVoz = nombre.trim()
-    ? `Hola, soy ${nombre.split(' ')[0]}. Soy asesor de ventas KIA. Así le hablo a un cliente cuando le interesa un carro nuevo: primero le pregunto para qué lo necesita, le explico los equipamientos que más le sirven y le ofrezco simular la cuota con KIA Crédito. Mi meta es responderle al instante y cerrar la venta.`
-    : 'Hola, soy asesor de ventas KIA. Cuando llega un cliente interesado en un carro nuevo, le pregunto para qué lo necesita, le explico equipamientos y simulo la cuota con KIA Crédito.'
+  // Pulse Motor no se casa con ninguna marca de autos (ver skill pulsemotor-strategy):
+  // el copy de ejemplo usa la marca real capturada, con un genérico mientras no se conozca.
+  const marcaLabel = marca.trim() || 'tu marca'
 
+  const guionVoz = nombre.trim()
+    ? `Hola, soy ${nombre.split(' ')[0]}. Soy asesor de ventas ${marcaLabel}. Así le hablo a un cliente cuando le interesa un carro nuevo: primero le pregunto para qué lo necesita, le explico los equipamientos que más le sirven y le ofrezco simular la cuota de financiación. Mi meta es responderle al instante y cerrar la venta.`
+    : `Hola, soy asesor de ventas ${marcaLabel}. Cuando llega un cliente interesado en un carro nuevo, le pregunto para qué lo necesita, le explico equipamientos y simulo la cuota de financiación.`
+
+  // Detección de línea/versión detallada solo tiene sentido para KIA (nomenclatura conocida
+  // del piloto Almotores) — para cualquier otra marca devolvemos un portafolio genérico en
+  // vez de inventar nombres de modelo que no le corresponden.
   const getVehiculo = () => {
+    if (marca.trim().toUpperCase() !== 'KIA') return `Portafolio de ${marcaLabel} Nuevos 🚗`
     const t = (respuesta1 + ' ' + respuesta2).toLowerCase()
     if (t.includes('sportage')) return 'KIA Sportage Nuevos 🚗'
     if (t.includes('picanto')) return 'KIA Picanto Nuevos 🚗'
@@ -329,17 +354,17 @@ export default function OnboardingDemo() {
             {paso === 1 && (
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.pillText, background: C.pill, border: `1px solid ${C.pillBorder}`, padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>EXCLUSIVO ASESORES KIA 🚗</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>PORTAFOLIO KIA VEHÍCULOS NUEVOS ⚡</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.pillText, background: C.pill, border: `1px solid ${C.pillBorder}`, padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>EXCLUSIVO ASESORES DE VEHÍCULOS NUEVOS 🚗</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>PORTAFOLIO {marcaLabel.toUpperCase()} VEHÍCULOS NUEVOS ⚡</span>
                 </div>
                 <h1 style={{ fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 800, lineHeight: '1.1', letterSpacing: '-0.8px', margin: '0', fontFamily: FONT }}>
                   ¿Por qué quieres usar{' '}
                   <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>este asistente?</span>
                 </h1>
                 <p style={{ fontSize: '15px', color: '#94a3b8', lineHeight: '1.65', margin: '0', fontWeight: 400 }}>
-                  Diseñado para asesores KIA. Nuestro motor de IA está entrenado con todo el catálogo actual de vehículos nuevos y la lógica comercial de la marca. Cuéntanos tu meta principal este mes.
+                  Diseñado para asesores de vehículos nuevos de cualquier marca. Nuestro motor de IA aplica la misma lógica comercial 360° al catálogo y estrategia de tu concesionario. Cuéntanos tu meta principal este mes.
                 </p>
-                <textarea className="ob-input" value={respuesta1} onChange={(e) => setRespuesta1(e.target.value)} placeholder="Cuéntame cómo hablas tú con un cliente: por ejemplo — cuando me llega alguien interesado en una Sportage, yo primero le pregunto para qué la necesita, luego le hablo de los accesorios y le ofrezco simular la cuota con KIA Crédito antes de hablar de precio..." rows={5} style={textareaBase} />
+                <textarea className="ob-input" value={respuesta1} onChange={(e) => setRespuesta1(e.target.value)} placeholder="Cuéntame cómo hablas tú con un cliente: por ejemplo — cuando me llega alguien interesado en un modelo puntual, yo primero le pregunto para qué lo necesita, luego le hablo de los accesorios y le ofrezco simular la cuota de financiación antes de hablar de precio..." rows={5} style={textareaBase} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', color: '#475569' }}>Sin filtros — escribe como pienses.</span>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: respuesta1.trim().length >= 8 ? C.green : '#475569' }}>{respuesta1.trim().length}/8+</span>
@@ -355,7 +380,7 @@ export default function OnboardingDemo() {
                       <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>tu voz natural</span>
                     </p>
                     <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6', margin: '0 0 12px', fontWeight: 400 }}>
-                      Este asistente aprende cómo <strong style={{ color: '#e2e8f0' }}>tú hablas y cierras</strong> ventas KIA. En el <strong style={{ color: C.blue }}>paso 4</strong> grabarás tu voz para entrenar el tono.
+                      Este asistente aprende cómo <strong style={{ color: '#e2e8f0' }}>tú hablas y cierras</strong> tus ventas. En el <strong style={{ color: C.blue }}>paso 4</strong> grabarás tu voz para entrenar el tono.
                     </p>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 600, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '6px', padding: '4px 10px' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.green, display: 'inline-block', animation: 'vPulse 1.5s ease-in-out infinite' }} />
@@ -374,17 +399,17 @@ export default function OnboardingDemo() {
             {paso === 2 && (
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.pillText, background: C.pill, border: `1px solid ${C.pillBorder}`, padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>PERFIL ASESOR KIA</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>CATÁLOGO COMPLETO KIA ⚡</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.pillText, background: C.pill, border: `1px solid ${C.pillBorder}`, padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>PERFIL ASESOR {marcaLabel.toUpperCase()}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>CATÁLOGO COMPLETO {marcaLabel.toUpperCase()} ⚡</span>
                 </div>
                 <h1 style={{ fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 800, lineHeight: '1.1', letterSpacing: '-0.8px', margin: '0', fontFamily: FONT }}>
                   ¿Cuál es tu{' '}
                   <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>mayor obstáculo</span> hoy?
                 </h1>
                 <p style={{ fontSize: '15px', color: '#94a3b8', lineHeight: '1.65', margin: '0', fontWeight: 400 }}>
-                  Cuéntanos qué te cuesta más al atender un lead KIA (ej: explicar equipamientos de Sportage, Picanto o Niro Híbrido, o cotizar con KIA Crédito al instante).
+                  Cuéntanos qué te cuesta más al atender un lead (ej: explicar equipamientos de un modelo puntual, o cotizar la financiación al instante).
                 </p>
-                <textarea className="ob-input" value={respuesta2} onChange={(e) => setRespuesta2(e.target.value)} placeholder="Por ejemplo: a veces me entra un lead cotizando el KIA K3 y por estar en capacitaciones me tardo 2 horas en contestar, perdiendo la venta..." rows={5} style={textareaBase} />
+                <textarea className="ob-input" value={respuesta2} onChange={(e) => setRespuesta2(e.target.value)} placeholder="Por ejemplo: a veces me entra un lead cotizando un modelo puntual y por estar en capacitaciones me tardo 2 horas en contestar, perdiendo la venta..." rows={5} style={textareaBase} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '12px', color: '#475569' }}>Sé 100% honesto — ayuda a afinar la IA.</span>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: respuesta2.trim().length >= 8 ? C.green : '#475569' }}>{respuesta2.trim().length}/8+</span>
@@ -401,14 +426,14 @@ export default function OnboardingDemo() {
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, color: C.pillText, background: C.pill, border: `1px solid ${C.pillBorder}`, padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>VINCULACIÓN INMEDIATA</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>WHATSAPP SPEED-TO-LEAD KIA 📈</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.8px' }}>WHATSAPP SPEED-TO-LEAD 📈</span>
                 </div>
                 <h1 style={{ fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 800, lineHeight: '1.1', letterSpacing: '-0.8px', margin: '0', fontFamily: FONT }}>
                   ¿Cómo te llamas y{' '}
                   <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>dónde te escribo?</span>
                 </h1>
                 <p style={{ fontSize: '15px', color: '#94a3b8', lineHeight: '1.6', margin: '0', fontWeight: 400 }}>
-                  Te enviaremos la simulación entrenada con todo el portafolio KIA directamente a tu WhatsApp.
+                  Te enviaremos la simulación entrenada con todo el portafolio de {marcaLabel} directamente a tu WhatsApp.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {/* Nombre: editable solo si no viene pre-llenado */}
@@ -427,6 +452,26 @@ export default function OnboardingDemo() {
                     </div>
                   )}
 
+                  {/* Marca: editable solo si no viene pre-llenada del signup — Pulse Motor
+                      no se casa con ninguna marca, así que nunca se asume KIA por default. */}
+                  {marca ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(14,165,233,0.2)', background: 'rgba(14,165,233,0.05)' }}>
+                      <span style={{ fontSize: '18px' }}>🚗</span>
+                      <div>
+                        <span style={{ fontSize: '11px', color: C.blue, fontWeight: 600, display: 'block', marginBottom: '2px' }}>MARCA</span>
+                        <span style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{marca}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Marca con la que vendés</label>
+                      <select value={marca} onChange={(e) => setMarca(e.target.value)} className="ob-input" style={{ ...inputBase, color: marca ? '#fff' : '#64748b', cursor: 'pointer' }}>
+                        <option value="">Selecciona tu marca</option>
+                        {MARCAS.map(m => <option key={m} value={m} style={{ color: '#0f172a' }}>{m}</option>)}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Email: editable solo si no viene pre-llenado */}
                   {email ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(14,165,233,0.2)', background: 'rgba(14,165,233,0.05)' }}>
@@ -439,7 +484,7 @@ export default function OnboardingDemo() {
                   ) : (
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '6px' }}>Correo Corporativo</label>
-                      <input type="email" className="ob-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@concesionariokia.com" style={inputBase} />
+                      <input type="email" className="ob-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@tuconcesionario.com" style={inputBase} />
                     </div>
                   )}
 
@@ -471,7 +516,7 @@ export default function OnboardingDemo() {
                   <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', fontStyle: 'italic' }}>entrenar</span> al agente
                 </h1>
                 <p style={{ fontSize: '15px', color: '#94a3b8', lineHeight: '1.65', margin: 0, fontWeight: 400 }}>
-                  Lee el guion en voz alta o improvisa. La IA captura tu tono y forma de cerrar ventas KIA.
+                  Lee el guion en voz alta o improvisa. La IA captura tu tono y forma de cerrar tus ventas.
                 </p>
                 <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '12px', padding: '16px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 700, color: C.blue, letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>GUION SUGERIDO (30–45 SEG)</span>
@@ -515,7 +560,7 @@ export default function OnboardingDemo() {
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button type="button" onClick={() => setPaso(3)} className="ob-btn-back" style={{ padding: '15px 24px', borderRadius: '12px', border: '1px solid #1e293b', background: 'transparent', color: '#64748b', fontSize: '15px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT }}>Atrás</button>
                   <button type="button" onClick={activarAsistente} disabled={!vozListaParaActivar} className="ob-btn-primary" style={{ flex: 1, padding: '15px 24px', borderRadius: '12px', border: 'none', background: !vozListaParaActivar ? '#334155' : C.gradBtn, color: '#fff', fontSize: '15px', fontWeight: 700, cursor: !vozListaParaActivar ? 'not-allowed' : 'pointer', opacity: !vozListaParaActivar ? 0.5 : 1, fontFamily: FONT, boxShadow: '0 4px 16px rgba(14,165,233,0.2)' }}>
-                    Activar Asistente Pulse KIA 🚀
+                    Activar Asistente Pulse Motor 🚀
                   </button>
                 </div>
               </div>
@@ -542,10 +587,10 @@ export default function OnboardingDemo() {
                   <span style={{ fontSize: '44px' }}>⚡</span>
                   <h1 style={{ fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 800, color: '#fff', margin: '8px 0', fontFamily: FONT }}>
                     ¡Tu asistente{' '}
-                    <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Pulse Motor KIA</span>{' '}está listo!
+                    <span style={{ background: C.gradText, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Pulse Motor</span>{' '}está listo!
                   </h1>
                   <p style={{ fontSize: '15px', color: '#94a3b8', maxWidth: '480px', margin: '0 auto', fontWeight: 400 }}>
-                    Hola <strong style={{ color: '#fff' }}>{nombre.split(' ')[0]}</strong>, configuramos tu motor Speed-to-Lead con foco en carros nuevos KIA.
+                    Hola <strong style={{ color: '#fff' }}>{nombre.split(' ')[0]}</strong>, configuramos tu motor Speed-to-Lead con foco en carros nuevos {marcaLabel}.
                     {vozListaParaActivar && <span style={{ display: 'block', marginTop: '8px', color: C.green, fontSize: '13px', fontWeight: 600 }}>✓ Voz del asesor entrenada en el agente</span>}
                   </p>
                 </div>
@@ -554,7 +599,7 @@ export default function OnboardingDemo() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: 700, color: C.blue, display: 'block', marginBottom: '4px', letterSpacing: '0.5px' }}>PERFIL</span>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{agentConfig?.perfil ?? 'Asesor de Ventas KIA 🚗'}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{agentConfig?.perfil ?? `Asesor de Ventas ${marcaLabel} 🚗`}</span>
                     </div>
                     <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: 700, color: C.green, display: 'block', marginBottom: '4px', letterSpacing: '0.5px' }}>ESPECIALIZACIÓN</span>
@@ -568,7 +613,7 @@ export default function OnboardingDemo() {
                   <div>
                     <span style={{ fontSize: '10px', fontWeight: 700, color: C.blue, letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>PRIMER MENSAJE WHATSAPP</span>
                     <div style={{ background: '#020617', border: `1px solid rgba(14,165,233,0.15)`, borderRadius: '10px', padding: '14px', fontFamily: 'monospace', fontSize: '13px', color: '#7dd3fc', lineHeight: '1.5' }}>
-                      &quot;{agentConfig?.primer_mensaje ?? `¡Hola! Soy el asistente de ${nombre.split(' ')[0]}. ¿En qué modelo KIA puedo ayudarte? 🚗`}&quot;
+                      &quot;{agentConfig?.primer_mensaje ?? `¡Hola! Soy el asistente de ${nombre.split(' ')[0]}. ¿En qué modelo de ${marcaLabel} puedo ayudarte? 🚗`}&quot;
                     </div>
                   </div>
                 </div>
@@ -602,7 +647,7 @@ export default function OnboardingDemo() {
         </main>
 
         <footer style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: '#334155', borderTop: '1px solid rgba(255,255,255,0.04)', fontFamily: FONT }}>
-          © 2026 Pulse Motor · Asistente IA para Asesores KIA · Hecho en Cali 🇨🇴
+          © 2026 Pulse Motor · Asistente IA para Asesores de Vehículos Nuevos · Hecho en Cali 🇨🇴
         </footer>
       </div>
     </>

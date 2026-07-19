@@ -28,6 +28,7 @@ export type PulseAgentConfig = {
 
 export type PulseAgentMetadata = {
   onboarding_demo?: boolean
+  marca?: string
   whatsapp?: string
   estilo_venta?: string
   obstaculo?: string
@@ -58,6 +59,7 @@ export type PulseAgenteDTO = {
   agent_id: string | null
   email: string
   nombre: string
+  marca: string
   whatsapp: string
   estilo_venta: string
   obstaculo: string
@@ -76,15 +78,18 @@ export type PulseAgenteDTO = {
   bot_activo: boolean
 }
 
+// Genérico y agnóstico de marca — Pulse Motor no se casa con ninguna marca de auto
+// (ver skill pulsemotor-strategy). Solo se usa como placeholder antes de que el asesor
+// complete el onboarding o regenere su config con IA con su marca real.
 const DEFAULT_CONFIG: PulseAgentConfig = {
-  perfil: 'Asesor de Ventas KIA 🚗',
-  especializacion: 'Portafolio Completo KIA Nuevos 🚗',
+  perfil: 'Asesor de Ventas 🚗',
+  especializacion: 'Portafolio de vehículos nuevos 🚗',
   propuesta_valor:
-    'Responder leads de carros nuevos KIA por WhatsApp con velocidad, claridad y enfoque en cerrar.',
+    'Responder leads de vehículos nuevos por WhatsApp con velocidad, claridad y enfoque en cerrar.',
   primer_mensaje:
-    '¡Hola! Vi tu interés en un KIA nuevo. Te puedo enviar ficha técnica o simular financiamiento al instante. ¿Te gustaría agendar un test drive?',
+    '¡Hola! Vi tu interés en un vehículo nuevo. Te puedo enviar ficha técnica o simular financiamiento al instante. ¿Te gustaría agendar un test drive?',
   system_prompt:
-    'Eres un asesor de ventas KIA en Colombia. Tono cercano, profesional, sin inventar precios.',
+    'Eres un asesor de ventas de vehículos nuevos en Colombia. Tono cercano, profesional, sin inventar precios.',
 }
 
 export function metadataToDTO(
@@ -101,6 +106,7 @@ export function metadataToDTO(
     agent_id: row.id,
     email: row.email || emailFallback,
     nombre: row.nombre || '',
+    marca: meta.marca || '',
     whatsapp: meta.whatsapp || '',
     estilo_venta: meta.estilo_venta || '',
     obstaculo: meta.obstaculo || '',
@@ -142,6 +148,7 @@ export function dtoToMetadata(
   return {
     ...prev,
     voz_historial: prev.voz_historial,
+    marca: dto.marca ?? prev.marca,
     whatsapp: dto.whatsapp ?? prev.whatsapp,
     estilo_venta: dto.estilo_venta ?? prev.estilo_venta,
     obstaculo: dto.obstaculo ?? prev.obstaculo,

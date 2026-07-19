@@ -27,7 +27,15 @@ export const TOOL_CALLS = [
   { fn:'reservar_inventario',   ms:7,  chip:'#4C8DFF' }, // Vehículos nuevos
 ]
 
-export const LOGOS = ['AutoVía', 'MotorCorp', 'Grupo Andina', 'Pacífico Cars', 'Flota Pro', 'Virtue Motors']
+// ─── Diferenciadores reales del producto (no prueba social — todavía en lanzamiento,
+// sin logos de clientes que mostrar) — un solo chip ámbar, no la paleta multicolor de
+// Ecosistema/Cumplimiento, ver "Chips de categoría" en tokens.md ───
+export const DIFERENCIADORES = [
+  { num:'01', icon:'▶',  titulo:'Ejecuta, no solo conversa',      desc:'Cada cotización y cada tasación es una acción ejecutada y registrada — no una respuesta genérica de chatbot.' },
+  { num:'02', icon:'🗂', titulo:'Entiende tu inventario solo',     desc:'Subís tu Excel o DMS y DataBridge arma el mapa de tablas automáticamente, sin escribir una línea de SQL.' },
+  { num:'03', icon:'💬', titulo:'Vive en el WhatsApp que ya usás', desc:'Sin número nuevo, sin app aparte: el mismo WhatsApp Business de tu concesionario o tu número personal.' },
+  { num:'04', icon:'💳', titulo:'Precio simple, sin sorpresas',    desc:'Cobrás por plan, no por lead — sin costos ocultos ni contratos de permanencia.' },
+]
 
 export const POR_QUE = [
   'Responde en segundos, no en horas',
@@ -378,19 +386,37 @@ export function PulseFooter() {
 
 // ─── Secciones reusables entre home y las landings de segmento ───
 
-export function LogosSection() {
-  const logosReveal = useReveal<HTMLDivElement>()
+export function DiferenciadoresSection() {
+  const header = useReveal<HTMLDivElement>()
+  const grid = useReveal<HTMLDivElement>()
   return (
-    <section style={{ padding:'32px 0 56px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
-      <div ref={logosReveal.ref} className={`reveal${logosReveal.inView?' in':''}`}>
-        <p style={{ textAlign:'center', fontFamily:F_MONO, fontSize:'11px', letterSpacing:'1px', textTransform:'uppercase', color:'var(--ink-dim)', marginBottom:'24px' }}>Confían concesionarios en LatAm</p>
-        <div className="logos-marquee">
-          <div className="logos-track">
-            {[...LOGOS, ...LOGOS].map((l,i) => <span key={l+i} style={{ fontFamily:F_DISPLAY, fontWeight:700, fontSize:'15px', color:'var(--ink-dim)' }}>{l}</span>)}
-          </div>
+    <section style={{ padding:'72px 24px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+      <div style={{ maxWidth:'1280px', margin:'0 auto' }}>
+        <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
+          <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Lo que nos hace distintos</p>
+          <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            No es un chatbot más. <span className="grad-amber">Es un agente que ejecuta.</span>
+          </h2>
+          <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto', lineHeight:1.6 }}>
+            Cuatro diferencias que se notan desde el primer lead — no promesas genéricas de IA.
+          </p>
         </div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap', marginTop:'32px' }}>
-          <p style={{ fontSize:'15px', color:'var(--ink)' }}><strong style={{ fontWeight:800 }}>+180 concesionarios</strong> ya despliegan agentes de Pulse Motor en LatAm.</p>
+
+        <div ref={grid.ref} className="grid-shared eco-grid" style={{ gridTemplateColumns:'repeat(4,1fr)', marginBottom:'40px' }}>
+          {DIFERENCIADORES.map((d,i) => (
+            <div key={d.num} className={`reveal eco-cell${grid.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms` }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
+                <span className="eco-icon" style={{ fontSize:'17px', width:'36px', height:'36px', borderRadius:'8px', display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(242,169,59,0.13)', border:'1px solid rgba(242,169,59,0.35)' }}>{d.icon}</span>
+                <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>{d.num}</span>
+              </div>
+              <h3 style={{ fontSize:'15px', fontWeight:700, fontFamily:F_DISPLAY, marginBottom:'6px', color:'var(--ink)' }}>{d.titulo}</h3>
+              <p style={{ fontSize:'12px', color:'var(--ink-dim)', lineHeight:1.5 }}>{d.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap' }}>
+          <p style={{ fontSize:'15px', color:'var(--ink)' }}>Mirá al agente resolver un lead real en una demo de 20 minutos.</p>
           <button onClick={() => window.dispatchEvent(new Event(PULSE_DEMO_OPEN_EVENT))} className="pm-btn" style={{ width:'auto', display:'inline-flex', padding:'11px 22px', fontSize:'13px' }}>Agendar una demo<span className="btn-arrow">→</span></button>
         </div>
       </div>
@@ -825,12 +851,6 @@ export function PulseStyles() {
       .pm-nav-link.active { color:var(--amber); }
       .pm-nav-link.active::after { width:100%; }
 
-      .logos-marquee { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
-      .logos-track { display:flex; align-items:center; gap:56px; width:max-content; animation:logosScroll 26s linear infinite; }
-      .logos-track span { flex-shrink:0; transition:color .2s ease; }
-      .logos-track span:hover { color:var(--ink); }
-      @keyframes logosScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-
       .scroll-cue { display:inline-flex; flex-direction:column; align-items:center; gap:6px; text-decoration:none; color:var(--ink-dim); font-family:${F_MONO}; font-size:11px; letter-spacing:.5px; text-transform:uppercase; animation:cueBounce 2.2s ease-in-out infinite; transition:color .2s ease; }
       .scroll-cue:hover { color:var(--amber); }
       @keyframes cueBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
@@ -866,7 +886,6 @@ export function PulseStyles() {
         .live-dot, .guard-sweep::before { animation:none; }
         .log-row, .reveal, .tool-row { transition:none; opacity:1; transform:none; }
         .pm-btn:hover:not(:disabled) { transform:none; }
-        .logos-track { animation:none; }
         .scroll-cue { animation:none; }
         .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .seg-card-arrow, .seg-check-mark, .tool-road-car { transition:none; }
       }

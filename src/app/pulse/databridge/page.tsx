@@ -882,11 +882,14 @@ export default function DataBridgePage() {
         <div style={fullscreen ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column' } : { flex: '1 1 600px', minWidth: 0 }}>
         <div style={fullscreen ? {
           flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+        } : phase === 'upload' ? {
+          background: 'transparent', border: 'none', borderRadius: '20px', padding: 0, marginBottom: '20px',
         } : {
           background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', marginBottom: '20px',
         }}>
 
           {/* Toolbar */}
+          {phase !== 'upload' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de campos</span>
@@ -923,10 +926,11 @@ export default function DataBridgePage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Canvas area */}
           <div
-            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#080f1a', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
+            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: phase === 'upload' ? '#ffffff' : '#080f1a', border: phase === 'upload' ? '2px dashed #d9dadc' : 'none', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); const sx = e.clientX - rect.left; const sy = e.clientY - rect.top; dragRef.current = { on: true, x: sx, y: sy }; clickStartRef.current = { x: sx, y: sy } }}
             onMouseUp={e => {
@@ -962,13 +966,15 @@ export default function DataBridgePage() {
             onDrop={onDropZoneDrop}
           >
             {/* Fondo de partículas */}
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
+            {phase !== 'upload' && (
+              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
+            )}
 
             {/* Overlay de arrastrar y soltar */}
             {isDraggingFile && (
               <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(242,169,59,0.1)', border: '2px dashed rgba(242,169,59,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
                 <div style={{ fontSize: '28px' }}>⬇</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Soltá para cargar</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: phase === 'upload' ? '#0f172a' : '#e2e8f0', fontFamily: FONT }}>Soltá para cargar</div>
                 <div style={{ fontSize: '12px', color: '#F2A93B', fontFamily: FONT }}>Excel · CSV · JSON</div>
               </div>
             )}
@@ -978,11 +984,11 @@ export default function DataBridgePage() {
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', zIndex: 5 }}>
                 <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
-                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
+                  <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, textAlign: 'center', maxWidth: '460px', padding: '0 20px' }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     {['Excel', 'CSV', 'JSON'].map(f => (
-                      <span key={f} style={{ fontSize: '11px', color: '#334155', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT }}>{f}</span>
+                      <span key={f} style={{ fontSize: '11px', color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT }}>{f}</span>
                     ))}
                   </div>
                 </div>
@@ -1071,6 +1077,22 @@ export default function DataBridgePage() {
               </div>
             )}
           </div>
+
+          {/* Tarjetas de features — solo antes de subir un archivo */}
+          {phase === 'upload' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '16px' }}>
+              {[
+                { icon: '✨', label: 'Detección IA', desc: 'Mapeo automático de esquemas complejos.' },
+                { icon: '🛡️', label: 'Seguridad', desc: 'Encriptación de punto a punto integrada.' },
+              ].map(f => (
+                <div key={f.label} style={{ background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '14px', padding: '16px' }}>
+                  <div style={{ fontSize: '18px', marginBottom: '8px' }}>{f.icon}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '.5px', fontFamily: FONT, marginBottom: '4px' }}>{f.label}</div>
+                  <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, lineHeight: 1.5 }}>{f.desc}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Leyenda */}
           {legendEntries.length > 0 && (

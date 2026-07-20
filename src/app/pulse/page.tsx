@@ -173,7 +173,7 @@ export default function PulseMotorLanding() {
           <div ref={segHeader.ref} className={`reveal${segHeader.inView?' in':''}`} style={{ marginBottom:'44px' }}>
             <p className="kicker">Dos segmentos, un agente</p>
             <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(30px,4vw,52px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.1, color:'var(--ink)' }}>
-              Diseñado para cómo realmente se vende.
+              Para concesionarios y para vendedores independientes.
             </h2>
           </div>
           <div ref={segGrid.ref} className="seg-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'24px' }}>

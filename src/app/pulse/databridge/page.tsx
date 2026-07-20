@@ -966,10 +966,10 @@ export default function DataBridgePage() {
 
             {/* Overlay de arrastrar y soltar */}
             {isDraggingFile && (
-              <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(14,165,233,0.1)', border: '2px dashed rgba(14,165,233,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(242,169,59,0.1)', border: '2px dashed rgba(242,169,59,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
                 <div style={{ fontSize: '28px' }}>⬇</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Soltá para cargar</div>
-                <div style={{ fontSize: '12px', color: '#7dd3fc', fontFamily: FONT_BODY }}>Excel · CSV · JSON</div>
+                <div style={{ fontSize: '12px', color: '#F2A93B', fontFamily: FONT }}>Excel · CSV · JSON</div>
               </div>
             )}
 
@@ -977,16 +977,16 @@ export default function DataBridgePage() {
             {phase === 'upload' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', zIndex: 5 }}>
                 <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
-                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>
+                  <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     {['Excel', 'CSV', 'JSON'].map(f => (
-                      <span key={f} style={{ fontSize: '11px', color: '#334155', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT_BODY }}>{f}</span>
+                      <span key={f} style={{ fontSize: '11px', color: '#334155', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT }}>{f}</span>
                     ))}
                   </div>
                 </div>
-                <button onClick={startDemo} style={{ marginTop: '6px', fontSize: '12px', color: '#7dd3fc', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>
+                <button onClick={startDemo} style={{ marginTop: '6px', fontSize: '12px', color: '#F2A93B', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: FONT, textDecoration: 'underline' }}>
                   o probá con datos de ejemplo →
                 </button>
                 <input ref={fileInputRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />

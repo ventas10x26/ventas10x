@@ -37,8 +37,29 @@ const rand = (a: number, b: number) => Math.random() * (b - a) + a
 const BASE_DIM = 400
 const dimScaleFor = (h: number) => Math.min(2.2, Math.max(1, h / BASE_DIM))
 
+function stripAccents(s: string): string {
+  return s.normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+}
+
 function normalize(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').replace(/[^a-z0-9]/g, '')
+  return stripAccents(s.toLowerCase()).replace(/[^a-z0-9]/g, '')
+}
+
+// Palabras demasiado genéricas para considerarse una coincidencia real por sí solas
+// (compartirían "id"/"doc" casi cualquier par de campos sin estar relacionados).
+const TOKEN_STOPWORDS = new Set(['id', 'doc', 'de', 'del', 'la', 'el', 'los', 'las'])
+
+// Tokens del nombre de campo respetando límites de palabra (snake_case y camelCase),
+// a diferencia de normalize() que los concatena en un solo string. Permite detectar
+// "Nombre_Vendedor" <-> "VendedorFactura" por el token compartido "vendedor", aunque
+// ninguno de los dos nombres completos esté contenido en el otro.
+function nameTokens(raw: string): string[] {
+  const spaced = raw
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[^a-zA-Z0-9]+/g, ' ')
+  return stripAccents(spaced.toLowerCase())
+    .split(/\s+/)
+    .filter(t => t.length >= 4 && !TOKEN_STOPWORDS.has(t))
 }
 
 function inferType(raw: unknown[]): string {
@@ -116,14 +137,16 @@ function buildGraph(sheets: SheetData[]): { nodes: Node3D[]; edges: Edge3D[] } {
 }
 
 function detectTableRelations(sheets: SheetData[]): TableRelation[] {
-  interface ColInfo { table: string; field: string; norm: string; values: Set<string> }
+  interface ColInfo { table: string; field: string; norm: string; tokens: Set<string>; values: Set<string> }
   const cols: ColInfo[] = []
   sheets.forEach(sheet => {
     const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
     headers.forEach(h => {
       const rawValues = sheet.rows.map(r => r[h])
-      const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim().toLowerCase()))
-      cols.push({ table: sheet.name, field: h, norm: normalize(h), values })
+      // stripAccents en los valores también — antes solo se le quitaban tildes al
+      // nombre del campo, así que "María López" vs "Maria Lopez" no cruzaba por valor.
+      const values = new Set(rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => stripAccents(String(v).trim().toLowerCase())))
+      cols.push({ table: sheet.name, field: h, norm: normalize(h), tokens: new Set(nameTokens(h)), values })
     })
   })
 
@@ -133,14 +156,15 @@ function detectTableRelations(sheets: SheetData[]): TableRelation[] {
       const A = cols[i], B = cols[j]
       if (A.table === B.table) continue
       const nameMatch = A.norm.length >= 4 && B.norm.length >= 4 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
+      const sharedToken = !nameMatch && [...A.tokens].some(t => B.tokens.has(t))
       let overlap = 0
       if (A.values.size >= 3 && B.values.size >= 3) {
         let inter = 0
         A.values.forEach(v => { if (B.values.has(v)) inter++ })
         overlap = inter / Math.min(A.values.size, B.values.size)
       }
-      if (overlap < 0.5 && !nameMatch) continue
-      const label = overlap >= 0.5 ? `mismo valor ${Math.round(overlap * 100)}%` : 'nombre similar'
+      if (overlap < 0.5 && !nameMatch && !sharedToken) continue
+      const label = overlap >= 0.5 ? `mismo valor ${Math.round(overlap * 100)}%` : nameMatch ? 'nombre similar' : 'palabra en común'
       const key = [A.table, B.table].sort().join('|')
       if (!pairMap.has(key)) pairMap.set(key, { a: A.table, b: B.table, matches: [] })
       pairMap.get(key)!.matches.push({ fieldA: A.field, fieldB: B.field, label, score: overlap })

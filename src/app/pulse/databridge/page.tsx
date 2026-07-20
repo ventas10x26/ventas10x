@@ -10,6 +10,16 @@ const FONT_BODY = "'DM Sans', sans-serif"
 
 const PALETTE = ['#4f8ef7', '#34c97e', '#f7924f', '#c97fd4', '#f7d24f', '#22d3ee', '#fb7185', '#a3e635']
 
+// Ruta de producto del marco estratégico v2 (ver skill pulsemotor-strategy) — se muestra
+// después de detectar el esquema para que el prospecto vea hacia dónde escala esto, no
+// solo el estado actual del prototipo.
+const ROADMAP_PROTOTIPO = [
+  { paso: '01 · Prototipar', titulo: 'Un flujo completo con tus datos', desc: 'El esquema que acabás de ver se convierte en un panel funcional — sin reconstruir nada desde cero.' },
+  { paso: '02 · Desplegar', titulo: 'En producción con tu equipo', desc: 'El mismo modelo, conectado a tu WhatsApp Business real y al DMS o Excel que ya usás.' },
+  { paso: '03 · Iterar', titulo: 'KPIs que cambian de prioridad', desc: 'El panel reordena qué indicador manda según dónde está la fuga o la oportunidad más grande de la semana.' },
+  { paso: '04 · Predecir', titulo: 'Modelos entrenados con tus datos', desc: 'Probabilidad de cierre, mejor momento de contacto y propensión a renovación — entrenados sobre tu propio histórico, no supuestos genéricos.' },
+]
+
 interface Node3D {
   id: string; l: string; kind: 'table' | 'field'; table: string
   tipo?: string; color: string; isHub?: boolean; fieldCount?: number
@@ -24,11 +34,12 @@ interface SheetData { name: string; rows: Record<string, unknown>[] }
 interface FieldMatch { fieldA: string; fieldB: string; label: string; score: number }
 interface TableRelation { a: string; b: string; matches: FieldMatch[] }
 
-type Step = 'subir' | 'mapear' | 'relaciones' | 'confirmar'
+type Step = 'subir' | 'mapear' | 'relaciones' | 'prototipo' | 'confirmar'
 const STEPS: { key: Step; label: string }[] = [
   { key: 'subir', label: 'Subir' },
   { key: 'mapear', label: 'Mapear' },
   { key: 'relaciones', label: 'Relaciones' },
+  { key: 'prototipo', label: 'Prototipo' },
   { key: 'confirmar', label: 'Confirmar' },
 ]
 
@@ -1250,6 +1261,52 @@ export default function DataBridgePage() {
               </div>
             </>
           )}
+        </div>
+        )}
+
+        {/* Prototipo — ruta de producto del marco estratégico v2: no solo "detectamos tu
+            esquema", sino "esto es lo que se puede construir con él, y hacia dónde escala". */}
+        {step === 'prototipo' && (
+        <div style={{ flex: '1 1 600px', minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '24px' }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
+          <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#f8fafc', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '20px', maxWidth: '640px' }}>
+            Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
+          </div>
+
+          <div style={{ background: '#080f1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Panel 360° · Tu concesionario</span>
+              <span style={{ fontSize: '10px', color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '999px', padding: '2px 8px', fontWeight: 600 }}>prototipo</span>
+            </div>
+            {stats.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(stats.length, 4)}, 1fr)`, gap: '10px' }}>
+                {stats.slice(0, 4).map(s => {
+                  const rows = loadedSheets.find(sh => sh.name === s.table)?.rows.length ?? 0
+                  return (
+                    <div key={s.table} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '12px', minWidth: 0 }}>
+                      <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px', fontFamily: FONT_BODY, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.table}</div>
+                      <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: s.color }}>{rows.toLocaleString('es-CO')}</div>
+                      <div style={{ fontSize: '10px', color: '#475569', fontFamily: FONT_BODY }}>registros</div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b' }}>Subí tus datos para ver el prototipo con tus propias cifras.</div>
+            )}
+          </div>
+
+          <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Cómo escala esto</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '1px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', overflow: 'hidden' }}>
+            {ROADMAP_PROTOTIPO.map(r => (
+              <div key={r.paso} style={{ background: 'rgba(255,255,255,0.02)', padding: '16px' }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#7dd3fc', marginBottom: '8px' }}>{r.paso}</div>
+                <div style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#e2e8f0', marginBottom: '6px' }}>{r.titulo}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>{r.desc}</div>
+              </div>
+            ))}
+          </div>
         </div>
         )}
 

@@ -800,6 +800,7 @@ export default function DataBridgePage() {
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
+      <div style={{ background: phase === 'upload' ? '#f8f9fb' : 'transparent' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* Header */}
@@ -807,7 +808,7 @@ export default function DataBridgePage() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: '#10b981', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
             DataBridge 360
           </div>
-          <h1 style={{ fontFamily: FONT, fontSize: 'clamp(24px,3vw,36px)', fontWeight: 800, letterSpacing: '-.5px', margin: '0 0 10px', color: '#f8fafc' }}>
+          <h1 style={{ fontFamily: FONT, fontSize: 'clamp(24px,3vw,36px)', fontWeight: 800, letterSpacing: '-.5px', margin: '0 0 10px', color: phase === 'upload' ? '#0f172a' : '#f8fafc' }}>
             Estructura de tus hojas<br />
             <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>campos y tipos en 3D</span>
           </h1>
@@ -821,12 +822,12 @@ export default function DataBridgePage() {
                 value={projectName}
                 onChange={e => setProjectName(e.target.value)}
                 placeholder="Nombre del proyecto (ej: Inventario julio)"
-                style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+                style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
               />
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
-                  <a href="/pulse/signup?from=databridge" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
+                  <a href="/pulse/signup?from=databridge" style={{ color: '#F2A93B', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
                 </div>
               )}
             </div>
@@ -849,18 +850,18 @@ export default function DataBridgePage() {
                   <span style={{
                     width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '12px', fontWeight: 700, flexShrink: 0,
-                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : 'rgba(255,255,255,0.05)',
-                    color: isDone ? '#10b981' : isCurrent ? '#fff' : '#475569',
-                    border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : (phase === 'upload' ? '#f1f5f9' : 'rgba(255,255,255,0.05)'),
+                    color: isDone ? '#10b981' : isCurrent ? '#fff' : (phase === 'upload' ? '#94a3b8' : '#475569'),
+                    border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : (phase === 'upload' ? '1px solid #d9dadc' : '1px solid rgba(255,255,255,0.1)'),
                   }}>
                     {isDone ? '✓' : i + 1}
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#e2e8f0' : isDone ? '#94a3b8' : '#475569' }}>
+                  <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? (phase === 'upload' ? '#0f172a' : '#e2e8f0') : isDone ? '#94a3b8' : (phase === 'upload' ? '#94a3b8' : '#475569') }}>
                     {s.label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div style={{ flex: 1, height: '1px', background: isDone ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)', margin: '0 12px', minWidth: '16px' }} />
+                  <div style={{ flex: 1, height: '1px', background: isDone ? 'rgba(16,185,129,0.3)' : (phase === 'upload' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'), margin: '0 12px', minWidth: '16px' }} />
                 )}
               </div>
             )
@@ -1395,7 +1396,7 @@ export default function DataBridgePage() {
           <button
             onClick={() => canGoBack && setStep(STEPS[stepIndex - 1].key)}
             disabled={!canGoBack}
-            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: canGoBack ? '#94a3b8' : '#334155', fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
+            style={{ padding: '10px 18px', borderRadius: '10px', border: phase === 'upload' ? '1px solid #d9dadc' : '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: canGoBack ? (phase === 'upload' ? '#334155' : '#94a3b8') : (phase === 'upload' ? '#94a3b8' : '#334155'), fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
           >
             ← Atrás
           </button>
@@ -1403,7 +1404,7 @@ export default function DataBridgePage() {
             <button
               onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
               disabled={!canGoNext}
-              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : 'rgba(255,255,255,0.08)', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : (phase === 'upload' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'), color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
             >
               Siguiente →
             </button>
@@ -1416,6 +1417,7 @@ export default function DataBridgePage() {
             </a>
           )}
         </div>
+      </div>
       </div>
     </PulseAppShell>
   )

@@ -2,6 +2,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Oswald, IBM_Plex_Mono, Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
 
 // Fuentes del sistema turno/guardia (home) — next/font las autohospeda en build time,
 // evita depender de un <link> a Google Fonts en runtime (frágil: no garantiza carga en producción).
@@ -33,7 +34,7 @@ const PULSE_GA_ID = 'G-M0KS0D3G5D'
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable} ${plusJakarta.variable}`}>
+    <div className={`pulse-root ${oswald.variable} ${ibmPlexMono.variable} ${inter.variable} ${plusJakarta.variable} ${GeistSans.variable}`}>
       {/* Tokens de color del sistema de diseño (ver .claude/skills/pulsemotor-design) — scoped a
           .pulse-root para que cualquier página o componente bajo /pulse pueda consumirlos sin
           redefinirlos. El home (src/app/pulse/page.tsx) los declara también de forma local por

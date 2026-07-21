@@ -808,7 +808,7 @@ export default function DataBridgePage() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: '#10b981', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
             DataBridge 360
           </div>
-          <h1 style={{ fontFamily: FONT, fontSize: 'clamp(24px,3vw,36px)', fontWeight: 800, letterSpacing: '-.5px', margin: '0 0 10px', color: phase === 'upload' ? '#0f172a' : '#f8fafc' }}>
+          <h1 style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontSize: 'clamp(24px,3vw,36px)', fontWeight: 450, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 10px', color: phase === 'upload' ? '#0f172a' : '#f8fafc' }}>
             Estructura de tus hojas<br />
             <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>campos y tipos en 3D</span>
           </h1>

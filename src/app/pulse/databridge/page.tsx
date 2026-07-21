@@ -818,23 +818,38 @@ export default function DataBridgePage() {
 
           {authChecked && !user && phase === 'upload' && (
             <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              {/* Pulso ámbar: sin esto el input blanco se pierde contra el fondo blanco del
-                  dropzone — llama la atención sobre el nombre del proyecto solo mientras está vacío. */}
+              {/* Spinner + glow ámbar (misma idea que el "Thinking..." de Stitch: un ícono
+                  girando junto al campo, no solo un cambio de color) — el input blanco se
+                  perdía contra el fondo blanco del dropzone y el pulso de borde solo no se notaba. */}
               <style>{`
                 @keyframes pmProjectNamePulse {
-                  0%, 100% { box-shadow: 0 0 0 0 rgba(242,169,59,0.4); border-color: #d9dadc; }
-                  50% { box-shadow: 0 0 0 5px rgba(242,169,59,0); border-color: #F2A93B; }
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(242,169,59,0.45); border-color: #F2A93B; }
+                  50% { box-shadow: 0 0 0 8px rgba(242,169,59,0); border-color: #d9dadc; }
                 }
-                .pm-projectname-input { animation: pmProjectNamePulse 1.8s ease-in-out infinite; }
-                @media (prefers-reduced-motion: reduce) { .pm-projectname-input { animation: none; } }
+                .pm-projectname-input { animation: pmProjectNamePulse 1.4s ease-in-out infinite; }
+                @keyframes pmProjectNameSpin { to { transform: rotate(360deg); } }
+                .pm-projectname-spinner { animation: pmProjectNameSpin 0.9s linear infinite; transform-origin: 7px 7px; }
+                @media (prefers-reduced-motion: reduce) {
+                  .pm-projectname-input { animation: none; border-color: #F2A93B; }
+                  .pm-projectname-spinner { animation: none; }
+                }
               `}</style>
-              <input
-                value={projectName}
-                onChange={e => setProjectName(e.target.value)}
-                placeholder="Nombre del proyecto (ej: Inventario julio)"
-                className={projectName ? undefined : 'pm-projectname-input'}
-                style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
-              />
+              <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '360px' }}>
+                {!projectName && (
+                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', pointerEvents: 'none' }}>
+                    <svg className="pm-projectname-spinner" width="14" height="14" viewBox="0 0 14 14" style={{ display: 'block' }}>
+                      <circle cx="7" cy="7" r="5.5" fill="none" stroke="#F2A93B" strokeWidth="2" strokeLinecap="round" strokeDasharray="18 26" />
+                    </svg>
+                  </span>
+                )}
+                <input
+                  value={projectName}
+                  onChange={e => setProjectName(e.target.value)}
+                  placeholder="Nombre del proyecto (ej: Inventario julio)"
+                  className={projectName ? undefined : 'pm-projectname-input'}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+                />
+              </div>
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}

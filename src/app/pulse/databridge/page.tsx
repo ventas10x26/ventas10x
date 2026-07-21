@@ -818,10 +818,21 @@ export default function DataBridgePage() {
 
           {authChecked && !user && phase === 'upload' && (
             <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Pulso ámbar: sin esto el input blanco se pierde contra el fondo blanco del
+                  dropzone — llama la atención sobre el nombre del proyecto solo mientras está vacío. */}
+              <style>{`
+                @keyframes pmProjectNamePulse {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(242,169,59,0.4); border-color: #d9dadc; }
+                  50% { box-shadow: 0 0 0 5px rgba(242,169,59,0); border-color: #F2A93B; }
+                }
+                .pm-projectname-input { animation: pmProjectNamePulse 1.8s ease-in-out infinite; }
+                @media (prefers-reduced-motion: reduce) { .pm-projectname-input { animation: none; } }
+              `}</style>
               <input
                 value={projectName}
                 onChange={e => setProjectName(e.target.value)}
                 placeholder="Nombre del proyecto (ej: Inventario julio)"
+                className={projectName ? undefined : 'pm-projectname-input'}
                 style={{ flex: '1 1 260px', maxWidth: '360px', padding: '9px 14px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
               />
               {anonProjects.length > 0 && (

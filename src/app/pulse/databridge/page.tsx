@@ -394,7 +394,7 @@ export default function DataBridgePage() {
       const b = proj.find(n => n.id === e.b)
       if (!a || !b) return
       ctx.beginPath(); ctx.moveTo(a.px!, a.py!); ctx.lineTo(b.px!, b.py!)
-      ctx.strokeStyle = 'rgba(148,163,184,0.35)'
+      ctx.strokeStyle = 'rgba(100,116,139,0.45)'
       ctx.lineWidth = Math.max(1, dimScale)
       ctx.stroke()
     })
@@ -429,14 +429,14 @@ export default function DataBridgePage() {
         ctx.font = `700 ${fs(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
-        ctx.font = `700 ${fs(12)}px system-ui`; ctx.fillStyle = '#e2e8f0'
+        ctx.font = `700 ${fs(12)}px system-ui`; ctx.fillStyle = '#0f172a'
         ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
         ctx.font = `${fs(10)}px system-ui`; ctx.fillStyle = '#64748b'
         ctx.fillText(`${n.fieldCount ?? 0} campos · ${expanded ? 'clic para contraer' : 'clic para ver'}`, n.px!, n.py! + r + fs(21))
       } else {
         const isHover = n.id === hoverId
-        ctx.font = `${isHover ? '600 ' : ''}${fs(11)}px system-ui`; ctx.fillStyle = isHover ? '#f8fafc' : '#cbd5e1'
+        ctx.font = `${isHover ? '600 ' : ''}${fs(11)}px system-ui`; ctx.fillStyle = isHover ? '#0f172a' : '#475569'
         ctx.textAlign = 'center'; ctx.textBaseline = 'top'
         ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
         ctx.font = `${fs(9)}px system-ui`; ctx.fillStyle = c
@@ -799,8 +799,8 @@ export default function DataBridgePage() {
   const canGoNext = stepIndex < STEPS.length - 1 && phase === 'ready'
 
   return (
-    <PulseAppShell userName={user?.nombre} userEmail={user?.email} theme={phase === 'upload' ? 'light' : 'dark'}>
-      <div style={{ background: phase === 'upload' ? '#f8f9fb' : 'transparent' }}>
+    <PulseAppShell userName={user?.nombre} userEmail={user?.email} theme="light">
+      <div style={{ background: '#f8f9fb', minHeight: '100%' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
         {/* Header */}
@@ -808,7 +808,7 @@ export default function DataBridgePage() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: '#10b981', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
             DataBridge 360
           </div>
-          <h1 style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontSize: 'clamp(24px,3vw,36px)', fontWeight: 450, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 10px', color: phase === 'upload' ? '#0f172a' : '#f8fafc' }}>
+          <h1 style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontSize: 'clamp(24px,3vw,36px)', fontWeight: 450, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 10px', color: '#0f172a' }}>
             Estructura de tus hojas<br />
             <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>campos y tipos en 3D</span>
           </h1>
@@ -876,18 +876,18 @@ export default function DataBridgePage() {
                   <span style={{
                     width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '12px', fontWeight: 700, flexShrink: 0,
-                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : (phase === 'upload' ? '#f1f5f9' : 'rgba(255,255,255,0.05)'),
-                    color: isDone ? '#10b981' : isCurrent ? '#fff' : (phase === 'upload' ? '#94a3b8' : '#475569'),
-                    border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : (phase === 'upload' ? '1px solid #d9dadc' : '1px solid rgba(255,255,255,0.1)'),
+                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#f1f5f9',
+                    color: isDone ? '#10b981' : isCurrent ? '#fff' : '#94a3b8',
+                    border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : '1px solid #d9dadc',
                   }}>
                     {isDone ? '✓' : i + 1}
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? (phase === 'upload' ? '#0f172a' : '#e2e8f0') : isDone ? '#94a3b8' : (phase === 'upload' ? '#94a3b8' : '#475569') }}>
+                  <span style={{ fontSize: '13px', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#0f172a' : '#94a3b8' }}>
                     {s.label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div style={{ flex: 1, height: '1px', background: isDone ? 'rgba(16,185,129,0.3)' : (phase === 'upload' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'), margin: '0 12px', minWidth: '16px' }} />
+                  <div style={{ flex: 1, height: '1px', background: isDone ? 'rgba(16,185,129,0.3)' : '#e2e8f0', margin: '0 12px', minWidth: '16px' }} />
                 )}
               </div>
             )
@@ -912,19 +912,19 @@ export default function DataBridgePage() {
         } : phase === 'upload' ? {
           background: 'transparent', border: 'none', borderRadius: '20px', padding: 0, marginBottom: '20px',
         } : {
-          background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', marginBottom: '20px',
+          background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '20px', marginBottom: '20px',
         }}>
 
           {/* Toolbar */}
           {phase !== 'upload' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Mapa de campos</span>
-              <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Mapa de campos</span>
+              <span style={{ fontSize: '11px', color: phase === 'ready' ? '#10b981' : '#64748b', background: phase === 'ready' ? 'rgba(16,185,129,0.1)' : '#f1f5f9', border: `1px solid ${phase === 'ready' ? 'rgba(16,185,129,0.3)' : '#d9dadc'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
                 {phase === 'processing' ? 'Procesando...' : phase === 'selecting' ? 'Elegí las hojas' : `${nodes.filter(n => n.kind === 'field').length} campos · ${nodes.filter(n => n.kind === 'table').length} tablas`}
               </span>
               {phase === 'ready' && focusedRelation && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#7dd3fc', background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '999px', padding: '2px 6px 2px 10px', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#0284c7', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', borderRadius: '999px', padding: '2px 6px 2px 10px', fontWeight: 600 }}>
                   Solo relación: {focusedRelation.a} ↔ {focusedRelation.b}
                   <button onClick={() => setFocusedRelation(null)} title="Ver todo" style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '13px', padding: '2px 4px', lineHeight: 1 }}>✕</button>
                 </span>
@@ -933,21 +933,21 @@ export default function DataBridgePage() {
             {phase === 'ready' && (
               <div style={{ display: 'flex', gap: '6px' }}>
                 {(['3d', 'top'] as const).map(v => (
-                  <button key={v} onClick={() => setView(v)} style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: view === v ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: view === v ? 'rgba(14,165,233,0.1)' : 'transparent', color: view === v ? '#7dd3fc' : '#64748b', fontWeight: view === v ? 600 : 400 }}>
+                  <button key={v} onClick={() => setView(v)} style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: view === v ? '1px solid rgba(14,165,233,0.4)' : '1px solid #d9dadc', background: view === v ? 'rgba(14,165,233,0.08)' : 'transparent', color: view === v ? '#0284c7' : '#64748b', fontWeight: view === v ? 600 : 400 }}>
                     {v === '3d' ? '3D' : 'Top'}
                   </button>
                 ))}
-                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
+                <div style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 2px' }} />
                 {(['rotate', 'pan'] as const).map(m => (
-                  <button key={m} onClick={() => setDragMode(m)} title={m === 'rotate' ? 'Arrastrar para rotar' : 'Arrastrar para mover'} style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: dragMode === m ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: dragMode === m ? 'rgba(14,165,233,0.1)' : 'transparent', color: dragMode === m ? '#7dd3fc' : '#64748b' }}>
+                  <button key={m} onClick={() => setDragMode(m)} title={m === 'rotate' ? 'Arrastrar para rotar' : 'Arrastrar para mover'} style={{ fontSize: '13px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: dragMode === m ? '1px solid rgba(14,165,233,0.4)' : '1px solid #d9dadc', background: dragMode === m ? 'rgba(14,165,233,0.08)' : 'transparent', color: dragMode === m ? '#0284c7' : '#64748b' }}>
                     {m === 'rotate' ? '⟳' : '🖐'}
                   </button>
                 ))}
-                <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>↺</button>
-                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
-                <button onClick={() => uploadMoreRef.current?.click()} title="Subir otro archivo" style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.08)', color: '#7dd3fc' }}>⬆ Subir otro</button>
+                <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid #d9dadc', background: 'transparent', color: '#64748b' }}>↺</button>
+                <div style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 2px' }} />
+                <button onClick={() => uploadMoreRef.current?.click()} title="Subir otro archivo" style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(242,169,59,0.4)', background: 'rgba(242,169,59,0.1)', color: '#C9770B' }}>⬆ Subir otro</button>
                 <input ref={uploadMoreRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
-                <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
+                <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid #d9dadc', background: 'transparent', color: '#64748b' }}>
                   {fullscreen ? '✕' : '⛶'}
                 </button>
               </div>
@@ -957,7 +957,7 @@ export default function DataBridgePage() {
 
           {/* Canvas area */}
           <div
-            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: phase === 'upload' ? '#ffffff' : '#080f1a', border: phase === 'upload' ? '2px dashed #d9dadc' : 'none', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
+            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#ffffff', border: phase === 'upload' ? '2px dashed #d9dadc' : '1px solid #d9dadc', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); const sx = e.clientX - rect.left; const sy = e.clientY - rect.top; dragRef.current = { on: true, x: sx, y: sy }; clickStartRef.current = { x: sx, y: sy } }}
             onMouseUp={e => {
@@ -1030,8 +1030,8 @@ export default function DataBridgePage() {
             {phase === 'processing' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 6 }}>
                 <div style={{ fontSize: '32px' }}>🔍</div>
-                <div style={{ fontSize: '13px', color: '#94a3b8', fontFamily: FONT_BODY }}>{progLabel}</div>
-                <div style={{ width: '200px', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>{progLabel}</div>
+                <div style={{ width: '200px', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${progPct}%`, background: 'linear-gradient(90deg,#0ea5e9,#10b981)', borderRadius: '2px', transition: 'width .1s' }} />
                 </div>
                 <div style={{ fontSize: '12px', color: '#334155', fontFamily: FONT_BODY }}>{progPct}%</div>
@@ -1041,26 +1041,26 @@ export default function DataBridgePage() {
             {/* Selección de hojas */}
             {phase === 'selecting' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', zIndex: 7, padding: '20px' }}>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', fontFamily: FONT }}>¿Qué hojas querés importar?</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>¿Qué hojas querés importar?</div>
                 <div style={{ fontSize: '12px', color: '#475569', fontFamily: FONT_BODY }}>
                   Encontramos {pendingSheets.length} hojas — elegí cuáles cruzar
                 </div>
-                <div style={{ width: '100%', maxWidth: '420px', maxHeight: '220px', overflowY: 'auto', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '6px' }}>
+                <div style={{ width: '100%', maxWidth: '420px', maxHeight: '220px', overflowY: 'auto', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '6px' }}>
                   {pendingSheets.map(s => (
                     <label key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 8px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY }}>
                       <input type="checkbox" checked={selectedSheetNames.has(s.name)} onChange={() => toggleSheetSelected(s.name)} />
-                      <span style={{ fontSize: '13px', color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
+                      <span style={{ fontSize: '13px', color: '#0f172a', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
                       <span style={{ fontSize: '11px', color: '#475569', flexShrink: 0 }}>{s.rows.length} filas</span>
                     </label>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: '10px', fontSize: '12px' }}>
-                  <button onClick={() => setSelectedSheetNames(new Set(pendingSheets.map(s => s.name)))} style={{ background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Todas</button>
-                  <button onClick={() => setSelectedSheetNames(new Set())} style={{ background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Ninguna</button>
+                  <button onClick={() => setSelectedSheetNames(new Set(pendingSheets.map(s => s.name)))} style={{ background: 'transparent', border: 'none', color: '#F2A93B', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Todas</button>
+                  <button onClick={() => setSelectedSheetNames(new Set())} style={{ background: 'transparent', border: 'none', color: '#F2A93B', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Ninguna</button>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                  <button onClick={cancelSheetSelection} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b', fontSize: '13px', cursor: 'pointer', fontFamily: FONT_BODY }}>Cancelar</button>
-                  <button onClick={confirmSheetSelection} disabled={selectedSheetNames.size === 0} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: selectedSheetNames.size === 0 ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#0ea5e9,#10b981)', color: selectedSheetNames.size === 0 ? '#475569' : '#fff', fontSize: '13px', fontWeight: 700, cursor: selectedSheetNames.size === 0 ? 'not-allowed' : 'pointer', fontFamily: FONT }}>
+                  <button onClick={cancelSheetSelection} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #d9dadc', background: 'transparent', color: '#64748b', fontSize: '13px', cursor: 'pointer', fontFamily: FONT_BODY }}>Cancelar</button>
+                  <button onClick={confirmSheetSelection} disabled={selectedSheetNames.size === 0} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: selectedSheetNames.size === 0 ? '#e2e8f0' : 'linear-gradient(135deg,#0ea5e9,#10b981)', color: selectedSheetNames.size === 0 ? '#94a3b8' : '#fff', fontSize: '13px', fontWeight: 700, cursor: selectedSheetNames.size === 0 ? 'not-allowed' : 'pointer', fontFamily: FONT }}>
                     Continuar ({selectedSheetNames.size}) →
                   </button>
                 </div>
@@ -1141,21 +1141,21 @@ export default function DataBridgePage() {
         <div style={schemaFullscreen ? {
           position: 'fixed', inset: 0, zIndex: 200, background: '#0B0D0C',
           padding: '20px 24px', overflowY: 'auto',
-        } : { flex: schemaViewMode === 'tables' ? '1 1 520px' : (fullscreen ? '0 0 320px' : '0 1 300px'), minWidth: schemaViewMode === 'tables' ? '380px' : '260px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
+        } : { flex: schemaViewMode === 'tables' ? '1 1 520px' : (fullscreen ? '0 0 320px' : '0 1 300px'), minWidth: schemaViewMode === 'tables' ? '380px' : '260px', background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '20px', overflowY: fullscreen ? 'auto' : undefined }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontFamily: FONT_BODY, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Esquema de relaciones</span>
-            <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Esquema de relaciones</span>
+            <span style={{ fontSize: '11px', color: tableRelations.length ? '#10b981' : '#64748b', background: tableRelations.length ? 'rgba(16,185,129,0.1)' : '#f1f5f9', border: `1px solid ${tableRelations.length ? 'rgba(16,185,129,0.3)' : '#d9dadc'}`, borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
               {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'}
             </span>
             {phase === 'ready' && (
               <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
                 {(['radial', 'tables'] as const).map(v => (
-                  <button key={v} onClick={() => setSchemaViewMode(v)} title={v === 'radial' ? 'Vista compacta' : 'Vista de tablas (estilo Supabase)'} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: schemaViewMode === v ? '1px solid rgba(14,165,233,0.5)' : '1px solid rgba(255,255,255,0.1)', background: schemaViewMode === v ? 'rgba(14,165,233,0.1)' : 'transparent', color: schemaViewMode === v ? '#7dd3fc' : '#64748b', fontWeight: schemaViewMode === v ? 600 : 400 }}>
+                  <button key={v} onClick={() => setSchemaViewMode(v)} title={v === 'radial' ? 'Vista compacta' : 'Vista de tablas (estilo Supabase)'} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: schemaViewMode === v ? '1px solid rgba(14,165,233,0.4)' : '1px solid #d9dadc', background: schemaViewMode === v ? 'rgba(14,165,233,0.08)' : 'transparent', color: schemaViewMode === v ? '#0284c7' : '#64748b', fontWeight: schemaViewMode === v ? 600 : 400 }}>
                     {v === 'radial' ? '◎ Radial' : '▦ Tablas'}
                   </button>
                 ))}
-                <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
-                <button onClick={() => setSchemaFullscreen(f => !f)} title={schemaFullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#64748b' }}>
+                <div style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 2px' }} />
+                <button onClick={() => setSchemaFullscreen(f => !f)} title={schemaFullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid #d9dadc', background: 'transparent', color: '#64748b' }}>
                   {schemaFullscreen ? '✕' : '⛶'}
                 </button>
               </div>
@@ -1167,7 +1167,7 @@ export default function DataBridgePage() {
           ) : (
             <>
               {schemaViewMode === 'tables' ? (
-                <div style={{ overflow: 'auto', maxHeight: schemaFullscreen ? 'calc(100vh - 220px)' : '380px', background: '#080f1a', borderRadius: '14px', padding: '14px' }}>
+                <div style={{ overflow: 'auto', maxHeight: schemaFullscreen ? 'calc(100vh - 220px)' : '380px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px' }}>
                   {(() => {
                     const boxes = schemaTables.map((t, i) => {
                       const fields = fieldsOfTable(t.table)
@@ -1180,7 +1180,7 @@ export default function DataBridgePage() {
                     return (
                   <div ref={erContentRef} style={{ position: 'relative', width: `${containerW}px`, height: `${containerH}px` }}>
                     {boxes.map(({ t, i, fields, pos }) => (
-                        <div key={t.id} style={{ position: 'absolute', left: `${pos.x}px`, top: `${pos.y}px`, width: `${ER_TABLE_WIDTH}px`, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div key={t.id} style={{ position: 'absolute', left: `${pos.x}px`, top: `${pos.y}px`, width: `${ER_TABLE_WIDTH}px`, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '10px', overflow: 'hidden' }}>
                           <div
                             onMouseDown={onTableHeaderMouseDown(t.id, i)}
                             onClick={() => { if (erJustDraggedRef.current) { erJustDraggedRef.current = false; return }; setSchemaHover({ type: 'table', table: t.table }) }}
@@ -1193,10 +1193,10 @@ export default function DataBridgePage() {
                               const key = `${t.table}::${f.l}`
                               const related = relatedFieldKeys.has(key)
                               return (
-                                <div key={fi} ref={setErFieldRef(key)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', fontSize: '11px', fontFamily: FONT_BODY, borderTop: fi === 0 ? 'none' : '1px solid rgba(255,255,255,0.05)', background: related ? 'rgba(52,211,153,0.05)' : 'transparent' }}>
-                                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: related ? '#34d399' : 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                                  <span style={{ color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.l}</span>
-                                  <span style={{ color: '#475569', flexShrink: 0, fontSize: '10px' }}>{f.tipo}</span>
+                                <div key={fi} ref={setErFieldRef(key)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', fontSize: '11px', fontFamily: FONT_BODY, borderTop: fi === 0 ? 'none' : '1px solid #f1f5f9', background: related ? 'rgba(52,211,153,0.07)' : 'transparent' }}>
+                                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: related ? '#10b981' : '#d9dadc', flexShrink: 0 }} />
+                                  <span style={{ color: '#0f172a', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.l}</span>
+                                  <span style={{ color: '#64748b', flexShrink: 0, fontSize: '10px' }}>{f.tipo}</span>
                                 </div>
                               )
                             })}
@@ -1214,10 +1214,10 @@ export default function DataBridgePage() {
                           const path = `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`
                           return (
                             <path key={l.key} d={path} fill="none"
-                              stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(125,211,252,0.95)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.45)'}
+                              stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(2,132,199,0.9)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.45)'}
                               strokeWidth={active ? 2.4 : 1.3}
                               strokeDasharray={isFocused ? undefined : '4 3'}
-                              style={{ cursor: 'pointer', pointerEvents: 'stroke', filter: active ? 'drop-shadow(0 0 4px rgba(125,211,252,0.55))' : undefined }}
+                              style={{ cursor: 'pointer', pointerEvents: 'stroke', filter: active ? 'drop-shadow(0 0 4px rgba(2,132,199,0.4))' : undefined }}
                               onMouseEnter={() => setSchemaHover({ type: 'relation', rel: l.rel })}
                               onMouseLeave={() => setSchemaHover(null)}
                               onClick={() => setFocusedRelation(prev => prev === l.rel ? null : l.rel)}
@@ -1234,7 +1234,7 @@ export default function DataBridgePage() {
                   })()}
                 </div>
               ) : (
-              <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: schemaFullscreen ? '480px' : undefined, height: 'auto', background: '#080f1a', borderRadius: '14px', display: 'block', margin: schemaFullscreen ? '0 auto' : undefined }}>
+              <svg viewBox="0 0 280 280" style={{ width: '100%', maxWidth: schemaFullscreen ? '480px' : undefined, height: 'auto', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', display: 'block', margin: schemaFullscreen ? '0 auto' : undefined }}>
                 {(() => {
                   const isActive = (r: TableRelation) => focusedRelation === r || (schemaHover?.type === 'relation' && schemaHover.rel === r)
                   const hasActive = tableRelations.some(isActive)
@@ -1246,13 +1246,13 @@ export default function DataBridgePage() {
                     const active = isActive(r)
                     return (
                       <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                        stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(125,211,252,0.95)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.5)'}
+                        stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(2,132,199,0.9)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.5)'}
                         strokeWidth={(active ? 2 : 1) + strength * 1.5}
                         strokeDasharray="4 3"
                         onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
                         onMouseLeave={() => setSchemaHover(null)}
                         onClick={() => setFocusedRelation(prev => prev === r ? null : r)}
-                        style={{ cursor: 'pointer', filter: active ? 'drop-shadow(0 0 3px rgba(125,211,252,0.6))' : undefined }}
+                        style={{ cursor: 'pointer', filter: active ? 'drop-shadow(0 0 3px rgba(2,132,199,0.45))' : undefined }}
                       />
                     )
                   }
@@ -1269,14 +1269,14 @@ export default function DataBridgePage() {
                     <g key={t.id} onMouseEnter={() => setSchemaHover({ type: 'table', table: t.table })} onMouseLeave={() => setSchemaHover(null)} style={{ cursor: 'pointer' }}>
                       <circle cx={p.x} cy={p.y} r={20} fill={t.color} />
                       <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize="8" fontWeight="700" fill="rgba(0,0,0,0.8)">{t.table.slice(0, 3).toUpperCase()}</text>
-                      <text x={p.x} y={p.y + 30} textAnchor="middle" fontSize="9" fill="#94a3b8">{t.table.length > 14 ? t.table.slice(0, 12) + '…' : t.table}</text>
+                      <text x={p.x} y={p.y + 30} textAnchor="middle" fontSize="9" fill="#64748b">{t.table.length > 14 ? t.table.slice(0, 12) + '…' : t.table}</text>
                     </g>
                   )
                 })}
               </svg>
               )}
 
-              <div style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, lineHeight: 1.6, minHeight: '60px' }}>
+              <div style={{ marginTop: '12px', fontSize: '11px', color: '#64748b', fontFamily: FONT_BODY, lineHeight: 1.6, minHeight: '60px' }}>
                 {!displayInfo && (tableRelations.length === 0
                   ? 'No se detectaron relaciones entre tablas.'
                   : 'Pasá el mouse sobre una tabla o línea para ver el detalle · hacé clic en una línea para verla en el mapa 3D.')}
@@ -1284,7 +1284,7 @@ export default function DataBridgePage() {
                   const related = tableRelations.filter(r => r.a === displayInfo.table || r.b === displayInfo.table)
                   return (
                     <>
-                      <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: '2px' }}>{displayInfo.table}</div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>{displayInfo.table}</div>
                       {related.length === 0
                         ? <div>Sin relaciones con otras tablas.</div>
                         : related.map((r, i) => (
@@ -1296,13 +1296,13 @@ export default function DataBridgePage() {
                 {displayInfo?.type === 'relation' && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                      <div style={{ fontWeight: 700, color: '#e2e8f0' }}>{displayInfo.rel.a} ↔ {displayInfo.rel.b}</div>
-                      {focusedRelation === displayInfo.rel && <span style={{ fontSize: '10px', color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>en el mapa 3D</span>}
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{displayInfo.rel.a} ↔ {displayInfo.rel.b}</div>
+                      {focusedRelation === displayInfo.rel && <span style={{ fontSize: '10px', color: '#10b981', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>en el mapa 3D</span>}
                     </div>
                     {displayInfo.rel.matches.map((m, i) => (
-                      <div key={i}>{m.fieldA} ↔ {m.fieldB} <span style={{ color: '#475569' }}>({m.label})</span></div>
+                      <div key={i}>{m.fieldA} ↔ {m.fieldB} <span style={{ color: '#94a3b8' }}>({m.label})</span></div>
                     ))}
-                    <button onClick={() => setFocusedRelation(prev => prev === displayInfo.rel ? null : displayInfo.rel)} style={{ marginTop: '6px', background: 'transparent', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontFamily: FONT_BODY, fontSize: '11px', textDecoration: 'underline', padding: 0 }}>
+                    <button onClick={() => setFocusedRelation(prev => prev === displayInfo.rel ? null : displayInfo.rel)} style={{ marginTop: '6px', background: 'transparent', border: 'none', color: '#0284c7', cursor: 'pointer', fontFamily: FONT_BODY, fontSize: '11px', textDecoration: 'underline', padding: 0 }}>
                       {focusedRelation === displayInfo.rel ? 'Ver todo en el mapa 3D' : 'Ver solo estos campos en el mapa 3D →'}
                     </button>
                   </>
@@ -1316,10 +1316,10 @@ export default function DataBridgePage() {
         {/* Prototipo — ruta de producto del marco estratégico v2: no solo "detectamos tu
             esquema", sino "esto es lo que se puede construir con él, y hacia dónde escala". */}
         {step === 'prototipo' && (
-        <div style={{ flex: '1 1 600px', minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '24px' }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
-          <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#f8fafc', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '20px', maxWidth: '640px' }}>
+        <div style={{ flex: '1 1 600px', minWidth: 0, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '24px' }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
+          <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
+          <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '20px', maxWidth: '640px' }}>
             Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
           </div>
 
@@ -1347,12 +1347,12 @@ export default function DataBridgePage() {
           </div>
 
           <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Cómo escala esto</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '1px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '1px', background: '#e2e8f0', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden' }}>
             {ROADMAP_PROTOTIPO.map(r => (
-              <div key={r.paso} style={{ background: 'rgba(255,255,255,0.02)', padding: '16px' }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#7dd3fc', marginBottom: '8px' }}>{r.paso}</div>
-                <div style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#e2e8f0', marginBottom: '6px' }}>{r.titulo}</div>
-                <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.5 }}>{r.desc}</div>
+              <div key={r.paso} style={{ background: '#ffffff', padding: '16px' }}>
+                <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', marginBottom: '8px' }}>{r.paso}</div>
+                <div style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>{r.titulo}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#64748b', lineHeight: 1.5 }}>{r.desc}</div>
               </div>
             ))}
           </div>
@@ -1361,9 +1361,9 @@ export default function DataBridgePage() {
 
         {/* Confirmar */}
         {step === 'confirmar' && (
-        <div style={{ flex: '1 1 600px', minWidth: 0, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '24px' }}>
+        <div style={{ flex: '1 1 600px', minWidth: 0, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', fontFamily: FONT_BODY, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#e2e8f0' }}>Resumen del proyecto</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Resumen del proyecto</span>
             <span style={{ fontSize: '11px', color: '#10b981', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '999px', padding: '2px 10px', fontWeight: 600 }}>
               {nodes.filter(n => n.kind === 'table').length} tablas · {nodes.filter(n => n.kind === 'field').length} campos · {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'}
             </span>
@@ -1372,18 +1372,18 @@ export default function DataBridgePage() {
           {stats.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length},1fr)`, gap: '10px', marginBottom: '20px' }}>
               {stats.map(s => (
-                <div key={s.table} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
+                <div key={s.table} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
                   <div style={{ fontFamily: FONT, fontSize: '24px', fontWeight: 800, color: s.color }}>{s.count}</div>
-                  <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px', fontFamily: FONT_BODY }}>Campos · {s.table}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', fontFamily: FONT_BODY }}>Campos · {s.table}</div>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: '14px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px', fontFamily: FONT }}>¿Todo listo?</div>
-              <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>Podés subir más fuentes cuando quieras — la IA vuelve a cruzar todo automáticamente.</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '4px', fontFamily: FONT }}>¿Todo listo?</div>
+              <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT_BODY }}>Podés subir más fuentes cuando quieras — la IA vuelve a cruzar todo automáticamente.</div>
             </div>
             <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
               Subir otra fuente →
@@ -1422,7 +1422,7 @@ export default function DataBridgePage() {
           <button
             onClick={() => canGoBack && setStep(STEPS[stepIndex - 1].key)}
             disabled={!canGoBack}
-            style={{ padding: '10px 18px', borderRadius: '10px', border: phase === 'upload' ? '1px solid #d9dadc' : '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: canGoBack ? (phase === 'upload' ? '#334155' : '#94a3b8') : (phase === 'upload' ? '#94a3b8' : '#334155'), fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
+            style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #d9dadc', background: 'transparent', color: canGoBack ? '#334155' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
           >
             ← Atrás
           </button>
@@ -1430,7 +1430,7 @@ export default function DataBridgePage() {
             <button
               onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
               disabled={!canGoNext}
-              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : (phase === 'upload' ? '#e2e8f0' : 'rgba(255,255,255,0.08)'), color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
             >
               Siguiente →
             </button>

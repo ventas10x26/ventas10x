@@ -37,6 +37,7 @@ function PulseSignupForm() {
   const [marca, setMarca] = useState(searchParams.get('marca') || '')
   const [concesionario, setConcesionario] = useState(searchParams.get('concesionario') || '')
   const [whatsapp, setWhatsapp] = useState(searchParams.get('whatsapp') || '')
+  const [segmento, setSegmento] = useState<'asesor' | 'concesionario'>((searchParams.get('segmento') as 'asesor' | 'concesionario') || 'asesor')
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'google' | 'error'>('idle')
   const [error, setError] = useState('')
   const [cuposDisponibles, setCuposDisponibles] = useState<number | null>(null)
@@ -90,6 +91,7 @@ function PulseSignupForm() {
             pulse_marca: marca || null,
             pulse_concesionario: concesionario.trim() || null,
             pulse_whatsapp: whatsapp.trim() || null,
+            pulse_segmento: segmento,
           },
         },
       })
@@ -205,6 +207,31 @@ function PulseSignupForm() {
           <input type="text" placeholder="Nombre completo" value={nombre} onChange={e => setNombre(e.target.value)} required disabled={cargando} style={inputStyle} />
           <input type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} required disabled={cargando} style={inputStyle} />
           <input type="password" placeholder="Contraseña (mín. 6 caracteres)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} disabled={cargando} style={inputStyle} />
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {([
+              { value: 'asesor' as const, label: 'Vendedor individual' },
+              { value: 'concesionario' as const, label: 'Concesionario' },
+            ]).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSegmento(opt.value)}
+                disabled={cargando}
+                style={{
+                  flex: 1, padding: '11px 10px', borderRadius: '10px',
+                  border: segmento === opt.value ? '1px solid rgba(242,169,59,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                  background: segmento === opt.value ? 'rgba(242,169,59,0.12)' : 'rgba(0,0,0,0.2)',
+                  color: segmento === opt.value ? '#F2A93B' : '#94a3b8',
+                  fontSize: '13px', fontWeight: 600, cursor: cargando ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           <select value={marca} onChange={e => setMarca(e.target.value)} disabled={cargando} style={{ ...inputStyle, color: marca ? '#fff' : '#94a3b8', cursor: 'pointer' }}>
             <option value="">Marca con la que vendés</option>
             {['KIA','Hyundai','Renault','Chevrolet','Toyota','Mazda','Nissan','Otro'].map(m => <option key={m} value={m} style={{ color: '#0f172a' }}>{m}</option>)}

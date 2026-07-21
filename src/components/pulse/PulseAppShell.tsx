@@ -15,6 +15,12 @@ const NAV_ITEMS = [
   { href: '/pulse/perfil',    label: 'Mi cuenta', icon: '👤', match: ['/pulse/perfil'] },
 ]
 
+// "Mi agente" y "Pipeline" son vistas del copiloto de UN solo vendedor (su propio WhatsApp,
+// su propio embudo) — no aplican a una cuenta de concesionario, que gestiona varios asesores.
+// El segmento se guarda en user_metadata.pulse_segmento al registrarse (ver signup/page.tsx);
+// las cuentas sin ese campo (todas las creadas antes de esta migración) ven el menú completo.
+const ITEMS_OCULTOS_PARA_CONCESIONARIO = ['/pulse/agente', '/pulse/pipeline']
+
 const F_DISPLAY = "var(--font-inter), sans-serif"
 const F_MONO    = "var(--font-mono), monospace"
 const F_BODY    = "var(--font-inter), sans-serif"
@@ -161,6 +167,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile]     = useState(false)
   const [hydrated, setHydrated]     = useState(false)
+  const [segmento, setSegmento]     = useState<string | null>(null)
 
   useEffect(() => {
     setHydrated(true)
@@ -171,6 +178,16 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setSegmento((data.user?.user_metadata?.pulse_segmento as string) ?? null)
+    })
+  }, [])
+
+  const navItems = segmento === 'concesionario'
+    ? NAV_ITEMS.filter(item => !ITEMS_OCULTOS_PARA_CONCESIONARIO.includes(item.href))
+    : NAV_ITEMS
 
   const toggleCollapse = () => {
     const next = !collapsed
@@ -210,7 +227,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
                 <span style={{ fontFamily: F_DISPLAY, fontSize: '17px', fontWeight: 800, letterSpacing: '-0.3px' }}>Pulse Motor</span>
               </div>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                {NAV_ITEMS.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} />)}
+                {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} />)}
               </nav>
               <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>
                 <div style={{ padding: '8px', marginBottom: '6px' }}>
@@ -242,7 +259,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
         </button>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-          {NAV_ITEMS.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} />)}
+          {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} />)}
         </nav>
 
         <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>

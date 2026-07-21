@@ -34,6 +34,10 @@ interface Props {
   children: React.ReactNode
   userName?: string
   userEmail?: string
+  // 'light' es un opt-in puntual (hoy solo lo usa /pulse/databridge en su paso Subir, que
+  // rehizo su pantalla en claro estilo Stitch) — el resto del dashboard sigue oscuro por
+  // default para no romper las páginas que ya asumen los tokens --ink/--bg-* actuales.
+  theme?: 'dark' | 'light'
 }
 
 // ── Pill de créditos estilo Railway ──────────────────────────────────────────
@@ -158,10 +162,21 @@ function PaywallModal() {
   )
 }
 
-export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' }: Props) {
+export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '', theme = 'dark' }: Props) {
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
+
+  const isLight = theme === 'light'
+  const c = {
+    bg0: isLight ? '#f8f9fb' : 'var(--bg-0)',
+    bg1: isLight ? '#ffffff' : 'var(--bg-1)',
+    bg2: isLight ? '#f1f5f9' : 'var(--bg-2)',
+    ink: isLight ? '#0f172a' : 'var(--ink)',
+    inkDim: isLight ? '#64748b' : 'var(--ink-dim)',
+    line: isLight ? '#d9dadc' : 'var(--line)',
+    headerBg: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(11,13,12,0.9)',
+  }
 
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -201,15 +216,15 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
 
   const isActive = (item: typeof NAV_ITEMS[0]) => item.match.some(m => pathname?.startsWith(m))
 
-  if (!hydrated) return <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>{children}</div>
+  if (!hydrated) return <div style={{ minHeight: '100vh', background: c.bg0 }}>{children}</div>
 
   // ── MOBILE ────────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-0)', color: 'var(--ink)', fontFamily: F_BODY }}>
+      <div style={{ minHeight: '100vh', background: c.bg0, color: c.ink, fontFamily: F_BODY }}>
         <PaywallModal />
-        <header style={{ position: 'sticky', top: 0, zIndex: 30, background: 'rgba(11,13,12,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid var(--line)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-          <button onClick={() => setMobileOpen(true)} aria-label="Abrir menú" style={{ background: 'transparent', border: 'none', color: 'var(--ink)', fontSize: '22px', cursor: 'pointer', padding: '6px', lineHeight: 1, flexShrink: 0 }}>☰</button>
+        <header style={{ position: 'sticky', top: 0, zIndex: 30, background: c.headerBg, backdropFilter: 'blur(8px)', borderBottom: `1px solid ${c.line}`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <button onClick={() => setMobileOpen(true)} aria-label="Abrir menú" style={{ background: 'transparent', border: 'none', color: c.ink, fontSize: '22px', cursor: 'pointer', padding: '6px', lineHeight: 1, flexShrink: 0 }}>☰</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={iconLogoStyle}>⚡</div>
             <span style={{ fontFamily: F_DISPLAY, fontSize: '15px', fontWeight: 800, letterSpacing: '-0.3px' }}>Pulse Motor</span>
@@ -221,20 +236,20 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
         {mobileOpen && (
           <>
             <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 40 }} />
-            <aside style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: `${SIDEBAR_EXPANDED}px`, background: 'var(--bg-1)', borderRight: '1px solid var(--line)', zIndex: 41, padding: '20px 12px', display: 'flex', flexDirection: 'column' }}>
+            <aside style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: `${SIDEBAR_EXPANDED}px`, background: c.bg1, borderRight: `1px solid ${c.line}`, zIndex: 41, padding: '20px 12px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px', marginBottom: '24px' }}>
                 <div style={iconLogoStyle}>⚡</div>
                 <span style={{ fontFamily: F_DISPLAY, fontSize: '17px', fontWeight: 800, letterSpacing: '-0.3px' }}>Pulse Motor</span>
               </div>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} />)}
+                {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
               </nav>
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>
+              <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: '12px', marginTop: '12px' }}>
                 <div style={{ padding: '8px', marginBottom: '6px' }}>
-                  <div style={{ fontFamily: F_DISPLAY, fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>{userName.split(' ')[0]}</div>
-                  {userEmail && <div style={{ fontFamily: F_MONO, fontSize: '10px', color: 'var(--ink-dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</div>}
+                  <div style={{ fontFamily: F_DISPLAY, fontSize: '12px', fontWeight: 700, color: c.ink, marginBottom: '2px' }}>{userName.split(' ')[0]}</div>
+                  {userEmail && <div style={{ fontFamily: F_MONO, fontSize: '10px', color: c.inkDim, overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</div>}
                 </div>
-                <button onClick={logout} style={logoutStyle(false)}><span style={{ fontSize: '15px' }}>🚪</span><span style={{ fontSize: '13px' }}>Salir</span></button>
+                <button onClick={logout} style={logoutStyle(false, c.inkDim)}><span style={{ fontSize: '15px' }}>🚪</span><span style={{ fontSize: '13px' }}>Salir</span></button>
               </div>
             </aside>
           </>
@@ -248,28 +263,28 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-0)', color: 'var(--ink)', fontFamily: F_BODY, display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: c.bg0, color: c.ink, fontFamily: F_BODY, display: 'flex' }}>
       <PaywallModal />
 
       {/* Sidebar */}
-      <aside style={{ width: `${sidebarWidth}px`, background: 'var(--bg-1)', borderRight: '1px solid var(--line)', padding: '20px 10px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', transition: 'width 0.2s ease', flexShrink: 0 }}>
-        <button onClick={toggleCollapse} aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 8px', marginBottom: '24px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontFamily: 'inherit', textAlign: 'left', borderRadius: '6px', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-2)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+      <aside style={{ width: `${sidebarWidth}px`, background: c.bg1, borderRight: `1px solid ${c.line}`, padding: '20px 10px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', transition: 'width 0.2s ease', flexShrink: 0 }}>
+        <button onClick={toggleCollapse} aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 8px', marginBottom: '24px', background: 'transparent', border: 'none', cursor: 'pointer', color: c.ink, fontFamily: 'inherit', textAlign: 'left', borderRadius: '6px', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = c.bg2)} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
           <div style={iconLogoStyle}>⚡</div>
           {!collapsed && <span style={{ fontFamily: F_DISPLAY, fontSize: '17px', fontWeight: 800, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>Pulse Motor</span>}
         </button>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-          {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} />)}
+          {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
         </nav>
 
-        <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>
+        <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: '12px', marginTop: '12px' }}>
           {!collapsed && (
             <div style={{ padding: '8px', marginBottom: '6px' }}>
-              <div style={{ fontFamily: F_DISPLAY, fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '2px' }}>{userName.split(' ')[0]}</div>
-              {userEmail && <div style={{ fontFamily: F_MONO, fontSize: '10px', color: 'var(--ink-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>}
+              <div style={{ fontFamily: F_DISPLAY, fontSize: '12px', fontWeight: 700, color: c.ink, marginBottom: '2px' }}>{userName.split(' ')[0]}</div>
+              {userEmail && <div style={{ fontFamily: F_MONO, fontSize: '10px', color: c.inkDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>}
             </div>
           )}
-          <button onClick={logout} style={logoutStyle(collapsed)} title={collapsed ? 'Salir' : undefined}>
+          <button onClick={logout} style={logoutStyle(collapsed, c.inkDim)} title={collapsed ? 'Salir' : undefined}>
             <span style={{ fontSize: '15px' }}>🚪</span>
             {!collapsed && <span style={{ fontSize: '13px' }}>Salir</span>}
           </button>
@@ -279,7 +294,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
       {/* Main con topbar que tiene la pill */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Topbar con pill de créditos */}
-        <div style={{ height: '44px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', gap: '10px', flexShrink: 0, background: 'var(--bg-1)' }}>
+        <div style={{ height: '44px', borderBottom: `1px solid ${c.line}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', gap: '10px', flexShrink: 0, background: c.bg1 }}>
           <CreditosPill />
         </div>
         <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
@@ -290,9 +305,9 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '' 
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────
 
-function NavLink({ item, active, collapsed, onClick }: { item: typeof NAV_ITEMS[0]; active: boolean; collapsed: boolean; onClick: () => void }) {
+function NavLink({ item, active, collapsed, onClick, hoverBg, inkDim }: { item: typeof NAV_ITEMS[0]; active: boolean; collapsed: boolean; onClick: () => void; hoverBg: string; inkDim: string }) {
   return (
-    <button onClick={onClick} title={collapsed ? item.label : undefined} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px' : '10px 12px', borderRadius: '6px', border: 'none', background: active ? 'rgba(242,169,59,0.12)' : 'transparent', color: active ? 'var(--amber)' : 'var(--ink-dim)', fontSize: '13px', fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: F_BODY, textAlign: 'left', width: '100%', transition: 'background 0.15s, color 0.15s', justifyContent: collapsed ? 'center' : 'flex-start' }} onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-2)' }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
+    <button onClick={onClick} title={collapsed ? item.label : undefined} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px' : '10px 12px', borderRadius: '6px', border: 'none', background: active ? 'rgba(242,169,59,0.12)' : 'transparent', color: active ? 'var(--amber)' : inkDim, fontSize: '13px', fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: F_BODY, textAlign: 'left', width: '100%', transition: 'background 0.15s, color 0.15s', justifyContent: collapsed ? 'center' : 'flex-start' }} onMouseEnter={e => { if (!active) e.currentTarget.style.background = hoverBg }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
       <span style={{ fontSize: '15px', lineHeight: 1 }}>{item.icon}</span>
       {!collapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
     </button>
@@ -306,11 +321,11 @@ const iconLogoStyle: React.CSSProperties = {
   fontSize: '17px', fontWeight: 800, flexShrink: 0, color: '#1a1204',
 }
 
-function logoutStyle(collapsed: boolean): React.CSSProperties {
+function logoutStyle(collapsed: boolean, inkDim: string): React.CSSProperties {
   return {
     display: 'flex', alignItems: 'center', gap: '10px',
     padding: collapsed ? '10px' : '10px 12px', borderRadius: '6px',
-    border: 'none', background: 'transparent', color: 'var(--ink-dim)',
+    border: 'none', background: 'transparent', color: inkDim,
     fontSize: '13px', fontWeight: 500, cursor: 'pointer',
     fontFamily: F_BODY, textAlign: 'left', width: '100%',
     justifyContent: collapsed ? 'center' : 'flex-start',

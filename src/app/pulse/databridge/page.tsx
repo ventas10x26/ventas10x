@@ -799,7 +799,7 @@ export default function DataBridgePage() {
   const canGoNext = stepIndex < STEPS.length - 1 && phase === 'ready'
 
   return (
-    <PulseAppShell userName={user?.nombre} userEmail={user?.email}>
+    <PulseAppShell userName={user?.nombre} userEmail={user?.email} theme={phase === 'upload' ? 'light' : 'dark'}>
       <div style={{ background: phase === 'upload' ? '#f8f9fb' : 'transparent' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 

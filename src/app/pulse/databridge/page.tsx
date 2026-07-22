@@ -294,6 +294,9 @@ export default function DataBridgePage() {
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
   const [loadedSheets, setLoadedSheets] = useState<SheetData[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
+  const [relacionChat, setRelacionChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const [relacionInput, setRelacionInput] = useState('')
+  const [relacionLoading, setRelacionLoading] = useState(false)
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -790,6 +793,74 @@ export default function DataBridgePage() {
       relatedFieldKeys.add(`${rel.b}::${m.fieldB}`)
     })
   })
+
+  // Evaluación exhaustiva de una relación vía IA — el matching automático (nombre/token/
+  // valores) de detectTableRelations es rápido pero se pierde relaciones reales cuando los
+  // nombres de campo difieren mucho (ej. "Vend" en una hoja vs "ID_Asesor" en otra); acá el
+  // usuario señala qué cruzar y Claude razona sobre los valores de muestra reales.
+  const evaluarRelacion = async () => {
+    const mensaje = relacionInput.trim()
+    if (!mensaje || relacionLoading || loadedSheets.length < 2) return
+    setRelacionChat(prev => [...prev, { role: 'user', text: mensaje }])
+    setRelacionInput('')
+    setRelacionLoading(true)
+    try {
+      const sheetsSummary = loadedSheets.map(sheet => {
+        const headers = Object.keys(sheet.rows[0] || {}).filter(isRealHeader)
+        return {
+          name: sheet.name,
+          fields: headers.map(h => {
+            const rawValues = sheet.rows.map(r => r[h])
+            const tipo = inferType(rawValues)
+            const muestras = Array.from(new Set(
+              rawValues.filter(v => v !== undefined && v !== null && String(v).trim() !== '').map(v => String(v).trim())
+            )).slice(0, 6)
+            return { name: h, tipo, muestras }
+          }),
+        }
+      })
+      const relacionesExistentes = tableRelations.map(r => ({ a: r.a, b: r.b, matches: r.matches.map(m => ({ fieldA: m.fieldA, fieldB: m.fieldB })) }))
+
+      const res = await fetch('/api/pulse/databridge/evaluar-relacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje, sheets: sheetsSummary, relacionesExistentes }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error evaluando la relación')
+
+      const encontradas = (data.encontradas || []) as { tablaA: string; campoA: string; tablaB: string; campoB: string; razon: string }[]
+
+      if (encontradas.length > 0) {
+        setTableRelations(prev => {
+          const next = prev.map(r => ({ ...r, matches: [...r.matches] }))
+          encontradas.forEach(f => {
+            let rel = next.find(r => (r.a === f.tablaA && r.b === f.tablaB) || (r.a === f.tablaB && r.b === f.tablaA))
+            const swapped = !!rel && rel.a === f.tablaB
+            if (!rel) {
+              rel = { a: f.tablaA, b: f.tablaB, matches: [] }
+              next.push(rel)
+            }
+            const fieldA = swapped ? f.campoB : f.campoA
+            const fieldB = swapped ? f.campoA : f.campoB
+            const yaExiste = rel.matches.some(m => m.fieldA === fieldA && m.fieldB === fieldB)
+            if (!yaExiste) rel.matches.push({ fieldA, fieldB, label: 'confirmado por IA', score: 1 })
+          })
+          return next
+        })
+      }
+
+      const resumen = encontradas.length > 0
+        ? `${data.explicacion || 'Encontré nuevas relaciones.'} (${encontradas.map(f => `${f.tablaA}.${f.campoA} ↔ ${f.tablaB}.${f.campoB}`).join(', ')})`
+        : (data.explicacion || 'No encontré relaciones nuevas con eso.')
+      setRelacionChat(prev => [...prev, { role: 'assistant', text: resumen }])
+    } catch (e) {
+      setRelacionChat(prev => [...prev, { role: 'assistant', text: 'No pude evaluar la relación — intentá de nuevo en un momento.' }])
+      console.error('[databridge] evaluarRelacion error:', e)
+    } finally {
+      setRelacionLoading(false)
+    }
+  }
 
   const isGated = authChecked && !user && phase === 'ready'
 
@@ -1310,6 +1381,72 @@ export default function DataBridgePage() {
               </div>
             </>
           )}
+        </div>
+        )}
+
+        {/* Chat para evaluar relaciones a fondo con IA — el matching automático se pierde
+            cruces reales cuando los nombres de campo difieren mucho entre hojas. */}
+        {step === 'relaciones' && (
+        <div style={{ flex: '1 1 100%', background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', fontFamily: FONT_BODY }}>Evaluar una relación a fondo</span>
+            <span style={{ fontSize: '10px', color: '#F2A93B', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>IA</span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY, marginBottom: '14px' }}>
+            {loadedSheets.length < 2
+              ? 'Necesitás al menos 2 hojas cargadas para cruzar relaciones.'
+              : 'Decile qué campos sospechás que están relacionados aunque el nombre no coincida — Claude revisa los valores reales de ambas hojas.'}
+          </div>
+
+          {relacionChat.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px', maxHeight: '280px', overflowY: 'auto' }}>
+              {relacionChat.map((m, i) => (
+                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                  <div style={{
+                    fontSize: '12.5px', lineHeight: 1.5, fontFamily: FONT_BODY, padding: '9px 12px', borderRadius: '10px',
+                    background: m.role === 'user' ? 'rgba(242,169,59,0.1)' : '#f8fafc',
+                    border: `1px solid ${m.role === 'user' ? 'rgba(242,169,59,0.3)' : '#e2e8f0'}`,
+                    color: '#0f172a',
+                  }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {relacionLoading && (
+                <div style={{ alignSelf: 'flex-start', fontSize: '12px', color: '#94a3b8', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%',
+                    border: '2px solid #e2e8f0', borderTopColor: '#F2A93B', animation: 'pmRelSpin 0.7s linear infinite',
+                  }} />
+                  Evaluando…
+                </div>
+              )}
+            </div>
+          )}
+          <style>{`@keyframes pmRelSpin { to { transform: rotate(360deg); } } @media (prefers-reduced-motion: reduce) { [style*="pmRelSpin"] { animation: none; } }`}</style>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              value={relacionInput}
+              onChange={e => setRelacionInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); evaluarRelacion() } }}
+              disabled={loadedSheets.length < 2 || relacionLoading}
+              placeholder='Ej: "Vend en Pedidos debería ser el mismo asesor que ASESOR en Asignaciones"'
+              style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #d9dadc', background: loadedSheets.length < 2 ? '#f1f5f9' : '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+            />
+            <button
+              onClick={evaluarRelacion}
+              disabled={!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading}
+              style={{
+                padding: '10px 18px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
+                cursor: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? 'default' : 'pointer',
+                background: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
+                color: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#94a3b8' : '#1a1204',
+              }}
+            >
+              Evaluar →
+            </button>
+          </div>
         </div>
         )}
 

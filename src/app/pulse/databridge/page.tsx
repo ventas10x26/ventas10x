@@ -1543,7 +1543,7 @@ export default function DataBridgePage() {
                   .pm-desplegar-btn, .pm-desplegar-btn::after, .pm-desplegar-badge { animation: none; }
                 }
               `}</style>
-              <div className={(!user || desplegando) ? undefined : 'pm-desplegar-badge'} style={{
+              <div className={desplegando ? undefined : 'pm-desplegar-badge'} style={{
                 width: '36px', height: '36px', borderRadius: '10px', marginBottom: '10px',
                 background: 'linear-gradient(135deg,#F2A93B,#C9770B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
                 boxShadow: '0 4px 10px rgba(242,169,59,0.3)',
@@ -1553,23 +1553,23 @@ export default function DataBridgePage() {
                 Datos reales, siempre a mano, listos para compartir con tu equipo — no una promesa, un link.
               </div>
               <button
-                onClick={desplegarPanel}
-                disabled={!user || desplegando || loadedSheets.length === 0}
-                className={(!user || desplegando) ? undefined : 'pm-desplegar-btn'}
+                onClick={() => { if (!user) { window.location.href = '/pulse/signup?from=databridge'; return }; desplegarPanel() }}
+                disabled={desplegando || loadedSheets.length === 0}
+                className={desplegando ? undefined : 'pm-desplegar-btn'}
                 style={{
                   width: '100%', padding: '11px 16px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
-                  cursor: (!user || desplegando) ? 'default' : 'pointer',
-                  background: (!user || desplegando) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
-                  color: (!user || desplegando) ? '#94a3b8' : '#1a1204',
+                  cursor: desplegando ? 'default' : 'pointer',
+                  background: desplegando ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
+                  color: desplegando ? '#94a3b8' : '#1a1204',
                   transition: 'transform .15s ease',
                 }}
-                onMouseEnter={e => { if (user && !desplegando) e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseEnter={e => { if (!desplegando) e.currentTarget.style.transform = 'translateY(-1px)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
               >
-                {desplegando ? 'Desplegando…' : 'Desplegar panel →'}
+                {desplegando ? 'Desplegando…' : user ? 'Desplegar panel →' : 'Crear cuenta y desplegar →'}
               </button>
               <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY, marginTop: '8px' }}>
-                {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Creá una cuenta gratis para desplegarlo.'}
+                {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Gratis, sin tarjeta — guarda hasta 1.000 filas por tabla.'}
               </div>
               {desplegarError && (
                 <div style={{ fontSize: '11px', color: '#e5484d', fontFamily: FONT_BODY, marginTop: '6px' }}>{desplegarError}</div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { createClient } from '@/lib/supabase/client'
@@ -297,6 +298,9 @@ export default function DataBridgePage() {
   const [relacionChat, setRelacionChat] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
   const [relacionInput, setRelacionInput] = useState('')
   const [relacionLoading, setRelacionLoading] = useState(false)
+  const [proyectosGuardados, setProyectosGuardados] = useState<{ id: string; nombre: string; created_at: string; tablas: number }[]>([])
+  const [desplegando, setDesplegando] = useState(false)
+  const [desplegarError, setDesplegarError] = useState<string | null>(null)
 
   const canvasRef     = useRef<HTMLCanvasElement>(null)
   const camRef        = useRef({ rx: -25, ry: 30 })
@@ -321,6 +325,7 @@ export default function DataBridgePage() {
   const erJustDraggedRef = useRef(false)
 
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -328,6 +333,16 @@ export default function DataBridgePage() {
       setAuthChecked(true)
     })
   }, [])
+
+  // Paneles ya desplegados (persistidos de verdad en Supabase) del usuario logueado —
+  // para poder volver a uno sin resubir los datos.
+  useEffect(() => {
+    if (!user) return
+    fetch('/api/pulse/databridge/proyectos')
+      .then(r => r.json())
+      .then(data => { if (data.ok) setProyectosGuardados(data.proyectos) })
+      .catch(() => {})
+  }, [user])
 
   useEffect(() => {
     try {
@@ -862,6 +877,32 @@ export default function DataBridgePage() {
     }
   }
 
+  // Convierte el mockup del paso Prototipo en un panel real: persiste las hojas (hasta 1.000
+  // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y navega al
+  // panel dedicado — a diferencia del resto del flujo, esto sí sobrevive a un refresh.
+  const desplegarPanel = async () => {
+    if (!user || desplegando || loadedSheets.length === 0) return
+    setDesplegando(true)
+    setDesplegarError(null)
+    try {
+      const res = await fetch('/api/pulse/databridge/proyectos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: projectName.trim() || 'Proyecto sin título',
+          sheets: loadedSheets,
+          relations: tableRelations,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo desplegar el panel')
+      router.push(`/pulse/databridge/panel/${data.id}`)
+    } catch (e) {
+      setDesplegarError(e instanceof Error ? e.message : 'No se pudo desplegar el panel')
+      setDesplegando(false)
+    }
+  }
+
   const isGated = authChecked && !user && phase === 'ready'
 
   const stepIndex = STEPS.findIndex(s => s.key === step)
@@ -927,6 +968,20 @@ export default function DataBridgePage() {
                   <a href="/pulse/signup?from=databridge" style={{ color: '#F2A93B', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
                 </div>
               )}
+            </div>
+          )}
+
+          {proyectosGuardados.length > 0 && (
+            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tus paneles desplegados</span>
+              {proyectosGuardados.map(p => (
+                <a key={p.id} href={`/pulse/databridge/panel/${p.id}`} style={{
+                  fontSize: '12px', fontFamily: FONT_BODY, color: '#0f172a', textDecoration: 'none',
+                  padding: '4px 12px', borderRadius: '999px', border: '1px solid #d9dadc', background: '#f8fafc',
+                }}>
+                  {p.nombre} · {p.tablas} {p.tablas === 1 ? 'tabla' : 'tablas'}
+                </a>
+              ))}
             </div>
           )}
         </div>
@@ -1454,13 +1509,37 @@ export default function DataBridgePage() {
             esquema", sino "esto es lo que se puede construir con él, y hacia dónde escala". */}
         {step === 'prototipo' && (
         <div style={{ flex: '1 1 600px', minWidth: 0, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '24px' }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
-          <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
-          <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '20px', maxWidth: '640px' }}>
-            Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 320px' }}>
+              <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
+              <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '640px' }}>
+                Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
+              </div>
+            </div>
+            <div style={{ flexShrink: 0, textAlign: 'right' }}>
+              <button
+                onClick={desplegarPanel}
+                disabled={!user || desplegando || loadedSheets.length === 0}
+                style={{
+                  padding: '11px 20px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
+                  cursor: (!user || desplegando) ? 'default' : 'pointer',
+                  background: (!user || desplegando) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
+                  color: (!user || desplegando) ? '#94a3b8' : '#1a1204',
+                }}
+              >
+                {desplegando ? 'Desplegando…' : 'Desplegar panel →'}
+              </button>
+              <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY, marginTop: '6px', maxWidth: '200px' }}>
+                {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Creá una cuenta para desplegarlo.'}
+              </div>
+              {desplegarError && (
+                <div style={{ fontSize: '11px', color: '#e5484d', fontFamily: FONT_BODY, marginTop: '6px', maxWidth: '220px' }}>{desplegarError}</div>
+              )}
+            </div>
           </div>
 
-          <div style={{ background: '#080f1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', marginBottom: '24px' }}>
+          <div style={{ background: '#080f1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '18px', marginTop: '20px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Panel 360° · Tu concesionario</span>
               <span style={{ fontSize: '10px', color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '999px', padding: '2px 8px', fontWeight: 600 }}>prototipo</span>

@@ -1519,30 +1519,45 @@ export default function DataBridgePage() {
                 Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
               </div>
             </div>
-            <div style={{ flexShrink: 0, textAlign: 'right' }}>
+            <div style={{
+              flexShrink: 0, width: '250px',
+              background: 'linear-gradient(160deg, rgba(242,169,59,0.09), rgba(242,169,59,0.02))',
+              border: '1px solid rgba(242,169,59,0.28)', borderRadius: '16px', padding: '18px',
+            }}>
               <style>{`
                 @keyframes pmDesplegarGlow {
-                  0%, 100% { box-shadow: 0 2px 10px rgba(242,169,59,0.22), 0 0 0 0 rgba(242,169,59,0.28); }
-                  50%      { box-shadow: 0 2px 14px rgba(242,169,59,0.32), 0 0 20px 3px rgba(242,169,59,0.22); }
+                  0%, 100% { box-shadow: 0 2px 10px rgba(242,169,59,0.24), 0 0 0 0 rgba(242,169,59,0.3); }
+                  50%      { box-shadow: 0 4px 18px rgba(242,169,59,0.36), 0 0 24px 4px rgba(242,169,59,0.26); }
                 }
                 @keyframes pmDesplegarSheen { 0% { transform: translateX(-140%) skewX(-18deg); } 60%, 100% { transform: translateX(220%) skewX(-18deg); } }
+                @keyframes pmDesplegarBadge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
                 .pm-desplegar-btn { position: relative; overflow: hidden; animation: pmDesplegarGlow 2.8s ease-in-out infinite; }
                 .pm-desplegar-btn::after {
                   content: ''; position: absolute; top: 0; left: 0; width: 32%; height: 100%;
-                  background: linear-gradient(115deg, transparent, rgba(255,255,255,0.5), transparent);
+                  background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent);
                   animation: pmDesplegarSheen 3.6s ease-in-out infinite;
                   pointer-events: none;
                 }
+                .pm-desplegar-badge { animation: pmDesplegarBadge 2.4s ease-in-out infinite; }
                 @media (prefers-reduced-motion: reduce) {
-                  .pm-desplegar-btn, .pm-desplegar-btn::after { animation: none; }
+                  .pm-desplegar-btn, .pm-desplegar-btn::after, .pm-desplegar-badge { animation: none; }
                 }
               `}</style>
+              <div className={(!user || desplegando) ? undefined : 'pm-desplegar-badge'} style={{
+                width: '36px', height: '36px', borderRadius: '10px', marginBottom: '10px',
+                background: 'linear-gradient(135deg,#F2A93B,#C9770B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
+                boxShadow: '0 4px 10px rgba(242,169,59,0.3)',
+              }}>🚀</div>
+              <div style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '5px', lineHeight: 1.25 }}>Desplegá tu panel 360°</div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#64748b', lineHeight: 1.55, marginBottom: '14px' }}>
+                Datos reales, siempre a mano, listos para compartir con tu equipo — no una promesa, un link.
+              </div>
               <button
                 onClick={desplegarPanel}
                 disabled={!user || desplegando || loadedSheets.length === 0}
                 className={(!user || desplegando) ? undefined : 'pm-desplegar-btn'}
                 style={{
-                  padding: '11px 20px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
+                  width: '100%', padding: '11px 16px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
                   cursor: (!user || desplegando) ? 'default' : 'pointer',
                   background: (!user || desplegando) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
                   color: (!user || desplegando) ? '#94a3b8' : '#1a1204',
@@ -1553,11 +1568,11 @@ export default function DataBridgePage() {
               >
                 {desplegando ? 'Desplegando…' : 'Desplegar panel →'}
               </button>
-              <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY, marginTop: '6px', maxWidth: '200px' }}>
-                {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Creá una cuenta para desplegarlo.'}
+              <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY, marginTop: '8px' }}>
+                {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Creá una cuenta gratis para desplegarlo.'}
               </div>
               {desplegarError && (
-                <div style={{ fontSize: '11px', color: '#e5484d', fontFamily: FONT_BODY, marginTop: '6px', maxWidth: '220px' }}>{desplegarError}</div>
+                <div style={{ fontSize: '11px', color: '#e5484d', fontFamily: FONT_BODY, marginTop: '6px' }}>{desplegarError}</div>
               )}
             </div>
           </div>

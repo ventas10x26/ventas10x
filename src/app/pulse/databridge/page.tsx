@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
 import { createClient } from '@/lib/supabase/client'
@@ -325,7 +324,6 @@ export default function DataBridgePage() {
   const erJustDraggedRef = useRef(false)
 
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -878,12 +876,15 @@ export default function DataBridgePage() {
   }
 
   // Convierte el mockup del paso Prototipo en un panel real: persiste las hojas (hasta 1.000
-  // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y navega al
-  // panel dedicado — a diferencia del resto del flujo, esto sí sobrevive a un refresh.
+  // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y lo abre en
+  // una pestaña nueva — a diferencia del resto del flujo, esto sí sobrevive a un refresh.
   const desplegarPanel = async () => {
     if (!user || desplegando || loadedSheets.length === 0) return
     setDesplegando(true)
     setDesplegarError(null)
+    // Se abre la pestaña en blanco de forma síncrona (dentro del gesto de click) para que el
+    // navegador no la trate como popup — recién después de tener el id real se le fija la URL.
+    const nuevaVentana = window.open('', '_blank')
     try {
       const res = await fetch('/api/pulse/databridge/proyectos', {
         method: 'POST',
@@ -896,9 +897,13 @@ export default function DataBridgePage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'No se pudo desplegar el panel')
-      router.push(`/pulse/databridge/panel/${data.id}`)
+      const url = `/pulse/databridge/panel/${data.id}`
+      if (nuevaVentana) nuevaVentana.location.href = url
+      else window.open(url, '_blank')
     } catch (e) {
+      nuevaVentana?.close()
       setDesplegarError(e instanceof Error ? e.message : 'No se pudo desplegar el panel')
+    } finally {
       setDesplegando(false)
     }
   }
@@ -1515,15 +1520,36 @@ export default function DataBridgePage() {
               </div>
             </div>
             <div style={{ flexShrink: 0, textAlign: 'right' }}>
+              <style>{`
+                @keyframes pmDesplegarGlow {
+                  0%, 100% { box-shadow: 0 2px 10px rgba(242,169,59,0.22), 0 0 0 0 rgba(242,169,59,0.28); }
+                  50%      { box-shadow: 0 2px 14px rgba(242,169,59,0.32), 0 0 20px 3px rgba(242,169,59,0.22); }
+                }
+                @keyframes pmDesplegarSheen { 0% { transform: translateX(-140%) skewX(-18deg); } 60%, 100% { transform: translateX(220%) skewX(-18deg); } }
+                .pm-desplegar-btn { position: relative; overflow: hidden; animation: pmDesplegarGlow 2.8s ease-in-out infinite; }
+                .pm-desplegar-btn::after {
+                  content: ''; position: absolute; top: 0; left: 0; width: 32%; height: 100%;
+                  background: linear-gradient(115deg, transparent, rgba(255,255,255,0.5), transparent);
+                  animation: pmDesplegarSheen 3.6s ease-in-out infinite;
+                  pointer-events: none;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                  .pm-desplegar-btn, .pm-desplegar-btn::after { animation: none; }
+                }
+              `}</style>
               <button
                 onClick={desplegarPanel}
                 disabled={!user || desplegando || loadedSheets.length === 0}
+                className={(!user || desplegando) ? undefined : 'pm-desplegar-btn'}
                 style={{
                   padding: '11px 20px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
                   cursor: (!user || desplegando) ? 'default' : 'pointer',
                   background: (!user || desplegando) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
                   color: (!user || desplegando) ? '#94a3b8' : '#1a1204',
+                  transition: 'transform .15s ease',
                 }}
+                onMouseEnter={e => { if (user && !desplegando) e.currentTarget.style.transform = 'translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
               >
                 {desplegando ? 'Desplegando…' : 'Desplegar panel →'}
               </button>

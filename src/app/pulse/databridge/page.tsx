@@ -903,8 +903,6 @@ export default function DataBridgePage() {
     }
   }
 
-  const isGated = authChecked && !user && phase === 'ready'
-
   const stepIndex = STEPS.findIndex(s => s.key === step)
   const canReachStep = (s: Step) => s === 'subir' || phase === 'ready'
   const canGoBack = stepIndex > 0
@@ -1028,7 +1026,6 @@ export default function DataBridgePage() {
           } : {
             display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap',
           }),
-          ...(isGated ? { filter: 'blur(10px) saturate(0.7)', pointerEvents: 'none', userSelect: 'none' } : {}),
         }}>
         {/* Visualizador */}
         {(step === 'subir' || step === 'mapear') && (
@@ -1610,27 +1607,6 @@ export default function DataBridgePage() {
         )}
         </div>
 
-        {/* Muro de registro para visitantes sin sesión */}
-        {isGated && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5, padding: '20px' }}>
-            <div style={{ background: 'rgba(8,15,26,0.94)', border: '1px solid rgba(14,165,233,0.3)', borderRadius: '20px', padding: '32px 36px', maxWidth: '380px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔒</div>
-              <div style={{ fontFamily: FONT, fontSize: '18px', fontWeight: 800, color: '#f8fafc', marginBottom: '8px' }}>Tu esquema está listo</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#94a3b8', lineHeight: 1.6, marginBottom: '18px' }}>
-                Detectamos <strong style={{ color: '#7dd3fc' }}>{nodes.filter(n => n.kind === 'field').length} campos</strong> en{' '}
-                <strong style={{ color: '#7dd3fc' }}>{nodes.filter(n => n.kind === 'table').length} tablas</strong>, con{' '}
-                <strong style={{ color: '#34d399' }}>{tableRelations.length} {tableRelations.length === 1 ? 'relación posible' : 'relaciones posibles'}</strong>.
-                Creá una cuenta gratis para ver el mapa 3D completo y el esquema de relaciones.
-              </div>
-              <a href="/pulse/signup?from=databridge" style={{ display: 'inline-block', padding: '11px 24px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', marginBottom: '10px' }}>
-                Crear cuenta gratis →
-              </a>
-              <div style={{ fontFamily: FONT_BODY, fontSize: '12px', color: '#64748b' }}>
-                ¿Ya tenés cuenta? <a href="/pulse/login?from=databridge" style={{ color: '#7dd3fc', textDecoration: 'underline' }}>Iniciá sesión</a>
-              </div>
-            </div>
-          </div>
-        )}
         </div>
 
         {/* Navegación entre pasos */}

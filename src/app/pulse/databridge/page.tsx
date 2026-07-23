@@ -270,6 +270,8 @@ export default function DataBridgePage() {
   const [user, setUser]               = useState<{ nombre: string; email: string } | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [projectName, setProjectName] = useState('')
+  const [projectNameError, setProjectNameError] = useState(false)
+  const projectNameInputRef = useRef<HTMLInputElement>(null)
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
   const [step, setStep]               = useState<Step>('subir')
@@ -580,7 +582,7 @@ export default function DataBridgePage() {
     }, 320)
   }
 
-  const startDemo = () => runProgress(() => processSheets(genDemoSheets()))
+  const startDemo = () => { if (requireProjectName()) runProgress(() => processSheets(genDemoSheets())) }
 
   const parseFiles = async (files: File[]): Promise<SheetData[]> => {
     const allSheets: SheetData[] = []
@@ -609,7 +611,15 @@ export default function DataBridgePage() {
     return allSheets.filter(s => s.rows.length > 0)
   }
 
+  const requireProjectName = () => {
+    if (projectName.trim()) return true
+    setProjectNameError(true)
+    projectNameInputRef.current?.focus()
+    return false
+  }
+
   const handleFiles = async (files: File[]) => {
+    if (!requireProjectName()) return
     setPhase('processing')
     setProgLabel('Leyendo archivo...')
     setProgPct(15)
@@ -949,21 +959,35 @@ export default function DataBridgePage() {
                   .pm-projectname-spinner { animation: none; }
                 }
               `}</style>
-              <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: '360px' }}>
-                {!projectName && (
-                  <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', pointerEvents: 'none' }}>
-                    <svg className="pm-projectname-spinner" width="14" height="14" viewBox="0 0 14 14" style={{ display: 'block' }}>
-                      <circle cx="7" cy="7" r="5.5" fill="none" stroke="#F2A93B" strokeWidth="2" strokeLinecap="round" strokeDasharray="18 26" />
-                    </svg>
-                  </span>
+              <div style={{ flex: '1 1 260px', maxWidth: '360px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', fontFamily: FONT_BODY, marginBottom: '4px' }}>
+                  Nombre del proyecto <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  {!projectName && (
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', pointerEvents: 'none' }}>
+                      <svg className="pm-projectname-spinner" width="14" height="14" viewBox="0 0 14 14" style={{ display: 'block' }}>
+                        <circle cx="7" cy="7" r="5.5" fill="none" stroke="#F2A93B" strokeWidth="2" strokeLinecap="round" strokeDasharray="18 26" />
+                      </svg>
+                    </span>
+                  )}
+                  <input
+                    ref={projectNameInputRef}
+                    value={projectName}
+                    onChange={e => { setProjectName(e.target.value); if (projectNameError) setProjectNameError(false) }}
+                    placeholder="ej: Inventario julio"
+                    required
+                    aria-required="true"
+                    aria-invalid={projectNameError}
+                    className={projectName ? undefined : 'pm-projectname-input'}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: projectNameError ? '1px solid #ef4444' : '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+                  />
+                </div>
+                {projectNameError && (
+                  <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', fontFamily: FONT_BODY }}>
+                    Este campo es obligatorio — ponele un nombre a tu proyecto antes de continuar.
+                  </div>
                 )}
-                <input
-                  value={projectName}
-                  onChange={e => setProjectName(e.target.value)}
-                  placeholder="Nombre del proyecto (ej: Inventario julio)"
-                  className={projectName ? undefined : 'pm-projectname-input'}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
-                />
               </div>
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
@@ -1137,7 +1161,7 @@ export default function DataBridgePage() {
             {/* Upload state */}
             {phase === 'upload' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', zIndex: 5 }}>
-                <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <div onClick={() => { if (requireProjectName()) fileInputRef.current?.click() }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
                   <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, textAlign: 'center', maxWidth: '460px', padding: '0 20px' }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>

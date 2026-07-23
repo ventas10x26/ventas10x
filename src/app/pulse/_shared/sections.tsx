@@ -4,7 +4,7 @@
 // Contiene los tokens/datos/secciones reusables entre la home (que ahora termina en
 // "Segmentos") y las dos landings dedicadas por segmento — ver skill pulsemotor-design.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useReveal } from '@/hooks/useReveal'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -346,7 +346,7 @@ export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, o
 
 export function PulseFooter() {
   return (
-    <footer style={{ borderTop:'1px solid var(--line)' }}>
+    <footer id="pulse-footer" style={{ borderTop:'1px solid var(--line)' }}>
       <div style={{ maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 32px' }}>
         <div className="footer-grid" style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:'32px', marginBottom:'48px' }}>
           <div>
@@ -709,6 +709,215 @@ export function PreciosSection({ initialSegment, showToggle }: { initialSegment:
   )
 }
 
+// ─── Formulario de contacto B2B — usado por el widget flotante (compact) y por
+// ContactoVentasSection (completo). Envía a /api/pulse/lead-widget, que guarda el
+// lead y notifica por WhatsApp — no inventa un mecanismo nuevo, sigue el mismo patrón
+// que ya usa Fenix Consultores en este repo (Supabase + CallMeBot best-effort). ───
+type PulseLeadStatus = 'idle' | 'loading' | 'ok' | 'error'
+
+function IconLockSmall() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+export function PulseLeadForm({ compact = false, onSuccess }: { compact?: boolean; onSuccess?: () => void }) {
+  const [status, setStatus] = useState<PulseLeadStatus>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setStatus('loading')
+    setErrorMsg('')
+    const form = e.currentTarget
+    const mensajeEl = form.elements.namedItem('mensaje') as HTMLTextAreaElement | null
+    const data = {
+      nombre: (form.elements.namedItem('nombre') as HTMLInputElement).value.trim(),
+      empresa: (form.elements.namedItem('empresa') as HTMLInputElement).value.trim(),
+      email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
+      telefono: (form.elements.namedItem('telefono') as HTMLInputElement).value.trim(),
+      mensaje: mensajeEl?.value.trim() || '',
+    }
+    try {
+      const res = await fetch('/api/pulse/lead-widget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'No se pudo enviar el formulario')
+      setStatus('ok')
+      form.reset()
+      onSuccess?.()
+    } catch (err) {
+      setStatus('error')
+      setErrorMsg(err instanceof Error ? err.message : 'Error inesperado')
+    }
+  }
+
+  if (status === 'ok') {
+    return (
+      <div style={{ textAlign:'center', padding:'2rem 0' }}>
+        <div style={{ width:'52px', height:'52px', borderRadius:'50%', margin:'0 auto 1rem', background:'rgba(62,207,126,0.12)', border:'1px solid rgba(62,207,126,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        </div>
+        <div style={{ fontSize:'17px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)', marginBottom:'8px' }}>Solicitud recibida</div>
+        <div style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6 }}>Un especialista de Pulse Motor te escribe por WhatsApp muy pronto.</div>
+      </div>
+    )
+  }
+
+  const gap = compact ? '10px' : '14px'
+  const rowCols = compact ? '1fr' : '1fr 1fr'
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap, textAlign:'left' }}>
+      <div style={{ display:'grid', gridTemplateColumns:rowCols, gap }} className="pulse-form-row">
+        <div>
+          <label className="pulse-lead-label" htmlFor="nombre">Nombre *</label>
+          <input id="nombre" name="nombre" required className="pm-input" placeholder="Tu nombre" />
+        </div>
+        <div>
+          <label className="pulse-lead-label" htmlFor="empresa">Concesionario (opcional)</label>
+          <input id="empresa" name="empresa" className="pm-input" placeholder="Si aplica" />
+        </div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:rowCols, gap }} className="pulse-form-row">
+        <div>
+          <label className="pulse-lead-label" htmlFor="email">Correo *</label>
+          <input id="email" name="email" type="email" required className="pm-input" placeholder="tu@correo.com" />
+        </div>
+        <div>
+          <label className="pulse-lead-label" htmlFor="telefono">WhatsApp *</label>
+          <input id="telefono" name="telefono" type="tel" required className="pm-input" placeholder="+57 300 000 0000" />
+        </div>
+      </div>
+      {!compact && (
+        <div>
+          <label className="pulse-lead-label" htmlFor="mensaje">¿En qué podemos ayudarte?</label>
+          <textarea id="mensaje" name="mensaje" rows={3} className="pm-input" style={{ resize:'vertical' }} placeholder="Ruteo de leads, integración con mi DMS, precios para mi equipo..." />
+        </div>
+      )}
+      {status === 'error' && <div style={{ fontSize:'13px', color:'var(--red)' }}>{errorMsg}</div>}
+      <button type="submit" disabled={status === 'loading'} className="pm-btn" style={{ padding: compact ? '12px' : '14px', cursor: status === 'loading' ? 'default' : 'pointer', opacity: status === 'loading' ? 0.7 : 1 }}>
+        {status === 'loading' ? 'Enviando…' : compact ? 'Enviar' : 'Hablar con un especialista'}<span className="btn-arrow">→</span>
+      </button>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', fontSize:'11px', color:'var(--ink-dim)' }}>
+        <IconLockSmall /> Tus datos están protegidos y no se comparten con terceros
+      </div>
+    </form>
+  )
+}
+
+function IconChatBubble() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  )
+}
+
+// ─── Widget flotante — visible al salir del hero, oculto cerca del footer (donde ya
+// vive ContactoVentasSection con el mismo formulario completo). Arranca minimizado
+// como una pill, sigue el tema soft/dark de la página (a diferencia de los paneles
+// "pantalla de producto", esta es una pieza de marketing, no una captura del agente). ───
+export function PulseStickyWidget() {
+  const [visible, setVisible] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    const hero = document.getElementById('plataforma')
+    const footer = document.getElementById('pulse-footer')
+    if (!hero) return
+
+    let heroVisible = true
+    let footerVisible = false
+    const update = () => setVisible(!heroVisible && !footerVisible)
+
+    const heroObserver = new IntersectionObserver(([entry]) => { heroVisible = entry.isIntersecting; update() }, { threshold: 0 })
+    heroObserver.observe(hero)
+
+    let footerObserver: IntersectionObserver | undefined
+    if (footer) {
+      footerObserver = new IntersectionObserver(([entry]) => { footerVisible = entry.isIntersecting; update() }, { threshold: 0.1 })
+      footerObserver.observe(footer)
+    }
+
+    return () => { heroObserver.disconnect(); footerObserver?.disconnect() }
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div className="pulse-widget" style={{ position:'fixed', bottom:'20px', right:'20px', zIndex:60, maxWidth: expanded ? '360px' : undefined, width: expanded ? 'calc(100vw - 40px)' : undefined, maxHeight: expanded ? '85vh' : undefined, overflowY: expanded ? 'auto' : 'visible' }}>
+      {expanded ? (
+        <div className="panel pulse-widget-card" style={{ position:'relative', padding:'22px' }}>
+          <button onClick={() => setExpanded(false)} aria-label="Minimizar" className="pulse-widget-close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
+            <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0, background:'rgba(242,169,59,0.14)', border:'1px solid var(--amber-dim)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--amber)' }}>
+              <IconChatBubble />
+            </div>
+            <div>
+              <div className="kicker" style={{ marginBottom:0 }}>Pulse Motor</div>
+              <h3 style={{ fontSize:'17px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Hablar con ventas</h3>
+            </div>
+          </div>
+          <PulseLeadForm compact />
+        </div>
+      ) : (
+        <button onClick={() => setExpanded(true)} aria-label="Abrir formulario de contacto" className="pm-btn pulse-widget-bubble">
+          <span className="pulse-widget-ring" aria-hidden="true" />
+          <span className="pulse-widget-bubble-icon"><IconChatBubble /></span>
+          Hablar con ventas
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Sección final antes del footer en las 2 landings de segmento — mismo patrón que
+// el CTA de contacto de Fenix Consultores (headline + teléfono/WhatsApp directo + stat
+// de confianza + formulario completo), adaptado al sistema ámbar/negro de Pulse Motor. ───
+export function ContactoVentasSection({ segmento }: { segmento: 'concesionario' | 'asesor' }) {
+  const reveal = useReveal<HTMLDivElement>()
+  const stat = segmento === 'concesionario' ? '+180 concesionarios activos' : '+500 asesores conectados'
+  return (
+    <section id="hablar-con-ventas" style={{ padding:'1rem 24px 6rem' }}>
+      <div ref={reveal.ref} className={`reveal seg-grid${reveal.inView?' in':''}`} style={{
+        maxWidth:'1100px', margin:'0 auto', position:'relative', overflow:'hidden',
+        border:'1px solid var(--amber-dim)', borderRadius:'20px', padding:'3rem',
+        boxShadow:'var(--shadow-lg)',
+        display:'grid', gridTemplateColumns:'minmax(260px, 1fr) minmax(300px, 1.1fr)', gap:'2.5rem', alignItems:'start',
+      }}>
+        <div style={{ position:'absolute', top:'-160px', left:'5%', width:'440px', height:'440px', borderRadius:'50%', background:'radial-gradient(circle, rgba(242,169,59,0.16) 0%, transparent 70%)', pointerEvents:'none' }} />
+        <div style={{ position:'relative' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', flexWrap:'wrap' }}>
+            <p className="kicker" style={{ marginBottom:0 }}>Para ventas</p>
+            <span className="badge" style={{ padding:'4px 11px', fontSize:'11px' }}><span className="live-dot" />{stat}</span>
+          </div>
+          <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(26px,3.2vw,42px)', fontWeight:800, letterSpacing:'-.015em', lineHeight:1.15, marginBottom:'1.1rem', color:'var(--ink)' }}>
+            Hable con <span className="grad-amber">un especialista de Pulse Motor</span>
+          </h2>
+          <p style={{ fontSize:'15px', color:'var(--ink-dim)', lineHeight:1.8, marginBottom:'2rem' }}>
+            Cuéntenos cómo vende hoy su equipo y le mostramos cómo desplegar el agente en su WhatsApp Business en días, no en meses.
+          </p>
+          <a href="https://wa.me/573004339418" target="_blank" rel="noopener noreferrer" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'13px 22px', fontSize:'13px', borderRadius:'999px', textDecoration:'none' }}>
+            <IconChatBubble /> +57 300 433 9418
+          </a>
+        </div>
+        <div className="panel" style={{ padding:'26px' }}>
+          <PulseLeadForm />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── Hoja de estilos compartida — un solo bloque que las 3 páginas (/pulse,
 // /pulse/concesionario, /pulse/asesor) montan una vez cada una ───
 export function PulseStyles() {
@@ -799,9 +1008,25 @@ export function PulseStyles() {
       }
       @keyframes guardSweep { to { transform: rotate(360deg); } }
 
-      .pm-input { width:100%; padding:13px 16px; border-radius:6px; border:1.5px solid var(--line); background:rgba(255,255,255,0.02); color:var(--ink); font-size:15px; font-family:${F_BODY}; outline:none; transition:border-color .15s; }
-      .pm-input:focus { border-color:var(--amber-dim); }
+      .pm-input { width:100%; padding:13px 16px; border-radius:6px; border:1.5px solid var(--line); background:rgba(255,255,255,0.02); color:var(--ink); font-size:15px; font-family:${F_BODY}; outline:none; transition:border-color .15s, box-shadow .15s; }
+      .pm-input:focus { border-color:var(--amber-dim); box-shadow:0 0 0 3px rgba(242,169,59,0.16); }
       .pm-input::placeholder { color:var(--ink-dim); }
+
+      .pulse-lead-label { display:block; font-size:12px; font-weight:600; color:var(--ink-dim); margin-bottom:6px; }
+      @media(max-width:560px){ .pulse-form-row{ grid-template-columns:1fr!important; } }
+
+      .pulse-widget { animation:pulseWidgetIn .5s var(--ease-out-expo); }
+      .pulse-widget-bubble { position:relative; width:auto; display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 16px; border-radius:999px; }
+      .pulse-widget-bubble-icon { width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .pulse-widget-ring { position:absolute; inset:0; border-radius:999px; box-shadow:0 0 0 0 rgba(242,169,59,0.55); animation:pulseWidgetRing 2.4s ease-out infinite; pointer-events:none; }
+      .pulse-widget-card { position:relative; }
+      .pulse-widget-close { position:absolute; top:14px; right:14px; background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:4px; display:flex; transition:color .15s ease; }
+      .pulse-widget-close:hover { color:var(--ink); }
+      @keyframes pulseWidgetIn { from{ opacity:0; transform:translateY(24px); } to{ opacity:1; transform:translateY(0); } }
+      @keyframes pulseWidgetRing { 0%{ box-shadow:0 0 0 0 rgba(242,169,59,0.55); } 70%{ box-shadow:0 0 0 14px transparent; } 100%{ box-shadow:0 0 0 0 transparent; } }
+      @media (prefers-reduced-motion: reduce) {
+        .pulse-widget, .pulse-widget-ring { animation:none; }
+      }
 
       .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--amber); background:var(--amber); color:#1a1204; font-size:14px; font-weight:700; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s, transform .15s, box-shadow .15s; }
       .pm-btn:hover:not(:disabled) { background:#ffc266; border-color:#ffc266; transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.35); }

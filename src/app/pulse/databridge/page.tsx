@@ -296,6 +296,7 @@ export default function DataBridgePage() {
   const [nameModalInput, setNameModalInput] = useState('')
   const [nameModalError, setNameModalError] = useState(false)
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
+  const [autoDesplegando, setAutoDesplegando] = useState(false)
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
   const [step, setStep]               = useState<Step>('subir')
   const [pendingSheets, setPendingSheets]         = useState<SheetData[]>([])
@@ -379,6 +380,33 @@ export default function DataBridgePage() {
       .then(r => r.json())
       .then(data => { if (data.ok) setProyectosGuardados(data.proyectos) })
       .catch(() => {})
+  }, [user])
+
+  // Retoma el prototipo que quedó pendiente de guardar en localStorage (ver irACrearCuenta) apenas
+  // detecta la sesión nueva post-signup, y lo despliega solo — sin esto, crear la cuenta devolvía
+  // a un DataBridge vacío y el usuario tenía que rehacer todo el flujo desde cero.
+  useEffect(() => {
+    if (!user) return
+    let raw: string | null = null
+    try { raw = window.localStorage.getItem('pulse_databridge_pending_deploy') } catch {}
+    if (!raw) return
+    try { window.localStorage.removeItem('pulse_databridge_pending_deploy') } catch {}
+    setAutoDesplegando(true)
+    ;(async () => {
+      try {
+        const payload = JSON.parse(raw!)
+        const res = await fetch('/api/pulse/databridge/proyectos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'error')
+        window.location.href = `/pulse/databridge/panel/${data.id}`
+      } catch {
+        setAutoDesplegando(false)
+      }
+    })()
   }, [user])
 
   useEffect(() => {
@@ -914,6 +942,24 @@ export default function DataBridgePage() {
     }
   }
 
+  // Antes esto solo hacía window.location.href al signup y perdía loadedSheets/tableRelations
+  // en el camino (viven en memoria, no sobreviven una navegación completa) — el usuario creaba
+  // la cuenta y volvía a un DataBridge vacío, sin rastro del prototipo que acababa de armar.
+  // Ahora, si hay datos cargados, se guardan en localStorage antes de salir, y el efecto de más
+  // abajo los retoma y despliega solo apenas detecta la sesión nueva.
+  const irACrearCuenta = () => {
+    if (loadedSheets.length > 0) {
+      try {
+        window.localStorage.setItem('pulse_databridge_pending_deploy', JSON.stringify({
+          nombre: projectName.trim() || 'Proyecto sin título',
+          sheets: loadedSheets,
+          relations: tableRelations,
+        }))
+      } catch {}
+    }
+    window.location.href = '/pulse/signup?from=databridge'
+  }
+
   // Convierte el mockup del paso Prototipo en un panel real: persiste las hojas (hasta 1.000
   // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y lo abre en
   // una pestaña nueva — a diferencia del resto del flujo, esto sí sobrevive a un refresh.
@@ -954,6 +1000,22 @@ export default function DataBridgePage() {
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email} theme="light">
+      {/* Retomando el prototipo pendiente de antes de crear la cuenta (ver el efecto que lee
+          pulse_databridge_pending_deploy) — pantalla completa para que quede claro que no
+          hay que resubir nada, ya está en camino. */}
+      {autoDesplegando && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(248,249,251,0.97)', backdropFilter: 'blur(2px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '20px' }}>
+          <span style={{
+            display: 'inline-block', width: '30px', height: '30px', borderRadius: '50%',
+            border: '3px solid #e2e8f0', borderTopColor: '#F2A93B', animation: 'pmAutoDeploySpin 0.8s linear infinite',
+          }} />
+          <style>{`@keyframes pmAutoDeploySpin { to { transform: rotate(360deg); } } @media (prefers-reduced-motion: reduce) { [style*="pmAutoDeploySpin"] { animation: none; } }`}</style>
+          <div style={{ fontFamily: FONT, fontSize: '16px', fontWeight: 800, color: '#0f172a', maxWidth: '380px' }}>
+            Desplegando el panel que armaste antes de crear tu cuenta…
+          </div>
+          <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT_BODY }}>Ya volvemos con el link — no hace falta que resubas nada.</div>
+        </div>
+      )}
       {/* Se pide el nombre del proyecto acá, no antes de subir — recién cuando el esquema
           ya está listo, para no frenar a nadie que solo quiere probar con sus datos. */}
       {showNameModal && (
@@ -1048,7 +1110,7 @@ export default function DataBridgePage() {
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
-                  <a href="/pulse/signup?from=databridge" style={{ color: '#F2A93B', textDecoration: 'underline' }}>creá tu cuenta para guardarlos →</a>
+                  <button onClick={irACrearCuenta} style={{ color: '#F2A93B', textDecoration: 'underline', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}>creá tu cuenta para guardarlos →</button>
                 </div>
               )}
             </div>
@@ -1122,12 +1184,12 @@ export default function DataBridgePage() {
               Avanzar →
             </button>
           ) : (
-            <a
-              href={user ? '/pulse/dashboard' : '/pulse/signup?from=databridge'}
-              style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}
+            <button
+              onClick={() => { if (user) { window.location.href = '/pulse/dashboard' } else { irACrearCuenta() } }}
+              style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
             >
               {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
-            </a>
+            </button>
           )}
         </div>
 
@@ -1707,7 +1769,7 @@ export default function DataBridgePage() {
                 Datos reales, siempre a mano, listos para compartir con tu equipo — no una promesa, un link.
               </div>
               <button
-                onClick={() => { if (!user) { window.location.href = '/pulse/signup?from=databridge'; return }; desplegarPanel() }}
+                onClick={() => { if (!user) { irACrearCuenta(); return }; desplegarPanel() }}
                 disabled={desplegando || loadedSheets.length === 0}
                 className={desplegando ? undefined : 'pm-desplegar-btn'}
                 style={{
@@ -1822,12 +1884,12 @@ export default function DataBridgePage() {
               Avanzar →
             </button>
           ) : (
-            <a
-              href={user ? '/pulse/dashboard' : '/pulse/signup?from=databridge'}
-              style={{ display: 'inline-block', padding: '10px 22px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}
+            <button
+              onClick={() => { if (user) { window.location.href = '/pulse/dashboard' } else { irACrearCuenta() } }}
+              style={{ display: 'inline-block', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
             >
               {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
-            </a>
+            </button>
           )}
         </div>
       </div>

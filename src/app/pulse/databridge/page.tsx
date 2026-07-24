@@ -1604,11 +1604,46 @@ export default function DataBridgePage() {
         <div style={{ flex: '1 1 600px', minWidth: 0, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 320px' }}>
-              <span style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Generado a partir de tu esquema</span>
-              <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Prototipo de solución propuesta para tu concesionario</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: '13px', color: '#64748b', lineHeight: 1.6, maxWidth: '640px' }}>
-                Con {nodes.filter(n => n.kind === 'table').length} tablas y {tableRelations.length} {tableRelations.length === 1 ? 'relación' : 'relaciones'} detectadas, así se vería el panel de tu concesionario — el punto de partida, no el resultado final.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '12px' }}>
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '7px', flexShrink: 0, fontSize: '11px',
+                  background: 'linear-gradient(135deg,#F2A93B,#C9770B)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(242,169,59,0.35)',
+                }}>✨</div>
+                <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#C9770B' }}>
+                  Generado por IA a partir de tu esquema
+                </span>
               </div>
+              <div style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontSize: 'clamp(20px,2.6vw,26px)', fontWeight: 550, letterSpacing: '-0.02em', lineHeight: 1.18, color: '#0f172a', marginBottom: '10px' }}>
+                Tu panel, armado solo — sin escribir una línea
+              </div>
+              <div style={{ fontFamily: FONT_BODY, fontSize: '13.5px', color: '#64748b', lineHeight: 1.6, maxWidth: '58ch', marginBottom: '18px' }}>
+                A partir de los datos que subiste, así queda el prototipo de panel para tu concesionario: <strong style={{ color: '#0f172a', fontWeight: 600 }}>esto ya corrió sobre tus datos reales</strong>, no es un diseño de referencia.
+              </div>
+              {(() => {
+                const nTablas = nodes.filter(n => n.kind === 'table').length
+                const nRel = tableRelations.length
+                const chip = (num: number, label: string, sub: string, green?: boolean) => (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '12px', flex: '1 1 150px', minWidth: '140px',
+                    background: green ? 'rgba(14,159,110,0.08)' : 'rgba(242,169,59,0.09)',
+                    border: `1px solid ${green ? 'rgba(14,159,110,0.22)' : 'rgba(242,169,59,0.28)'}`,
+                  }}>
+                    <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: '19px', color: green ? '#0e9f6e' : '#C9770B', lineHeight: 1 }}>{num}</div>
+                    <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.3 }}>
+                      {label}
+                      <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>{sub}</span>
+                    </div>
+                  </div>
+                )
+                return (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {chip(nTablas, nTablas === 1 ? 'Tabla' : 'Tablas', 'mapeada' + (nTablas === 1 ? '' : 's') + ' automáticamente')}
+                    {chip(nRel, nRel === 1 ? 'Relación' : 'Relaciones', 'detectada' + (nRel === 1 ? '' : 's') + ' entre hojas')}
+                    {chip(0, 'Líneas de código', 'escritas por vos', true)}
+                  </div>
+                )
+              })()}
             </div>
             <div style={{
               flexShrink: 0, width: '250px',

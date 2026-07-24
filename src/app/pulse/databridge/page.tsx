@@ -292,8 +292,9 @@ export default function DataBridgePage() {
   const [user, setUser]               = useState<{ nombre: string; email: string } | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [projectName, setProjectName] = useState('')
-  const [projectNameError, setProjectNameError] = useState(false)
-  const projectNameInputRef = useRef<HTMLInputElement>(null)
+  const [showNameModal, setShowNameModal] = useState(false)
+  const [nameModalInput, setNameModalInput] = useState('')
+  const [nameModalError, setNameModalError] = useState(false)
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
   const [step, setStep]               = useState<Step>('subir')
@@ -355,6 +356,20 @@ export default function DataBridgePage() {
       setAuthChecked(true)
     })
   }, [])
+
+  // El nombre del proyecto ya no bloquea la subida — se pide recién cuando el esquema está
+  // listo, en un modal en primer plano, para no frenar a alguien que solo quiere probar.
+  useEffect(() => {
+    if (phase === 'ready' && !user && !projectName.trim()) setShowNameModal(true)
+  }, [phase, user])
+
+  const confirmNameModal = () => {
+    const name = nameModalInput.trim()
+    if (!name) { setNameModalError(true); return }
+    setProjectName(name)
+    setShowNameModal(false)
+    setNameModalError(false)
+  }
 
   // Paneles ya desplegados (persistidos de verdad en Supabase) del usuario logueado —
   // para poder volver a uno sin resubir los datos.
@@ -604,7 +619,7 @@ export default function DataBridgePage() {
     }, 320)
   }
 
-  const startDemo = () => { if (requireProjectName()) runProgress(() => processSheets(genDemoSheets())) }
+  const startDemo = () => { runProgress(() => processSheets(genDemoSheets())) }
 
   const parseFiles = async (files: File[]): Promise<SheetData[]> => {
     const allSheets: SheetData[] = []
@@ -633,15 +648,7 @@ export default function DataBridgePage() {
     return allSheets.filter(s => s.rows.length > 0)
   }
 
-  const requireProjectName = () => {
-    if (projectName.trim()) return true
-    setProjectNameError(true)
-    projectNameInputRef.current?.focus()
-    return false
-  }
-
   const handleFiles = async (files: File[]) => {
-    if (!requireProjectName()) return
     setPhase('processing')
     setProgLabel('Leyendo archivo...')
     setProgPct(15)
@@ -947,6 +954,42 @@ export default function DataBridgePage() {
 
   return (
     <PulseAppShell userName={user?.nombre} userEmail={user?.email} theme="light">
+      {/* Se pide el nombre del proyecto acá, no antes de subir — recién cuando el esquema
+          ya está listo, para no frenar a nadie que solo quiere probar con sus datos. */}
+      {showNameModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '18px', padding: '28px', maxWidth: '380px', width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}>📁</div>
+            <div style={{ fontFamily: FONT, fontSize: '17px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>¿Cómo le ponemos a este proyecto?</div>
+            <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT_BODY, lineHeight: 1.55, marginBottom: '16px' }}>
+              Tu esquema ya está listo. Ponele un nombre para encontrarlo después.
+            </div>
+            <input
+              autoFocus
+              value={nameModalInput}
+              onChange={e => { setNameModalInput(e.target.value); if (nameModalError) setNameModalError(false) }}
+              onKeyDown={e => { if (e.key === 'Enter') confirmNameModal() }}
+              placeholder="ej: Inventario julio"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '8px', border: nameModalError ? '1px solid #ef4444' : '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none', marginBottom: '6px' }}
+            />
+            {nameModalError && (
+              <div style={{ fontSize: '11px', color: '#ef4444', fontFamily: FONT_BODY, marginBottom: '10px' }}>Escribí un nombre para continuar.</div>
+            )}
+            <button
+              onClick={confirmNameModal}
+              style={{ width: '100%', marginTop: '10px', padding: '11px 16px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#F2A93B,#C9770B)', color: '#1a1204', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
+            >
+              Guardar nombre →
+            </button>
+            <button
+              onClick={() => { setProjectName('Proyecto sin título'); setShowNameModal(false) }}
+              style={{ width: '100%', marginTop: '8px', padding: '6px', background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '11px', fontFamily: FONT_BODY, cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Seguir sin nombre por ahora
+            </button>
+          </div>
+        </div>
+      )}
       <div style={{ background: '#f8f9fb', minHeight: '100%' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
@@ -983,7 +1026,7 @@ export default function DataBridgePage() {
               `}</style>
               <div style={{ flex: '1 1 260px', maxWidth: '360px' }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', fontFamily: FONT_BODY, marginBottom: '4px' }}>
-                  Nombre del proyecto <span style={{ color: '#ef4444' }}>*</span>
+                  Nombre del proyecto
                 </label>
                 <div style={{ position: 'relative' }}>
                   {!projectName && (
@@ -994,22 +1037,13 @@ export default function DataBridgePage() {
                     </span>
                   )}
                   <input
-                    ref={projectNameInputRef}
                     value={projectName}
-                    onChange={e => { setProjectName(e.target.value); if (projectNameError) setProjectNameError(false) }}
+                    onChange={e => setProjectName(e.target.value)}
                     placeholder="ej: Inventario julio"
-                    required
-                    aria-required="true"
-                    aria-invalid={projectNameError}
                     className={projectName ? undefined : 'pm-projectname-input'}
-                    style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: projectNameError ? '1px solid #ef4444' : '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
                   />
                 </div>
-                {projectNameError && (
-                  <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', fontFamily: FONT_BODY }}>
-                    Este campo es obligatorio — ponele un nombre a tu proyecto antes de continuar.
-                  </div>
-                )}
               </div>
               {anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
@@ -1183,7 +1217,7 @@ export default function DataBridgePage() {
             {/* Upload state */}
             {phase === 'upload' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', zIndex: 5 }}>
-                <div onClick={() => { if (requireProjectName()) fileInputRef.current?.click() }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <div onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
                   <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, textAlign: 'center', maxWidth: '460px', padding: '0 20px' }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>

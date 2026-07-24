@@ -184,6 +184,28 @@ function detectTableRelations(sheets: SheetData[]): TableRelation[] {
   return Array.from(pairMap.values()).map(r => ({ ...r, matches: r.matches.sort((x, y) => y.score - x.score).slice(0, 6) }))
 }
 
+// Gris-azulado (baja probabilidad) → ámbar (media) → verde (alta) — el color del vector de
+// unión pasa a comunicar qué tan confiable es el cruce, no solo si está en foco/hover.
+const SCORE_COLOR_STOPS: [number, [number, number, number]][] = [
+  [0, [148, 163, 184]],
+  [0.5, [242, 169, 59]],
+  [1, [16, 185, 129]],
+]
+function rgbForScore(score: number): [number, number, number] {
+  const s = Math.max(0, Math.min(1, score))
+  let lo = SCORE_COLOR_STOPS[0], hi = SCORE_COLOR_STOPS[SCORE_COLOR_STOPS.length - 1]
+  for (let i = 0; i < SCORE_COLOR_STOPS.length - 1; i++) {
+    if (s >= SCORE_COLOR_STOPS[i][0] && s <= SCORE_COLOR_STOPS[i + 1][0]) { lo = SCORE_COLOR_STOPS[i]; hi = SCORE_COLOR_STOPS[i + 1]; break }
+  }
+  const range = hi[0] - lo[0] || 1
+  const t = (s - lo[0]) / range
+  return [0, 1, 2].map(i => Math.round(lo[1][i] + (hi[1][i] - lo[1][i]) * t)) as [number, number, number]
+}
+function colorForScore(score: number, alpha: number): string {
+  const [r, g, b] = rgbForScore(score)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 function visibleFieldIdsFor(allNodes: Node3D[], expanded: Set<string>, focusedRel: TableRelation | null): Set<string> {
   if (focusedRel) {
     const ids = new Set<string>()
@@ -1314,6 +1336,15 @@ export default function DataBridgePage() {
             )}
           </div>
 
+          {phase === 'ready' && tableRelations.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY }}>
+              <span>Color del vector = probabilidad de mismo valor</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '3px', borderRadius: '2px', background: colorForScore(0.1, 1) }} />baja</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '3px', borderRadius: '2px', background: colorForScore(0.5, 1) }} />media</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '3px', borderRadius: '2px', background: colorForScore(1, 1) }} />alta</span>
+            </div>
+          )}
+
           {phase !== 'ready' ? (
             <div style={{ fontSize: '12px', color: '#475569', fontFamily: FONT_BODY }}>Subí tus hojas para ver el esquema.</div>
           ) : (
@@ -1364,12 +1395,13 @@ export default function DataBridgePage() {
                           const isFocused = focusedRelation === l.rel
                           const dx = Math.max(24, Math.abs(l.x2 - l.x1) * 0.5)
                           const path = `M ${l.x1} ${l.y1} C ${l.x1 + dx} ${l.y1}, ${l.x2 - dx} ${l.y2}, ${l.x2} ${l.y2}`
+                          const alpha = active ? 0.95 : hasActive ? 0.15 : 0.6
                           return (
                             <path key={l.key} d={path} fill="none"
-                              stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(2,132,199,0.9)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.45)'}
+                              stroke={colorForScore(l.match.score, alpha)}
                               strokeWidth={active ? 2.4 : 1.3}
                               strokeDasharray={isFocused ? undefined : '4 3'}
-                              style={{ cursor: 'pointer', pointerEvents: 'stroke', filter: active ? 'drop-shadow(0 0 4px rgba(2,132,199,0.4))' : undefined }}
+                              style={{ cursor: 'pointer', pointerEvents: 'stroke', filter: active ? `drop-shadow(0 0 4px ${colorForScore(l.match.score, 0.5)})` : undefined }}
                               onMouseEnter={() => setSchemaHover({ type: 'relation', rel: l.rel })}
                               onMouseLeave={() => setSchemaHover(null)}
                               onClick={() => setFocusedRelation(prev => prev === l.rel ? null : l.rel)}
@@ -1394,17 +1426,18 @@ export default function DataBridgePage() {
                     const p1 = schemaPositions.get(r.a); const p2 = schemaPositions.get(r.b)
                     if (!p1 || !p2) return null
                     const strength = Math.min(1, r.matches.length / 3)
-                    const isFocused = focusedRelation === r
+                    const bestScore = Math.max(0, ...r.matches.map(m => m.score))
                     const active = isActive(r)
+                    const alpha = active ? 0.95 : hasActive ? 0.15 : 0.65
                     return (
                       <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                        stroke={isFocused ? 'rgba(52,211,153,0.95)' : active ? 'rgba(2,132,199,0.9)' : hasActive ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.5)'}
+                        stroke={colorForScore(bestScore, alpha)}
                         strokeWidth={(active ? 2 : 1) + strength * 1.5}
                         strokeDasharray="4 3"
                         onMouseEnter={() => setSchemaHover({ type: 'relation', rel: r })}
                         onMouseLeave={() => setSchemaHover(null)}
                         onClick={() => setFocusedRelation(prev => prev === r ? null : r)}
-                        style={{ cursor: 'pointer', filter: active ? 'drop-shadow(0 0 3px rgba(2,132,199,0.45))' : undefined }}
+                        style={{ cursor: 'pointer', filter: active ? `drop-shadow(0 0 3px ${colorForScore(bestScore, 0.55)})` : undefined }}
                       />
                     )
                   }

@@ -1103,6 +1103,34 @@ export default function DataBridgePage() {
           })}
         </div>
 
+        {/* Navegación entre pasos — arriba, espejo de la de abajo, para no tener que
+            bajar toda la pantalla (el visualizador puede ser largo) solo para avanzar. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <button
+            onClick={() => canGoBack && setStep(STEPS[stepIndex - 1].key)}
+            disabled={!canGoBack}
+            style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #d9dadc', background: 'transparent', color: canGoBack ? '#334155' : '#94a3b8', fontSize: '13px', fontWeight: 600, cursor: canGoBack ? 'pointer' : 'default', fontFamily: FONT_BODY }}
+          >
+            ← Atrás
+          </button>
+          {stepIndex < STEPS.length - 1 ? (
+            <button
+              onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
+              disabled={!canGoNext}
+              style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+            >
+              Avanzar →
+            </button>
+          ) : (
+            <a
+              href={user ? '/pulse/dashboard' : '/pulse/signup?from=databridge'}
+              style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}
+            >
+              {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
+            </a>
+          )}
+        </div>
+
         <div style={{ position: 'relative' }}>
         <div style={{
           ...(fullscreen ? {
@@ -1791,7 +1819,7 @@ export default function DataBridgePage() {
               disabled={!canGoNext}
               style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
             >
-              Siguiente →
+              Avanzar →
             </button>
           ) : (
             <a

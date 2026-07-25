@@ -317,6 +317,7 @@ export default function DataBridgePage() {
   const [authChecked, setAuthChecked] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [projectNameError, setProjectNameError] = useState(false)
+  const [projectNameFocused, setProjectNameFocused] = useState(false)
   const projectNameInputRef = useRef<HTMLInputElement>(null)
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [autoDesplegando, setAutoDesplegando] = useState(false)
@@ -1099,6 +1100,24 @@ export default function DataBridgePage() {
           </button>
         </div>
       )}
+      {/* Al enfocar el nombre del proyecto, el resto de la página se difumina para que el
+          campo obligatorio quede como único punto de atención — no bloquea clics porque
+          quien quiere cancelar el foco solo necesita hacer click afuera. */}
+      <style>{`
+        .pm-projectname-scrim { opacity: 0; transition: opacity 0.2s ease; }
+        .pm-projectname-scrim.is-active { opacity: 1; }
+        @media (prefers-reduced-motion: reduce) { .pm-projectname-scrim { transition: none; } }
+      `}</style>
+      <div
+        aria-hidden="true"
+        className={`pm-projectname-scrim${projectNameFocused ? ' is-active' : ''}`}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 140,
+          background: 'rgba(15,23,42,0.32)',
+          backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)',
+          pointerEvents: 'none',
+        }}
+      />
       <div style={{ background: '#f8f9fb', minHeight: '100%' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
@@ -1133,7 +1152,7 @@ export default function DataBridgePage() {
                   .pm-projectname-spinner { animation: none; }
                 }
               `}</style>
-              <div style={{ flex: '1 1 260px', maxWidth: '360px' }}>
+              <div style={{ flex: '1 1 260px', maxWidth: '360px', position: 'relative', zIndex: 150 }}>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', fontFamily: FONT_BODY, marginBottom: '4px' }}>
                   Nombre del proyecto <span style={{ color: '#ef4444' }}>*</span>
                 </label>
@@ -1149,6 +1168,8 @@ export default function DataBridgePage() {
                     ref={projectNameInputRef}
                     value={projectName}
                     onChange={e => { setProjectName(e.target.value); if (projectNameError) setProjectNameError(false) }}
+                    onFocus={() => setProjectNameFocused(true)}
+                    onBlur={() => setProjectNameFocused(false)}
                     placeholder="ej: Inventario julio"
                     required
                     aria-required="true"

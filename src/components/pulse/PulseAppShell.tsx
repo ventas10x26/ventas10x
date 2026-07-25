@@ -1,7 +1,7 @@
 // src/components/pulse/PulseAppShell.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -183,6 +183,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
   const [isMobile, setIsMobile]     = useState(false)
   const [hydrated, setHydrated]     = useState(false)
   const [segmento, setSegmento]     = useState<string | null>(null)
+  const pendingSegmentoAppliedRef   = useRef(false)
 
   useEffect(() => {
     setHydrated(true)
@@ -194,10 +195,33 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Aplica el pulse_segmento_pendiente que viaja en la URL cuando alguien se registra con
+  // Google (ver signup/page.tsx) — signInWithOAuth no tiene equivalente a options.data de
+  // signUp(), así que no hay forma de guardar el segmento directo en el alta por Google; el
+  // valor elegido llega como query param y se aplica acá con updateUser() apenas hay sesión.
+  // Se usa onAuthStateChange (no solo el getUser() inicial) porque justo después de un
+  // redirect de OAuth puede haber una ventana breve donde la sesión todavía no está lista.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setSegmento((data.user?.user_metadata?.pulse_segmento as string) ?? null)
-    })
+    const handleUser = (u: { user_metadata?: Record<string, unknown> } | null | undefined) => {
+      const actual = (u?.user_metadata?.pulse_segmento as string) ?? null
+      setSegmento(actual)
+      if (!u || pendingSegmentoAppliedRef.current) return
+      let params: URLSearchParams
+      try { params = new URLSearchParams(window.location.search) } catch { return }
+      const pendiente = params.get('pulse_segmento_pendiente')
+      if (!pendiente) return
+      pendingSegmentoAppliedRef.current = true
+      params.delete('pulse_segmento_pendiente')
+      const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+      window.history.replaceState({}, '', cleanUrl)
+      if (actual) return // ya tenía segmento guardado (ej. cuenta con email/password) — no lo pisamos
+      supabase.auth.updateUser({ data: { pulse_segmento: pendiente } }).then(({ data, error }) => {
+        if (!error && data.user) setSegmento((data.user.user_metadata?.pulse_segmento as string) ?? null)
+      })
+    }
+    supabase.auth.getUser().then(({ data }) => handleUser(data.user))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => handleUser(session?.user))
+    return () => subscription.unsubscribe()
   }, [])
 
   const navItems = segmento === 'concesionario'

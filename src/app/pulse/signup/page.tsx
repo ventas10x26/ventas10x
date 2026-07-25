@@ -56,13 +56,20 @@ function PulseSignupForm() {
   }, [])
 
   // Login con Google
+  // signInWithOAuth no tiene un equivalente a options.data de signUp() — no hay forma de
+  // guardar pulse_segmento (ni marca/concesionario/whatsapp) directo en el alta por Google,
+  // así que TODA cuenta creada con Google quedaba con pulse_segmento sin definir sin importar
+  // qué elegía el usuario en los pills de arriba. Se manda como query param en redirectTo y
+  // PulseAppShell lo aplica con auth.updateUser() apenas detecta la sesión nueva.
   const signUpGoogle = async () => {
     setEstado('google')
     setError('')
+    const redirectUrl = new URL(destinoPostRegistro, window.location.origin)
+    redirectUrl.searchParams.set('pulse_segmento_pendiente', segmento)
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}${destinoPostRegistro}`,
+        redirectTo: redirectUrl.toString(),
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })

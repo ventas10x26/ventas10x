@@ -398,6 +398,15 @@ export default function DataBridgePage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Foco automático en "Nombre del proyecto" apenas carga la página — el difuminado de
+  // fondo aparece de entrada, sin esperar a que el usuario haga clic en el campo.
+  useEffect(() => {
+    if (authChecked && phase === 'upload' && !autoDesplegando && !projectName) {
+      projectNameInputRef.current?.focus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authChecked, phase, autoDesplegando])
+
   // Paneles ya desplegados (persistidos de verdad en Supabase) del usuario logueado —
   // para poder volver a uno sin resubir los datos.
   useEffect(() => {
@@ -1102,7 +1111,9 @@ export default function DataBridgePage() {
       )}
       {/* Al enfocar el nombre del proyecto, el resto de la página se difumina para que el
           campo obligatorio quede como único punto de atención — no bloquea clics porque
-          quien quiere cancelar el foco solo necesita hacer click afuera. */}
+          quien quiere cancelar el foco solo necesita hacer click afuera. Se apaga apenas
+          el campo tiene contenido (no espera a perder el foco) para dejar ver el paso
+          siguiente, "Subí cualquier fuente de datos", en cuanto el proyecto ya tiene nombre. */}
       <style>{`
         .pm-projectname-scrim { opacity: 0; transition: opacity 0.2s ease; }
         .pm-projectname-scrim.is-active { opacity: 1; }
@@ -1110,7 +1121,7 @@ export default function DataBridgePage() {
       `}</style>
       <div
         aria-hidden="true"
-        className={`pm-projectname-scrim${projectNameFocused ? ' is-active' : ''}`}
+        className={`pm-projectname-scrim${projectNameFocused && !projectName.trim() ? ' is-active' : ''}`}
         style={{
           position: 'fixed', inset: 0, zIndex: 140,
           background: 'rgba(15,23,42,0.32)',

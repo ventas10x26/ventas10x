@@ -35,6 +35,9 @@ export default function DataBridgePanelPage({ params }: { params: Promise<{ id: 
   const [selectedTable, setSelectedTable] = useState<string | null>(null)
   const [visibleRows, setVisibleRows] = useState(ROWS_PAGE)
 
+  // Mismo fix que en databridge/page.tsx: onAuthStateChange evita quedar con user=null si esta
+  // página se abre justo después de un login con Google (redirect completo, puede haber una
+  // ventana breve donde getUser() todavía no ve la sesión recién establecida).
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
@@ -42,6 +45,13 @@ export default function DataBridgePanelPage({ params }: { params: Promise<{ id: 
       }
       setAuthChecked(true)
     })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ email: session.user.email ?? '', nombre: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || '' })
+      }
+      setAuthChecked(true)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   useEffect(() => {

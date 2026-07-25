@@ -368,11 +368,24 @@ export default function DataBridgePage() {
 
   const supabase = createClient()
 
+  // El login con Google es una redirección completa a accounts.google.com y de vuelta —
+  // getUser() disparado una sola vez al montar puede resolver ANTES de que termine de
+  // procesarse el intercambio de sesión post-redirect (?code=...), dejando user=null para
+  // siempre aunque la sesión sí se establezca un instante después. onAuthStateChange corrige
+  // eso: se dispara de nuevo apenas la sesión queda lista, así que "Desplegar panel" recién
+  // llegado de crear cuenta no se queda esperando un user que nunca actualiza.
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser({ email: data.user.email ?? '', nombre: (data.user.user_metadata?.full_name as string) || data.user.email?.split('@')[0] || '' })
       setAuthChecked(true)
     })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user
+        ? { email: session.user.email ?? '', nombre: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || '' }
+        : null)
+      setAuthChecked(true)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   // El nombre del proyecto ya no bloquea la subida — se pide recién cuando el esquema está

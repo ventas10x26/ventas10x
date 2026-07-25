@@ -167,7 +167,8 @@ function detectTableRelations(sheets: SheetData[]): TableRelation[] {
       const A = cols[i], B = cols[j]
       if (A.table === B.table) continue
       const nameMatch = A.norm.length >= 4 && B.norm.length >= 4 && (A.norm === B.norm || A.norm.includes(B.norm) || B.norm.includes(A.norm))
-      const sharedToken = !nameMatch && [...A.tokens].some(t => B.tokens.has(t))
+      const sharedTokens = new Set([...A.tokens].filter(t => B.tokens.has(t)))
+      const sharedToken = !nameMatch && sharedTokens.size > 0
       let overlap = 0
       if (A.values.size >= 3 && B.values.size >= 3) {
         let inter = 0
@@ -175,10 +176,26 @@ function detectTableRelations(sheets: SheetData[]): TableRelation[] {
         overlap = inter / Math.min(A.values.size, B.values.size)
       }
       if (overlap < 0.5 && !nameMatch && !sharedToken) continue
-      const label = overlap >= 0.5 ? `mismo valor ${Math.round(overlap * 100)}%` : nameMatch ? 'nombre similar' : 'palabra en común'
+      // El % siempre refleja la señal real de cada tipo de match — value overlap para "mismo
+      // valor", cuánto del nombre más corto queda contenido en el más largo para "nombre
+      // similar" (Jaccard de tokens compartidos para "palabra en común") — nunca se omite,
+      // para no perder la noción de qué tan confiable es cada cruce.
+      let label: string
+      let score: number
+      if (overlap >= 0.5) {
+        score = overlap
+        label = `mismo valor ${Math.round(score * 100)}%`
+      } else if (nameMatch) {
+        score = Math.min(A.norm.length, B.norm.length) / Math.max(A.norm.length, B.norm.length)
+        label = `nombre similar ${Math.round(score * 100)}%`
+      } else {
+        const totalTokens = new Set([...A.tokens, ...B.tokens]).size
+        score = totalTokens > 0 ? sharedTokens.size / totalTokens : 0
+        label = `palabra en común ${Math.round(score * 100)}%`
+      }
       const key = [A.table, B.table].sort().join('|')
       if (!pairMap.has(key)) pairMap.set(key, { a: A.table, b: B.table, matches: [] })
-      pairMap.get(key)!.matches.push({ fieldA: A.field, fieldB: B.field, label, score: overlap })
+      pairMap.get(key)!.matches.push({ fieldA: A.field, fieldB: B.field, label, score })
     }
   }
   return Array.from(pairMap.values()).map(r => ({ ...r, matches: r.matches.sort((x, y) => y.score - x.score).slice(0, 6) }))
@@ -929,7 +946,7 @@ export default function DataBridgePage() {
             const fieldA = swapped ? f.campoB : f.campoA
             const fieldB = swapped ? f.campoA : f.campoB
             const yaExiste = rel.matches.some(m => m.fieldA === fieldA && m.fieldB === fieldB)
-            if (!yaExiste) rel.matches.push({ fieldA, fieldB, label: 'confirmado por IA', score: 1 })
+            if (!yaExiste) rel.matches.push({ fieldA, fieldB, label: 'confirmado por IA 100%', score: 1 })
           })
           return next
         })

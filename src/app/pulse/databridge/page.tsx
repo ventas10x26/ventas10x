@@ -393,18 +393,23 @@ export default function DataBridgePage() {
     try { window.localStorage.removeItem('pulse_databridge_pending_deploy') } catch {}
     setAutoDesplegando(true)
     ;(async () => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 20000)
       try {
         const payload = JSON.parse(raw!)
         const res = await fetch('/api/pulse/databridge/proyectos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          signal: controller.signal,
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'error')
         window.location.href = `/pulse/databridge/panel/${data.id}`
       } catch {
         setAutoDesplegando(false)
+      } finally {
+        clearTimeout(timeoutId)
       }
     })()
   }, [user])
@@ -970,6 +975,10 @@ export default function DataBridgePage() {
     // Se abre la pestaña en blanco de forma síncrona (dentro del gesto de click) para que el
     // navegador no la trate como popup — recién después de tener el id real se le fija la URL.
     const nuevaVentana = window.open('', '_blank')
+    // Timeout defensivo — sin esto, un request colgado (red, cold start) deja el botón en
+    // "Desplegando…" para siempre, sin forma de reintentar.
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
     try {
       const res = await fetch('/api/pulse/databridge/proyectos', {
         method: 'POST',
@@ -979,6 +988,7 @@ export default function DataBridgePage() {
           sheets: loadedSheets,
           relations: tableRelations,
         }),
+        signal: controller.signal,
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'No se pudo desplegar el panel')
@@ -987,8 +997,10 @@ export default function DataBridgePage() {
       else window.open(url, '_blank')
     } catch (e) {
       nuevaVentana?.close()
-      setDesplegarError(e instanceof Error ? e.message : 'No se pudo desplegar el panel')
+      const timedOut = e instanceof DOMException && e.name === 'AbortError'
+      setDesplegarError(timedOut ? 'Tardó demasiado — probá de nuevo.' : e instanceof Error ? e.message : 'No se pudo desplegar el panel')
     } finally {
+      clearTimeout(timeoutId)
       setDesplegando(false)
     }
   }

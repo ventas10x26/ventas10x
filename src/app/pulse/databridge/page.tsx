@@ -1115,7 +1115,7 @@ export default function DataBridgePage() {
             Subí tu Excel, CSV o JSON. La IA detecta cada hoja, sus campos y el tipo de dato de cada uno — conectados con líneas punteadas a su tabla de origen.
           </p>
 
-          {authChecked && !user && phase === 'upload' && (
+          {authChecked && phase === 'upload' && (
             <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {/* Spinner + glow ámbar (misma idea que el "Thinking..." de Stitch: un ícono
                   girando junto al campo, no solo un cambio de color) — el input blanco se
@@ -1163,7 +1163,7 @@ export default function DataBridgePage() {
                   </div>
                 )}
               </div>
-              {anonProjects.length > 0 && (
+              {!user && anonProjects.length > 0 && (
                 <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
                   Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
                   <button onClick={irACrearCuenta} style={{ color: '#F2A93B', textDecoration: 'underline', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}>creá tu cuenta para guardarlos →</button>

@@ -999,23 +999,27 @@ export default function DataBridgePage() {
     }
   }
 
-  // Antes esto solo hacía window.location.href al signup y perdía loadedSheets/tableRelations
-  // en el camino (viven en memoria, no sobreviven una navegación completa) — el usuario creaba
-  // la cuenta y volvía a un DataBridge vacío, sin rastro del prototipo que acababa de armar.
-  // Ahora, si hay datos cargados, se guardan en localStorage antes de salir, y el efecto de más
-  // abajo los retoma y despliega solo apenas detecta la sesión nueva.
-  const irACrearCuenta = () => {
-    if (loadedSheets.length > 0) {
-      try {
-        window.localStorage.setItem('pulse_databridge_pending_deploy', JSON.stringify({
-          nombre: projectName.trim() || 'Proyecto sin título',
-          sheets: loadedSheets,
-          relations: tableRelations,
-        }))
-      } catch {}
-    }
-    window.location.href = '/pulse/signup?from=databridge'
-  }
+  // Guarda el prototipo pendiente en localStorage apenas hay datos reales y todavía no hay
+  // sesión — antes esto solo pasaba al hacer clic en "Crear cuenta y desplegar", así que
+  // cualquier OTRA forma de salir de la página (ej. "Mi cuenta" en el sidebar para loguearse
+  // con una cuenta YA existente, en vez de crear una nueva) dejaba el prototipo sin ningún
+  // respaldo — se perdía en silencio, sin relación con el auto-despliegue post-signup.
+  useEffect(() => {
+    if (user || loadedSheets.length === 0) return
+    try {
+      window.localStorage.setItem('pulse_databridge_pending_deploy', JSON.stringify({
+        nombre: projectName.trim() || 'Proyecto sin título',
+        sheets: loadedSheets,
+        relations: tableRelations,
+      }))
+    } catch {}
+  }, [user, loadedSheets, tableRelations, projectName])
+
+  const irACrearCuenta = () => { window.location.href = '/pulse/signup?from=databridge' }
+  // /pulse/login solo vuelve a /pulse/databridge si recibe ?from=databridge — sin este link
+  // dedicado, alguien con cuenta existente no tenía forma de loguearse sin perder el
+  // prototipo (no había ningún link a /pulse/login en toda esta pantalla).
+  const irAIniciarSesion = () => { window.location.href = '/pulse/login?from=databridge' }
 
   // Convierte el mockup del paso Prototipo en un panel real: persiste las hojas (hasta 1.000
   // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y lo abre en
@@ -1863,6 +1867,11 @@ export default function DataBridgePage() {
               <div style={{ fontSize: '10px', color: '#94a3b8', fontFamily: FONT_BODY, marginTop: '8px' }}>
                 {user ? 'Guarda hasta 1.000 filas por tabla, de verdad esta vez.' : 'Gratis, sin tarjeta — guarda hasta 1.000 filas por tabla.'}
               </div>
+              {!user && (
+                <button onClick={irAIniciarSesion} style={{ display: 'block', marginTop: '6px', fontSize: '10px', color: '#94a3b8', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>
+                  ¿Ya tenés cuenta? Iniciá sesión
+                </button>
+              )}
               {desplegarError && (
                 <div style={{ fontSize: '11px', color: '#e5484d', fontFamily: FONT_BODY, marginTop: '6px' }}>{desplegarError}</div>
               )}

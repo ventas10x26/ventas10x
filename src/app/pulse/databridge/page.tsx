@@ -8,6 +8,13 @@ import { createClient } from '@/lib/supabase/client'
 const FONT      = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
+// Mismo límite que aplica el servidor (route.ts) — recortar acá también evita mandar
+// payloads de varios MB que Vercel rechaza (límite de body de 4.5MB en API routes),
+// y evita saturar localStorage con el guardado pendiente pre-cuenta.
+const MAX_FILAS_POR_TABLA = 1000
+const capSheetsParaEnvio = (sheets: { name: string; rows: Record<string, unknown>[] }[]) =>
+  sheets.map(s => ({ name: s.name, rows: s.rows.slice(0, MAX_FILAS_POR_TABLA) }))
+
 const PALETTE = ['#4f8ef7', '#34c97e', '#f7924f', '#c97fd4', '#f7d24f', '#22d3ee', '#fb7185', '#a3e635']
 
 // Ruta de producto del marco estratégico v2 (ver skill pulsemotor-strategy) — se muestra
@@ -1009,7 +1016,7 @@ export default function DataBridgePage() {
     try {
       window.localStorage.setItem('pulse_databridge_pending_deploy', JSON.stringify({
         nombre: projectName.trim() || 'Proyecto sin título',
-        sheets: loadedSheets,
+        sheets: capSheetsParaEnvio(loadedSheets),
         relations: tableRelations,
       }))
     } catch {}
@@ -1022,8 +1029,11 @@ export default function DataBridgePage() {
   const irAIniciarSesion = () => { window.location.href = '/pulse/login?from=databridge' }
 
   // Convierte el mockup del paso Prototipo en un panel real: persiste las hojas (hasta 1.000
-  // filas c/u, recortado en el servidor) y las relaciones detectadas en Supabase, y lo abre en
-  // una pestaña nueva — a diferencia del resto del flujo, esto sí sobrevive a un refresh.
+  // filas c/u — recortado ACÁ, antes de mandarlas, no solo en el servidor: con datasets grandes
+  // el body sin recortar superaba el límite de 4.5MB de las API routes de Vercel y la requestse
+  // colgaba/fallaba en silencio, dejando la pestaña nueva en blanco para siempre) y las
+  // relaciones detectadas en Supabase, y lo abre en una pestaña nueva — a diferencia del resto
+  // del flujo, esto sí sobrevive a un refresh.
   const desplegarPanel = async () => {
     if (!user || desplegando || loadedSheets.length === 0) return
     setDesplegando(true)
@@ -1041,7 +1051,7 @@ export default function DataBridgePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nombre: projectName.trim() || 'Proyecto sin título',
-          sheets: loadedSheets,
+          sheets: capSheetsParaEnvio(loadedSheets),
           relations: tableRelations,
         }),
         signal: controller.signal,

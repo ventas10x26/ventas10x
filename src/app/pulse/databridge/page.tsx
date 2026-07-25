@@ -314,6 +314,9 @@ export default function DataBridgePage() {
   const [nameModalError, setNameModalError] = useState(false)
   const [anonProjects, setAnonProjects] = useState<{ id: string; name: string; createdAt: number; sheets: number; fields: number; relations: number }[]>([])
   const [autoDesplegando, setAutoDesplegando] = useState(false)
+  const [autoDeployError, setAutoDeployError] = useState<string | null>(null)
+  const [autoDeployRetryTick, setAutoDeployRetryTick] = useState(0)
+  const autoDeployAttemptRef = useRef(false)
   const [phase, setPhase]             = useState<'upload' | 'processing' | 'selecting' | 'ready'>('upload')
   const [step, setStep]               = useState<Step>('subir')
   const [pendingSheets, setPendingSheets]         = useState<SheetData[]>([])
@@ -415,13 +418,24 @@ export default function DataBridgePage() {
   // Retoma el prototipo que quedó pendiente de guardar en localStorage (ver irACrearCuenta) apenas
   // detecta la sesión nueva post-signup, y lo despliega solo — sin esto, crear la cuenta devolvía
   // a un DataBridge vacío y el usuario tenía que rehacer todo el flujo desde cero.
+  //
+  // autoDeployAttemptRef evita reintentos duplicados: onAuthStateChange puede disparar setUser()
+  // varias veces para el mismo login (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED...), cada vez
+  // con un objeto nuevo, así que el efecto de abajo puede correr más de una vez para la misma
+  // sesión — sin el ref, eso significaba intentar el POST repetidas veces.
+  //
+  // El payload NO se borra de localStorage hasta que el despliegue realmente tiene éxito — antes
+  // se borraba antes de intentar el fetch, así que cualquier falla (red, timeout, error del
+  // servidor) lo perdía para siempre y el usuario volvía a un DataBridge vacío sin ningún aviso,
+  // sin rastro en consola y sin forma de reintentar.
   useEffect(() => {
-    if (!user) return
+    if (!user || autoDeployAttemptRef.current) return
     let raw: string | null = null
     try { raw = window.localStorage.getItem('pulse_databridge_pending_deploy') } catch {}
     if (!raw) return
-    try { window.localStorage.removeItem('pulse_databridge_pending_deploy') } catch {}
+    autoDeployAttemptRef.current = true
     setAutoDesplegando(true)
+    setAutoDeployError(null)
     ;(async () => {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 20000)
@@ -434,15 +448,23 @@ export default function DataBridgePage() {
           signal: controller.signal,
         })
         const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'error')
+        if (!res.ok) throw new Error(data.error || 'El servidor rechazó el despliegue')
+        try { window.localStorage.removeItem('pulse_databridge_pending_deploy') } catch {}
         window.location.href = `/pulse/databridge/panel/${data.id}`
-      } catch {
+      } catch (e) {
+        console.error('[databridge] auto-despliegue pendiente falló:', e)
         setAutoDesplegando(false)
+        setAutoDeployError(e instanceof Error ? e.message : 'No se pudo desplegar automáticamente')
       } finally {
         clearTimeout(timeoutId)
       }
     })()
-  }, [user])
+  }, [user, autoDeployRetryTick])
+
+  const reintentarAutoDeploy = () => {
+    autoDeployAttemptRef.current = false
+    setAutoDeployRetryTick(t => t + 1)
+  }
 
   useEffect(() => {
     try {
@@ -1056,6 +1078,18 @@ export default function DataBridgePage() {
             Desplegando el panel que armaste antes de crear tu cuenta…
           </div>
           <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT_BODY }}>Ya volvemos con el link — no hace falta que resubas nada.</div>
+        </div>
+      )}
+      {/* A diferencia de antes, una falla acá queda visible y con botón de reintentar — el
+          payload sigue en localStorage (no se borra hasta que el despliegue tiene éxito). */}
+      {autoDeployError && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 250, background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13px', color: '#b91c1c', fontFamily: FONT_BODY }}>
+            No pudimos desplegar automáticamente el panel que armaste antes de crear tu cuenta ({autoDeployError}).
+          </span>
+          <button onClick={reintentarAutoDeploy} style={{ fontSize: '12px', fontWeight: 700, color: '#fff', background: '#dc2626', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontFamily: FONT }}>
+            Reintentar
+          </button>
         </div>
       )}
       {/* Se pide el nombre del proyecto acá, no antes de subir — recién cuando el esquema

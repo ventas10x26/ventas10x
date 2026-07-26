@@ -88,6 +88,22 @@ background: ${chip}22;  /* ~13% opacidad */
 border: 1px solid ${chip}55;  /* ~33% opacidad */
 ```
 
+### Barras del embudo (excepción acotada, a pedido explícito del usuario, 2026-07-26)
+
+El embudo de `EmbudoSection` (`EMBUDO_ETAPAS` en `sections.tsx`) es la única barra de progreso del sistema que **no** usa `--grad-blue` — cada etapa lleva su propio degradé, tomado 1:1 de una referencia visual que el usuario compartió ("Funnel CRM en tiempo real"). Acá el color codifica identidad de etapa (para poder distinguir "Cotizaciones" de "Pedidos" de un vistazo), no marca — mismo principio que los chips de categoría, alcance igual de acotado (solo el relleno de esa barra puntual, nunca el texto/CTA/fondo de sección alrededor).
+
+| Etapa | Degradé |
+|---|---|
+| Oportunidades | `linear-gradient(90deg, #4338CA, #6366F1)` (índigo) |
+| Citas | `linear-gradient(90deg, #0E7490, #22D3EE)` (teal/cian) |
+| Show Up | `linear-gradient(90deg, #7E22CE, #A855F7)` (violeta) |
+| Cotizaciones | `linear-gradient(90deg, #15803D, #4ADE80)` (verde) |
+| Pedidos | `linear-gradient(90deg, #92400E, #D97706)` (ámbar/marrón) |
+| Matrículas | `linear-gradient(90deg, #A21CAF, #E879F9)` (magenta) |
+
+No extender esta paleta a otras barras/gráficos del sistema sin pedido explícito — el resto de las barras de progreso (ej. la del onboarding, si existiera) sigue usando `var(--grad-blue)`.
+```
+
 ## Tipografía
 
 | Rol | Familia | Peso | Case |

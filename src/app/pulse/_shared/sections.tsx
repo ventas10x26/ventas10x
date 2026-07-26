@@ -74,6 +74,26 @@ export const ECOSISTEMA = [
   { num:'05', icon:'🛡', titulo:'Pólizas',           desc:'Todo riesgo y colisión cotizadas y emitidas dentro del mismo flujo.', chip:'#818CF8' },
 ]
 
+// Dos líneas de negocio nuevas (ver skill pulsemotor-strategy, sección 3) — deliberadamente
+// separadas de ECOSISTEMA en vez de sumarlas como celda 06/07: todavía no tienen tabla en
+// Supabase ni chip propio, así que se presentan como incorporación reciente ("Nuevo"), no como
+// parte igual de asentada que las cinco de arriba. Solo se renderizan si EcosistemaSection
+// recibe showNuevo (hoy: /pulse/concesionario).
+export const ECOSISTEMA_NUEVO = [
+  { icon:'📡', titulo:'Monitoreo satelital', desc:'Telemetría del vehículo enfocada en seguridad — localización y alerta ante robo o siniestro.' },
+  { icon:'🔌', titulo:'Wallbox y carga de emergencia', desc:'Cargador para casa y cargador portátil de emergencia, cotizados junto al vehículo eléctrico o híbrido.' },
+]
+
+// ─── Insumos del prototipo (DataBridge) — de dónde nace el modelo de datos de cada
+// concesionario. Ver skill pulsemotor-strategy, sección 8: son las mismas fuentes que
+// DataBridge (/pulse/databridge) ya sabe mapear, agrupadas por momento del journey en vez
+// de listadas planas — más legible que un grid de 10 celdas idénticas. ───
+export const INSUMOS_GRUPOS = [
+  { label:'Antes de vender',        items:['Asesores por sede', 'Preventas', 'Oportunidades (CRM)'] },
+  { label:'En la negociación',      items:['Cotizaciones y citas', 'Pedidos y anticipos', 'Solicitudes de crédito'] },
+  { label:'Cierre e integralidad',  items:['Facturación', 'Matrículas y RUNT', 'Pólizas', 'Retomas', 'Accesorios'] },
+]
+
 // ─── Los dos segmentos — usado tanto por la card de /pulse (home) como por el hero
 // de la landing dedicada de cada uno (/pulse/concesionario, /pulse/asesor) ───
 export const SEGMENTS = [
@@ -424,6 +444,49 @@ export function DiferenciadoresSection() {
   )
 }
 
+// De dónde nace el prototipo de cada concesionario — las fuentes que DataBridge ya sabe
+// mapear (ver skill pulsemotor-strategy, sección 8), agrupadas por momento del journey en
+// vez de listadas como un grid de 10 celdas idénticas: más legible, y evita repetir por
+// quinta vez la misma anatomía de grid-icon-card que ya usan Diferenciadores/Ecosistema/
+// Integraciones/Cumplimiento en esta misma página.
+export function InsumosSection() {
+  const header = useReveal<HTMLDivElement>()
+  const grupos = useReveal<HTMLDivElement>()
+  return (
+    <section style={{ padding:'72px 24px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
+      <div style={{ maxWidth:'1000px', margin:'0 auto' }}>
+        <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
+          <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Cómo empieza</p>
+          <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
+            No arrancás de cero. <span className="grad-amber">Arrancás de lo que ya tenés.</span>
+          </h2>
+          <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'620px', margin:'0 auto', lineHeight:1.6 }}>
+            El prototipo de tu concesionario nace de las bases que tu equipo ya usa a diario — CRM, ERP, Google Sheets, SharePoint o Excel de cada sede. Las subís a DataBridge y el agente empieza a entender tu operación real, sin migrar nada.
+          </p>
+        </div>
+
+        <div ref={grupos.ref} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px', marginBottom:'32px' }} className="insumos-grid">
+          {INSUMOS_GRUPOS.map((g,gi) => (
+            <div key={g.label} className={`reveal${grupos.inView?' in':''}`} style={{ border:'1px solid var(--line)', borderRadius:'8px', padding:'22px 20px', transitionDelay:`${gi*100}ms` }}>
+              <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--amber)', fontWeight:700, margin:'0 0 14px' }}>{g.label}</p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
+                {g.items.map(item => (
+                  <span key={item} style={{ fontFamily:F_MONO, fontSize:'11.5px', color:'var(--ink)', background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'999px', padding:'6px 12px', lineHeight:1.3 }}>{item}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', flexWrap:'wrap' }}>
+          <p style={{ fontSize:'15px', color:'var(--ink)' }}>DataBridge detecta el esquema solo y arma tu panel — sin escribir una línea de SQL.</p>
+          <a href="/pulse/databridge" className="pm-btn" style={{ width:'auto', display:'inline-flex', padding:'11px 22px', fontSize:'13px', textDecoration:'none' }}>Probar con tus datos<span className="btn-arrow">→</span></a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // Embudo ilustrativo del método — cifras de ejemplo redondeadas para explicar la forma del
 // embudo, no datos reales de ningún concesionario o marca específica (ver skill
 // pulsemotor-strategy: la integralidad 360° es transversal al sector, nunca se exhiben datos
@@ -523,9 +586,10 @@ export function PorQueSection() {
   )
 }
 
-export function EcosistemaSection() {
+export function EcosistemaSection({ showNuevo = false }: { showNuevo?: boolean } = {}) {
   const ecoHeader = useReveal<HTMLDivElement>()
   const ecoGrid = useReveal<HTMLDivElement>()
+  const ecoNuevo = useReveal<HTMLDivElement>()
   return (
     <section id="ecosistema" style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px' }}>
       <div ref={ecoHeader.ref} className={`reveal${ecoHeader.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
@@ -549,6 +613,27 @@ export function EcosistemaSection() {
           </div>
         ))}
       </div>
+
+      {/* Líneas de negocio recién sumadas — deliberadamente fuera del grid-shared de arriba
+          (sin tabla/chip propio todavía, ver skill pulsemotor-strategy sección 3): se marcan
+          "Nuevo" en vez de mezclarse como una celda 06/07 más, para no prometer una madurez
+          de producto que todavía no tienen. */}
+      {showNuevo && (
+        <div ref={ecoNuevo.ref} style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'16px', marginTop:'16px' }} className="eco-nuevo-grid">
+          {ECOSISTEMA_NUEVO.map((e,i) => (
+            <div key={e.titulo} className={`reveal${ecoNuevo.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms`, display:'flex', gap:'14px', alignItems:'flex-start', border:'1px dashed var(--line)', borderRadius:'8px', padding:'18px 20px' }}>
+              <span style={{ fontSize:'20px', flexShrink:0 }}>{e.icon}</span>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                  <h3 style={{ fontSize:'14px', fontWeight:700, fontFamily:F_DISPLAY, color:'var(--ink)', margin:0 }}>{e.titulo}</h3>
+                  <span style={{ fontFamily:F_MONO, fontSize:'10px', fontWeight:700, color:'var(--amber)', border:'1px solid var(--amber-dim)', borderRadius:'3px', padding:'1px 6px', letterSpacing:'.5px' }}>NUEVO</span>
+                </div>
+                <p style={{ fontSize:'12px', color:'var(--ink-dim)', lineHeight:1.5, margin:0 }}>{e.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
@@ -1187,6 +1272,8 @@ export function PulseStyles() {
         .hero-grid{flex-direction:column!important;align-items:center!important}
         .hero-grid>*{max-width:100%!important;width:100%!important}
         .eco-grid{grid-template-columns:1fr 1fr!important}
+        .eco-nuevo-grid{grid-template-columns:1fr!important}
+        .insumos-grid{grid-template-columns:1fr!important}
         .seg-grid{grid-template-columns:1fr!important}
         .stats-grid{grid-template-columns:1fr 1fr!important}
         .integ-grid{grid-template-columns:1fr 1fr!important}

@@ -1,6 +1,6 @@
 ---
 name: pulsemotor-strategy
-description: Marco estratégico de negocio y modelo de datos de Pulse Motor (pulsemotor.co) — "segundo nivel de evolución". Cubre el diferencial de producto (método de venta, no marca), la ética de datos/multi-tenant (el modelo de cómputo se replica entre concesionarios, los datos y la propiedad intelectual de cada marca NUNCA se cruzan), el embudo de ventas 360° (Oportunidades → Citas → Show Up → Cotizaciones → Pedidos → Matrículas), la integralidad ROE (matrículas, financiación, seguros todo riesgo, retomas, accesorios), el ciclo de vida del cliente (venta → mantenimiento → renovación), el modelo de datos (entidades/atributos/relaciones/RLS, qué ya existe en Supabase — incluidas las 8 tablas de integralidad 360° migradas el 2026-07-18), la ruta de producto (prototipar → desplegar → iterar → predecir con IA/ML) y la visión de dashboard dinámico de KPIs. Usar esta skill SIEMPRE que la tarea sea sobre: tablas/RLS/multi-tenancy de Supabase para Pulse Motor; features de dashboard/métricas/KPIs para concesionarios (incluyendo vistas agregadas por org/equipo de ventas); cualquier feature que combine datos de más de un vendedor o concesionario (benchmarking, comparativas, modelos de IA entrenados entre clientes); discusión de ROI/ROE, integralidad de la venta, o valor del cliente en el tiempo; roadmap o priorización de producto; confidencialidad, ética de datos o reconocimiento de marca/PI de fabricantes y concesionarios; o cualquier referencia a "el marco estratégico", "segunda evolución" o el panel piloto de Almotores (almotores.vercel.app). NO usar para trabajo puramente visual/de marca (landing, componentes UI, copy, paleta) — eso lo cubre la skill pulsemotor-design. Las dos son complementarias: esta skill decide QUÉ construir, con qué datos y con qué límites éticos; pulsemotor-design decide CÓMO se ve.
+description: Marco estratégico de negocio y modelo de datos de Pulse Motor (pulsemotor.co) — "segundo nivel de evolución". Cubre el diferencial de producto (método de venta, no marca), la ética de datos/multi-tenant (el modelo de cómputo se replica entre concesionarios, los datos y la propiedad intelectual de cada marca NUNCA se cruzan), el embudo de ventas 360° (Oportunidades → Citas → Show Up → Cotizaciones → Pedidos → Matrículas), la integralidad ROE (matrículas, financiación, seguros todo riesgo, retomas, accesorios, monitoreo satelital/telemetría, wallbox y cargadores de emergencia para eléctricos), el ciclo de vida del cliente (venta → mantenimiento → renovación), el modelo de datos (entidades/atributos/relaciones/RLS, qué ya existe en Supabase — incluidas las 8 tablas de integralidad 360° migradas el 2026-07-18), los insumos de datos que alimentan el prototipo por DataBridge (las 10 bases de datos operativas de un concesionario: asesores por sede, CRM de oportunidades, pedidos/anticipos, crédito, facturación, matrículas/RUNT, accesorios, pólizas, retomas, preventas), la ruta de producto (prototipar → desplegar → iterar → predecir con IA/ML), la meta de productividad (% de conversión por asesor/modelo/versión/segmento — autos, SUV, híbridos, eléctricos) y la visión de dashboard dinámico de KPIs. Usar esta skill SIEMPRE que la tarea sea sobre: tablas/RLS/multi-tenancy de Supabase para Pulse Motor; DataBridge (qué fuentes de datos ingiere, cómo se mapean a las tablas `pulse_*`); features de dashboard/métricas/KPIs para concesionarios (incluyendo vistas agregadas por org/equipo de ventas); pronósticos o modelos predictivos de ventas; cualquier feature que combine datos de más de un vendedor o concesionario (benchmarking, comparativas, modelos de IA entrenados entre clientes); discusión de ROI/ROE, integralidad de la venta, o valor del cliente en el tiempo; roadmap o priorización de producto; confidencialidad, ética de datos o reconocimiento de marca/PI de fabricantes y concesionarios; o cualquier referencia a "el marco estratégico", "segunda evolución" o el panel piloto de Almotores (almotores.vercel.app). NO usar para trabajo puramente visual/de marca (landing, componentes UI, copy, paleta) — eso lo cubre la skill pulsemotor-design. Las dos son complementarias: esta skill decide QUÉ construir, con qué datos y con qué límites éticos; pulsemotor-design decide CÓMO se ve.
 ---
 
 # Pulse Motor — Marco estratégico v2 (segundo nivel de evolución)
@@ -64,6 +64,13 @@ El ROE de una venta no vive solo en el margen del vehículo. Cinco variables, ho
 5. **Ticket de accesorios** — upsell contextual al modelo y perfil del comprador, cotizado en el mismo pedido.
 
 Esta lista espeja (mismo hilo visual y de negocio) el grid "Ecosistema 360°" que ya existe en `pulsemotor-design`/`_shared/sections.tsx` (`ECOSISTEMA`: vehículos, financiación, accesorios, retomas, pólizas) — no son dos conceptos distintos, son la misma integralidad vista desde el ángulo de producto (landing) y desde el ángulo de negocio (ROE). Mantener consistencia de paleta de chips entre ambos (azul=matrículas/vehículos, violeta=financiación, índigo=pólizas, rosa=retomas, teal=accesorios).
+
+**Ampliación explícita del usuario (2026-07-25) — dos líneas nuevas, todavía no modeladas:**
+
+6. **Monitoreo satelital** — innovación de telemetría del vehículo enfocada en seguridad (no en optimización de flota ni ahorro de combustible — el ángulo de venta es protección/recuperación).
+7. **Wallbox y cargadores de emergencia** — cargador wallbox para carga en casa (vehículos híbridos/eléctricos) y cargador de emergencia portátil, como parte del ticket de accesorios de un vehículo electrificado.
+
+Ninguna de las dos tiene todavía tabla en Supabase (sección 5) ni chip en el grid "Ecosistema 360°" de la landing (`pulsemotor-design`) — son candidatas reales a incorporarse, no ideas descartadas. **Cómo aplicar:** al proponer schema o UI nueva para integralidad 360°, contemplar estas 7 líneas (no solo las 5 originales) pero no inventar columnas/chips para ellas sin confirmar alcance con el usuario primero — quedan en "Próximos pasos" hasta esa decisión.
 
 ## 4. Valor del cliente en el tiempo (lifetime value)
 
@@ -137,9 +144,49 @@ El tablero debe priorizar solo, no ser armado manualmente por el usuario: el pro
 
 **Cómo aplicar:** cualquier trabajo de `/pulse/dashboard` o `/pulse/metricas` (hoy con UI placeholder según bug conocido #7 de `CLAUDE.md`) debe apuntar hacia esta visión de priorización dinámica, no hacia una grilla de métricas estáticas en orden fijo.
 
+## 8. Los insumos de datos del prototipo — qué sube el concesionario a DataBridge
+
+Explicación explícita del usuario (2026-07-25) de **de dónde nace el prototipo** de cada concesionario nuevo (paso 1 de la ruta de producto, sección 6): no arranca en cero, arranca de las bases de datos operativas que ya existen en cualquier concesionario — típicamente en CRM, ERP, Google Sheets, SharePoint o Excel locales de cada sede/punto de venta. **Esto es exactamente lo que construimos en `/pulse/databridge`** (subir CSV/Excel/JSON/Sheets, mapeo automático de esquema, detección de relaciones, panel desplegado real) — DataBridge no es una feature genérica de "importar datos", es la implementación literal del paso 1 de este marco.
+
+Las 10 bases de datos que el usuario identificó como el insumo mínimo para que Pulse Motor "entienda" la operación diaria de un concesionario:
+
+| # | Base de datos | Mapea a (sección 5) |
+|---|---|---|
+| 1 | Asesores por sede | **Sin tabla propia todavía** — hoy `vendedor_id` existe en todo el schema pero no hay entidad "asesor" con sede asociada |
+| 2 | CRM: oportunidades + journey completo (cotización → seguimiento → citas/test drive → cierre/facturación o desistimiento) | `pulse_leads` + `pulse_citas` + `pulse_eventos` |
+| 3 | Pedidos con anticipos y reservas | `pulse_pedidos` |
+| 4 | Solicitudes de crédito y seguimiento | `pulse_financiaciones` |
+| 5 | Facturación | `pulse_pedidos`/`pulse_matriculas` (no hay tabla de facturación dedicada — hoy implícita en el estado del pedido) |
+| 6 | Matrículas y RUNT | `pulse_matriculas` |
+| 7 | Venta de accesorios | `pulse_accesorios_venta` |
+| 8 | Venta de pólizas de seguros | `pulse_polizas` |
+| 9 | Retomas cotizadas y retomas efectivas/facturadas | `pulse_retomas` |
+| 10 | Preventas | **Sin tabla propia todavía** — no hay concepto de "preventa" (reserva antes de tener inventario/pedido formal) en el schema actual |
+
+8 de las 10 ya tienen tabla dedicada desde la migración `pulse_integralidad_360_tablas_nuevas` (sección 5). **Asesores por sede** y **Preventas** son los dos vacíos reales — quedan en "Próximos pasos".
+
+**En `/pulse/concesionario` (2026-07-25):** esta lista ya tiene su propia sección en la landing (`InsumosSection`, `src/app/pulse/_shared/sections.tsx`) — agrupada en 3 momentos del journey (antes de vender / negociación / cierre e integralidad) en vez de como grid plano de 10 celdas, para que se lea rápido en vez de abrumar. Si esta tabla cambia (nueva fuente, nuevo mapeo), actualizar también `INSUMOS_GRUPOS` ahí.
+
+**Cómo aplicar:** cuando se trabaje en DataBridge (mapeo de esquema, detección de relaciones, plantillas de importación, copy de la pantalla de subida), usar esta lista de 9 como la referencia canónica de qué tipos de fuente debe reconocer/sugerir — no inventar categorías de datos distintas. Si se agrega soporte de importación para "asesores por sede" o "preventas", eso implica primero decidir el schema nuevo (sección 5), no solo el parseo del archivo.
+
+## 9. Del prototipo al modelo predictivo — la meta de productividad
+
+Narrativa completa del usuario (2026-07-25) que conecta los insumos de la sección 8 con el paso 4 ("Predecir") de la ruta de producto (sección 6):
+
+1. El concesionario sube cualquiera de las 10 bases de datos → Pulse Motor empieza a entender el desarrollo diario de la operación: desde creación del lead hasta agendamiento, show up, test drive, facturación, financiación y retomas.
+2. Con eso, entrena **un modelo de datos único por concesionario** (no un modelo global entre clientes — coherente con la regla dura de la sección 1.5: el modelo de cómputo se replica, los datos nunca).
+3. El modelo está diseñado para ser **predictivo con alto nivel de confianza**: pronóstico de ventas por sede, por asesor, por modelo y por versión del portafolio de la marca, y por segmento (autos, SUV, híbridos, eléctricos) — anticipándose a la demanda y preferencia del mercado.
+4. **La meta de negocio detrás del pronóstico no es la cifra en sí, es la productividad**: subir el % de conversión de cada asesor, por modelo y versión — entendido como unidades facturadas y matriculadas por la fuerza de ventas, no solo leads atendidos.
+5. Para lograrlo, el modelo analiza cada punto del viaje del cliente — prospección, seguimiento, venta consultiva, generación de tráfico real, prueba de manejo, negociación, facturación, forma de pago, matriculación — y **se anticipa a resultados con alta probabilidad antes de que cierre el ciclo o mes de venta**, no solo reporta después del hecho.
+
+**Cómo aplicar:** cualquier feature de pronóstico/forecast/predicción debe modelarse por concesionario (nunca cruzando `vendedor_id`/`org_id` de clientes distintos sin el mecanismo de autorización de la sección 1.5) y debe reportarse desagregado por sede/asesor/modelo/versión/segmento — un número agregado único de "ventas esperadas" no cumple esta visión. Esto es la especificación funcional de la palabra "Predecir" en el paso 4 de la sección 6 y del dashboard dinámico de la sección 7 — no una feature nueva y separada.
+
 ## Próximos pasos pendientes de decisión con el usuario
 
 - ~~Orden de prioridad real para migrar las tablas nuevas~~ — resuelto 2026-07-18: se migraron las 8 tablas completas de una vez (ver arriba).
 - Falta construir los route handlers/UI que escriban en `pulse_cotizaciones` → `pulse_clientes` (hoy las tablas existen pero nada las alimenta todavía — no hay flujo real que las use aún).
 - Si el dashboard dinámico se construye sobre `/pulse/dashboard`/`/pulse/metricas` existentes o como ruta nueva.
 - Si el modelo predictivo (paso 4 de la ruta de producto) se aborda ahora o se pospone hasta tener volumen de datos suficiente en las tablas nuevas.
+- Schema para **asesores por sede** (entidad "asesor" con sede asociada — hoy no existe, solo `vendedor_id` suelto) y para **preventas** (reserva antes de pedido formal) — los dos vacíos identificados en la sección 8.
+- Decisión de alcance para **monitoreo satelital**, **wallbox** y **cargador de emergencia** (sección 3, líneas 6-7): si entran como tablas `pulse_*` nuevas, como columnas dentro de `pulse_accesorios_venta`, o se posponen — y si suman chip propio en el grid "Ecosistema 360°" de la landing.
+- Si DataBridge (`/pulse/databridge`) debe evolucionar de "subir y mapear libremente" a ofrecer plantillas/reconocimiento guiado para las 9 fuentes específicas de la sección 8 (hoy el mapeo es genérico, no sabe que existe una lista canónica de 9 tipos de fuente).

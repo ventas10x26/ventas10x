@@ -3,10 +3,26 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { PulseAppShell } from '@/components/pulse/PulseAppShell'
+import { DataBridgeOrden, DataBridgePrototipos } from '@/components/pulse/DataBridgeShowcase'
 import { createClient } from '@/lib/supabase/client'
 
 const FONT      = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
+const BLUE      = '#2563EB'
+const BLUE_2    = '#1D4ED8'
+
+// Las 6 fuentes operativas que el cruce sabe reconocer (ver skill pulsemotor-strategy).
+// El color del chip es decorativo por categoría — el acento de marca sigue siendo el azul.
+const FUENTES = [
+  { label: 'Inventario',   icon: '▦', color: BLUE },
+  { label: 'Leads',        icon: '◎', color: '#8B5CF6' },
+  { label: 'Financiación', icon: '≡', color: '#0D9488' },
+  { label: 'Pólizas',      icon: '⛨', color: '#DB2777' },
+  { label: 'Retomas',      icon: '⇄', color: '#4F46E5' },
+  { label: 'Accesorios',   icon: '✦', color: '#F2A93B' },
+]
+
+const EJEMPLOS = ['Inventario y matrículas', 'Leads y financiación', 'Retomas y pólizas']
 
 // Mismo límite que aplica el servidor (route.ts) — recortar acá también evita mandar
 // payloads de varios MB que Vercel rechaza (límite de body de 4.5MB en API routes),
@@ -475,10 +491,10 @@ export default function DataBridgePage() {
     } catch {}
   }, [])
 
-  const saveAnonProject = (sheetsCount: number, fieldsCount: number, relationsCount: number) => {
+  const saveAnonProject = (sheetsCount: number, fieldsCount: number, relationsCount: number, nombre?: string) => {
     const entry = {
       id: crypto.randomUUID(),
-      name: projectName.trim() || 'Proyecto sin título',
+      name: (nombre ?? projectName).trim() || 'Proyecto sin título',
       createdAt: Date.now(),
       sheets: sheetsCount,
       fields: fieldsCount,
@@ -659,7 +675,7 @@ export default function DataBridgePage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [fullscreen, schemaFullscreen])
 
-  const processSheets = (sheets: SheetData[]) => {
+  const processSheets = (sheets: SheetData[], nombreProyecto?: string) => {
     const { nodes: n, edges: e } = buildGraph(sheets)
     const relations = detectTableRelations(sheets)
     setNodes(n); setEdges(e)
@@ -672,7 +688,7 @@ export default function DataBridgePage() {
     setPhase('ready')
     setStep('mapear')
     if (authChecked && !user) {
-      saveAnonProject(sheets.length, n.filter(f => f.kind === 'field').length, relations.length)
+      saveAnonProject(sheets.length, n.filter(f => f.kind === 'field').length, relations.length, nombreProyecto)
     }
   }
 
@@ -706,7 +722,21 @@ export default function DataBridgePage() {
     }, 320)
   }
 
-  const startDemo = () => { if (requireProjectName()) runProgress(() => processSheets(genDemoSheets())) }
+  // El nombre sugerido de un ejemplo hace las veces del campo obligatorio si está vacío —
+  // se pasa explícito a processSheets porque el setState no llega a reflejarse antes de que
+  // runProgress dispare el callback ya capturado en este render.
+  const startDemo = (nombreSugerido?: string) => {
+    const nombre = projectName.trim() || nombreSugerido?.trim() || ''
+    if (!nombre) { requireProjectName(); return }
+    if (nombre !== projectName) { setProjectName(nombre); setProjectNameError(false) }
+    runProgress(() => processSheets(genDemoSheets(), nombre))
+  }
+
+  const elegirFuente = (etiqueta: string) => {
+    if (!projectName.trim()) setProjectName(etiqueta)
+    setProjectNameError(false)
+    fileInputRef.current?.click()
+  }
 
   const parseFiles = async (files: File[]): Promise<SheetData[]> => {
     const allSheets: SheetData[] = []
@@ -1088,7 +1118,7 @@ export default function DataBridgePage() {
         <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(248,249,251,0.97)', backdropFilter: 'blur(2px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '20px' }}>
           <span style={{
             display: 'inline-block', width: '30px', height: '30px', borderRadius: '50%',
-            border: '3px solid #e2e8f0', borderTopColor: '#F2A93B', animation: 'pmAutoDeploySpin 0.8s linear infinite',
+            border: '3px solid #e2e8f0', borderTopColor: '#2563EB', animation: 'pmAutoDeploySpin 0.8s linear infinite',
           }} />
           <style>{`@keyframes pmAutoDeploySpin { to { transform: rotate(360deg); } } @media (prefers-reduced-motion: reduce) { [style*="pmAutoDeploySpin"] { animation: none; } }`}</style>
           <div style={{ fontFamily: FONT, fontSize: '16px', fontWeight: 800, color: '#0f172a', maxWidth: '380px' }}>
@@ -1132,48 +1162,59 @@ export default function DataBridgePage() {
       <div style={{ background: '#f8f9fb', minHeight: '100%' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '32px 24px 80px' }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: '28px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: '#10b981', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
-            DataBridge 360
-          </div>
-          <h1 style={{ fontFamily: 'var(--font-geist-sans), sans-serif', fontSize: 'clamp(24px,3vw,36px)', fontWeight: 450, letterSpacing: '-0.04em', lineHeight: 1, margin: '0 0 10px', color: '#0f172a' }}>
-            Estructura de tus hojas<br />
-            <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>campos y tipos en 3D</span>
-          </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.6, margin: 0, fontFamily: FONT_BODY }}>
-            Subí tu Excel, CSV o JSON. La IA detecta cada hoja, sus campos y el tipo de dato de cada uno — conectados con líneas punteadas a su tabla de origen.
-          </p>
+        {/* Estado inicial: una sola pregunta y un solo campo, centrados — el nombre del
+            proyecto deja de ser un input perdido en el encabezado y pasa a ser el punto de
+            entrada de toda la pantalla. Una vez cargados los datos, el encabezado se
+            comprime para devolverle el espacio al visualizador. */}
+        {phase === 'upload' ? (
+          <div style={{ textAlign: 'center', padding: '28px 0 0' }}>
+            <style>{`
+              @keyframes pmPromptPulse {
+                0%, 100% { box-shadow: 0 6px 28px rgba(15,23,42,0.07), 0 0 0 0 rgba(37,99,235,0.35); border-color: #2563EB; }
+                50%      { box-shadow: 0 6px 28px rgba(15,23,42,0.07), 0 0 0 9px rgba(37,99,235,0); border-color: #dbe3ef; }
+              }
+              .pm-prompt-box.is-empty { animation: pmPromptPulse 2.2s ease-in-out infinite; }
+              .pm-fuente-btn { transition: transform .15s ease, border-color .15s ease; }
+              .pm-fuente-btn:hover { transform: translateY(-2px); }
+              @media (prefers-reduced-motion: reduce) {
+                .pm-prompt-box.is-empty { animation: none; border-color: #2563EB; }
+                .pm-fuente-btn { transition: none; }
+              }
+            `}</style>
 
-          {authChecked && phase === 'upload' && (
-            <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              {/* Spinner + glow ámbar (misma idea que el "Thinking..." de Stitch: un ícono
-                  girando junto al campo, no solo un cambio de color) — el input blanco se
-                  perdía contra el fondo blanco del dropzone y el pulso de borde solo no se notaba. */}
-              <style>{`
-                @keyframes pmProjectNamePulse {
-                  0%, 100% { box-shadow: 0 0 0 0 rgba(242,169,59,0.45); border-color: #F2A93B; }
-                  50% { box-shadow: 0 0 0 8px rgba(242,169,59,0); border-color: #d9dadc; }
-                }
-                .pm-projectname-input { animation: pmProjectNamePulse 1.4s ease-in-out infinite; }
-                @keyframes pmProjectNameSpin { to { transform: rotate(360deg); } }
-                .pm-projectname-spinner { animation: pmProjectNameSpin 0.9s linear infinite; transform-origin: 7px 7px; }
-                @media (prefers-reduced-motion: reduce) {
-                  .pm-projectname-input { animation: none; border-color: #F2A93B; }
-                  .pm-projectname-spinner { animation: none; }
-                }
-              `}</style>
-              <div style={{ flex: '1 1 260px', maxWidth: '360px', position: 'relative', zIndex: 150 }}>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#475569', fontFamily: FONT_BODY, marginBottom: '4px' }}>
-                  Nombre del proyecto <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  {!projectName && (
-                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '14px', height: '14px', pointerEvents: 'none' }}>
-                      <svg className="pm-projectname-spinner" width="14" height="14" viewBox="0 0 14 14" style={{ display: 'block' }}>
-                        <circle cx="7" cy="7" r="5.5" fill="none" stroke="#F2A93B" strokeWidth="2" strokeLinecap="round" strokeDasharray="18 26" />
-                      </svg>
-                    </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '18px', fontFamily: FONT_BODY }}>
+              DataBridge 360
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: 'clamp(34px,5.5vw,62px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.02, margin: '0 0 14px', color: '#0f172a' }}>
+              ¿Qué datos vamos a <span style={{ color: BLUE }}>ordenar</span>?
+            </h1>
+            <p style={{ fontSize: '15.5px', color: '#64748b', lineHeight: 1.6, margin: '0 auto 26px', fontFamily: FONT_BODY, maxWidth: '62ch' }}>
+              Planillas sueltas, exportaciones del DMS que nunca cruzaron, el mismo campo con un nombre distinto en cada hoja. Subilas todas juntas y salen como un modelo de datos con sus relaciones.
+            </p>
+
+            {authChecked && (
+              <>
+                {/* Caja principal: nombre del proyecto + adjuntar, y toda ella es zona de
+                    arrastre — no hace falta apuntarle a un dropzone aparte. */}
+                <div
+                  className={`pm-prompt-box${projectName.trim() ? '' : ' is-empty'}`}
+                  onDragEnter={onDropZoneDragEnter}
+                  onDragOver={onDropZoneDragOver}
+                  onDragLeave={onDropZoneDragLeave}
+                  onDrop={onDropZoneDrop}
+                  style={{
+                    position: 'relative', zIndex: 150,
+                    maxWidth: '720px', margin: '0 auto', textAlign: 'left',
+                    background: '#ffffff', borderRadius: '20px', padding: '18px 18px 14px',
+                    border: `1px solid ${projectNameError ? '#ef4444' : isDraggingFile ? BLUE : '#dbe3ef'}`,
+                    boxShadow: '0 6px 28px rgba(15,23,42,0.07)',
+                  }}
+                >
+                  {isDraggingFile && (
+                    <div style={{ position: 'absolute', inset: '6px', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'rgba(37,99,235,0.07)', border: `2px dashed ${BLUE}`, borderRadius: '16px', pointerEvents: 'none' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', fontFamily: FONT }}>Soltá para cargar</div>
+                      <div style={{ fontSize: '12px', color: BLUE, fontFamily: FONT_BODY }}>Excel · CSV · JSON</div>
+                    </div>
                   )}
                   <input
                     ref={projectNameInputRef}
@@ -1181,46 +1222,114 @@ export default function DataBridgePage() {
                     onChange={e => { setProjectName(e.target.value); if (projectNameError) setProjectNameError(false) }}
                     onFocus={() => setProjectNameFocused(true)}
                     onBlur={() => setProjectNameFocused(false)}
-                    placeholder="ej: Inventario julio"
+                    onKeyDown={e => { if (e.key === 'Enter' && projectName.trim()) fileInputRef.current?.click() }}
+                    placeholder="Nombrá tu proyecto — ej: Inventario y matrículas de julio"
                     required
                     aria-required="true"
+                    aria-label="Nombre del proyecto"
                     aria-invalid={projectNameError}
-                    className={projectName ? undefined : 'pm-projectname-input'}
-                    style={{ width: '100%', boxSizing: 'border-box', padding: projectName ? '9px 14px' : '9px 14px 9px 32px', borderRadius: '8px', border: projectNameError ? '1px solid #ef4444' : '1px solid #d9dadc', background: '#ffffff', color: '#0f172a', fontSize: '13px', fontFamily: FONT_BODY, outline: 'none' }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 4px 14px', border: 'none', background: 'transparent', color: '#0f172a', fontSize: '17px', fontFamily: FONT_BODY, outline: 'none' }}
                   />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                      onClick={() => { if (requireProjectName()) fileInputRef.current?.click() }}
+                      title="Adjuntar archivos"
+                      style={{ width: '32px', height: '32px', borderRadius: '10px', border: '1px solid #dbe3ef', background: '#ffffff', color: '#334155', fontSize: '18px', lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      +
+                    </button>
+                    <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: FONT_BODY }}>
+                      Arrastrá tus archivos acá · Excel, CSV o JSON · varias fuentes juntas
+                    </span>
+                    <button
+                      onClick={() => { if (requireProjectName()) fileInputRef.current?.click() }}
+                      title="Elegir archivos"
+                      style={{ marginLeft: 'auto', width: '38px', height: '38px', borderRadius: '50%', border: 'none', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', fontSize: '16px', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      →
+                    </button>
+                  </div>
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
                 </div>
+
                 {projectNameError && (
-                  <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', fontFamily: FONT_BODY }}>
-                    Este campo es obligatorio — ponele un nombre a tu proyecto antes de continuar.
+                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '8px', fontFamily: FONT_BODY }}>
+                    Ponele un nombre al proyecto antes de subir los archivos.
                   </div>
                 )}
-              </div>
-              {!user && anonProjects.length > 0 && (
-                <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY }}>
-                  Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
-                  <button onClick={irACrearCuenta} style={{ color: '#F2A93B', textDecoration: 'underline', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}>creá tu cuenta para guardarlos →</button>
+
+                {/* Fuentes que sabe cruzar — clic prellena el nombre y abre el selector. */}
+                <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px', marginTop: '26px' }}>
+                  {FUENTES.map(f => (
+                    <button
+                      key={f.label}
+                      onClick={() => elegirFuente(f.label)}
+                      className="pm-fuente-btn"
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px' }}
+                    >
+                      <span style={{
+                        width: '46px', height: '46px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '18px', color: f.color, background: `${f.color}12`, border: `1px solid ${f.color}33`,
+                      }}>{f.icon}</span>
+                      <span style={{ fontSize: '11.5px', color: '#475569', fontFamily: FONT_BODY }}>{f.label}</span>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
 
-          {proyectosGuardados.length > 0 && (
-            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tus paneles desplegados</span>
-              {proyectosGuardados.map(p => (
-                <a key={p.id} href={`/pulse/databridge/panel/${p.id}`} style={{
-                  fontSize: '12px', fontFamily: FONT_BODY, color: '#0f172a', textDecoration: 'none',
-                  padding: '4px 12px', borderRadius: '999px', border: '1px solid #d9dadc', background: '#f8fafc',
-                }}>
-                  {p.nombre} · {p.tablas} {p.tablas === 1 ? 'tabla' : 'tablas'}
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
+                <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: FONT_BODY }}>o probá con datos de ejemplo</span>
+                  {EJEMPLOS.map(e => (
+                    <button
+                      key={e}
+                      onClick={() => startDemo(e)}
+                      style={{ fontSize: '12px', fontFamily: FONT_BODY, color: '#334155', background: '#ffffff', border: '1px solid #dbe3ef', borderRadius: '999px', padding: '6px 14px', cursor: 'pointer' }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
 
-        {/* Stepper */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+                {!user && anonProjects.length > 0 && (
+                  <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY, marginTop: '18px' }}>
+                    Ya creaste {anonProjects.length} {anonProjects.length === 1 ? 'proyecto de prueba' : 'proyectos de prueba'} sin cuenta —{' '}
+                    <button onClick={irACrearCuenta} style={{ color: BLUE, textDecoration: 'underline', background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}>creá tu cuenta para guardarlos →</button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
+              DataBridge 360
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: 'clamp(24px,3vw,34px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 10px', color: '#0f172a' }}>
+              {projectName.trim() || 'Tu proyecto'} — <span style={{ color: BLUE }}>estructura detectada</span>
+            </h1>
+            <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.6, margin: 0, fontFamily: FONT_BODY }}>
+              Cada hoja, sus campos y el tipo de dato de cada uno — conectados con líneas punteadas a su tabla de origen.
+            </p>
+          </div>
+        )}
+
+        {proyectosGuardados.length > 0 && (
+          <div style={{ marginTop: '20px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: phase === 'upload' ? 'center' : 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tus paneles desplegados</span>
+            {proyectosGuardados.map(p => (
+              <a key={p.id} href={`/pulse/databridge/panel/${p.id}`} style={{
+                fontSize: '12px', fontFamily: FONT_BODY, color: '#0f172a', textDecoration: 'none',
+                padding: '4px 12px', borderRadius: '999px', border: '1px solid #d9dadc', background: '#f8fafc',
+              }}>
+                {p.nombre} · {p.tablas} {p.tablas === 1 ? 'tabla' : 'tablas'}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Stepper y navegación — solo cuando ya hay datos cargados: en el estado inicial la
+            pantalla es una sola pregunta, sin pasos por delante todavía. */}
+        {phase !== 'upload' && (<>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', marginTop: '24px' }}>
           {STEPS.map((s, i) => {
             const isDone = i < stepIndex
             const isCurrent = i === stepIndex
@@ -1235,7 +1344,7 @@ export default function DataBridgePage() {
                   <span style={{
                     width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '12px', fontWeight: 700, flexShrink: 0,
-                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#f1f5f9',
+                    background: isDone ? 'rgba(16,185,129,0.15)' : isCurrent ? 'linear-gradient(135deg,#2563EB,#1D4ED8)' : '#f1f5f9',
                     color: isDone ? '#10b981' : isCurrent ? '#fff' : '#94a3b8',
                     border: isDone ? '1px solid rgba(16,185,129,0.4)' : isCurrent ? 'none' : '1px solid #d9dadc',
                   }}>
@@ -1267,19 +1376,27 @@ export default function DataBridgePage() {
             <button
               onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
               disabled={!canGoNext}
-              style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+              style={{ padding: '8px 20px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#2563EB,#1D4ED8)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
             >
               Avanzar →
             </button>
           ) : (
             <button
               onClick={() => { if (user) { window.location.href = '/pulse/dashboard' } else { irACrearCuenta() } }}
-              style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
+              style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
             >
               {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
             </button>
           )}
         </div>
+        </>)}
+
+        {phase === 'upload' && (
+          <>
+            <DataBridgeOrden />
+            <DataBridgePrototipos />
+          </>
+        )}
 
         <div style={{ position: 'relative' }}>
         <div style={{
@@ -1291,18 +1408,15 @@ export default function DataBridgePage() {
           }),
         }}>
         {/* Visualizador */}
-        {(step === 'subir' || step === 'mapear') && (
+        {(step === 'subir' || step === 'mapear') && phase !== 'upload' && (
         <div style={fullscreen ? { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column' } : { flex: '1 1 600px', minWidth: 0 }}>
         <div style={fullscreen ? {
           flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-        } : phase === 'upload' ? {
-          background: 'transparent', border: 'none', borderRadius: '20px', padding: 0, marginBottom: '20px',
         } : {
           background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '20px', marginBottom: '20px',
         }}>
 
           {/* Toolbar */}
-          {phase !== 'upload' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: FONT_BODY }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>Mapa de campos</span>
@@ -1331,7 +1445,7 @@ export default function DataBridgePage() {
                 ))}
                 <button onClick={() => { camRef.current = { rx: -25, ry: 30 }; panRef.current = { x: 0, y: 0 }; zoomRef.current = 1; interactedRef.current = false; setView('3d'); draw() }} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid #d9dadc', background: 'transparent', color: '#64748b' }}>↺</button>
                 <div style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 2px' }} />
-                <button onClick={() => uploadMoreRef.current?.click()} title="Subir otro archivo" style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(242,169,59,0.4)', background: 'rgba(242,169,59,0.1)', color: '#C9770B' }}>⬆ Subir otro</button>
+                <button onClick={() => uploadMoreRef.current?.click()} title="Subir otro archivo" style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid rgba(37,99,235,0.4)', background: 'rgba(37,99,235,0.1)', color: '#1D4ED8' }}>⬆ Subir otro</button>
                 <input ref={uploadMoreRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
                 <button onClick={() => setFullscreen(f => !f)} title={fullscreen ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontFamily: FONT_BODY, border: '1px solid #d9dadc', background: 'transparent', color: '#64748b' }}>
                   {fullscreen ? '✕' : '⛶'}
@@ -1339,11 +1453,10 @@ export default function DataBridgePage() {
               </div>
             )}
           </div>
-          )}
 
           {/* Canvas area */}
           <div
-            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#ffffff', border: phase === 'upload' ? '2px dashed #d9dadc' : '1px solid #d9dadc', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
+            style={{ position: 'relative', width: '100%', height: fullscreen ? '100%' : '400px', flex: fullscreen ? 1 : undefined, minHeight: 0, background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '14px', overflow: 'hidden', cursor: phase === 'ready' ? 'grab' : 'default' }}
             onMouseMove={onMouseMove}
             onMouseDown={e => { if (phase !== 'ready') return; interactedRef.current = true; const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); const sx = e.clientX - rect.left; const sy = e.clientY - rect.top; dragRef.current = { on: true, x: sx, y: sy }; clickStartRef.current = { x: sx, y: sy } }}
             onMouseUp={e => {
@@ -1378,37 +1491,14 @@ export default function DataBridgePage() {
             onDragLeave={onDropZoneDragLeave}
             onDrop={onDropZoneDrop}
           >
-            {/* Fondo de partículas */}
-            {phase !== 'upload' && (
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(14,165,233,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
-            )}
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(37,99,235,0.06) 0%, transparent 60%), radial-gradient(ellipse at 70% 30%, rgba(37,99,235,0.04) 0%, transparent 60%)', pointerEvents: 'none' }} />
 
             {/* Overlay de arrastrar y soltar */}
             {isDraggingFile && (
-              <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(242,169,59,0.1)', border: '2px dashed rgba(242,169,59,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', inset: '8px', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', background: 'rgba(37,99,235,0.1)', border: '2px dashed rgba(37,99,235,0.6)', borderRadius: '12px', pointerEvents: 'none' }}>
                 <div style={{ fontSize: '28px' }}>⬇</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: phase === 'upload' ? '#0f172a' : '#e2e8f0', fontFamily: FONT }}>Soltá para cargar</div>
-                <div style={{ fontSize: '12px', color: '#F2A93B', fontFamily: FONT }}>Excel · CSV · JSON</div>
-              </div>
-            )}
-
-            {/* Upload state */}
-            {phase === 'upload' && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', zIndex: 5 }}>
-                <div onClick={() => { if (requireProjectName()) fileInputRef.current?.click() }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>⬆</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>Subí cualquier fuente de datos</div>
-                  <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, textAlign: 'center', maxWidth: '460px', padding: '0 20px' }}>Inventario, leads, financiación, pólizas, retomas o accesorios — arrastrá tus archivos acá o hacé clic para elegir. Excel · CSV · JSON, podés subir varias fuentes juntas</div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    {['Excel', 'CSV', 'JSON'].map(f => (
-                      <span key={f} style={{ fontSize: '11px', color: '#334155', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '3px 10px', fontFamily: FONT }}>{f}</span>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={startDemo} style={{ marginTop: '6px', fontSize: '12px', color: '#F2A93B', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: FONT, textDecoration: 'underline' }}>
-                  o probá con datos de ejemplo →
-                </button>
-                <input ref={fileInputRef} type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: FONT }}>Soltá para cargar</div>
+                <div style={{ fontSize: '12px', color: '#2563EB', fontFamily: FONT }}>Excel · CSV · JSON</div>
               </div>
             )}
 
@@ -1418,7 +1508,7 @@ export default function DataBridgePage() {
                 <div style={{ fontSize: '32px' }}>🔍</div>
                 <div style={{ fontSize: '13px', color: '#475569', fontFamily: FONT_BODY }}>{progLabel}</div>
                 <div style={{ width: '200px', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${progPct}%`, background: 'linear-gradient(90deg,#0ea5e9,#10b981)', borderRadius: '2px', transition: 'width .1s' }} />
+                  <div style={{ height: '100%', width: `${progPct}%`, background: 'linear-gradient(90deg,#2563EB,#1D4ED8)', borderRadius: '2px', transition: 'width .1s' }} />
                 </div>
                 <div style={{ fontSize: '12px', color: '#334155', fontFamily: FONT_BODY }}>{progPct}%</div>
               </div>
@@ -1441,12 +1531,12 @@ export default function DataBridgePage() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: '10px', fontSize: '12px' }}>
-                  <button onClick={() => setSelectedSheetNames(new Set(pendingSheets.map(s => s.name)))} style={{ background: 'transparent', border: 'none', color: '#F2A93B', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Todas</button>
-                  <button onClick={() => setSelectedSheetNames(new Set())} style={{ background: 'transparent', border: 'none', color: '#F2A93B', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Ninguna</button>
+                  <button onClick={() => setSelectedSheetNames(new Set(pendingSheets.map(s => s.name)))} style={{ background: 'transparent', border: 'none', color: '#2563EB', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Todas</button>
+                  <button onClick={() => setSelectedSheetNames(new Set())} style={{ background: 'transparent', border: 'none', color: '#2563EB', cursor: 'pointer', fontFamily: FONT_BODY, textDecoration: 'underline' }}>Ninguna</button>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                   <button onClick={cancelSheetSelection} style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #d9dadc', background: 'transparent', color: '#64748b', fontSize: '13px', cursor: 'pointer', fontFamily: FONT_BODY }}>Cancelar</button>
-                  <button onClick={confirmSheetSelection} disabled={selectedSheetNames.size === 0} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: selectedSheetNames.size === 0 ? '#e2e8f0' : 'linear-gradient(135deg,#0ea5e9,#10b981)', color: selectedSheetNames.size === 0 ? '#94a3b8' : '#fff', fontSize: '13px', fontWeight: 700, cursor: selectedSheetNames.size === 0 ? 'not-allowed' : 'pointer', fontFamily: FONT }}>
+                  <button onClick={confirmSheetSelection} disabled={selectedSheetNames.size === 0} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: selectedSheetNames.size === 0 ? '#e2e8f0' : 'linear-gradient(135deg,#2563EB,#1D4ED8)', color: selectedSheetNames.size === 0 ? '#94a3b8' : '#fff', fontSize: '13px', fontWeight: 700, cursor: selectedSheetNames.size === 0 ? 'not-allowed' : 'pointer', fontFamily: FONT }}>
                     Continuar ({selectedSheetNames.size}) →
                   </button>
                 </div>
@@ -1490,22 +1580,6 @@ export default function DataBridgePage() {
               </div>
             )}
           </div>
-
-          {/* Tarjetas de features — solo antes de subir un archivo */}
-          {phase === 'upload' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '16px' }}>
-              {[
-                { icon: '✨', label: 'Detección IA', desc: 'Mapeo automático de esquemas complejos.' },
-                { icon: '🛡️', label: 'Seguridad', desc: 'Encriptación de punto a punto integrada.' },
-              ].map(f => (
-                <div key={f.label} style={{ background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '14px', padding: '16px' }}>
-                  <div style={{ fontSize: '18px', marginBottom: '8px' }}>{f.icon}</div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#F2A93B', textTransform: 'uppercase', letterSpacing: '.5px', fontFamily: FONT, marginBottom: '4px' }}>{f.label}</div>
-                  <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT, lineHeight: 1.5 }}>{f.desc}</div>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Leyenda */}
           {legendEntries.length > 0 && (
@@ -1716,7 +1790,7 @@ export default function DataBridgePage() {
         <div style={{ flex: '1 1 100%', background: '#ffffff', border: '1px solid #d9dadc', borderRadius: '20px', padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', fontFamily: FONT_BODY }}>Evaluar una relación a fondo</span>
-            <span style={{ fontSize: '10px', color: '#F2A93B', background: 'rgba(242,169,59,0.1)', border: '1px solid rgba(242,169,59,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>IA</span>
+            <span style={{ fontSize: '10px', color: '#2563EB', background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: '999px', padding: '1px 8px', fontWeight: 600 }}>IA</span>
           </div>
           <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY, marginBottom: '14px' }}>
             {loadedSheets.length < 2
@@ -1730,8 +1804,8 @@ export default function DataBridgePage() {
                 <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
                   <div style={{
                     fontSize: '12.5px', lineHeight: 1.5, fontFamily: FONT_BODY, padding: '9px 12px', borderRadius: '10px',
-                    background: m.role === 'user' ? 'rgba(242,169,59,0.1)' : '#f8fafc',
-                    border: `1px solid ${m.role === 'user' ? 'rgba(242,169,59,0.3)' : '#e2e8f0'}`,
+                    background: m.role === 'user' ? 'rgba(37,99,235,0.1)' : '#f8fafc',
+                    border: `1px solid ${m.role === 'user' ? 'rgba(37,99,235,0.3)' : '#e2e8f0'}`,
                     color: '#0f172a',
                   }}>
                     {m.text}
@@ -1742,7 +1816,7 @@ export default function DataBridgePage() {
                 <div style={{ alignSelf: 'flex-start', fontSize: '12px', color: '#94a3b8', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{
                     display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%',
-                    border: '2px solid #e2e8f0', borderTopColor: '#F2A93B', animation: 'pmRelSpin 0.7s linear infinite',
+                    border: '2px solid #e2e8f0', borderTopColor: '#2563EB', animation: 'pmRelSpin 0.7s linear infinite',
                   }} />
                   Evaluando…
                 </div>
@@ -1766,8 +1840,8 @@ export default function DataBridgePage() {
               style={{
                 padding: '10px 18px', borderRadius: '8px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
                 cursor: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? 'default' : 'pointer',
-                background: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
-                color: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#94a3b8' : '#1a1204',
+                background: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#e2e8f0' : 'linear-gradient(135deg,#2563EB,#1D4ED8)',
+                color: (!relacionInput.trim() || loadedSheets.length < 2 || relacionLoading) ? '#94a3b8' : '#ffffff',
               }}
             >
               Evaluar →
@@ -1785,10 +1859,10 @@ export default function DataBridgePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '12px' }}>
                 <div style={{
                   width: '22px', height: '22px', borderRadius: '7px', flexShrink: 0, fontSize: '11px',
-                  background: 'linear-gradient(135deg,#F2A93B,#C9770B)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(242,169,59,0.35)',
+                  background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
                 }}>✨</div>
-                <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#C9770B' }}>
+                <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '10.5px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#1D4ED8' }}>
                   Generado por IA a partir de tu esquema
                 </span>
               </div>
@@ -1804,10 +1878,10 @@ export default function DataBridgePage() {
                 const chip = (num: number, label: string, sub: string, green?: boolean) => (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '12px', flex: '1 1 150px', minWidth: '140px',
-                    background: green ? 'rgba(14,159,110,0.08)' : 'rgba(242,169,59,0.09)',
-                    border: `1px solid ${green ? 'rgba(14,159,110,0.22)' : 'rgba(242,169,59,0.28)'}`,
+                    background: green ? 'rgba(14,159,110,0.08)' : 'rgba(37,99,235,0.09)',
+                    border: `1px solid ${green ? 'rgba(14,159,110,0.22)' : 'rgba(37,99,235,0.28)'}`,
                   }}>
-                    <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: '19px', color: green ? '#0e9f6e' : '#C9770B', lineHeight: 1 }}>{num}</div>
+                    <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: '19px', color: green ? '#0e9f6e' : '#1D4ED8', lineHeight: 1 }}>{num}</div>
                     <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.3 }}>
                       {label}
                       <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8', marginTop: '1px' }}>{sub}</span>
@@ -1825,13 +1899,13 @@ export default function DataBridgePage() {
             </div>
             <div style={{
               flexShrink: 0, width: '250px',
-              background: 'linear-gradient(160deg, rgba(242,169,59,0.09), rgba(242,169,59,0.02))',
-              border: '1px solid rgba(242,169,59,0.28)', borderRadius: '16px', padding: '18px',
+              background: 'linear-gradient(160deg, rgba(37,99,235,0.09), rgba(37,99,235,0.02))',
+              border: '1px solid rgba(37,99,235,0.28)', borderRadius: '16px', padding: '18px',
             }}>
               <style>{`
                 @keyframes pmDesplegarGlow {
-                  0%, 100% { box-shadow: 0 2px 10px rgba(242,169,59,0.24), 0 0 0 0 rgba(242,169,59,0.3); }
-                  50%      { box-shadow: 0 4px 18px rgba(242,169,59,0.36), 0 0 24px 4px rgba(242,169,59,0.26); }
+                  0%, 100% { box-shadow: 0 2px 10px rgba(37,99,235,0.24), 0 0 0 0 rgba(37,99,235,0.3); }
+                  50%      { box-shadow: 0 4px 18px rgba(37,99,235,0.36), 0 0 24px 4px rgba(37,99,235,0.26); }
                 }
                 @keyframes pmDesplegarSheen { 0% { transform: translateX(-140%) skewX(-18deg); } 60%, 100% { transform: translateX(220%) skewX(-18deg); } }
                 @keyframes pmDesplegarBadge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
@@ -1849,8 +1923,8 @@ export default function DataBridgePage() {
               `}</style>
               <div className={desplegando ? undefined : 'pm-desplegar-badge'} style={{
                 width: '36px', height: '36px', borderRadius: '10px', marginBottom: '10px',
-                background: 'linear-gradient(135deg,#F2A93B,#C9770B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
-                boxShadow: '0 4px 10px rgba(242,169,59,0.3)',
+                background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
+                boxShadow: '0 4px 10px rgba(37,99,235,0.3)',
               }}>🚀</div>
               <div style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '5px', lineHeight: 1.25 }}>Desplegá tu panel 360°</div>
               <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#64748b', lineHeight: 1.55, marginBottom: '14px' }}>
@@ -1863,8 +1937,8 @@ export default function DataBridgePage() {
                 style={{
                   width: '100%', padding: '11px 16px', borderRadius: '10px', border: 'none', fontSize: '13px', fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap',
                   cursor: desplegando ? 'default' : 'pointer',
-                  background: desplegando ? '#e2e8f0' : 'linear-gradient(135deg,#F2A93B,#C9770B)',
-                  color: desplegando ? '#94a3b8' : '#1a1204',
+                  background: desplegando ? '#e2e8f0' : 'linear-gradient(135deg,#2563EB,#1D4ED8)',
+                  color: desplegando ? '#94a3b8' : '#ffffff',
                   transition: 'transform .15s ease',
                 }}
                 onMouseEnter={e => { if (!desplegando) e.currentTarget.style.transform = 'translateY(-1px)' }}
@@ -1913,7 +1987,7 @@ export default function DataBridgePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '1px', background: '#e2e8f0', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden' }}>
             {ROADMAP_PROTOTIPO.map(r => (
               <div key={r.paso} style={{ background: '#ffffff', padding: '16px' }}>
-                <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#F2A93B', marginBottom: '8px' }}>{r.paso}</div>
+                <div style={{ fontFamily: FONT_BODY, fontSize: '11px', fontWeight: 700, color: '#2563EB', marginBottom: '8px' }}>{r.paso}</div>
                 <div style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>{r.titulo}</div>
                 <div style={{ fontFamily: FONT_BODY, fontSize: '11.5px', color: '#64748b', lineHeight: 1.5 }}>{r.desc}</div>
               </div>
@@ -1948,7 +2022,7 @@ export default function DataBridgePage() {
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '4px', fontFamily: FONT }}>¿Todo listo?</div>
               <div style={{ fontSize: '13px', color: '#64748b', fontFamily: FONT_BODY }}>Podés subir más fuentes cuando quieras — la IA vuelve a cruzar todo automáticamente.</div>
             </div>
-            <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
+            <label style={{ padding: '11px 20px', borderRadius: '10px', background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, whiteSpace: 'nowrap' }}>
               Subir otra fuente →
               <input type="file" accept=".xlsx,.csv,.json" multiple style={{ display: 'none' }} onChange={onFileInputChange} />
             </label>
@@ -1960,6 +2034,7 @@ export default function DataBridgePage() {
         </div>
 
         {/* Navegación entre pasos */}
+        {phase !== 'upload' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
           <button
             onClick={() => canGoBack && setStep(STEPS[stepIndex - 1].key)}
@@ -1972,19 +2047,20 @@ export default function DataBridgePage() {
             <button
               onClick={() => canGoNext && setStep(STEPS[stepIndex + 1].key)}
               disabled={!canGoNext}
-              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#0ea5e9,#10b981)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
+              style={{ padding: '10px 22px', borderRadius: '10px', border: 'none', background: canGoNext ? 'linear-gradient(135deg,#2563EB,#1D4ED8)' : '#e2e8f0', color: canGoNext ? '#fff' : '#475569', fontSize: '13px', fontWeight: 700, cursor: canGoNext ? 'pointer' : 'default', fontFamily: FONT }}
             >
               Avanzar →
             </button>
           ) : (
             <button
               onClick={() => { if (user) { window.location.href = '/pulse/dashboard' } else { irACrearCuenta() } }}
-              style={{ display: 'inline-block', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#0ea5e9,#10b981)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
+              style={{ display: 'inline-block', padding: '10px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer' }}
             >
               {user ? 'Ir al dashboard →' : 'Crear cuenta gratis →'}
             </button>
           )}
         </div>
+        )}
       </div>
       </div>
     </PulseAppShell>

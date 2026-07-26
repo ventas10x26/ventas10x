@@ -8,11 +8,12 @@ import { createClient } from '@/lib/supabase/client'
 // Íconos: nunca robot/chip/cerebro (regla dura del skill pulsemotor-design) — "Mi agente" usa
 // el bullet de chat (WhatsApp es el canal real del agente), no un ícono de IA genérico.
 const NAV_ITEMS = [
-  { href: '/pulse/dashboard', label: 'Inicio',    icon: '🏠', match: ['/pulse/dashboard'] },
-  { href: '/pulse/agente',    label: 'Mi agente', icon: '💬', match: ['/pulse/agente'] },
-  { href: '/pulse/pipeline',  label: 'Pipeline',  icon: '🎯', match: ['/pulse/pipeline'] },
-  { href: '/pulse/metricas',  label: 'Métricas',  icon: '📊', match: ['/pulse/metricas'] },
-  { href: '/pulse/perfil',    label: 'Mi cuenta', icon: '👤', match: ['/pulse/perfil'] },
+  { href: '/pulse/dashboard',  label: 'Inicio',     icon: '🏠', match: ['/pulse/dashboard'] },
+  { href: '/pulse/databridge', label: 'DataBridge', icon: '🗂', match: ['/pulse/databridge'] },
+  { href: '/pulse/agente',     label: 'Mi agente',  icon: '💬', match: ['/pulse/agente'] },
+  { href: '/pulse/pipeline',   label: 'Pipeline',   icon: '🎯', match: ['/pulse/pipeline'] },
+  { href: '/pulse/metricas',   label: 'Métricas',   icon: '📊', match: ['/pulse/metricas'] },
+  { href: '/pulse/perfil',     label: 'Mi cuenta',  icon: '👤', match: ['/pulse/perfil'] },
 ]
 
 // "Mi agente" y "Pipeline" son vistas del copiloto de UN solo vendedor (su propio WhatsApp,

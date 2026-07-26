@@ -82,7 +82,7 @@ export function PulseStickyDemoWidget() {
           <IconClose />
         </button>
 
-        <p style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--amber)', marginBottom: '6px' }}>
+        <p style={{ fontFamily: 'var(--font-mono), monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: '6px' }}>
           Demo personalizada
         </p>
         <h3 style={{ fontFamily: 'var(--font-inter), sans-serif', fontSize: '18px', fontWeight: 800, color: 'var(--ink)', marginBottom: '4px', lineHeight: 1.2 }}>

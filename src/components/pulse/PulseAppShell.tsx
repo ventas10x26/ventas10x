@@ -76,12 +76,13 @@ function CreditosPill() {
   const critico  = saldo <= 30
   const bajo     = saldo <= 100 && !critico
 
-  // Verde exclusivo para "saldo saludable" (estado aprobado/activo); ámbar para la alerta
-  // temprana (familia de acento única); rojo solo para el estado crítico.
-  const bg     = critico ? 'rgba(229,72,77,0.15)'   : bajo ? 'rgba(242,169,59,0.12)' : 'var(--bg-2)'
-  const border = critico ? 'rgba(229,72,77,0.5)'    : bajo ? 'rgba(242,169,59,0.4)'  : 'var(--line)'
-  const color  = critico ? '#f2a3a5'                 : bajo ? 'var(--amber)'          : 'var(--ink-dim)'
-  const barBg  = critico ? 'var(--red)'              : bajo ? 'var(--amber)'          : 'var(--green)'
+  // Sistema monocromático (pivote 2026-07-25, ver skill pulsemotor-design): azul para saldo
+  // saludable y para la alerta temprana (mismo acento, la urgencia se marca con el tinte de
+  // fondo/borde, no con un segundo hue); rojo exclusivo para el estado crítico.
+  const bg     = critico ? 'rgba(229,72,77,0.15)'   : bajo ? 'rgba(37,99,235,0.12)' : 'var(--bg-2)'
+  const border = critico ? 'rgba(229,72,77,0.5)'    : bajo ? 'rgba(37,99,235,0.4)'  : 'var(--line)'
+  const color  = critico ? '#f2a3a5'                 : bajo ? 'var(--blue)'          : 'var(--ink-dim)'
+  const barBg  = critico ? 'var(--red)'              : 'var(--blue)'
 
   return (
     <a
@@ -151,9 +152,9 @@ function PaywallModal() {
         <h2 style={{ fontFamily: F_DISPLAY, fontSize: '22px', fontWeight: 800, color: 'var(--ink)', marginBottom: '10px' }}>Tus créditos se agotaron</h2>
         <p style={{ fontSize: '15px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '8px' }}>Tu agente respondió activamente leads por vos.</p>
         <p style={{ fontSize: '14px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '28px' }}>
-          Activá tu plan por <strong className="grad-amber" style={{ fontFamily: F_MONO }}>$99.000/mes</strong> para responder leads ilimitados.
+          Activá tu plan por <strong className="grad-blue" style={{ fontFamily: F_MONO }}>$99.000/mes</strong> para responder leads ilimitados.
         </p>
-        <a href="/pulse/pricing" style={{ display: 'block', padding: '14px', borderRadius: '6px', background: 'var(--amber)', color: '#1a1204', fontFamily: F_DISPLAY, fontSize: '15px', fontWeight: 700, textDecoration: 'none', marginBottom: '12px' }}>
+        <a href="/pulse/pricing" style={{ display: 'block', padding: '14px', borderRadius: '6px', background: 'var(--blue)', color: '#FFFFFF', fontFamily: F_DISPLAY, fontSize: '15px', fontWeight: 700, textDecoration: 'none', marginBottom: '12px' }}>
           Activar plan — $99.000/mes →
         </a>
         <p style={{ fontFamily: F_MONO, fontSize: '11px', color: 'var(--ink-dim)' }}>Sin tarjeta · Cancelás cuando querás · Garantía 7 días</p>
@@ -331,7 +332,7 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
 
 function NavLink({ item, active, collapsed, onClick, hoverBg, inkDim }: { item: typeof NAV_ITEMS[0]; active: boolean; collapsed: boolean; onClick: () => void; hoverBg: string; inkDim: string }) {
   return (
-    <button onClick={onClick} title={collapsed ? item.label : undefined} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px' : '10px 12px', borderRadius: '6px', border: 'none', background: active ? 'rgba(242,169,59,0.12)' : 'transparent', color: active ? 'var(--amber)' : inkDim, fontSize: '13px', fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: F_BODY, textAlign: 'left', width: '100%', transition: 'background 0.15s, color 0.15s', justifyContent: collapsed ? 'center' : 'flex-start' }} onMouseEnter={e => { if (!active) e.currentTarget.style.background = hoverBg }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
+    <button onClick={onClick} title={collapsed ? item.label : undefined} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: collapsed ? '10px' : '10px 12px', borderRadius: '6px', border: 'none', background: active ? 'rgba(37,99,235,0.12)' : 'transparent', color: active ? 'var(--blue)' : inkDim, fontSize: '13px', fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: F_BODY, textAlign: 'left', width: '100%', transition: 'background 0.15s, color 0.15s', justifyContent: collapsed ? 'center' : 'flex-start' }} onMouseEnter={e => { if (!active) e.currentTarget.style.background = hoverBg }} onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
       <span style={{ fontSize: '15px', lineHeight: 1 }}>{item.icon}</span>
       {!collapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
     </button>
@@ -340,9 +341,9 @@ function NavLink({ item, active, collapsed, onClick, hoverBg, inkDim }: { item: 
 
 const iconLogoStyle: React.CSSProperties = {
   width: '32px', height: '32px', borderRadius: '6px',
-  background: 'linear-gradient(135deg,#F2A93B,#C9770B)',
+  background: 'linear-gradient(135deg,#2563EB,#1D4ED8)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontSize: '17px', fontWeight: 800, flexShrink: 0, color: '#1a1204',
+  fontSize: '17px', fontWeight: 800, flexShrink: 0, color: '#FFFFFF',
 }
 
 function logoutStyle(collapsed: boolean, inkDim: string): React.CSSProperties {

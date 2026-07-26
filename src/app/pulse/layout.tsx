@@ -43,12 +43,12 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
         .pulse-root {
           --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
           --ink:#F3EFE7; --ink-dim:#9B958A;
-          --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --green-2:#0F3D2B; --red:#E5484D;
-          --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
-          --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
+          --blue:#2563EB; --blue-2:#1D4ED8; --blue-dim:#3D5A99; --red:#E5484D;
+          --grad-blue: linear-gradient(135deg, var(--blue), var(--blue-2));
+          --grad-blue-deep: linear-gradient(135deg, #0B1E4D, var(--blue));
           --ease-out-expo: cubic-bezier(.16,1,.3,1);
         }
-        .pulse-root .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+        .pulse-root .grad-blue { background-image:var(--grad-blue); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
         /* globals.css define h1,h2,h3 { font-family: 'Syne' } para Ventas10x.co; se
            sobreescribe acá (mayor especificidad, sin tocar el archivo compartido) para
            que ningún título de /pulse dependa de esa fuente ancha. */

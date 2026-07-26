@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useReveal } from '@/hooks/useReveal'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import {
-  F_DISPLAY, F_MONO, F_BODY, TOOL_CALLS, SEGMENTS,
+  F_DISPLAY, F_MONO, F_BODY, AGENT_LOG_STEPS, SEGMENTS,
   PulseStyles, PulseHeader, PulseFooter,
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
   SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram,
@@ -26,7 +26,6 @@ export default function PulseMotorLanding() {
   const usuarioLogueado = useUsuarioLogueado()
   const { theme, toggleTheme } = usePulseTheme()
   const [visible, setVisible]                 = useState(false)
-  const [toolCallsVisible, setToolCallsVisible] = useState<number[]>([])
   const activeSection = useSectionScrollSpy(NAV_ITEMS)
 
   const heroScroll      = useScrollProgress<HTMLDivElement>()
@@ -35,15 +34,6 @@ export default function PulseMotorLanding() {
   const segGrid         = useReveal<HTMLDivElement>()
 
   useEffect(() => { const t = setTimeout(() => setVisible(true), 100); return () => clearTimeout(t) }, [])
-
-  // Timeline de tool-calls: se revela fila por fila cuando el panel del hero entra en viewport.
-  useEffect(() => {
-    if (!heroPanel.inView) return
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced) { setToolCallsVisible(TOOL_CALLS.map((_,i)=>i)); return }
-    const timers = TOOL_CALLS.map((_, i) => setTimeout(() => setToolCallsVisible(prev => [...prev, i]), 600 + i * 350))
-    return () => timers.forEach(clearTimeout)
-  }, [heroPanel.inView])
 
   const v = (delay = 0) => ({
     opacity: visible ? 1 : 0,
@@ -88,14 +78,14 @@ export default function PulseMotorLanding() {
                 <span className="badge guard-sweep"><span className="live-dot" />Agente activo · 24/7/365</span>
               </div>
               <h1 style={{ ...v(250), fontFamily:F_DISPLAY, fontSize:'clamp(44px,6.2vw,80px)', fontWeight:800, lineHeight:1.02, letterSpacing:'-1.5px', margin:'0 0 20px', color:'var(--ink)' }}>
-                El copiloto que <span className="grad-amber">nunca deja de cerrar.</span>
+                El copiloto que <span className="grad-blue">nunca deja de cerrar.</span>
               </h1>
               <p style={{ ...v(400), fontSize:'clamp(16px,1.6vw,18px)', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 0 28px', lineHeight:1.65 }}>
                 Pulse Motor despliega agentes autónomos que gestionan cada lead del sector automotriz: vehículo nuevo, versiones, financiación, accesorios, retomas y pólizas — todo el contexto 360° en una sola conversación.
               </p>
               <div style={{ ...v(550), display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'20px' }}>
                 <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Desplegar agente<span className="btn-arrow">→</span></a>
-                <a href="#segmentos" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver segmentos</a>
+                <a href="#segmentos" className="pm-btn pm-btn-dark" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver segmentos</a>
               </div>
               <p style={{ ...v(700), fontSize:'12px', color:'var(--ink-dim)', fontFamily:F_MONO, marginBottom:'36px' }}>WhatsApp Business · DMS · CRM · Aliados financieros</p>
               <a href="#segmentos" className="scroll-cue" style={{ opacity:(visible?1:0) * (heroScroll.reduced ? 1 : (1 - grow)), transition:'opacity 0.7s ease 850ms' }}>
@@ -104,8 +94,8 @@ export default function PulseMotorLanding() {
               </a>
             </div>
 
-            {/* Panel hero: conversación + timeline de tool-calls, que al hacer scroll se
-                agranda, se inclina en 3D y cruza al esquema real detectado por DataBridge. */}
+            {/* Panel hero: log vertical de pasos del agente, que al hacer scroll se agranda,
+                se inclina en 3D y cruza al esquema real detectado por DataBridge. */}
             <div
               ref={heroPanel.ref}
               className={`reveal${heroPanel.inView?' in':''}`}
@@ -120,39 +110,30 @@ export default function PulseMotorLanding() {
                 boxShadow: heroScroll.reduced ? undefined : `0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3), 0 0 ${56 * flash}px ${6 * flash}px rgba(255,255,255,${0.6 * flash})`,
               }}>
                 <div style={heroScroll.reduced ? undefined : { opacity:1 - crossfade, pointerEvents: crossfade > 0.5 ? 'none' : undefined, position: heroScroll.reduced ? undefined : 'absolute', inset: heroScroll.reduced ? undefined : 0 }}>
-                  <div className="panel-head"><span>Precio lead · Ruteo</span><span style={{ color:'var(--green)' }}>Live</span></div>
-                  <div style={{ padding:'16px 18px', borderBottom:'1px solid var(--panel-line)' }}>
-                    <div style={{ fontSize:'13px', color:'var(--panel-ink)', marginBottom:'12px' }}>
-                      <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--panel-ink-dim)', marginRight:'8px' }}>[09:42]</span>
-                      "Me interesa la SUV híbrida, tengo un sedán 2021 para retoma y necesito financiación a 60 meses."
-                    </div>
-                    <div style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--amber)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:'10px' }}>Pulse Agent · Respondiendo</div>
-                    <div style={{ fontSize:'13px', color:'var(--panel-ink-dim)', lineHeight:1.6 }}>
-                      Perfecto. Tasé preliminarmente su 2021 en $42.500.000. Con nuestro aliado bancario logro 1.9% MV y cuota cerrada con póliza todo riesgo. ¿Le envío la proyección por WhatsApp?
-                    </div>
+                  <div className="panel-head">
+                    <span>📄 pulse_agent_v4.2.log</span>
+                    <span style={{ letterSpacing:'2px', color:'var(--panel-ink-dim)' }}>···</span>
                   </div>
-                  <div className="panel-head" style={{ borderBottom:'1px solid var(--panel-line)' }}><span>Timeline · Ejecutado</span></div>
-                  <div>
-                    {TOOL_CALLS.map((t,i) => (
-                      <div key={t.fn} className={`tool-row${toolCallsVisible.includes(i)?' in':''}`}>
-                        <span className="fn"><span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', background:t.chip, marginRight:'8px' }} />{t.fn}</span>
-                        <span className="ms"><span style={{ color:'var(--green)' }}>✓</span>{t.ms}ms</span>
+                  <div style={{ padding:'18px 18px 6px' }}>
+                    {AGENT_LOG_STEPS.map((s, i) => (
+                      <div key={s.titulo} className={`reveal agent-log-step${heroPanel.inView ? ' in' : ''}${i === 1 ? ' agent-log-step-active' : ''}`} style={{ transitionDelay:`${i * 180}ms` }}>
+                        <div className="agent-log-icon">{s.icon}</div>
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ fontSize:'13px', fontWeight:600, color:'var(--panel-ink)' }}>{s.titulo}</div>
+                          <div style={{ fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO }}>{s.dato}</div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  {/* El trámite avanza: el auto recorre la pista al ritmo de los tool-calls ejecutados */}
-                  <div className="tool-road" aria-hidden="true">
-                    <span className="tool-road-car" style={{ left:`${6 + (toolCallsVisible.length / TOOL_CALLS.length) * 88}%` }}>🚗</span>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px' }}>
-                    <span style={{ fontFamily:F_MONO, fontSize:'10px', color:'var(--panel-ink-dim)', textTransform:'uppercase', letterSpacing:'.5px' }}>Conversión estimada</span>
-                    <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'22px', fontWeight:800 }}>87%</span>
+                  <div className="agent-log-footer">
+                    <span><span className="live-dot" style={{ background:'var(--blue)' }} /> SISTEMA EN LÍNEA</span>
+                    <span><strong style={{ color:'var(--blue)', fontSize:'14px' }}>99.8%</strong> <span style={{ color:'var(--panel-ink-dim)' }}>PRECISIÓN</span></span>
                   </div>
                 </div>
 
                 {!heroScroll.reduced && (
                   <div style={{ opacity:crossfade, pointerEvents: crossfade > 0.5 ? undefined : 'none', position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                    <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
+                    <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--blue)' }}>✓ 5 tablas</span></div>
                     <DataBridgeMiniDiagram />
                     <div style={{ padding:'14px 18px', fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO, borderTop:'1px solid var(--panel-line)' }}>
                       Detectado desde tu Excel o DMS — sin escribir una sola línea de SQL.

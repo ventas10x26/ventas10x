@@ -57,7 +57,7 @@ export const COBERTURA = [
 // Chips de color decorativos por categoría (estilo Platzi) — solo para íconos de grids
 // catalogados, nunca para texto/CTA/fondo de sección. Ver "Chips de categoría" en tokens.md.
 export const CUMPLIMIENTO = [
-  { icon:'🔒', label:'Cifrado end-to-end', chip:'#4C8DFF' },
+  { icon:'🔒', label:'Cifrado end-to-end', chip:'#FB923C' },
   { icon:'✅', label:'WhatsApp Business API verificado', chip:'#2DD4BF' },
   { icon:'🌎', label:'Datos alojados en LatAm', chip:'#A78BFA' },
   { icon:'📋', label:'Cumplimiento Habeas Data (Ley 1581)', chip:'#FB7185' },
@@ -67,7 +67,7 @@ export const CUMPLIMIENTO = [
 
 // ─── Ecosistema 360° — catálogo de puntos de fricción cubiertos, no pasos secuenciales ───
 export const ECOSISTEMA = [
-  { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.', chip:'#4C8DFF' },
+  { num:'01', icon:'🚗', titulo:'Vehículos nuevos', desc:'Inventario en vivo y todas las versiones cotizadas en segundos.', chip:'#F2A93B' },
   { num:'02', icon:'%',  titulo:'Financiación',     desc:'Simulaciones y pre-aprobaciones con aliados bancarios integrados.', chip:'#A78BFA' },
   { num:'03', icon:'＋', titulo:'Accesorios',        desc:'Upselling contextual según modelo, uso y perfil del comprador.', chip:'#2DD4BF' },
   { num:'04', icon:'⇄',  titulo:'Retomas',           desc:'Tasación asistida por IA con histórico de mercado y estado real.', chip:'#FB7185' },
@@ -170,12 +170,12 @@ export const AUDIT_LOG = [
 ]
 
 export const INTEGRACIONES = [
-  { name:'WhatsApp Business',    chip:'#4C8DFF' },
+  { name:'WhatsApp Business',    chip:'#F2A93B' },
   { name:'Siigo · SAP DMS',      chip:'#818CF8' },
   { name:'Aliados financieros',  chip:'#A78BFA' },
   { name:'Aseguradoras LATAM',   chip:'#FB7185' },
   { name:'Portal de accesorios', chip:'#2DD4BF' },
-  { name:'HubSpot · Salesforce', chip:'#4C8DFF' },
+  { name:'HubSpot · Salesforce', chip:'#FB923C' },
 ]
 
 export const TESTIMONIOS_V2 = [
@@ -237,7 +237,7 @@ export function useSectionScrollSpy(navItems: NavItem[]) {
 // ─── Componentes de presentación pequeños ───
 
 export function SegIcon({ variant }: { variant: 'amber' | 'green' }) {
-  const color = variant === 'amber' ? 'var(--amber)' : 'var(--green)'
+  const color = 'var(--blue)'
   return variant === 'amber' ? (
     // Red hub-and-spoke: eco del esquema de DataBridge (multi-sucursal)
     <svg width="52" height="52" viewBox="0 0 56 56" fill="none" stroke={color} strokeWidth="1.4" aria-hidden="true">
@@ -274,7 +274,7 @@ export function DataBridgeMiniDiagram() {
 export function SchemaPreview() {
   return (
     <div className="panel" style={{ marginBottom:'22px' }}>
-      <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--green)' }}>✓ 5 tablas</span></div>
+      <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--blue)' }}>✓ 5 tablas</span></div>
       <DataBridgeMiniDiagram />
     </div>
   )
@@ -291,7 +291,7 @@ export const WA_MESSAGES = [
 export function WhatsAppMiniPreview({ active }: { active: boolean }) {
   return (
     <div className="panel" style={{ marginBottom:'22px' }}>
-      <div className="panel-head"><span>WhatsApp Business · Copiloto activo</span><span style={{ color:'var(--green)' }}>● en vivo</span></div>
+      <div className="panel-head"><span>WhatsApp Business · Copiloto activo</span><span style={{ color:'var(--blue)' }}>● en vivo</span></div>
       <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:'8px' }}>
         {WA_MESSAGES.map((m,i) => (
           <div key={i} className={`reveal wa-bubble wa-${m.from}${active?' in':''}`} style={{ transitionDelay:`${i*220}ms` }}>
@@ -303,13 +303,48 @@ export function WhatsAppMiniPreview({ active }: { active: boolean }) {
   )
 }
 
+// ─── Log vertical de pasos del agente (elemento de firma, reemplaza el timeline horizontal
+// de tool-calls) — una traza legible de lo que el agente resolvió en un caso real, en vez de
+// nombres de función de código. Ver "Log vertical de pasos del agente" en tokens.md. ───
+export const AGENT_LOG_STEPS = [
+  { icon:'👤', titulo:'Entrada de Lead', dato:'Detectado: WhatsApp Business' },
+  { icon:'🤖', titulo:'Análisis de Perfil IA', dato:'Calificación: Alta intención (Financiación)' },
+  { icon:'➤', titulo:'Distribución Inteligente', dato:'Asignado a: Asesor Senior (Grupo A)' },
+] as const
+
+export function PulseAgentLog({ active, precision = '99.8%' }: { active: boolean; precision?: string }) {
+  return (
+    <div className="panel" style={{ marginBottom:'22px' }}>
+      <div className="panel-head">
+        <span>📄 pulse_agent_v4.2.log</span>
+        <span style={{ letterSpacing:'2px', color:'var(--panel-ink-dim)' }}>···</span>
+      </div>
+      <div style={{ padding:'20px 18px 6px' }}>
+        {AGENT_LOG_STEPS.map((s, i) => (
+          <div key={s.titulo} className={`reveal agent-log-step${active ? ' in' : ''}${i === 1 ? ' agent-log-step-active' : ''}`} style={{ transitionDelay:`${i * 180}ms` }}>
+            <div className="agent-log-icon">{s.icon}</div>
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:'13px', fontWeight:600, color:'var(--panel-ink)' }}>{s.titulo}</div>
+              <div style={{ fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO }}>{s.dato}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="agent-log-footer">
+        <span><span className="live-dot" style={{ background:'var(--blue)' }} /> SISTEMA EN LÍNEA</span>
+        <span><strong style={{ color:'var(--blue)', fontSize:'14px' }}>{precision}</strong> <span style={{ color:'var(--panel-ink-dim)' }}>PRECISIÓN</span></span>
+      </div>
+    </div>
+  )
+}
+
 export function StatCell({ val, delta, label, active, delayMs }: { val: string; delta: string; label: string; active: boolean; delayMs: number }) {
   const displayed = useCountUp(val, active)
   return (
     <div className={`reveal stat-cell${active?' in':''}`} style={{ transitionDelay:`${delayMs}ms` }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-        <span className="grad-amber" style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:800 }}>{displayed}</span>
-        <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--green)' }}>{delta}</span>
+        <span className="grad-blue" style={{ fontFamily:F_DISPLAY, fontSize:'32px', fontWeight:800 }}>{displayed}</span>
+        <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--blue)' }}>{delta}</span>
       </div>
       <div style={{ fontSize:'12px', color:'var(--ink-dim)', marginTop:'4px' }}>{label}</div>
     </div>
@@ -338,11 +373,16 @@ export function ThemeToggle({ theme, onToggle }: { theme: PulseTheme; onToggle: 
 }
 
 export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, onToggleTheme }: { navItems: NavItem[]; activeSection?: string; usuarioLogueado: string | null; theme: PulseTheme; onToggleTheme: () => void }) {
+  // Header siempre oscuro sólido, sin importar el tema de la página (regla dura 9) — por eso
+  // su texto usa var(--panel-ink*) en vez de var(--ink*), y el botón "Login" usa un borde
+  // blanco translúcido en vez de var(--line) (que en soft sería casi invisible sobre negro).
   return (
-    <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'var(--header-bg)', backdropFilter:'blur(10px)', borderBottom:'1px solid var(--line)' }}>
+    <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'var(--header-bg)', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
       <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
-        <div style={{ width:'10px', height:'10px', background:'var(--amber)', borderRadius:'2px' }} />
-        <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2 12h4l2.5-7 4 14 2.5-7H21" />
+        </svg>
+        <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--panel-ink)' }}>Pulse Motor</span>
       </a>
       <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
         {navItems.map(item => (
@@ -355,7 +395,7 @@ export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, o
           <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente<span className="btn-arrow">→</span></a>
         ) : (
           <>
-            <a href="/pulse/login" className="pm-btn pm-btn-ghost" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 16px', fontSize:'12px' }}>Login</a>
+            <a href="/pulse/login" className="pm-btn pm-btn-ghost" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 16px', fontSize:'12px', borderColor:'rgba(255,255,255,0.2)', color:'var(--panel-ink)' }}>Login</a>
             <a href="/pulse/signup" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 18px', fontSize:'12px' }}>Ser agente<span className="btn-arrow">→</span></a>
           </>
         )}
@@ -371,7 +411,7 @@ export function PulseFooter() {
         <div className="footer-grid" style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr', gap:'32px', marginBottom:'48px' }}>
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
-              <div style={{ width:'10px', height:'10px', background:'var(--amber)', borderRadius:'2px' }} />
+              <div style={{ width:'10px', height:'10px', background:'var(--blue)', borderRadius:'2px' }} />
               <span style={{ fontSize:'15px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)' }}>Pulse Motor</span>
             </div>
             <p style={{ fontSize:'13px', color:'var(--ink-dim)', lineHeight:1.6, maxWidth:'26ch' }}>Agentes autónomos que orquestan la venta automotriz 360° en LatAm.</p>
@@ -415,7 +455,7 @@ export function DiferenciadoresSection() {
         <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
           <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Lo que nos hace distintos</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            No es un chatbot más. <span className="grad-amber">Es un agente que ejecuta.</span>
+            No es un chatbot más. <span className="grad-blue">Es un agente que ejecuta.</span>
           </h2>
           <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto', lineHeight:1.6 }}>
             Cuatro diferencias que se notan desde el primer lead — no promesas genéricas de IA.
@@ -426,7 +466,7 @@ export function DiferenciadoresSection() {
           {DIFERENCIADORES.map((d,i) => (
             <div key={d.num} className={`reveal eco-cell${grid.inView?' in':''}`} style={{ transitionDelay:`${i*90}ms` }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'14px' }}>
-                <span className="eco-icon" style={{ fontSize:'17px', width:'36px', height:'36px', borderRadius:'8px', display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(242,169,59,0.13)', border:'1px solid rgba(242,169,59,0.35)' }}>{d.icon}</span>
+                <span className="eco-icon" style={{ fontSize:'17px', width:'36px', height:'36px', borderRadius:'8px', display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(37,99,235,0.13)', border:'1px solid rgba(37,99,235,0.35)' }}>{d.icon}</span>
                 <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>{d.num}</span>
               </div>
               <h3 style={{ fontSize:'15px', fontWeight:700, fontFamily:F_DISPLAY, marginBottom:'6px', color:'var(--ink)' }}>{d.titulo}</h3>
@@ -458,7 +498,7 @@ export function InsumosSection() {
         <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
           <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Cómo empieza</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            No arrancás de cero. <span className="grad-amber">Arrancás de lo que ya tenés.</span>
+            No arrancás de cero. <span className="grad-blue">Arrancás de lo que ya tenés.</span>
           </h2>
           <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'620px', margin:'0 auto', lineHeight:1.6 }}>
             El prototipo de tu concesionario nace de las bases que tu equipo ya usa a diario — CRM, ERP, Google Sheets, SharePoint o Excel de cada sede. Las subís a DataBridge y el agente empieza a entender tu operación real, sin migrar nada.
@@ -468,7 +508,7 @@ export function InsumosSection() {
         <div ref={grupos.ref} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px', marginBottom:'32px' }} className="insumos-grid">
           {INSUMOS_GRUPOS.map((g,gi) => (
             <div key={g.label} className={`reveal${grupos.inView?' in':''}`} style={{ border:'1px solid var(--line)', borderRadius:'8px', padding:'22px 20px', transitionDelay:`${gi*100}ms` }}>
-              <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--amber)', fontWeight:700, margin:'0 0 14px' }}>{g.label}</p>
+              <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--blue)', fontWeight:700, margin:'0 0 14px' }}>{g.label}</p>
               <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
                 {g.items.map(item => (
                   <span key={item} style={{ fontFamily:F_MONO, fontSize:'11.5px', color:'var(--ink)', background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'999px', padding:'6px 12px', lineHeight:1.3 }}>{item}</span>
@@ -511,7 +551,7 @@ export function EmbudoSection() {
         <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'40px' }}>
           <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Cómo funciona</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            Un embudo que se mide <span className="grad-amber">en cada etapa.</span>
+            Un embudo que se mide <span className="grad-blue">en cada etapa.</span>
           </h2>
           <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto', lineHeight:1.6 }}>
             Desde el primer contacto hasta la matrícula — sin importar la marca que vendas, el método es el mismo. Ejemplo ilustrativo:
@@ -523,8 +563,8 @@ export function EmbudoSection() {
             <div key={e.etapa} className={`reveal${funnel.inView?' in':''}`} style={{ display:'grid', gridTemplateColumns:'130px 1fr 120px', alignItems:'center', gap:'16px', transitionDelay:`${i*90}ms` }}>
               <span style={{ fontSize:'14px', fontWeight:700, color:'var(--ink)', textAlign:'right' }}>{e.etapa}</span>
               <div style={{ position:'relative', height:'32px', background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'6px', overflow:'hidden' }}>
-                <div style={{ position:'absolute', top:0, bottom:0, left:0, right:`${funnel.inView ? 100 - (e.valor / max) * 100 : 100}%`, background:'var(--grad-amber)', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:'10px', transition:`right .8s var(--ease-out-expo) ${i*90}ms` }}>
-                  <span style={{ fontFamily:F_MONO, fontSize:'12px', fontWeight:700, color:'#1a1204' }}>{e.valor}</span>
+                <div style={{ position:'absolute', top:0, bottom:0, left:0, right:`${funnel.inView ? 100 - (e.valor / max) * 100 : 100}%`, background:'var(--grad-blue)', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:'10px', transition:`right .8s var(--ease-out-expo) ${i*90}ms` }}>
+                  <span style={{ fontFamily:F_MONO, fontSize:'12px', fontWeight:700, color:'#FFFFFF' }}>{e.valor}</span>
                 </div>
               </div>
               <span style={{ fontFamily:F_MONO, fontSize:'12px', color:'var(--ink-dim)' }}>{e.conv ?? 'base'}</span>
@@ -542,7 +582,7 @@ export function EmbudoSection() {
                 <div style={{ background:'var(--bg-1)', border:'1px solid var(--line)', borderRadius:'8px', padding:'14px 20px', textAlign:'center', minWidth:'130px' }}>
                   <span style={{ fontSize:'14px', fontWeight:700, color:'var(--ink)' }}>{etapa}</span>
                 </div>
-                {i < 2 && <span style={{ color:'var(--amber-dim)', fontSize:'18px', padding:'0 12px' }}>→</span>}
+                {i < 2 && <span style={{ color:'var(--blue-dim)', fontSize:'18px', padding:'0 12px' }}>→</span>}
               </div>
             ))}
           </div>
@@ -561,7 +601,7 @@ export function PorQueSection() {
         <div ref={porQueText.ref} className={`reveal${porQueText.inView?' in':''}`} style={{ flex:'1', minWidth:'320px' }}>
           <p className="kicker">Por qué Pulse Motor</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            La cobertura que tu WhatsApp <span className="grad-amber">nunca tuvo.</span>
+            La cobertura que tu WhatsApp <span className="grad-blue">nunca tuvo.</span>
           </h2>
           <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'480px', lineHeight:1.6, marginBottom:'22px' }}>No reemplaza a tu equipo — cubre las horas y los picos que tu equipo no puede.</p>
           <div>
@@ -571,12 +611,12 @@ export function PorQueSection() {
 
         <div ref={coberturaPanel.ref} className={`reveal${coberturaPanel.inView?' in':''}`} style={{ flex:'1', minWidth:'320px', maxWidth:'460px' }}>
           <div className="panel">
-            <div className="panel-head"><span>Cobertura · 24/7/365</span><span style={{ color:'var(--green)' }}>Activo</span></div>
+            <div className="panel-head"><span>Cobertura · 24/7/365</span><span style={{ color:'var(--blue)' }}>Activo</span></div>
             {COBERTURA.map((c,i) => (
               <div key={c.rango} className={`log-row log-row-data${coberturaPanel.inView?' in':''}`} style={{ gridTemplateColumns:'130px 1fr 100px', transitionDelay:`${i*90}ms` }}>
                 <span className="log-time">{c.rango}</span>
                 <span className="log-evento">{c.evento}</span>
-                <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--green)', textAlign:'right' }}>✓ Cubierto</span>
+                <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--blue)', textAlign:'right' }}>✓ Cubierto</span>
               </div>
             ))}
           </div>
@@ -626,7 +666,7 @@ export function EcosistemaSection({ showNuevo = false }: { showNuevo?: boolean }
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
                   <h3 style={{ fontSize:'14px', fontWeight:700, fontFamily:F_DISPLAY, color:'var(--ink)', margin:0 }}>{e.titulo}</h3>
-                  <span style={{ fontFamily:F_MONO, fontSize:'10px', fontWeight:700, color:'var(--amber)', border:'1px solid var(--amber-dim)', borderRadius:'3px', padding:'1px 6px', letterSpacing:'.5px' }}>NUEVO</span>
+                  <span style={{ fontFamily:F_MONO, fontSize:'10px', fontWeight:700, color:'var(--blue)', border:'1px solid var(--blue-dim)', borderRadius:'3px', padding:'1px 6px', letterSpacing:'.5px' }}>NUEVO</span>
                 </div>
                 <p style={{ fontSize:'12px', color:'var(--ink-dim)', lineHeight:1.5, margin:0 }}>{e.desc}</p>
               </div>
@@ -686,7 +726,7 @@ export function IntegracionesSection() {
         <p className="kicker">Integraciones nativas</p>
         <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'10px', color:'var(--ink)' }}>Vive dentro de tu stack, no encima.</h2>
         <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'520px', lineHeight:1.6, marginBottom:'18px' }}>El agente lee inventario, dispara cotizaciones y sincroniza el CRM sin exportaciones ni copiar-pegar.</p>
-        <a href="/pulse/pricing" className="link-arrow" style={{ fontSize:'13px', color:'var(--amber)', textDecoration:'none', fontFamily:F_MONO }}>Ver todas las integraciones<span className="btn-arrow">→</span></a>
+        <a href="/pulse/pricing" className="link-arrow" style={{ fontSize:'13px', color:'var(--blue)', textDecoration:'none', fontFamily:F_MONO }}>Ver todas las integraciones<span className="btn-arrow">→</span></a>
       </div>
       <div ref={integGrid.ref} className="grid-shared integ-grid" style={{ gridTemplateColumns:'repeat(3,1fr)' }}>
         {INTEGRACIONES.map((it,i) => (
@@ -762,7 +802,7 @@ export function PreciosSection({ initialSegment, showToggle }: { initialSegment:
       <div ref={ctaFinal.ref} className={`reveal${ctaFinal.inView?' in':''}`} style={{ marginBottom:'40px' }}>
         <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Precios</p>
         <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,4vw,48px)', fontWeight:800, letterSpacing:'-.5px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-          Elegí el plan para <span className="grad-amber">tu forma de vender.</span>
+          Elegí el plan para <span className="grad-blue">tu forma de vender.</span>
         </h2>
         <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'480px', margin:'0 auto 32px', lineHeight:1.6 }}>Sin costos por lead. Sin implementación oculta. Cobrás por resultado, no por promesas.</p>
         {showToggle && (
@@ -846,8 +886,8 @@ export function PulseLeadForm({ compact = false, onSuccess }: { compact?: boolea
   if (status === 'ok') {
     return (
       <div style={{ textAlign:'center', padding:'2rem 0' }}>
-        <div style={{ width:'52px', height:'52px', borderRadius:'50%', margin:'0 auto 1rem', background:'rgba(62,207,126,0.12)', border:'1px solid rgba(62,207,126,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        <div style={{ width:'52px', height:'52px', borderRadius:'50%', margin:'0 auto 1rem', background:'rgba(37,99,235,0.12)', border:'1px solid rgba(37,99,235,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
         </div>
         <div style={{ fontSize:'17px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--ink)', marginBottom:'8px' }}>Solicitud recibida</div>
         <div style={{ fontSize:'14px', color:'var(--ink-dim)', lineHeight:1.6 }}>Un especialista de Pulse Motor te escribe por WhatsApp muy pronto.</div>
@@ -944,7 +984,7 @@ export function PulseStickyWidget() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px' }}>
-            <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0, background:'rgba(242,169,59,0.14)', border:'1px solid var(--amber-dim)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--amber)' }}>
+            <div style={{ width:'36px', height:'36px', borderRadius:'10px', flexShrink:0, background:'rgba(37,99,235,0.14)', border:'1px solid var(--blue-dim)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--blue)' }}>
               <IconChatBubble />
             </div>
             <div>
@@ -975,18 +1015,18 @@ export function ContactoVentasSection({ segmento }: { segmento: 'concesionario' 
     <section id="hablar-con-ventas" style={{ padding:'1rem 24px 6rem' }}>
       <div ref={reveal.ref} className={`reveal seg-grid${reveal.inView?' in':''}`} style={{
         maxWidth:'1100px', margin:'0 auto', position:'relative', overflow:'hidden',
-        border:'1px solid var(--amber-dim)', borderRadius:'20px', padding:'3rem',
+        border:'1px solid var(--blue-dim)', borderRadius:'20px', padding:'3rem',
         boxShadow:'var(--shadow-lg)',
         display:'grid', gridTemplateColumns:'minmax(260px, 1fr) minmax(300px, 1.1fr)', gap:'2.5rem', alignItems:'start',
       }}>
-        <div style={{ position:'absolute', top:'-160px', left:'5%', width:'440px', height:'440px', borderRadius:'50%', background:'radial-gradient(circle, rgba(242,169,59,0.16) 0%, transparent 70%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:'-160px', left:'5%', width:'440px', height:'440px', borderRadius:'50%', background:'radial-gradient(circle, rgba(37,99,235,0.16) 0%, transparent 70%)', pointerEvents:'none' }} />
         <div style={{ position:'relative' }}>
           <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'16px', flexWrap:'wrap' }}>
             <p className="kicker" style={{ marginBottom:0 }}>Para ventas</p>
             <span className="badge" style={{ padding:'4px 11px', fontSize:'11px' }}><span className="live-dot" />{stat}</span>
           </div>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(26px,3.2vw,42px)', fontWeight:800, letterSpacing:'-.015em', lineHeight:1.15, marginBottom:'1.1rem', color:'var(--ink)' }}>
-            Hable con <span className="grad-amber">un especialista de Pulse Motor</span>
+            Hable con <span className="grad-blue">un especialista de Pulse Motor</span>
           </h2>
           <p style={{ fontSize:'15px', color:'var(--ink-dim)', lineHeight:1.8, marginBottom:'2rem' }}>
             Cuéntenos cómo vende hoy su equipo y le mostramos cómo desplegar el agente en su WhatsApp Business en días, no en meses.
@@ -1026,40 +1066,40 @@ export function PulseStyles() {
       :root, .pulse-theme-root {
         --bg-0:#FDFBF7; --bg-1:#FFFFFF; --bg-2:#F5F1E9; --bg-3:#F7F3EC; --bg-4:#F1EAE0; --line:#E7E0D2;
         --ink:#1A1712; --ink-dim:#726B5E;
-        --amber:#F2A93B; --amber-2:#C9770B; --amber-dim:#8A6423; --green:#3ECF7E; --red:#E5484D;
-        --grad-amber: linear-gradient(135deg, var(--amber), var(--amber-2));
-        --green-2:#0F3D2B;
-        --grad-green: linear-gradient(135deg, var(--green-2), var(--green));
+        --blue:#2563EB; --blue-2:#1D4ED8; --blue-dim:#3D5A99; --red:#E5484D;
+        --grad-blue: linear-gradient(135deg, var(--blue), var(--blue-2));
+        --grad-blue-deep: linear-gradient(135deg, #0B1E4D, var(--blue));
         --ease-out-expo: cubic-bezier(.16,1,.3,1);
 
         --panel-bg:#14120F; --panel-bg-2:#1B1815; --panel-line:#2A2620; --panel-ink:#F3EFE7; --panel-ink-dim:#9B958A;
 
-        --header-bg: rgba(253,251,247,0.85);
+        /* Header siempre oscuro sólido, no reacciona al toggle de tema (ver regla dura 9). */
+        --header-bg: #0B0D12;
         --shadow-lg: 0 20px 40px rgba(30,24,15,0.10), 0 6px 14px rgba(30,24,15,0.06);
         --shadow-sm: 0 1px 2px rgba(30,24,15,0.05);
-        --seg-wash-amber: linear-gradient(165deg, rgba(242,169,59,0.16) 0%, rgba(242,169,59,0.05) 44%, var(--bg-1) 80%);
-        --seg-wash-green: linear-gradient(165deg, rgba(62,207,126,0.16) 0%, rgba(62,207,126,0.05) 44%, var(--bg-1) 80%);
+        --seg-wash-amber: linear-gradient(165deg, rgba(37,99,235,0.16) 0%, rgba(37,99,235,0.05) 44%, var(--bg-1) 80%);
+        --seg-wash-green: linear-gradient(165deg, rgba(37,99,235,0.16) 0%, rgba(37,99,235,0.05) 44%, var(--bg-1) 80%);
         --seg-badge-border: var(--line); --seg-badge-ink: var(--ink-dim);
-        --seg-badge-dot: var(--green); --seg-badge-dot-shadow: rgba(62,207,126,0.55);
+        --seg-badge-dot: var(--blue); --seg-badge-dot-shadow: rgba(37,99,235,0.55);
         --seg-hover-ink: var(--ink);
-        --hero-mesh: radial-gradient(560px circle at 6% -12%, rgba(242,169,59,0.14), transparent 62%), radial-gradient(560px circle at 97% -12%, rgba(62,207,126,0.12), transparent 62%);
+        --hero-mesh: radial-gradient(560px circle at 6% -12%, rgba(37,99,235,0.14), transparent 62%), radial-gradient(560px circle at 97% -12%, rgba(37,99,235,0.08), transparent 62%);
       }
       .pulse-theme-root[data-theme='dark'] {
         --bg-0:#0B0D0C; --bg-1:#14120F; --bg-2:#1B1815; --bg-3:#241F1A; --bg-4:#2D2721; --line:#2A2620;
         --ink:#F3EFE7; --ink-dim:#9B958A;
 
-        --header-bg: rgba(11,13,12,0.85);
+        --header-bg: #0B0D12;
         --shadow-lg: 0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3);
         --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-        --seg-wash-amber: linear-gradient(165deg, rgba(242,169,59,0.8) 0%, rgba(242,169,59,0.32) 44%, var(--bg-1) 80%);
-        --seg-wash-green: linear-gradient(165deg, rgba(62,207,126,0.8) 0%, rgba(62,207,126,0.32) 44%, var(--bg-1) 80%);
+        --seg-wash-amber: linear-gradient(165deg, rgba(37,99,235,0.8) 0%, rgba(37,99,235,0.32) 44%, var(--bg-1) 80%);
+        --seg-wash-green: linear-gradient(165deg, rgba(37,99,235,0.8) 0%, rgba(37,99,235,0.32) 44%, var(--bg-1) 80%);
         --seg-badge-border: rgba(255,255,255,0.35); --seg-badge-ink: #fff;
         --seg-badge-dot: #fff; --seg-badge-dot-shadow: rgba(255,255,255,0.55);
         --seg-hover-ink: #fff;
         --hero-mesh: none;
       }
       body { background: var(--bg-0); }
-      ::selection { background:rgba(242,169,59,0.35); color:#fff; }
+      ::selection { background:rgba(37,99,235,0.35); color:#fff; }
       .pulse-theme-root { background-color:var(--bg-0); background-image:var(--hero-mesh); background-repeat:no-repeat; transition:background-color .3s ease; }
 
       /* ── Ritmo de fondo entre secciones: tonos oscuros graduados + un momento en vivo ──
@@ -1073,28 +1113,30 @@ export function PulseStyles() {
         background: var(--bg-3);
         --bg-1: var(--bg-4);
       }
-      /* Momento "en vivo": eleva el verde de estado a degradé de sección — no es un hue nuevo,
-         es la misma semántica de "activo/en vivo" ya usada en el punto pulsante, ahora a escala hero.
-         Las celdas/paneles flotan como vidrio esmerilado oscuro encima del degradé (mismo patrón que
-         usa el ámbar en el hero), así el contenido interno sigue leyendo con los tokens normales. */
+      /* Momento "en vivo": eleva el azul de marca a degradé de sección completo — no es un hue
+         nuevo, es la misma marca llevada a escala hero, igual que el propio azul ya tiene su
+         degradé tonal para cifras y énfasis (--grad-blue). Reemplaza el degradé verde de la
+         iteración anterior, retirado junto con el resto del verde de estado. Las celdas/paneles
+         flotan como vidrio esmerilado oscuro encima del degradé, así el contenido interno sigue
+         leyendo con los tokens normales. */
       .section-live {
-        background: var(--grad-green);
-        --bg-1: rgba(6,20,14,0.55); --bg-2: rgba(6,20,14,0.75); --line: rgba(255,255,255,0.16);
+        background: var(--grad-blue-deep);
+        --bg-1: rgba(10,20,40,0.55); --bg-2: rgba(10,20,40,0.75); --line: rgba(255,255,255,0.16);
         --ink: #FFFFFF; --ink-dim: rgba(255,255,255,0.72);
       }
 
-      .grad-amber { background-image:var(--grad-amber); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
+      .grad-blue { background-image:var(--grad-blue); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
 
       .guard-sweep { position:relative; }
       .guard-sweep::before {
         content:''; position:absolute; inset:-60%; z-index:-1; border-radius:50%; pointer-events:none;
-        background: conic-gradient(from 0deg, transparent 0deg, rgba(242,169,59,0.18) 18deg, transparent 50deg);
+        background: conic-gradient(from 0deg, transparent 0deg, rgba(37,99,235,0.18) 18deg, transparent 50deg);
         animation: guardSweep 9s linear infinite;
       }
       @keyframes guardSweep { to { transform: rotate(360deg); } }
 
       .pm-input { width:100%; padding:13px 16px; border-radius:6px; border:1.5px solid var(--line); background:rgba(255,255,255,0.02); color:var(--ink); font-size:15px; font-family:${F_BODY}; outline:none; transition:border-color .15s, box-shadow .15s; }
-      .pm-input:focus { border-color:var(--amber-dim); box-shadow:0 0 0 3px rgba(242,169,59,0.16); }
+      .pm-input:focus { border-color:var(--blue-dim); box-shadow:0 0 0 3px rgba(37,99,235,0.16); }
       .pm-input::placeholder { color:var(--ink-dim); }
 
       .pulse-lead-label { display:block; font-size:12px; font-weight:600; color:var(--ink-dim); margin-bottom:6px; }
@@ -1103,23 +1145,28 @@ export function PulseStyles() {
       .pulse-widget { animation:pulseWidgetIn .5s var(--ease-out-expo); }
       .pulse-widget-bubble { position:relative; width:auto; display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 16px; border-radius:999px; }
       .pulse-widget-bubble-icon { width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-      .pulse-widget-ring { position:absolute; inset:0; border-radius:999px; box-shadow:0 0 0 0 rgba(242,169,59,0.55); animation:pulseWidgetRing 2.4s ease-out infinite; pointer-events:none; }
+      .pulse-widget-ring { position:absolute; inset:0; border-radius:999px; box-shadow:0 0 0 0 rgba(37,99,235,0.55); animation:pulseWidgetRing 2.4s ease-out infinite; pointer-events:none; }
       .pulse-widget-card { position:relative; }
       .pulse-widget-close { position:absolute; top:14px; right:14px; background:none; border:none; color:var(--ink-dim); cursor:pointer; padding:4px; display:flex; transition:color .15s ease; }
       .pulse-widget-close:hover { color:var(--ink); }
       @keyframes pulseWidgetIn { from{ opacity:0; transform:translateY(24px); } to{ opacity:1; transform:translateY(0); } }
-      @keyframes pulseWidgetRing { 0%{ box-shadow:0 0 0 0 rgba(242,169,59,0.55); } 70%{ box-shadow:0 0 0 14px transparent; } 100%{ box-shadow:0 0 0 0 transparent; } }
+      @keyframes pulseWidgetRing { 0%{ box-shadow:0 0 0 0 rgba(37,99,235,0.55); } 70%{ box-shadow:0 0 0 14px transparent; } 100%{ box-shadow:0 0 0 0 transparent; } }
       @media (prefers-reduced-motion: reduce) {
         .pulse-widget, .pulse-widget-ring { animation:none; }
       }
 
-      .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--amber); background:var(--amber); color:#1a1204; font-size:14px; font-weight:700; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s, transform .15s, box-shadow .15s; }
-      .pm-btn:hover:not(:disabled) { background:#ffc266; border-color:#ffc266; transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.35); }
+      .pm-btn { width:100%; padding:14px; border-radius:6px; border:1px solid var(--blue); background:var(--blue); color:#FFFFFF; font-size:14px; font-weight:700; cursor:pointer; font-family:${F_DISPLAY}; transition:background-color .15s, transform .15s, box-shadow .15s; }
+      .pm-btn:hover:not(:disabled) { background:#3B82F6; border-color:#3B82F6; transform:translateY(-1px); box-shadow:0 4px 16px rgba(37,99,235,0.35); }
       .pm-btn:disabled { opacity:.5; cursor:not-allowed; }
+      /* Secundario por defecto ahora es sólido negro (mismo peso visual que el primario azul),
+         no un outline transparente — ver regla dura de botones en SKILL.md. pm-btn-ghost/
+         pm-btn-outline quedan para acciones terciarias de menor compromiso dentro de una sección. */
+      .pm-btn-dark { background:#0B0D12; border:1px solid #0B0D12; color:#FFFFFF; transition:background-color .15s, transform .15s, box-shadow .15s; }
+      .pm-btn-dark:hover:not(:disabled) { background:#1A1D26; border-color:#1A1D26; transform:translateY(-1px); box-shadow:0 4px 16px rgba(0,0,0,0.35); }
       .pm-btn-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); transition:border-color .15s, background-color .15s, transform .15s; }
       .pm-btn-ghost:hover:not(:disabled) { border-color:var(--ink-dim); background:rgba(255,255,255,0.04); transform:translateY(-1px); }
-      .pm-btn-outline { background:transparent; border:1.5px solid var(--amber-dim); color:var(--amber); transition:border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
-      .pm-btn-outline:hover:not(:disabled) { border-color:var(--amber); background:rgba(242,169,59,0.08); color:var(--ink); transform:translateY(-1px); box-shadow:0 4px 16px rgba(242,169,59,0.2); }
+      .pm-btn-outline { background:transparent; border:1.5px solid var(--blue-dim); color:var(--blue); transition:border-color .2s ease, background-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
+      .pm-btn-outline:hover:not(:disabled) { border-color:var(--blue); background:rgba(37,99,235,0.08); color:var(--ink); transform:translateY(-1px); box-shadow:0 4px 16px rgba(37,99,235,0.2); }
 
       .btn-arrow { display:inline-block; margin-left:6px; transition:transform .2s var(--ease-out-expo); }
       a:hover .btn-arrow, button:hover .btn-arrow { transform:translateX(4px); }
@@ -1127,22 +1174,24 @@ export function PulseStyles() {
       .link-arrow { display:inline-flex; align-items:center; }
 
       .badge { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:3px; padding:6px 12px; font-family:${F_MONO}; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-dim); }
-      .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(62,207,126,0.6); animation:livePulse 2s ease infinite; flex-shrink:0; }
-      @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(62,207,126,0.55)} 70%{box-shadow:0 0 0 6px rgba(62,207,126,0)} 100%{box-shadow:0 0 0 0 rgba(62,207,126,0)} }
-      /* Sobre el degradé verde (siempre verde, sin importar el tema) el punto verde se pierde
-         — versión blanca fija para el badge "en vivo" de esa sección. */
+      .live-dot { width:7px; height:7px; border-radius:2px; background:var(--blue); box-shadow:0 0 0 0 rgba(37,99,235,0.6); animation:livePulse 2s ease infinite; flex-shrink:0; }
+      @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(37,99,235,0.55)} 70%{box-shadow:0 0 0 6px rgba(37,99,235,0)} 100%{box-shadow:0 0 0 0 rgba(37,99,235,0)} }
+      /* Sobre el degradé azul profundo (siempre azul, sin importar el tema) el indicador azul
+         se pierde — versión blanca fija para el badge "en vivo" de esa sección. */
       .live-dot.on-gradient { background:#fff; animation-name:livePulseWhite; }
       @keyframes livePulseWhite { 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.55)} 70%{box-shadow:0 0 0 6px rgba(255,255,255,0)} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0)} }
       /* Variante para el badge de prueba social dentro del seg-card: ese fondo SÍ sigue el
          tema (wash intenso en dark, wash tenue en soft), así que el punto necesita adaptarse
-         — blanco sobre el wash saturado de dark, verde normal sobre el wash tenue de soft. */
+         — blanco sobre el wash saturado de dark, azul normal sobre el wash tenue de soft. */
       .live-dot.on-tint { background:var(--seg-badge-dot); animation-name:livePulseTint; }
       @keyframes livePulseTint { 0%{box-shadow:0 0 0 0 var(--seg-badge-dot-shadow)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
 
-      .theme-toggle { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease, background-color .15s ease; }
-      .theme-toggle:hover { color:var(--ink); border-color:var(--ink-dim); background:rgba(128,128,128,0.08); }
+      /* Solo se usa dentro del header (siempre oscuro, regla dura 9) — colores fijos --panel-ink*,
+         no var(--ink*), por la misma razón que el resto del texto del header. */
+      .theme-toggle { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,0.16); background:transparent; color:var(--panel-ink-dim); cursor:pointer; transition:border-color .15s ease, color .15s ease, background-color .15s ease; }
+      .theme-toggle:hover { color:var(--panel-ink); border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.08); }
 
-      .kicker { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--amber); margin-bottom:14px; }
+      .kicker { display:inline-flex; align-items:center; gap:6px; font-family:${F_MONO}; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--blue); margin-bottom:14px; }
 
       .grid-shared { display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; box-shadow:var(--shadow-sm); }
       .grid-shared > * { background:var(--bg-1); padding:24px; transition:background-color .25s ease; backdrop-filter:blur(10px); }
@@ -1154,15 +1203,24 @@ export function PulseStyles() {
       .panel-head { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--panel-line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--panel-ink-dim); }
       .wa-bubble { max-width:82%; padding:8px 12px; font-size:12.5px; line-height:1.5; font-family:${F_BODY}; border-radius:10px; }
       .wa-lead { align-self:flex-start; background:var(--panel-bg-2); color:var(--panel-ink); border-bottom-left-radius:2px; }
-      .wa-agent { align-self:flex-end; background:var(--grad-green); color:#04150c; font-weight:600; border-bottom-right-radius:2px; }
+      .wa-agent { align-self:flex-end; background:var(--grad-blue); color:#FFFFFF; font-weight:600; border-bottom-right-radius:2px; }
+
+      /* Log vertical de pasos del agente (PulseAgentLog) — línea continua conectando los
+         íconos, paso activo (central) con fondo resaltado, revelado paso por paso. */
+      .agent-log-step { position:relative; display:flex; gap:12px; align-items:flex-start; padding:10px 8px; margin-left:4px; border-left:2px solid var(--panel-line); }
+      .agent-log-step:last-child { border-left-color:transparent; }
+      .agent-log-step-active { background:var(--panel-bg-2); border-radius:6px; margin:2px -4px; padding:12px 12px 12px 16px; border-left-color:transparent; }
+      .agent-log-icon { flex-shrink:0; width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:15px; background:rgba(37,99,235,0.14); border:1px solid rgba(37,99,235,0.35); margin-left:-17px; }
+      .agent-log-footer { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:var(--panel-bg-2); border-top:1px solid var(--panel-line); font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--panel-ink); }
+      .agent-log-footer .live-dot { display:inline-block; margin-right:6px; vertical-align:middle; }
       .log-row { display:grid; grid-template-columns:90px 1fr 150px 120px; gap:16px; align-items:center; padding:13px 18px; border-bottom:1px solid var(--panel-line); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease; }
       .log-row:last-child { border-bottom:none; }
       .log-row.in { opacity:1; transform:translateY(0); }
       .log-time, .log-canal { font-family:${F_MONO}; color:var(--panel-ink-dim); font-size:12px; }
       .log-evento { color:var(--panel-ink); }
       .log-estado { font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:.5px; text-align:right; }
-      .log-estado.ok { color:var(--green); }
-      .log-estado.pend { color:var(--amber); }
+      .log-estado.ok { color:var(--blue); }
+      .log-estado.pend { color:var(--blue); }
 
       .tool-row { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--panel-line); font-family:${F_MONO}; font-size:13px; opacity:0; transform:translateX(-8px); transition:opacity .4s ease, transform .4s ease; }
       .tool-row:last-child { border-bottom:none; }
@@ -1177,26 +1235,25 @@ export function PulseStyles() {
 
       .seg-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; display:block; text-decoration:none; }
       .seg-card:hover { transform:translateY(-8px) scale(1.03); box-shadow:var(--shadow-lg); }
-      .seg-card-amber { position:relative; overflow:hidden; border:1.5px solid var(--amber-dim); background:var(--seg-wash-amber); }
-      .seg-card-amber::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-amber); }
-      .seg-card-amber:hover { border-color:var(--amber); }
-      .seg-card-green { position:relative; overflow:hidden; border:1.5px solid #1F7A4E; background:var(--seg-wash-green); }
-      .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-green); }
-      .seg-card-green:hover { border-color:var(--green); }
+      /* seg-card-amber/seg-card-green: nombres heredados de la iteración con dos acentos por
+         segmento — el sistema ahora es monocromático azul (regla dura 4), así que ambas clases
+         resuelven al mismo tratamiento visual; la diferenciación entre Concesionario y Vendedor
+         individual queda en el contenido, no en el color. */
+      .seg-card-amber, .seg-card-green { position:relative; overflow:hidden; border:1.5px solid var(--blue-dim); background:var(--seg-wash-amber); }
+      .seg-card-amber::before, .seg-card-green::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--grad-blue); }
+      .seg-card-amber:hover, .seg-card-green:hover { border-color:var(--blue); }
       .seg-card-icon { margin-bottom:20px; opacity:0.95; }
       .seg-card-title { font-size:24px; color:var(--ink); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
       .seg-card-subtitle { font-size:11px; color:var(--ink-dim); transition:font-size .25s var(--ease-out-expo), color .25s ease; }
       .seg-card:hover .seg-card-title { font-size:28px; color:var(--seg-hover-ink); }
       .seg-card:hover .seg-card-subtitle { font-size:12px; color:var(--seg-hover-ink); }
       .seg-card-arrow { position:absolute; top:24px; right:24px; width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; line-height:1; transition:transform .25s var(--ease-out-expo); }
-      .seg-card-amber .seg-card-arrow { color:var(--amber); border:2.5px solid var(--amber); background:rgba(242,169,59,0.08); }
-      .seg-card-green .seg-card-arrow { color:var(--green); border:2.5px solid var(--green); background:rgba(62,207,126,0.08); }
+      .seg-card-amber .seg-card-arrow, .seg-card-green .seg-card-arrow { color:var(--blue); border:2.5px solid var(--blue); background:rgba(37,99,235,0.08); }
       .seg-card:hover .seg-card-arrow { transform:translate(4px,-4px); }
       .seg-tag { display:inline-flex; font-family:${F_MONO}; font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 10px; border-radius:3px; margin-bottom:16px; }
-      .seg-tag.amber { color:var(--amber); border:1px solid var(--amber-dim); }
-      .seg-tag.green { color:var(--green); border:1px solid rgba(62,207,126,0.4); }
+      .seg-tag.amber, .seg-tag.green { color:var(--blue); border:1px solid var(--blue-dim); }
       .seg-check { display:flex; gap:10px; align-items:baseline; padding:6px 0; font-size:13px; color:var(--ink-dim); }
-      .seg-check .mark { color:var(--green); font-family:${F_MONO}; flex-shrink:0; }
+      .seg-check .mark { color:var(--blue); font-family:${F_MONO}; flex-shrink:0; }
       .seg-check-mark { display:inline-block; transition:transform .2s var(--ease-out-expo); }
       .seg-check:hover .seg-check-mark { transform:scale(1.4) rotate(-8deg); }
 
@@ -1211,7 +1268,7 @@ export function PulseStyles() {
       .integ-item { transition:opacity .8s var(--ease-out-expo), transform .2s var(--ease-out-expo); }
       .integ-item:hover { transform:translateY(-3px); }
       .integ-icon { transition:border-color .2s ease, color .2s ease; }
-      .integ-item:hover .integ-icon { border-color:var(--amber-dim); color:var(--amber); }
+      .integ-item:hover .integ-icon { border-color:var(--blue-dim); color:var(--blue); }
 
       .stat-cell { transition:opacity .8s var(--ease-out-expo), transform .2s var(--ease-out-expo); }
       .stat-cell:hover { transform:translateY(-2px); }
@@ -1219,28 +1276,33 @@ export function PulseStyles() {
       .log-row-data { transition:background-color .2s ease, opacity .5s ease, transform .5s ease; }
       .log-row-data:hover { background:var(--panel-bg-2); }
 
-      .pm-nav-link { position:relative; padding-bottom:4px; color:var(--ink-dim); transition:color .2s ease; }
-      .pm-nav-link::after { content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--amber); transition:width .25s var(--ease-out-expo); }
-      .pm-nav-link:hover { color:var(--ink); }
+      /* El header es siempre oscuro sólido (ver regla dura 9) — su texto nunca usa var(--ink)
+         (que cambia con el tema de la página, y en soft quedaría oscuro sobre un header oscuro,
+         invisible). Usa --panel-ink*, el mismo set fijo que ya usan los paneles "pantalla de
+         producto", porque el header es la misma categoría de pieza: chrome de producto, no
+         lienzo de página. */
+      .pm-nav-link { position:relative; padding-bottom:4px; color:var(--panel-ink-dim); transition:color .2s ease; }
+      .pm-nav-link::after { content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--blue); transition:width .25s var(--ease-out-expo); }
+      .pm-nav-link:hover { color:var(--panel-ink); }
       .pm-nav-link:hover::after { width:100%; }
-      .pm-nav-link.active { color:var(--amber); }
+      .pm-nav-link.active { color:var(--blue); }
       .pm-nav-link.active::after { width:100%; }
 
       .scroll-cue { display:inline-flex; flex-direction:column; align-items:center; gap:6px; text-decoration:none; color:var(--ink-dim); font-family:${F_MONO}; font-size:11px; letter-spacing:.5px; text-transform:uppercase; animation:cueBounce 2.2s ease-in-out infinite; transition:color .2s ease; }
-      .scroll-cue:hover { color:var(--amber); }
+      .scroll-cue:hover { color:var(--blue); }
       @keyframes cueBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
 
       .cta-spotlight { position:relative; }
-      .cta-spotlight::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; background:radial-gradient(ellipse 60% 70% at center, rgba(242,169,59,0.10), transparent 70%); pointer-events:none; }
+      .cta-spotlight::before { content:''; position:absolute; inset:-60px -20px; z-index:-1; background:radial-gradient(ellipse 60% 70% at center, rgba(37,99,235,0.10), transparent 70%); pointer-events:none; }
 
       .pricing-toggle { display:inline-flex; border:1px solid var(--line); border-radius:8px; padding:4px; gap:4px; background:var(--bg-1); }
       .pricing-toggle button { border:none; background:transparent; color:var(--ink-dim); font-family:${F_BODY}; font-size:13px; font-weight:600; padding:9px 18px; border-radius:6px; cursor:pointer; transition:background-color .2s ease, color .2s ease; }
-      .pricing-toggle button.active { background:var(--amber); color:#1a1204; }
+      .pricing-toggle button.active { background:var(--blue); color:#FFFFFF; }
 
       .price-card { border:1px solid var(--line); border-radius:6px; padding:32px; background:var(--bg-1); position:relative; text-align:left; transition:opacity .8s var(--ease-out-expo), transform .25s var(--ease-out-expo), box-shadow .25s ease, border-color .25s ease; }
       .price-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
-      .price-card.destacado { border-color:var(--amber-dim); box-shadow:var(--shadow-lg); }
-      .price-card .badge-rec { position:absolute; top:-11px; left:32px; background:var(--amber); color:#1a1204; font-family:${F_MONO}; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:4px 10px; border-radius:3px; }
+      .price-card.destacado { border-color:var(--blue-dim); box-shadow:var(--shadow-lg); }
+      .price-card .badge-rec { position:absolute; top:-11px; left:32px; background:var(--blue); color:#FFFFFF; font-family:${F_MONO}; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:4px 10px; border-radius:3px; }
       .price-card .precio-row { display:flex; align-items:baseline; gap:6px; margin:12px 0 4px; }
       .price-card .precio-num { font-family:${F_DISPLAY}; font-size:36px; font-weight:800; color:var(--ink); }
       .price-card .precio-per { font-family:${F_MONO}; font-size:13px; color:var(--ink-dim); }

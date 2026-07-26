@@ -43,7 +43,7 @@ export default function AsesorLanding() {
               </div>
               <span className="seg-tag green">{SEG.tag}</span>
               <h1 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(38px,5.4vw,64px)', fontWeight:800, lineHeight:1.05, letterSpacing:'-1.2px', margin:'0 0 20px', color:'var(--ink)' }}>
-                Tu copiloto <span className="grad-amber">para cerrar solo, sin depender de nadie.</span>
+                Tu copiloto <span className="grad-blue">para cerrar solo, sin depender de nadie.</span>
               </h1>
               <p style={{ fontSize:'clamp(16px,1.6vw,18px)', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 0 24px', lineHeight:1.65 }}>
                 {SEG.desc}
@@ -55,7 +55,7 @@ export default function AsesorLanding() {
               </div>
               <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' }}>
                 <a href="/pulse/signup" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Empezar gratis 14 días<span className="btn-arrow">→</span></a>
-                <a href="#precios" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
+                <a href="#precios" className="pm-btn pm-btn-dark" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
               </div>
             </div>
 

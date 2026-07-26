@@ -43,7 +43,7 @@ export default function ConcesionarioLanding() {
               </div>
               <span className="seg-tag amber">{SEG.tag}</span>
               <h1 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(38px,5.4vw,64px)', fontWeight:800, lineHeight:1.05, letterSpacing:'-1.2px', margin:'0 0 20px', color:'var(--ink)' }}>
-                El agente que <span className="grad-amber">orquesta todo tu concesionario.</span>
+                El agente que <span className="grad-blue">orquesta todo tu concesionario.</span>
               </h1>
               <p style={{ fontSize:'clamp(16px,1.6vw,18px)', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 0 24px', lineHeight:1.65 }}>
                 {SEG.desc}
@@ -55,7 +55,7 @@ export default function ConcesionarioLanding() {
               </div>
               <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' }}>
                 <a href="/pulse/databridge" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Solicitar acceso<span className="btn-arrow">→</span></a>
-                <a href="#precios" className="pm-btn pm-btn-ghost" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
+                <a href="#precios" className="pm-btn pm-btn-dark" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
               </div>
             </div>
 

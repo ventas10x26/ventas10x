@@ -59,6 +59,8 @@ SUPABASE_SERVICE_ROLE_KEY     # Solo server-side
 ANTHROPIC_API_KEY
 ADMIN_EMAILS                  # Emails separados por coma para acceso /admin
 RESEND_API_KEY                # Envío de emails
+PULSE_LEADS_EMAIL             # Opcional. Destino de las solicitudes de demo de Pulse Motor
+                              # (separadas por coma). Si falta, cae al primero de ADMIN_EMAILS.
 ```
 
 ## Patrones de rutas API

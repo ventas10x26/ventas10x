@@ -584,10 +584,17 @@ export default function DataBridgePage() {
     }
 
     const dimScale = fitScaleRef.current * zoomRef.current
-    const fs = (px: number) => Math.round(px * dimScale)
+    // La tipografía no sigue al zoom del encuadre: escalar el texto igual que la geometría
+    // hacía que en pantalla completa los nombres de campo salieran a ~25px y se pisaran entre
+    // sí. Los nodos siguen creciendo para llenar el panel; las etiquetas se mantienen en un
+    // rango legible y compacto.
+    const labelScale = Math.min(1.4, Math.max(1, 1 + (dimScale - 1) * 0.28))
+    const ls = (px: number) => Math.round(px * labelScale)
 
     const proj = ns.map(n => ({ ...n, ...project(n.x, n.y, n.z, W, H) }))
-    proj.sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))
+    // Painter's algorithm: primero los lejanos (depth mayor), para que los cercanos queden
+    // encima. Estaba al revés, así que un nodo del fondo podía tapar a uno del frente.
+    proj.sort((a, b) => (b.depth ?? 0) - (a.depth ?? 0))
 
     const hoverId = hoverRef.current
 
@@ -615,10 +622,15 @@ export default function DataBridgePage() {
       })
     }
 
+    // Pasada 1 — círculos. Van todos antes que cualquier texto para que ningún nodo dibujado
+    // después le pase por encima a una etiqueta ya puesta.
+    const radiusOf = (n: typeof proj[number]) => {
+      const pscale = viewRef.current === '3d' ? (800 / (800 + (n.depth ?? 0) + 300)) : 1
+      return n.r * pscale * dimScale
+    }
     proj.forEach(n => {
       const c = n.color
-      const pscale = viewRef.current === '3d' ? (800 / (800 + (n.depth ?? 0) + 300)) : 1
-      const r = n.r * pscale * dimScale
+      const r = radiusOf(n)
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r + 3, 0, Math.PI * 2)
       ctx.fillStyle = c + '22'; ctx.fill()
       if (n.isHub) {
@@ -628,23 +640,66 @@ export default function DataBridgePage() {
       ctx.beginPath(); ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2)
       ctx.fillStyle = c; ctx.fill()
       if (n.kind === 'table') {
-        const expanded = expandedRef.current.has(n.table)
-        ctx.font = `700 ${fs(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
+        ctx.font = `700 ${ls(11)}px system-ui`; ctx.fillStyle = 'rgba(0,0,0,0.8)'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
         ctx.fillText(n.l.slice(0, 3).toUpperCase(), n.px!, n.py!)
-        ctx.font = `700 ${fs(12)}px system-ui`; ctx.fillStyle = '#0f172a'
-        ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + fs(5))
-        ctx.font = `${fs(10)}px system-ui`; ctx.fillStyle = '#64748b'
-        ctx.fillText(`${n.fieldCount ?? 0} campos · ${expanded ? 'clic para contraer' : 'clic para ver'}`, n.px!, n.py! + r + fs(21))
-      } else {
-        const isHover = n.id === hoverId
-        ctx.font = `${isHover ? '600 ' : ''}${fs(11)}px system-ui`; ctx.fillStyle = isHover ? '#0f172a' : '#475569'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-        ctx.fillText(n.l, n.px!, n.py! + r + fs(4))
-        ctx.font = `${fs(9)}px system-ui`; ctx.fillStyle = c
-        ctx.fillText(n.tipo || '', n.px!, n.py! + r + fs(17))
       }
+    })
+
+    // Pasada 2 — etiquetas con descarte por colisión. Al expandir una tabla, sus campos caen
+    // muy juntos en la proyección y los nombres terminaban apilados unos sobre otros. Se
+    // reservan las cajas ya ocupadas y se saltea el texto que no entra: la tabla y el campo
+    // bajo el cursor tienen prioridad, y el detalle completo igual está en el panel lateral.
+    const taken: { x0: number; y0: number; x1: number; y1: number }[] = []
+    const overlaps = (x0: number, y0: number, x1: number, y1: number) =>
+      taken.some(b => x0 < b.x1 && x1 > b.x0 && y0 < b.y1 && y1 > b.y0)
+    // Escribe una línea centrada en cx. Con force=false abandona (y no escribe nada) si pisa
+    // algo ya puesto, así no queda media etiqueta suelta sin su tipo de dato debajo.
+    const line = (text: string, cx: number, top: number, font: string, color: string, force: boolean) => {
+      if (!text) return true
+      ctx.font = font
+      const w = ctx.measureText(text).width
+      const h = parseInt(font.match(/(\d+)px/)?.[1] ?? '11', 10)
+      const box = { x0: cx - w / 2 - 2, y0: top - 1, x1: cx + w / 2 + 2, y1: top + h + 1 }
+      if (!force && overlaps(box.x0, box.y0, box.x1, box.y1)) return false
+      taken.push(box)
+      ctx.fillStyle = color
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+      ctx.fillText(text, cx, top)
+      return true
+    }
+
+    // Las tablas son el ancla estructural: se colocan primero y nunca se descartan.
+    proj.filter(n => n.kind === 'table').forEach(n => {
+      const r = radiusOf(n)
+      const expanded = expandedRef.current.has(n.table)
+      line(n.l, n.px!, n.py! + r + ls(5), `700 ${ls(12)}px system-ui`, '#0f172a', true)
+      line(`${n.fieldCount ?? 0} campos · ${expanded ? 'clic para contraer' : 'clic para ver'}`,
+        n.px!, n.py! + r + ls(21), `${ls(10)}px system-ui`, '#64748b', true)
+    })
+
+    // Campos: el que está bajo el cursor primero (siempre legible), después de más cerca a
+    // más lejos, que es el orden en que el ojo los prioriza.
+    const fields = proj.filter(n => n.kind === 'field')
+      .sort((a, b) => (a.id === hoverId ? -1 : b.id === hoverId ? 1 : (a.depth ?? 0) - (b.depth ?? 0)))
+    fields.forEach(n => {
+      const isHover = n.id === hoverId
+      const r = radiusOf(n)
+      const nameTop = n.py! + r + ls(4)
+      // El tipo se separa por la altura real del nombre: con un offset fijo, al crecer la
+      // tipografía las dos líneas se solapaban y el descarte terminaba comiéndose el tipo.
+      const typeTop = nameTop + ls(11) + 3
+      if (!isHover) {
+        // Se mide el bloque completo (nombre + tipo) antes de escribir nada.
+        ctx.font = `${ls(11)}px system-ui`
+        const wName = ctx.measureText(n.l).width
+        ctx.font = `${ls(9)}px system-ui`
+        const wType = ctx.measureText(n.tipo || '').width
+        const half = Math.max(wName, wType) / 2 + 2
+        if (overlaps(n.px! - half, nameTop - 1, n.px! + half, typeTop + ls(9) + 1)) return
+      }
+      line(n.l, n.px!, nameTop, `${isHover ? '600 ' : ''}${ls(11)}px system-ui`, isHover ? '#0f172a' : '#475569', isHover)
+      line(n.tipo || '', n.px!, typeTop, `${ls(9)}px system-ui`, n.color, isHover)
     })
   }, [project, computeFitScale])
 

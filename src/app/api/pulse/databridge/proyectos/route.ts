@@ -2,7 +2,9 @@
 //
 // POST: persiste un proyecto de DataBridge (tablas + relaciones) para el usuario logueado —
 // hasta acá todo el flujo vivía solo en memoria del navegador y se perdía al refrescar.
-// GET:  lista los proyectos guardados del usuario (para "Tus paneles desplegados").
+// GET:  lista los proyectos guardados del usuario (para el índice de proyectos).
+// PATCH: renombra un proyecto propio.
+// DELETE: borra un proyecto propio.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
@@ -146,6 +148,72 @@ export async function GET() {
     return NextResponse.json({ ok: true, proyectos })
   } catch (e) {
     console.error('[pulse/databridge/proyectos GET]', e)
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error interno' }, { status: 500 })
+  }
+}
+
+// PATCH: renombra un proyecto. El filtro por user_id va en el propio update, no en una
+// consulta previa, para que un id ajeno no coincida con ninguna fila en vez de depender
+// de un chequeo aparte que se pueda olvidar.
+export async function PATCH(req: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+
+    const { id, nombre } = await req.json()
+    if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
+
+    const limpio = String(nombre ?? '').trim().slice(0, 120)
+    if (!limpio) return NextResponse.json({ error: 'El nombre no puede quedar vacío' }, { status: 400 })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('pulse_databridge_proyectos') as any)
+      .update({ nombre: limpio })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select('id')
+
+    if (error) {
+      console.error('[pulse/databridge/proyectos PATCH] error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    if (!data?.length) return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 })
+
+    return NextResponse.json({ ok: true, nombre: limpio })
+  } catch (e) {
+    console.error('[pulse/databridge/proyectos PATCH]', e)
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error interno' }, { status: 500 })
+  }
+}
+
+// DELETE: borra un proyecto del usuario. Mismo criterio que PATCH — el user_id forma parte
+// del filtro de borrado, así un id de otra cuenta simplemente no matchea.
+export async function DELETE(req: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+
+    const { id } = await req.json()
+    if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from('pulse_databridge_proyectos') as any)
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select('id')
+
+    if (error) {
+      console.error('[pulse/databridge/proyectos DELETE] error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    if (!data?.length) return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 })
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error('[pulse/databridge/proyectos DELETE]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Error interno' }, { status: 500 })
   }
 }

@@ -369,6 +369,15 @@ export default function DataBridgePage() {
   const [relacionInput, setRelacionInput] = useState('')
   const [relacionLoading, setRelacionLoading] = useState(false)
   const [proyectosGuardados, setProyectosGuardados] = useState<{ id: string; nombre: string; created_at: string; tablas: number }[]>([])
+  // Índice de proyectos: si el usuario ya tiene alguno, la pantalla abre mostrándolos en vez
+  // de la caja de crear — antes vivían como una fila de pills al pie y se perdían de vista.
+  // "Nuevo proyecto" salta a la caja de crear; quien todavía no tiene ninguno la ve directo.
+  const [mostrarCrear, setMostrarCrear] = useState(false)
+  const [renombrandoId, setRenombrandoId] = useState<string | null>(null)
+  const [nombreEditado, setNombreEditado] = useState('')
+  const [confirmarBorrarId, setConfirmarBorrarId] = useState<string | null>(null)
+  const [proyectoOcupadoId, setProyectoOcupadoId] = useState<string | null>(null)
+  const [proyectosError, setProyectosError] = useState<string | null>(null)
   const [desplegando, setDesplegando] = useState(false)
   const [desplegarError, setDesplegarError] = useState<string | null>(null)
 
@@ -421,14 +430,15 @@ export default function DataBridgePage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Foco automático en "Nombre del proyecto" apenas carga la página — el difuminado de
-  // fondo aparece de entrada, sin esperar a que el usuario haga clic en el campo.
+  // Foco automático en "Nombre del proyecto" apenas se ve la caja de crear — al abrir la
+  // página, o al venir del índice por "Nuevo proyecto". Mientras se muestra el índice el
+  // input no está montado, así que el focus simplemente no hace nada.
   useEffect(() => {
     if (authChecked && phase === 'upload' && !autoDesplegando && !projectName) {
       projectNameInputRef.current?.focus()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authChecked, phase, autoDesplegando])
+  }, [authChecked, phase, autoDesplegando, mostrarCrear])
 
   // Paneles ya desplegados (persistidos de verdad en Supabase) del usuario logueado —
   // para poder volver a uno sin resubir los datos.
@@ -439,6 +449,47 @@ export default function DataBridgePage() {
       .then(data => { if (data.ok) setProyectosGuardados(data.proyectos) })
       .catch(() => {})
   }, [user])
+
+  const guardarNombreProyecto = async (id: string) => {
+    const limpio = nombreEditado.trim()
+    const actual = proyectosGuardados.find(p => p.id === id)?.nombre
+    if (!limpio || limpio === actual) { setRenombrandoId(null); return }
+    setProyectoOcupadoId(id); setProyectosError(null)
+    try {
+      const res = await fetch('/api/pulse/databridge/proyectos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, nombre: limpio }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo renombrar')
+      setProyectosGuardados(prev => prev.map(p => p.id === id ? { ...p, nombre: data.nombre } : p))
+      setRenombrandoId(null)
+    } catch (e) {
+      setProyectosError(e instanceof Error ? e.message : 'No se pudo renombrar')
+    } finally {
+      setProyectoOcupadoId(null)
+    }
+  }
+
+  const borrarProyecto = async (id: string) => {
+    setProyectoOcupadoId(id); setProyectosError(null)
+    try {
+      const res = await fetch('/api/pulse/databridge/proyectos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo borrar')
+      setProyectosGuardados(prev => prev.filter(p => p.id !== id))
+      setConfirmarBorrarId(null)
+    } catch (e) {
+      setProyectosError(e instanceof Error ? e.message : 'No se pudo borrar')
+    } finally {
+      setProyectoOcupadoId(null)
+    }
+  }
 
   // Retoma el prototipo que quedó pendiente de guardar en localStorage (ver irACrearCuenta) apenas
   // detecta la sesión nueva post-signup, y lo despliega solo — sin esto, crear la cuenta devolvía
@@ -1208,6 +1259,15 @@ export default function DataBridgePage() {
     }
   }
 
+  // El índice manda mientras no haya trabajo en curso: si ya hay proyectos, la pantalla abre
+  // en ellos. Quien no tiene ninguno —o pidió "Nuevo proyecto"— va derecho a la caja de crear.
+  const vistaProyectos = authChecked && !!user && phase === 'upload' && !mostrarCrear
+    && proyectosGuardados.length > 0 && !autoDesplegando
+  const fechaCorta = (iso: string) => {
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
   const stepIndex = STEPS.findIndex(s => s.key === step)
   const canReachStep = (s: Step) => s === 'subir' || phase === 'ready'
   const canGoBack = stepIndex > 0
@@ -1253,9 +1313,12 @@ export default function DataBridgePage() {
         .pm-projectname-scrim.is-active { opacity: 1; }
         @media (prefers-reduced-motion: reduce) { .pm-projectname-scrim { transition: none; } }
       `}</style>
+      {/* Se exige además que la caja de crear esté a la vista: el input se auto-enfoca mientras
+          todavía carga la lista de proyectos, y al pasar al índice se desmonta sin disparar su
+          onBlur, así que sin esa condición el difuminado quedaba encendido para siempre. */}
       <div
         aria-hidden="true"
-        className={`pm-projectname-scrim${projectNameFocused && !projectName.trim() ? ' is-active' : ''}`}
+        className={`pm-projectname-scrim${projectNameFocused && !projectName.trim() && !vistaProyectos ? ' is-active' : ''}`}
         style={{
           position: 'fixed', inset: 0, zIndex: 140,
           background: 'rgba(15,23,42,0.32)',
@@ -1270,7 +1333,132 @@ export default function DataBridgePage() {
             proyecto deja de ser un input perdido en el encabezado y pasa a ser el punto de
             entrada de toda la pantalla. Una vez cargados los datos, el encabezado se
             comprime para devolverle el espacio al visualizador. */}
-        {phase === 'upload' ? (
+        {vistaProyectos ? (
+          <div style={{ padding: '20px 0 0' }}>
+            <style>{`
+              .pm-proy-card { transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+              .pm-proy-card:hover { border-color: #bfd0ec; box-shadow: 0 8px 24px rgba(15,23,42,0.08); transform: translateY(-2px); }
+              /* Atenuadas, no ocultas: escondidas hasta el hover dejaban una franja vacía que
+                 hacía ver la card incompleta, y encima volvían indescubribles las acciones. */
+              .pm-proy-accion { opacity: .62; transition: opacity .15s ease; }
+              .pm-proy-card:hover .pm-proy-accion, .pm-proy-card:focus-within .pm-proy-accion { opacity: 1; }
+              @media (prefers-reduced-motion: reduce) {
+                .pm-proy-card, .pm-proy-accion { transition: none; }
+                .pm-proy-card:hover { transform: none; }
+              }
+            `}</style>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              <div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
+                  DataBridge 360
+                </div>
+                <h1 style={{ fontFamily: FONT, fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '0 0 8px', color: '#0f172a' }}>
+                  Tus <span style={{ color: BLUE }}>proyectos</span>
+                </h1>
+                <p style={{ fontSize: '14.5px', color: '#64748b', lineHeight: 1.6, margin: 0, fontFamily: FONT_BODY }}>
+                  {proyectosGuardados.length} {proyectosGuardados.length === 1 ? 'panel desplegado' : 'paneles desplegados'} · abrí uno para verlo o armá uno nuevo con otras fuentes.
+                </p>
+              </div>
+              <button
+                onClick={() => setMostrarCrear(true)}
+                style={{ padding: '11px 20px', borderRadius: '12px', border: 'none', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', fontSize: '13.5px', fontWeight: 700, fontFamily: FONT, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                + Nuevo proyecto
+              </button>
+            </div>
+
+            {proyectosError && (
+              <div style={{ marginBottom: '14px', fontSize: '12.5px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '9px 14px', fontFamily: FONT_BODY }}>
+                {proyectosError}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(268px, 1fr))', gap: '14px' }}>
+              {proyectosGuardados.map(p => {
+                const editando = renombrandoId === p.id
+                const confirmando = confirmarBorrarId === p.id
+                const ocupado = proyectoOcupadoId === p.id
+                return (
+                  <div
+                    key={p.id}
+                    className="pm-proy-card"
+                    onClick={e => {
+                      if (editando || confirmando) return
+                      if ((e.target as HTMLElement).closest('a,button,input')) return
+                      window.location.href = `/pulse/databridge/panel/${p.id}`
+                    }}
+                    style={{ background: '#ffffff', border: '1px solid #e3e8f0', borderRadius: '14px', padding: '16px 16px 12px', cursor: editando || confirmando ? 'default' : 'pointer', opacity: ocupado ? 0.55 : 1 }}
+                  >
+                    {editando ? (
+                      <input
+                        autoFocus
+                        value={nombreEditado}
+                        onChange={e => setNombreEditado(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') guardarNombreProyecto(p.id)
+                          if (e.key === 'Escape') setRenombrandoId(null)
+                        }}
+                        onBlur={() => guardarNombreProyecto(p.id)}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${BLUE}`, fontSize: '14.5px', fontWeight: 700, fontFamily: FONT, color: '#0f172a', outline: 'none', marginBottom: '6px' }}
+                      />
+                    ) : (
+                      <a
+                        href={`/pulse/databridge/panel/${p.id}`}
+                        style={{ display: 'block', fontSize: '14.5px', fontWeight: 700, fontFamily: FONT, color: '#0f172a', textDecoration: 'none', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {p.nombre}
+                      </a>
+                    )}
+
+                    <div style={{ fontSize: '12px', color: '#64748b', fontFamily: FONT_BODY, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f1f5f9', border: '1px solid #e3e8f0', borderRadius: '999px', padding: '2px 9px', fontWeight: 600, color: '#334155' }}>
+                        {p.tablas} {p.tablas === 1 ? 'tabla' : 'tablas'}
+                      </span>
+                      <span>{fechaCorta(p.created_at)}</span>
+                    </div>
+
+                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #eef2f7', minHeight: '26px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      {confirmando ? (
+                        <>
+                          <span style={{ fontSize: '12px', color: '#0f172a', fontFamily: FONT_BODY, whiteSpace: 'nowrap' }}>¿Borrar?</span>
+                          <button
+                            onClick={() => borrarProyecto(p.id)}
+                            disabled={ocupado}
+                            style={{ fontSize: '12px', fontWeight: 700, fontFamily: FONT_BODY, color: '#fff', background: '#dc2626', border: 'none', borderRadius: '7px', padding: '4px 11px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            Sí, borrar
+                          </button>
+                          <button
+                            onClick={() => setConfirmarBorrarId(null)}
+                            style={{ fontSize: '12px', fontFamily: FONT_BODY, color: '#64748b', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <div className="pm-proy-accion" style={{ display: 'flex', gap: '12px' }}>
+                          <button
+                            onClick={() => { setProyectosError(null); setNombreEditado(p.nombre); setRenombrandoId(p.id) }}
+                            style={{ fontSize: '12px', fontFamily: FONT_BODY, color: '#475569', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            Renombrar
+                          </button>
+                          <button
+                            onClick={() => { setProyectosError(null); setConfirmarBorrarId(p.id) }}
+                            style={{ fontSize: '12px', fontFamily: FONT_BODY, color: '#94a3b8', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            Borrar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : phase === 'upload' ? (
           <div style={{ textAlign: 'center', padding: '28px 0 0' }}>
             <style>{`
               @keyframes pmPromptPulse {
@@ -1285,6 +1473,19 @@ export default function DataBridgePage() {
                 .pm-fuente-btn { transition: none; }
               }
             `}</style>
+
+            {/* Salida de vuelta al índice: si llegó acá desde "Nuevo proyecto", tiene que poder
+                volverse sin depender del botón Atrás del navegador. */}
+            {mostrarCrear && proyectosGuardados.length > 0 && (
+              <div style={{ textAlign: 'left', marginBottom: '10px' }}>
+                <button
+                  onClick={() => setMostrarCrear(false)}
+                  style={{ fontSize: '13px', fontFamily: FONT_BODY, color: '#64748b', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  ← Volver a tus proyectos
+                </button>
+              </div>
+            )}
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '18px', fontFamily: FONT_BODY }}>
               DataBridge 360
@@ -1416,20 +1617,6 @@ export default function DataBridgePage() {
           </div>
         )}
 
-        {proyectosGuardados.length > 0 && (
-          <div style={{ marginTop: '20px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: phase === 'upload' ? 'center' : 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: FONT_BODY, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tus paneles desplegados</span>
-            {proyectosGuardados.map(p => (
-              <a key={p.id} href={`/pulse/databridge/panel/${p.id}`} style={{
-                fontSize: '12px', fontFamily: FONT_BODY, color: '#0f172a', textDecoration: 'none',
-                padding: '4px 12px', borderRadius: '999px', border: '1px solid #d9dadc', background: '#f8fafc',
-              }}>
-                {p.nombre} · {p.tablas} {p.tablas === 1 ? 'tabla' : 'tablas'}
-              </a>
-            ))}
-          </div>
-        )}
-
         {/* Stepper y navegación — solo cuando ya hay datos cargados: en el estado inicial la
             pantalla es una sola pregunta, sin pasos por delante todavía. */}
         {phase !== 'upload' && (<>
@@ -1495,7 +1682,7 @@ export default function DataBridgePage() {
         </div>
         </>)}
 
-        {phase === 'upload' && (
+        {phase === 'upload' && !vistaProyectos && (
           <>
             <DataBridgeOrden />
             <DataBridgePrototipos />

@@ -9,7 +9,7 @@
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   PERIODOS, SEDES_OPCIONES, calcularDemo,
   formatearNumero, formatearPct, formatearMillones,
@@ -24,9 +24,21 @@ const INK = '#0f172a'
 const DIM = '#64748b'
 const LINE = '#e3e8f0'
 
+const CLAVE_DESBLOQUEO = 'pulse_demo_registrado'
+
 export default function DemoPage() {
   const [sede, setSede] = useState<SedeId>('todas')
   const [periodo, setPeriodo] = useState<PeriodoId>('12m')
+
+  // Arranca bloqueado a propósito: si arrancara abierto y recién después leyera el registro
+  // previo, el panel se vería un instante antes de pedir los datos. Quien ya se registró
+  // pasa el gate en el primer efecto, sin volver a llenar nada.
+  const [desbloqueado, setDesbloqueado] = useState(false)
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(CLAVE_DESBLOQUEO) === '1') setDesbloqueado(true)
+    } catch { /* modo incógnito o storage bloqueado: se pide el registro igual */ }
+  }, [])
 
   const d = useMemo(() => calcularDemo(sede, periodo), [sede, periodo])
   const maxEmbudo = d.embudo[0].valor || 1
@@ -87,6 +99,20 @@ export default function DemoPage() {
             Cifras generadas para esta demostración. No corresponden a ningún concesionario, asesor, marca ni modelo real — los datos de cada cliente son suyos y no se muestran acá.
           </span>
         </div>
+
+        {/* De acá para abajo va el panel en sí. Se muestra difuminado detrás del registro en
+            vez de esconderse: quien llega tiene que ver que hay algo real, no una pared. */}
+        <div style={{ position: 'relative' }}>
+        {!desbloqueado && <GateRegistro onListo={() => setDesbloqueado(true)} />}
+        <div
+          aria-hidden={!desbloqueado}
+          style={{
+            filter: desbloqueado ? 'none' : 'blur(7px)',
+            pointerEvents: desbloqueado ? 'auto' : 'none',
+            userSelect: desbloqueado ? 'auto' : 'none',
+            transition: 'filter .3s ease',
+          }}
+        >
 
         {/* Filtros */}
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '22px' }}>
@@ -211,7 +237,127 @@ export default function DemoPage() {
             Empezar con mis datos →
           </a>
         </div>
+        </div>
+        </div>
       </div>
+    </div>
+  )
+}
+
+const WHATSAPP_VENTAS = '573004339418'
+
+// Registro previo al panel. Reusa /api/pulse/demo-contacto —el mismo endpoint del formulario
+// de demo de la landing— para que todos los leads lleguen por un solo camino en vez de tener
+// dos fuentes de verdad que después no coinciden.
+function GateRegistro({ onListo }: { onListo: () => void }) {
+  const [estado, setEstado] = useState<'idle' | 'enviando' | 'error'>('idle')
+  const [error, setError] = useState('')
+  const [datos, setDatos] = useState({ concesionario: '', nombre: '', email: '', telefono: '' })
+
+  const set = (k: keyof typeof datos) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setDatos(prev => ({ ...prev, [k]: e.target.value }))
+
+  const whatsappFallback = `https://wa.me/${WHATSAPP_VENTAS}?text=${encodeURIComponent(
+    ['Hola, quiero ver el demo del panel de Pulse Motor.',
+      datos.concesionario && `Concesionario: ${datos.concesionario}`,
+      datos.nombre && `Nombre: ${datos.nombre}`].filter(Boolean).join('\n')
+  )}`
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault()
+    setEstado('enviando'); setError('')
+    try {
+      const res = await fetch('/api/pulse/demo-contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...datos, mensaje: 'Registro para ver el demo del panel' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'No pudimos registrar tus datos')
+      try { window.localStorage.setItem(CLAVE_DESBLOQUEO, '1') } catch { /* storage bloqueado */ }
+      onListo()
+    } catch (err) {
+      setEstado('error')
+      setError(err instanceof Error ? err.message : 'No pudimos registrar tus datos')
+    }
+  }
+
+  const input: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: '9px',
+    border: `1px solid ${LINE}`, background: '#fff', color: INK,
+    fontSize: '13.5px', fontFamily: FONT_BODY, outline: 'none',
+  }
+  const label: React.CSSProperties = {
+    display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569',
+    marginBottom: '5px', fontFamily: FONT_BODY,
+  }
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', justifyContent: 'center', paddingTop: '30px' }}>
+      <form
+        onSubmit={enviar}
+        style={{
+          position: 'sticky', top: '30px', alignSelf: 'flex-start',
+          width: '100%', maxWidth: '440px', height: 'fit-content',
+          background: '#fff', border: `1px solid ${LINE}`, borderRadius: '18px',
+          padding: '26px', boxShadow: '0 18px 50px rgba(15,23,42,0.16)',
+        }}
+      >
+        <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', marginBottom: '7px' }}>
+          Dejanos tus datos y entrá al panel
+        </div>
+        <div style={{ fontSize: '13.5px', color: DIM, lineHeight: 1.55, marginBottom: '18px' }}>
+          Es un panel de demostración con cifras simuladas. Te lo abrimos completo y te escribimos para armarlo con los datos de tu concesionario.
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <label htmlFor="g-conc" style={label}>Concesionario</label>
+            <input id="g-conc" required value={datos.concesionario} onChange={set('concesionario')} placeholder="Nombre del concesionario" style={input} />
+          </div>
+          <div>
+            <label htmlFor="g-nom" style={label}>Nombre</label>
+            <input id="g-nom" required value={datos.nombre} onChange={set('nombre')} placeholder="Tu nombre" style={input} />
+          </div>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 180px' }}>
+              <label htmlFor="g-mail" style={label}>Correo</label>
+              <input id="g-mail" required type="email" value={datos.email} onChange={set('email')} placeholder="tu@correo.com" style={input} />
+            </div>
+            <div style={{ flex: '1 1 150px' }}>
+              <label htmlFor="g-tel" style={label}>WhatsApp</label>
+              <input id="g-tel" required type="tel" value={datos.telefono} onChange={set('telefono')} placeholder="300 000 0000" style={input} />
+            </div>
+          </div>
+        </div>
+
+        {estado === 'error' && (
+          <div style={{ marginTop: '14px', fontSize: '12.5px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '9px', padding: '9px 12px', lineHeight: 1.5 }}>
+            {error}{' '}
+            <a href={whatsappFallback} target="_blank" rel="noopener noreferrer" style={{ color: '#b91c1c', fontWeight: 700 }}>
+              Escribinos por WhatsApp →
+            </a>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={estado === 'enviando'}
+          className="pm-demo-cta"
+          style={{
+            width: '100%', marginTop: '18px', padding: '13px', borderRadius: '11px', border: 'none',
+            background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff',
+            fontSize: '14px', fontWeight: 700, fontFamily: FONT,
+            cursor: estado === 'enviando' ? 'default' : 'pointer', opacity: estado === 'enviando' ? 0.7 : 1,
+          }}
+        >
+          {estado === 'enviando' ? 'Abriendo…' : 'Ver el panel →'}
+        </button>
+
+        <div style={{ marginTop: '11px', fontSize: '11.5px', color: '#94a3b8', textAlign: 'center', lineHeight: 1.5 }}>
+          Usamos tus datos solo para contactarte. No vas a ver información de ningún otro concesionario.
+        </div>
+      </form>
     </div>
   )
 }

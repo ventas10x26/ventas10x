@@ -68,8 +68,10 @@ const STEPS: { key: Step; label: string }[] = [
 
 const rand = (a: number, b: number) => Math.random() * (b - a) + a
 
-const BASE_DIM = 400
-const dimScaleFor = (h: number) => Math.min(2.2, Math.max(1, h / BASE_DIM))
+// Aire alrededor del grafo al encuadrarlo. El margen inferior es mayor porque bajo cada
+// nodo de tabla van dos líneas de texto (nombre + "N campos · clic para ver").
+const FIT_PAD_X = 90
+const FIT_PAD_Y = 100
 
 function stripAccents(s: string): string {
   return s.normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
@@ -374,6 +376,11 @@ export default function DataBridgePage() {
   const camRef        = useRef({ rx: -25, ry: 30 })
   const panRef        = useRef({ x: 0, y: 0 })
   const zoomRef       = useRef(1)
+  // Escala base del encuadre automático y la firma del estado con el que se calculó, para
+  // recalcularla solo cuando cambia algo real (datos, tamaño, vista, expandir/contraer) y no
+  // en cada cuadro de la rotación automática, que la haría latir.
+  const fitScaleRef   = useRef(1)
+  const fitSigRef     = useRef('')
   const interactedRef = useRef(false)
   const dragRef       = useRef({ on: false, x: 0, y: 0 })
   const animRef       = useRef<number>(0)
@@ -507,11 +514,10 @@ export default function DataBridgePage() {
     })
   }
 
-  const project = useCallback((x: number, y: number, z: number, W: number, H: number) => {
-    const dimScale = dimScaleFor(H) * zoomRef.current
-    const px0 = W / 2 + panRef.current.x
-    const py0 = H / 2 + panRef.current.y
-    if (viewRef.current === 'top') return { px: x * dimScale + px0, py: -z * dimScale + py0, depth: 1 }
+  // Coordenadas proyectadas sin escala ni paneo. Se separan de project() porque el encuadre
+  // automático necesita medir el grafo *antes* de saber con qué escala dibujarlo.
+  const projectUnit = useCallback((x: number, y: number, z: number) => {
+    if (viewRef.current === 'top') return { ux: x, uy: -z, depth: 1 }
     const rx = camRef.current.rx * Math.PI / 180
     const ry = camRef.current.ry * Math.PI / 180
     const y1 = y * Math.cos(rx) - z * Math.sin(rx)
@@ -519,8 +525,41 @@ export default function DataBridgePage() {
     const x2 = x * Math.cos(ry) + z1 * Math.sin(ry)
     const z2 = -x * Math.sin(ry) + z1 * Math.cos(ry)
     const fov = 500; const d = fov / (fov + z2 + 300)
-    return { px: x2 * d * dimScale + px0, py: y1 * d * dimScale + py0, depth: z2 }
+    return { ux: x2 * d, uy: y1 * d, depth: z2 }
   }, [])
+
+  // Escala que hace entrar el grafo completo en el canvas con aire. Antes salía solo de la
+  // altura contra un alto de referencia fijo, así que en un panel ancho el diagrama quedaba
+  // diminuto en el centro y desperdiciaba todo el espacio de los costados.
+  const computeFitScale = useCallback((ns: Node3D[], W: number, H: number) => {
+    if (!ns.length || W <= 0 || H <= 0) return 1
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    ns.forEach(n => {
+      const { ux, uy } = projectUnit(n.x, n.y, n.z)
+      if (ux < minX) minX = ux
+      if (ux > maxX) maxX = ux
+      if (uy < minY) minY = uy
+      if (uy > maxY) maxY = uy
+    })
+    const gw = Math.max(1, maxX - minX)
+    const gh = Math.max(1, maxY - minY)
+    // En un canvas angosto o bajo (mobile) el margen fijo se come casi todo el ancho útil y
+    // deja el grafo diminuto, así que se topea contra una fracción del lado correspondiente.
+    const padX = Math.min(FIT_PAD_X, W * 0.12)
+    const padY = Math.min(FIT_PAD_Y, H * 0.25)
+    const s = Math.min((W - padX * 2) / gw, (H - padY * 2) / gh)
+    return Math.min(2.6, Math.max(0.5, s))
+  }, [projectUnit])
+
+  const project = useCallback((x: number, y: number, z: number, W: number, H: number) => {
+    const { ux, uy, depth } = projectUnit(x, y, z)
+    const dimScale = fitScaleRef.current * zoomRef.current
+    return {
+      px: ux * dimScale + W / 2 + panRef.current.x,
+      py: uy * dimScale + H / 2 + panRef.current.y,
+      depth,
+    }
+  }, [projectUnit])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -538,7 +577,13 @@ export default function DataBridgePage() {
     const es = edgesRef.current.filter(e => visibleFieldIds.has(e.b))
     if (!ns.length) return
 
-    const dimScale = dimScaleFor(H) * zoomRef.current
+    const fitSig = `${ns.length}|${Math.round(W)}x${Math.round(H)}|${viewRef.current}|${focusedRel ? focusedRel.a + '>' + focusedRel.b : ''}`
+    if (fitSig !== fitSigRef.current) {
+      fitSigRef.current = fitSig
+      fitScaleRef.current = computeFitScale(ns, W, H)
+    }
+
+    const dimScale = fitScaleRef.current * zoomRef.current
     const fs = (px: number) => Math.round(px * dimScale)
 
     const proj = ns.map(n => ({ ...n, ...project(n.x, n.y, n.z, W, H) }))
@@ -601,7 +646,7 @@ export default function DataBridgePage() {
         ctx.fillText(n.tipo || '', n.px!, n.py! + r + fs(17))
       }
     })
-  }, [project])
+  }, [project, computeFitScale])
 
   useEffect(() => {
     nodesRef.current = nodes
@@ -648,16 +693,20 @@ export default function DataBridgePage() {
     draw()
   }, [draw])
 
+  // El canvas recién se monta cuando la fase deja de ser 'upload', así que un sync disparado
+  // solo al montar la página corre con canvasRef en null y nunca se reintenta: el backing store
+  // se queda en el 300x150 por defecto y el navegador lo estira por CSS (todo gigante, borroso
+  // y con el aspecto deformado). El ResizeObserver sobre el contenedor lo mantiene igualado
+  // pase lo que pase con el layout — montaje tardío, pantalla completa, sidebar plegado o
+  // resize de ventana — sin depender de que cada cambio futuro acuerde de re-sincronizar.
   useEffect(() => {
+    const parent = canvasRef.current?.parentElement
+    if (!parent) return
     syncCanvasSize()
-    window.addEventListener('resize', syncCanvasSize)
-    return () => window.removeEventListener('resize', syncCanvasSize)
-  }, [syncCanvasSize])
-
-  useEffect(() => {
-    const t = setTimeout(syncCanvasSize, 60)
-    return () => clearTimeout(t)
-  }, [fullscreen, syncCanvasSize])
+    const ro = new ResizeObserver(syncCanvasSize)
+    ro.observe(parent)
+    return () => ro.disconnect()
+  }, [phase, fullscreen, syncCanvasSize])
 
   useEffect(() => {
     document.body.style.overflow = (fullscreen || schemaFullscreen) ? 'hidden' : ''
@@ -932,7 +981,7 @@ export default function DataBridgePage() {
       dragRef.current.x = mx; dragRef.current.y = my; draw(); return
     }
     const W = rect.width; const H = rect.height
-    const dimScale = dimScaleFor(H) * zoomRef.current
+    const dimScale = fitScaleRef.current * zoomRef.current
     const visibleFieldIds = visibleFieldIdsFor(nodesRef.current, expandedTables, focusedRelation)
     const visibleTableIds = visibleTableIdsFor(nodesRef.current, focusedRelation)
     const hit = nodesRef.current.find(n => {
@@ -1467,7 +1516,7 @@ export default function DataBridgePage() {
               const moved = (mx - clickStartRef.current.x) ** 2 + (my - clickStartRef.current.y) ** 2
               if (moved > 16) return
               const W = rect.width; const H = rect.height
-              const dimScale = dimScaleFor(H) * zoomRef.current
+              const dimScale = fitScaleRef.current * zoomRef.current
               const visibleTableIds = visibleTableIdsFor(nodesRef.current, focusedRelation)
               const hit = nodesRef.current.find(n => {
                 if (n.kind !== 'table') return false

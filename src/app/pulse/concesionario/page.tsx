@@ -56,6 +56,9 @@ export default function ConcesionarioLanding() {
               <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' }}>
                 <a href="/pulse/databridge" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Solicitar acceso<span className="btn-arrow">→</span></a>
                 <a href="#precios" className="pm-btn pm-btn-dark" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
+                {/* Terciario (outline, no sólido): el demo es la acción de menor compromiso de
+                    las tres — se mira antes de pedir acceso o mirar precios. */}
+                <a href="/pulse/demo" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver el panel<span className="btn-arrow">→</span></a>
               </div>
             </div>
 

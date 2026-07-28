@@ -294,10 +294,20 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', justifyContent: 'center', paddingTop: '30px' }}>
+      {/* Velo sobre el panel difuminado: azul muy tenue con algo de oscuridad, para
+          que el contenido de atrás se lea como apagado y el formulario quede al
+          frente. No intercepta clicks — el panel de atrás ya está inerte. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(37,99,235,0.13) 0%, rgba(37,99,235,0.09) 100%), rgba(10,14,26,0.22)',
+        }}
+      />
       <form
         onSubmit={enviar}
         style={{
-          position: 'sticky', top: '30px', alignSelf: 'flex-start',
+          position: 'sticky', top: '30px', alignSelf: 'flex-start', zIndex: 1,
           width: '100%', maxWidth: '440px', height: 'fit-content',
           background: '#fff', border: `1px solid ${LINE}`, borderRadius: '18px',
           padding: '26px', boxShadow: '0 18px 50px rgba(15,23,42,0.16)',

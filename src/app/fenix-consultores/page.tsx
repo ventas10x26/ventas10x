@@ -6,6 +6,7 @@ import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
 import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
 import { FenixStickyProspecting } from '@/components/fenix/FenixStickyProspecting'
+import { FenixVideoShort } from '@/components/fenix/FenixVideoShort'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -411,6 +412,39 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
+      {/* ── VIDEO 1: refuerza el dolor recién planteado ── */}
+      <section style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{
+          maxWidth: MAXW, margin: '0 auto', position: 'relative', overflow: 'hidden',
+          background: DARK_2, border: '1px solid rgba(255,255,255,.08)',
+          borderRadius: '40px', padding: '3rem',
+          display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: '3rem',
+          alignItems: 'center',
+        }} className="fenix-video-band">
+          <CornerGlow />
+          <div className="fenix-video-media" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <FenixVideoShort
+              videoId="nulz93G54W4"
+              label="Ver: por qué su cartera pierde valor cada día"
+            />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <div style={EYEBROW}>En 60 segundos</div>
+            <h2 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
+              Por qué su cartera <span style={{ color: ACCENT }}>pierde valor cada día</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
+              El tiempo es la variable que más destruye el valor de una obligación.
+              Vea cómo opera ese deterioro y qué se puede recuperar cuando se
+              interviene con estrategia, tecnología y respaldo jurídico.
+            </p>
+            <a href="#contacto" style={PILL_SOLID}>
+              Solicitar Diagnóstico Ejecutivo Gratuito <IconArrow />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── SECCIÓN 3: DIFERENCIALES (fila graduada) ── */}
       <section id="modelo" style={{ padding: '5rem 1.5rem 6rem', position: 'relative' }}>
         <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
@@ -522,6 +556,39 @@ export default function FenixConsultoresPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── VIDEO 2: prueba, justo después de presentar la plataforma ── */}
+      <section style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{
+          maxWidth: MAXW, margin: '0 auto', position: 'relative', overflow: 'hidden',
+          background: DARK_2, border: '1px solid rgba(255,255,255,.08)',
+          borderRadius: '40px', padding: '3rem',
+          display: 'grid', gridTemplateColumns: '1fr minmax(220px, 300px)', gap: '3rem',
+          alignItems: 'center',
+        }} className="fenix-video-band fenix-video-band-rev">
+          <CornerGlow />
+          <div style={{ position: 'relative' }}>
+            <div style={EYEBROW}>Cómo funciona</div>
+            <h2 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
+              Así se ve la recuperación <span style={{ color: ACCENT }}>en tiempo real</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
+              Cada gestión queda registrada, medida y disponible para la dirección
+              financiera. Vea cómo se traduce en trazabilidad, indicadores y decisiones
+              más rápidas sobre su cartera.
+            </p>
+            <a href="#contacto" style={PILL_SOLID}>
+              Quiero ver mi cartera así <IconArrow />
+            </a>
+          </div>
+          <div className="fenix-video-media" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <FenixVideoShort
+              videoId="YdQoqCQNUFY"
+              label="Ver: así se ve la recuperación en tiempo real"
+            />
           </div>
         </div>
       </section>
@@ -921,6 +988,14 @@ export default function FenixConsultoresPage() {
         }
         @media (max-width: 900px) {
           .fenix-bento { grid-template-columns: 1fr !important; }
+          .fenix-video-band {
+            grid-template-columns: 1fr !important;
+            padding: 2.5rem 1.75rem !important;
+            text-align: center;
+          }
+          /* En una sola columna el video siempre va primero */
+          .fenix-video-band .fenix-video-media { order: -1; }
+          .fenix-video-band h2, .fenix-video-band p { margin-left: auto; margin-right: auto; }
           .fenix-bento-organic { border-radius: 200px 200px 32px 32px !important; padding: 3rem 2.5rem !important; }
           .fenix-bento-organic-right { border-radius: 200px 200px 32px 32px !important; padding: 3rem 2.5rem !important; }
         }

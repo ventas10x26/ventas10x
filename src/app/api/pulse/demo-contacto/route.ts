@@ -3,20 +3,30 @@
 // Recibe las solicitudes de demo: el formulario de la landing (PulseDemoForm) y el registro
 // que abre el panel de /pulse/demo.
 //
-// El correo es el canal principal; el WhatsApp quedó como aviso adicional. Antes el WhatsApp
-// era el único camino Y además tumbaba la petición: si CallMeBot fallaba o faltaba la API
-// key, el handler devolvía 502 y el lead se perdía entero — el visitante veía un error y de
-// este lado no quedaba registro de que hubiera existido. Ahora alcanza con que UNO de los dos
-// canales entregue para dar la solicitud por recibida.
+// El lead se GUARDA en Supabase y además se avisa por correo y por WhatsApp. Que la solicitud
+// se dé por recibida depende de que quede registrada en alguna parte, no de que un servicio
+// externo esté arriba: el visitante no tiene por qué quedar trabado porque CallMeBot esté
+// caído. Antes el WhatsApp era el único camino Y además tumbaba la petición, así que una
+// falla suya devolvía 502 y el lead se perdía entero, sin dejar rastro de este lado.
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = 'Pulse Motor <agente@ventas10x.co>'
 
 // Número que recibe la notificación de cada solicitud de demo de Pulse Motor
 const PULSE_DEMO_WHATSAPP_DESTINO = '573004339418'
+
+// Último recurso si no hay nada configurado por entorno. Es el mismo destino que usa
+// /api/pulse/contacto: sin esto, un deploy sin PULSE_LEADS_EMAIL ni ADMIN_EMAILS se queda
+// sin destinatario y el correo falla en silencio — que fue justo lo que pasó.
+const DESTINO_FALLBACK = 'ricaza81@gmail.com'
 
 interface LeadDemo {
   concesionario: string
@@ -26,11 +36,29 @@ interface LeadDemo {
   mensaje: string
 }
 
-/** A dónde llega el aviso. PULSE_LEADS_EMAIL manda; si no está, cae al primero de ADMIN_EMAILS. */
+/** A dónde llega el aviso: PULSE_LEADS_EMAIL → primero de ADMIN_EMAILS → DESTINO_FALLBACK. */
 function destinatarios(): string[] {
   const propio = process.env.PULSE_LEADS_EMAIL?.trim()
-  if (propio) return propio.split(',').map(e => e.trim()).filter(Boolean)
-  return (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean).slice(0, 1)
+  if (propio) {
+    const lista = propio.split(',').map(e => e.trim()).filter(Boolean)
+    if (lista.length) return lista
+  }
+  const admins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
+  if (admins.length) return admins.slice(0, 1)
+  return [DESTINO_FALLBACK]
+}
+
+/** El registro durable. Si esto entra, el lead ya no se puede perder aunque no salga ningún aviso. */
+async function guardarLead(lead: LeadDemo) {
+  const notas = [`Concesionario: ${lead.concesionario}`, lead.mensaje].filter(Boolean).join(' · ')
+  const { error } = await supabase.from('pulse_contactos').insert({
+    nombre: lead.nombre,
+    email: lead.email,
+    telefono: lead.telefono,
+    fuente: 'demo_panel',
+    notas,
+  })
+  if (error) throw new Error(error.message)
 }
 
 function htmlLeadDemo(lead: LeadDemo) {
@@ -143,13 +171,17 @@ export async function POST(req: NextRequest) {
       mensaje: String(mensaje || '').trim(),
     }
 
-    // Los dos en paralelo: el WhatsApp no le agrega su latencia al correo, y una caída de
-    // CallMeBot no puede volver a costar un lead.
-    const [porEmail, porWhatsApp] = await Promise.allSettled([
+    // Los tres en paralelo: ninguno le agrega su latencia a los otros, y la caída de uno no
+    // puede volver a costar un lead.
+    const [guardado, porEmail, porWhatsApp] = await Promise.allSettled([
+      guardarLead(lead),
       enviarEmail(lead),
       notificarWhatsAppDemo(lead),
     ])
 
+    if (guardado.status === 'rejected') {
+      console.error('[pulse/demo-contacto] no se guardó en Supabase:', guardado.reason)
+    }
     if (porEmail.status === 'rejected') {
       console.error('[pulse/demo-contacto] email falló:', porEmail.reason)
     }
@@ -157,7 +189,9 @@ export async function POST(req: NextRequest) {
       console.error('[pulse/demo-contacto] whatsapp falló:', porWhatsApp.reason)
     }
 
-    if (porEmail.status === 'rejected' && porWhatsApp.status === 'rejected') {
+    // Solo se rechaza si el lead no quedó registrado en ningún lado. Mientras esté guardado o
+    // haya salido un aviso, la solicitud está recibida y el visitante puede pasar al panel.
+    if (guardado.status === 'rejected' && porEmail.status === 'rejected' && porWhatsApp.status === 'rejected') {
       return NextResponse.json(
         { error: 'No pudimos enviar la solicitud. Intenta de nuevo o escríbenos directo por WhatsApp.' },
         { status: 502 }

@@ -14,96 +14,14 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Fenix Consultores Empresariales S.A.S. | Bufete de abogados especializados',
-  description: 'Empresa dedicada a la defensa legal, con especialistas en consultoría empresarial, recaudo y saneamiento de cartera. Más de 12 años de experiencia.',
+  title: 'FÉNIX Recovery Intelligence® | Recuperación estratégica de activos empresariales',
+  description: 'Recuperamos activos empresariales mediante un modelo integral que combina Inteligencia Artificial, software de gestión de cartera, analítica financiera, automatización de cobro y respaldo jurídico especializado.',
 }
 
 const DARK = '#000000'
 const ACCENT = '#F5821F'
 
-// Icono pequeño de brújula/objetivo para Misión
-function IconTarget() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4.2" />
-      <circle cx="12" cy="12" r="0.6" fill={ACCENT} />
-    </svg>
-  )
-}
-
-// Icono pequeño de ojo para Visión
-function IconEye() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12c2.5-4.2 6-6.5 10-6.5s7.5 2.3 10 6.5c-2.5 4.2-6 6.5-10 6.5S4.5 16.2 2 12z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
-// Icono pequeño de personas para Recurso Humano
-function IconUsers() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="8" r="3" />
-      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-      <circle cx="17" cy="8.5" r="2.3" />
-      <path d="M15.5 14.2c2.5.4 4.5 2.7 4.5 5.8" />
-    </svg>
-  )
-}
-
-// Iconos grandes de línea para las cards de servicios, estilo Liquitty (Outcourt/Incourt/NPLS)
-function IconRadar() {
-  return (
-    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
-      <circle cx="32" cy="32" r="19" />
-      <line x1="32" y1="4" x2="32" y2="13" />
-      <line x1="32" y1="51" x2="32" y2="60" />
-      <line x1="4" y1="32" x2="13" y2="32" />
-      <line x1="51" y1="32" x2="60" y2="32" />
-      <line x1="11.7" y1="11.7" x2="18" y2="18" />
-      <line x1="46" y1="46" x2="52.3" y2="52.3" />
-      <line x1="52.3" y1="11.7" x2="46" y2="18" />
-      <line x1="18" y1="46" x2="11.7" y2="52.3" />
-    </svg>
-  )
-}
-
-function IconCubeOutline() {
-  return (
-    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
-      <path d="M32 7 L55 20 V44 L32 57 L9 44 V20 Z" />
-      <path d="M9 20 L32 33 L55 20" />
-      <path d="M32 33 V57" />
-    </svg>
-  )
-}
-
-function IconTriangleUp() {
-  return (
-    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
-      <path d="M32 8 L57 52 H7 Z" />
-    </svg>
-  )
-}
-
-// Pequeño retículo decorativo, estilo Liquitty
-function ReticleDot() {
-  return (
-    <div style={{
-      position: 'absolute', top: '46%', right: '44px',
-      width: '26px', height: '26px', borderRadius: '50%',
-      border: '1px solid rgba(255,255,255,.32)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,.6)' }} />
-    </div>
-  )
-}
-
+// ─── Iconos ───
 function IconArrow() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +46,48 @@ function IconFacebook() {
   )
 }
 
-// Glow decorativo de esquina reutilizado en todas las cards con borde
+function IconBrain() {
+  return (
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <circle cx="32" cy="32" r="6" />
+      <circle cx="14" cy="18" r="4" />
+      <circle cx="50" cy="18" r="4" />
+      <circle cx="14" cy="46" r="4" />
+      <circle cx="50" cy="46" r="4" />
+      <path d="M17.5 20.5 27 28M46.5 20.5 37 28M17.5 43.5 27 36M46.5 43.5 37 36M18 18h28M18 46h28" />
+    </svg>
+  )
+}
+
+function IconDashboard() {
+  return (
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <rect x="7" y="11" width="50" height="42" rx="3" />
+      <path d="M7 22h50" />
+      <path d="M16 44v-9M27 44V30M38 44v-6M49 44V27" />
+    </svg>
+  )
+}
+
+function IconAutomation() {
+  return (
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <circle cx="32" cy="32" r="9" />
+      <path d="M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6" />
+    </svg>
+  )
+}
+
+function IconGavel() {
+  return (
+    <svg width="70" height="70" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.1">
+      <path d="M36 10l18 18M18 30l18-18 12 12-18 18z" />
+      <path d="M8 56l18-18M40 40l16 16M6 58h24" />
+    </svg>
+  )
+}
+
+// Glow decorativo de esquina
 function CornerGlow() {
   return (
     <div style={{
@@ -137,6 +96,20 @@ function CornerGlow() {
       background: `radial-gradient(circle, ${ACCENT}35 0%, transparent 70%)`,
       filter: 'blur(6px)', pointerEvents: 'none',
     }} />
+  )
+}
+
+function ReticleDot() {
+  return (
+    <div style={{
+      position: 'absolute', top: '46%', right: '44px',
+      width: '26px', height: '26px', borderRadius: '50%',
+      border: '1px solid rgba(255,255,255,.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      pointerEvents: 'none',
+    }}>
+      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,.6)' }} />
+    </div>
   )
 }
 
@@ -149,85 +122,145 @@ const CARD_STYLE: CSSProperties = {
 
 const PILL_SOLID: CSSProperties = {
   background: ACCENT, color: '#050505',
-  padding: '15px 32px', borderRadius: '999px',
+  padding: '16px 34px', borderRadius: '999px',
   fontSize: '14px', fontWeight: 700, textDecoration: 'none',
   display: 'inline-flex', alignItems: 'center', gap: '8px',
   boxShadow: `0 0 0 1px ${ACCENT}, 0 8px 30px ${ACCENT}55`,
 }
 
-const SERVICIOS = [
-  {
-    Icono: IconRadar,
-    titulo: 'Derecho Preventivo',
-    desc: 'Consultoría jurídica, contable y administrativa para racionalizar recursos y agilizar diligencias antes de que se conviertan en litigios.',
-  },
-  {
-    Icono: IconCubeOutline,
-    titulo: 'Recaudo y Saneamiento de Cartera',
-    desc: 'Gestión del cobro de cartera del sector Real y de entidades del sector Salud, con procesos jurídicos ordenados y eficientes.',
-  },
-  {
-    Icono: IconTriangleUp,
-    titulo: 'Consultoría Empresarial',
-    desc: 'Acompañamiento permanente a empresas y particulares con herramientas técnicas, jurídicas y tecnológicas para una defensa legal integral.',
-  },
+const PILL_OUTLINE: CSSProperties = {
+  background: 'transparent', color: '#fff',
+  padding: '16px 30px', borderRadius: '999px', fontSize: '14px',
+  fontWeight: 600, textDecoration: 'none', display: 'inline-flex',
+  alignItems: 'center', gap: '8px',
+  border: '1px solid rgba(255,255,255,.25)',
+}
+
+const EYEBROW: CSSProperties = {
+  fontSize: '12px', fontWeight: 700, color: ACCENT,
+  letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px',
+}
+
+const H2: CSSProperties = {
+  fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700,
+  letterSpacing: '-.015em', lineHeight: 1.15, margin: 0,
+}
+
+// ─── Datos ───
+const CREDIBILIDAD = [
+  'Plataforma tecnológica de seguimiento',
+  'Inteligencia Artificial aplicada a la recuperación',
+  'Cobro Prejurídico',
+  'Cobro Judicial',
+  'Reportes Ejecutivos en tiempo real',
+  'Trazabilidad completa de cada gestión',
+  'Atención personalizada',
 ]
 
-const STATS = [
-  { num: '200+', label: 'Clientes satisfechos' },
-  { num: '12+', label: 'Años de experiencia' },
-  { num: '330+', label: 'Casos de éxito' },
+const IMPACTOS = ['Liquidez', 'Rentabilidad', 'Capacidad de inversión', 'Crecimiento', 'Planeación financiera', 'Valor patrimonial']
+
+const DIFERENCIALES = [
+  {
+    Icono: IconBrain,
+    titulo: 'Inteligencia Artificial',
+    desc: 'Modelos inteligentes que optimizan la priorización de cartera, automatizan procesos y permiten decisiones más rápidas y eficientes.',
+  },
+  {
+    Icono: IconDashboard,
+    titulo: 'Plataforma Tecnológica',
+    desc: 'Estado de cada obligación, historial completo de gestiones, compromisos de pago, documentación, indicadores de recuperación y reportes ejecutivos. Todo centralizado.',
+  },
+  {
+    Icono: IconAutomation,
+    titulo: 'Automatización de Cobranza',
+    desc: 'Notificaciones automáticas, recordatorios inteligentes, seguimiento permanente y gestión multicanal.',
+  },
+  {
+    Icono: IconGavel,
+    titulo: 'Equipo Jurídico Especializado',
+    desc: 'Abogados con experiencia en recuperación empresarial: negociación estratégica, procesos ejecutivos, medidas cautelares y recuperación judicial.',
+  },
 ]
-
-const SECTORES = ['Sector Salud', 'Sector Real', 'Sector Asegurador', 'Sector Financiero', 'Sector Corporativo']
-
-const VALORES = ['Integridad', 'Excelencia', 'Calidad', 'Liderazgo', 'Confidencialidad', 'Responsabilidad']
 
 const PILARES = [
   {
-    titulo: 'Gestión Judicial',
-    desc: 'Ecosistema para la gestión judicial eficiente y digitalizada de los procesos de cartera.',
+    num: '01',
+    titulo: 'Diagnóstico Estratégico',
+    desc: 'Analizamos jurídicamente cada obligación antes de actuar.',
   },
   {
-    titulo: 'Outsourcing de Cobranza',
-    desc: 'Soluciones inteligentes para la recuperación de cartera, con seguimiento oportuno y resultados medibles.',
+    num: '02',
+    titulo: 'Gestión Inteligente',
+    desc: 'La IA identifica prioridades, optimiza tiempos y fortalece la toma de decisiones.',
+  },
+  {
+    num: '03',
+    titulo: 'Ejecución Especializada',
+    desc: 'Cada deudor recibe una estrategia diferente. Porque ninguna cartera es igual.',
+  },
+  {
+    num: '04',
+    titulo: 'Información en Tiempo Real',
+    desc: 'Usted conoce permanentemente qué ocurre con cada obligación. Sin llamadas. Sin solicitar informes.',
   },
 ]
 
-const RESUMEN = [
-  {
-    Icono: IconTarget,
-    titulo: 'Misión',
-    desc: 'Lograr que nuestros clientes sientan el acompañamiento de un grupo de profesionales del derecho 24 horas al día, con soluciones convenientes y oportunas a sus requerimientos jurídicos, contables y administrativos, utilizando nuestras herramientas legales, operativas, tecnológicas y de talento humano calificado.',
-  },
-  {
-    Icono: IconEye,
-    titulo: 'Visión',
-    desc: 'Ser el outsourcing jurídico, contable, administrativo y de cobranzas más reconocido en el sur occidente colombiano, brindando soluciones rápidas y efectivas a las empresas afiliadas.',
-  },
-  {
-    Icono: IconUsers,
-    titulo: 'Recurso Humano',
-    desc: 'Un equipo de profesionales y especialistas en Administración de Empresas, Contaduría, Finanzas y Derecho que garantiza a nuestros clientes productos y servicios sólidos y confiables.',
-  },
+const PLATAFORMA_ITEMS = [
+  'Total recuperado',
+  'Cartera activa',
+  'Cartera crítica',
+  'Compromisos de pago',
+  'Procesos jurídicos',
+  'Historial completo',
+  'Indicadores por gestor',
+  'Reportes descargables',
+  'Seguimiento individual de cada expediente',
 ]
 
-const BLOG = [
-  {
-    titulo: 'Autogestión como estrategia de recuperación de cartera',
-    resumen: 'Cuando el contacto tiene límites, la recuperación depende de algo más importante: que tan bien diseñado está el cierre digital.',
-    grad: `radial-gradient(circle at 30% 30%, #3b6fd6 0%, transparent 45%), radial-gradient(circle at 75% 70%, #7b3bd6 0%, transparent 50%), linear-gradient(160deg, #0d1420, #050708)`,
-  },
-  {
-    titulo: 'Recaudo de cartera en tiempos de IA: el riesgo del dato',
-    resumen: 'Usar IA en recaudo de cartera puede mejorar la precisión y consistencia, siempre que no haya zonas grises alrededor del dato.',
-    grad: `radial-gradient(circle at 60% 40%, ${ACCENT}80 0%, transparent 50%), radial-gradient(circle at 30% 70%, #d6463b 0%, transparent 45%), linear-gradient(160deg, #1a0d05, #050302)`,
-  },
-  {
-    titulo: 'Trazabilidad jurídica: la base de la confianza',
-    resumen: 'Cada proceso auditable es una promesa cumplida. Cómo la trazabilidad se volvió el estándar mínimo esperado por el cliente.',
-    grad: `radial-gradient(circle at 50% 50%, ${ACCENT}90 0%, transparent 35%), radial-gradient(circle at 50% 50%, transparent 40%, ${ACCENT}30 42%, transparent 46%), linear-gradient(160deg, #140a03, #050302)`,
-  },
+const TECNOLOGIA = [
+  'Inteligencia Artificial',
+  'Automatización',
+  'Plataforma Web',
+  'Analítica de Datos',
+  'Gestión Documental',
+  'Comunicación Digital',
+  'WhatsApp Empresarial',
+  'Correo Electrónico Automatizado',
+  'Llamadas Estratégicas',
+  'SMS',
+  'Gestión Jurídica',
+]
+
+const BENEFICIOS = [
+  'Mayor control',
+  'Mayor trazabilidad',
+  'Mayor transparencia',
+  'Mayor velocidad',
+  'Mayor probabilidad de recuperación',
+  'Menor riesgo jurídico',
+]
+
+const INDICADORES = [
+  'Tiempo promedio de recuperación',
+  'Edad de cartera',
+  'Compromisos cumplidos',
+  'Compromisos incumplidos',
+  'Productividad por gestor',
+  'Procesos judiciales activos',
+  'Recuperación mensual',
+  'Proyección de recaudo',
+]
+
+const PERFILES = ['Presidentes', 'Propietarios', 'Socios', 'Gerentes Generales', 'CFO', 'Directores Financieros']
+const SECTORES_OBJETIVO = ['Empresas B2B', 'Sector Salud', 'Industria', 'Construcción', 'Tecnología', 'Distribución', 'Cooperativas', 'Instituciones financieras']
+
+const CONFIANZA = [
+  'Gestión documentada',
+  'Seguimiento permanente',
+  'Reportes ejecutivos',
+  'Plataforma segura',
+  'Atención personalizada',
+  'Comunicación transparente',
 ]
 
 export default function FenixConsultoresPage() {
@@ -243,23 +276,18 @@ export default function FenixConsultoresPage() {
 
       {/* ── HERO ── */}
       <section id="inicio" style={{ padding: '7rem 1.5rem 4rem', position: 'relative', overflow: 'hidden' }}>
-        {/* Glow neón central */}
         <div style={{
           position: 'absolute', top: '-260px', left: '50%', transform: 'translateX(-50%)',
           width: '1000px', height: '1000px', borderRadius: '50%',
           background: `radial-gradient(circle, ${ACCENT}60 0%, ${ACCENT}28 45%, transparent 70%)`,
-          filter: 'blur(10px)',
-          pointerEvents: 'none',
+          filter: 'blur(10px)', pointerEvents: 'none',
         }} />
-        {/* Tubo de neón (anillo grueso difuminado) */}
         <div className="fenix-hero-tube" style={{
           position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)',
           width: '540px', height: '540px', borderRadius: '50%',
           background: `radial-gradient(circle, transparent 60%, ${ACCENT}90 66%, ${ACCENT}ff 70%, ${ACCENT}90 74%, transparent 80%)`,
-          filter: 'blur(6px)',
-          pointerEvents: 'none',
+          filter: 'blur(6px)', pointerEvents: 'none',
         }} />
-        {/* Chispas dispersas */}
         <div style={{
           position: 'absolute', top: '-260px', left: '50%', transform: 'translateX(-50%)',
           width: '900px', height: '700px',
@@ -273,10 +301,8 @@ export default function FenixConsultoresPage() {
             radial-gradient(1.5px 1.5px at 8% 55%, ${ACCENT}, transparent),
             radial-gradient(1.5px 1.5px at 60% 80%, #fff, transparent)
           `,
-          opacity: 0.8,
-          pointerEvents: 'none',
+          opacity: 0.8, pointerEvents: 'none',
         }} />
-        {/* Anillos concéntricos */}
         <div className="fenix-hero-ring" style={{
           position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)',
           width: '520px', height: '520px', borderRadius: '50%',
@@ -284,13 +310,6 @@ export default function FenixConsultoresPage() {
           boxShadow: `0 0 40px ${ACCENT}45, inset 0 0 40px ${ACCENT}25`,
           pointerEvents: 'none',
         }} />
-        <div style={{
-          position: 'absolute', top: '50px', left: '50%', transform: 'translateX(-50%)',
-          width: '340px', height: '340px', borderRadius: '50%',
-          border: `1px solid ${ACCENT}35`,
-          pointerEvents: 'none',
-        }} />
-        {/* Piso con perspectiva */}
         <div style={{
           position: 'absolute', bottom: '-40px', left: '50%', transform: 'translateX(-50%) perspective(300px) rotateX(65deg)',
           width: '900px', height: '260px',
@@ -300,230 +319,201 @@ export default function FenixConsultoresPage() {
           pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: '820px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            border: `1px solid ${ACCENT}55`, borderRadius: '999px',
+            padding: '7px 16px', marginBottom: '2rem',
+            fontSize: '11px', fontWeight: 700, letterSpacing: '.08em',
+            textTransform: 'uppercase', color: ACCENT,
+          }}>
+            <span className="fenix-live-dot" />
+            FÉNIX Recovery Intelligence<sup style={{ fontSize: '8px' }}>®</sup>
+          </div>
+
           <h1 style={{
             fontSize: 'clamp(30px, 4.6vw, 62px)', fontWeight: 300,
-            lineHeight: 1.1, letterSpacing: '-2px', marginBottom: '1.5rem',
+            lineHeight: 1.08, letterSpacing: '-2px', marginBottom: '1.5rem',
           }}>
-            Fenix Consultores<br />Empresariales S.A.S.<br />
-            <span style={{ color: ACCENT }}>defensa legal y recaudo de cartera.</span>
+            El dinero de su empresa<br />
+            <span style={{ color: ACCENT }}>no está perdido.</span>
           </h1>
 
           <p style={{
-            fontSize: 'clamp(16px, 1.6vw, 19px)', color: 'rgba(255,255,255,.55)',
-            lineHeight: 1.8, maxWidth: '560px', margin: '0 auto 2.5rem',
+            fontSize: 'clamp(17px, 1.8vw, 21px)', color: 'rgba(255,255,255,.7)',
+            lineHeight: 1.6, maxWidth: '680px', margin: '0 auto 1.5rem',
           }}>
-            Empresa dedicada a la defensa legal, con especialistas en consultoría
-            empresarial, recaudo y saneamiento de cartera.
+            Está inmovilizado en una cartera que necesita estrategia, tecnología
+            y ejecución especializada.
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '3rem' }}>
-            <a href="#contacto" style={PILL_SOLID}>
-              Conocer Más <IconArrow />
-            </a>
-            <a href="tel:+573215036414" aria-label="Llamar ahora" style={{
-              width: '46px', height: '46px', borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,.35)',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff',
-            }}>
-              <IconPhone />
-            </a>
-          </div>
-
-          {/* Tarjeta de líneas */}
-          <div style={{
-            position: 'relative', overflow: 'hidden',
-            display: 'inline-flex', flexDirection: 'column', gap: '4px',
-            background: 'rgba(255,255,255,.03)',
-            border: `1px solid ${ACCENT}55`,
-            boxShadow: `0 0 30px ${ACCENT}25`,
-            borderRadius: '18px', padding: '18px 36px',
+          <p style={{
+            fontSize: '15px', color: 'rgba(255,255,255,.45)',
+            lineHeight: 1.8, maxWidth: '640px', margin: '0 auto 1.25rem',
           }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: ACCENT }}>
-              Nuestras líneas
-            </span>
-            <span style={{ fontSize: '20px', fontWeight: 800 }}>+57 321 5036414</span>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,.7)' }}>310 4159173</span>
+            Recuperamos activos empresariales mediante un modelo integral que combina
+            Inteligencia Artificial, software de gestión de cartera, analítica financiera,
+            automatización de cobro y respaldo jurídico especializado.
+          </p>
+
+          <p style={{
+            fontSize: '15px', color: 'rgba(255,255,255,.55)',
+            lineHeight: 1.8, maxWidth: '620px', margin: '0 auto 2.5rem',
+          }}>
+            Porque recuperar cartera hoy ya no depende únicamente de insistir.
+            Depende de contar con <strong style={{ color: '#fff', fontWeight: 600 }}>información, tecnología y decisiones estratégicas</strong>.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="#contacto" style={PILL_SOLID}>
+              Solicitar Diagnóstico Ejecutivo Gratuito <IconArrow />
+            </a>
+            <a href="#modelo" style={PILL_OUTLINE}>
+              Conocer el Modelo Integral UREA<sup style={{ fontSize: '9px' }}>®</sup>
+            </a>
           </div>
         </div>
       </section>
 
-      {/* ── STATS STRIP ── */}
+      {/* ── BARRA DE CREDIBILIDAD ── */}
       <section style={{ borderTop: '1px solid rgba(255,255,255,.07)', borderBottom: '1px solid rgba(255,255,255,.07)', padding: '2.5rem 1.5rem' }}>
-        <div style={{
-          maxWidth: '860px', margin: '0 auto',
-          display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '2rem',
-        }}>
-          {STATS.map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(30px, 3.4vw, 44px)', fontWeight: 800, color: ACCENT, lineHeight: 1, letterSpacing: '-.02em' }}>{s.num}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)', marginTop: '8px', letterSpacing: '.03em' }}>{s.label}</div>
-            </div>
-          ))}
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.45)', textAlign: 'center', marginBottom: '1.75rem' }}>
+            Una solución diseñada para empresas que requieren control, trazabilidad y resultados.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            {CREDIBILIDAD.map(c => (
+              <span key={c} style={{
+                border: '1px solid rgba(255,255,255,.15)', borderRadius: '999px',
+                padding: '8px 18px', fontSize: '12.5px', fontWeight: 600,
+                color: 'rgba(255,255,255,.7)',
+              }}>
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── SECTORES ── */}
-      <section style={{ padding: '2.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-        <div style={{
-          maxWidth: '1000px', margin: '0 auto',
-          display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '1.5rem 2.5rem',
-        }}>
-          {SECTORES.map(s => (
-            <span key={s} style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,.35)', letterSpacing: '.03em', whiteSpace: 'nowrap' }}>
-              {s}
-            </span>
-          ))}
+      {/* ── SECCIÓN 2: EL COSTO DE NO ACTUAR ── */}
+      <section style={{ padding: '6rem 1.5rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(280px, 1.1fr) minmax(260px, 1fr)', gap: '3.5rem', alignItems: 'center' }} className="fenix-grid-2">
+          <div>
+            <div style={EYEBROW}>El costo de esperar</div>
+            <h2 style={{ ...H2, marginBottom: '1.25rem' }}>
+              Mientras su empresa continúa vendiendo… <span style={{ color: ACCENT }}>parte importante de sus utilidades permanece detenida.</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.85, marginBottom: '1.5rem' }}>
+              La cartera vencida afecta mucho más que el flujo de caja. También compromete
+              variables críticas del negocio.
+            </p>
+            <p style={{ fontSize: '15px', color: '#fff', lineHeight: 1.7, fontWeight: 600 }}>
+              Cada día sin una estrategia adecuada incrementa el riesgo de pérdida del activo.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {IMPACTOS.map(i => (
+              <div key={i} style={{
+                border: `1px solid ${ACCENT}30`, borderRadius: '12px',
+                padding: '18px 16px', fontSize: '14px', fontWeight: 600,
+                color: 'rgba(255,255,255,.8)', background: 'rgba(255,255,255,.012)',
+              }}>
+                {i}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── SERVICIOS ── */}
-      <section id="servicios" style={{ padding: '6rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
-        {/* Glow ambiental superior-central, se filtra a través de las cards */}
+      {/* ── SECCIÓN 3: QUÉ HACE DIFERENTE A FÉNIX ── */}
+      <section id="modelo" style={{ padding: '6rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', top: '-120px', left: '50%', transform: 'translateX(-50%)',
           width: '1100px', height: '620px', borderRadius: '50%',
           background: `radial-gradient(ellipse, ${ACCENT}3a 0%, ${ACCENT}14 40%, transparent 70%)`,
-          filter: 'blur(20px)',
-          pointerEvents: 'none',
+          filter: 'blur(20px)', pointerEvents: 'none',
         }} />
         <div style={{ maxWidth: '1340px', margin: '0 auto', position: 'relative' }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-          flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem', position: 'relative',
-        }}>
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-              Servicios
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem',
+          }}>
+            <div>
+              <div style={EYEBROW}>El diferencial</div>
+              <h2 style={{ ...H2, maxWidth: '520px' }}>
+                No solo recuperamos cartera. Diseñamos un <span style={{ color: ACCENT }}>ecosistema inteligente</span> de recuperación empresarial.
+              </h2>
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, margin: 0, maxWidth: '440px' }}>
-              Soluciones <span style={{ color: ACCENT }}>legales</span> integrales
-            </h2>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '340px', margin: 0 }}>
+              Nuestra metodología integra simultáneamente tecnología, analítica y respaldo
+              jurídico especializado.
+            </p>
           </div>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '360px', margin: 0 }}>
-            Herramientas técnicas, jurídicas y tecnológicas que respaldan la salud
-            financiera y legal de su empresa.
-          </p>
-        </div>
 
-        <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', position: 'relative' }}>
-          {SERVICIOS.map(({ Icono, titulo, desc }) => (
-            <FenixGlowCard key={titulo} className="fenix-service-card" style={{
-              position: 'relative', overflow: 'hidden',
-              border: `3px solid ${ACCENT}`, borderRadius: '15px',
-              padding: '20px', minHeight: '400px',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            }}>
-              <ReticleDot />
-              <div className="fenix-card-text" style={{ position: 'relative', color: 'rgba(255,255,255,.85)' }}>
-                <Icono />
-              </div>
-              <div style={{ position: 'relative' }}>
-                <div className="fenix-card-text" style={{ fontSize: 'clamp(34px, 3.6vw, 50px)', fontWeight: 400, lineHeight: 1, marginBottom: '14px', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{titulo}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
-                  <div className="fenix-card-text" style={{ fontSize: '18px', fontWeight: 400, color: 'rgba(255,255,255,.4)', lineHeight: 1.55, maxWidth: '78%' }}>{desc}</div>
-                  <div className="fenix-card-arrow" style={{
-                    flexShrink: 0, width: '52px', height: '52px', borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,.9)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>
+          <div className="fenix-services-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+            {DIFERENCIALES.map(({ Icono, titulo, desc }) => (
+              <FenixGlowCard key={titulo} className="fenix-service-card" style={{
+                position: 'relative', overflow: 'hidden',
+                border: `3px solid ${ACCENT}`, borderRadius: '15px',
+                padding: '20px', minHeight: '360px',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              }}>
+                <ReticleDot />
+                <div className="fenix-card-text" style={{ position: 'relative', color: 'rgba(255,255,255,.85)' }}>
+                  <Icono />
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <div className="fenix-card-text" style={{ fontSize: 'clamp(28px, 2.8vw, 40px)', fontWeight: 400, lineHeight: 1.05, marginBottom: '14px', fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{titulo}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px' }}>
+                    <div className="fenix-card-text" style={{ fontSize: '16px', fontWeight: 400, color: 'rgba(255,255,255,.4)', lineHeight: 1.55, maxWidth: '82%' }}>{desc}</div>
+                    <div className="fenix-card-arrow" style={{
+                      flexShrink: 0, width: '52px', height: '52px', borderRadius: '50%',
+                      border: '1px solid rgba(255,255,255,.9)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <span style={{ display: 'inline-flex', transform: 'rotate(-45deg)' }}><IconArrow /></span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </FenixGlowCard>
-          ))}
-        </div>
-        </div>
-      </section>
-
-      {/* ── QUIÉNES SOMOS ── */}
-      <section id="empresa" style={{ padding: '6rem 1.5rem', borderTop: '1px solid rgba(255,255,255,.07)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(280px, 1.15fr) minmax(240px, 1fr)', gap: '3.5rem', alignItems: 'center' }} className="fenix-grid-2">
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-              Nosotros
-            </div>
-            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.5rem' }}>
-              <span style={{ color: ACCENT }}>Más de una década</span> defendiendo sus intereses
-            </h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.85, marginBottom: '1.1rem' }}>
-              Fénix Consultores Empresariales S.A.S., fue creada en febrero de 2010, y nace del
-              deseo de fundar una empresa dedicada a la defensa legal de los intereses de las
-              empresas y de particulares, utilizando las herramientas técnicas, jurídicas y
-              tecnológicas que permiten realizar esta labor de una manera eficiente y ordenada.
-            </p>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.85 }}>
-              Compuesta por un grupo de profesionales dispuestos a satisfacer las necesidades
-              jurídicas de nuestros clientes, especializándonos en Derecho Preventivo y en el
-              cobro de cartera del sector Real y de entidades del sector Salud.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '2.5rem', columnGap: '1.5rem' }}>
-            {STATS.map(s => (
-              <div key={s.label}>
-                <div style={{ fontSize: 'clamp(30px, 3.6vw, 46px)', fontWeight: 800, color: ACCENT, lineHeight: 1, letterSpacing: '-.02em' }}>{s.num}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)', marginTop: '8px' }}>{s.label}</div>
-              </div>
+              </FenixGlowCard>
             ))}
-            <div style={{ gridColumn: '1 / -1', fontSize: '13px', color: 'rgba(255,255,255,.4)', lineHeight: 1.6, borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: '1.25rem' }}>
-              Tecnología avanzada y estrategias personalizadas para cada cliente.
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ── VALORES CORPORATIVOS ── */}
-      <section style={{ padding: '6rem 1.5rem' }}>
+      {/* ── SECCIÓN 4: LOS 4 PILARES (UREA) ── */}
+      <section style={{ padding: '6rem 1.5rem', borderTop: '1px solid rgba(255,255,255,.07)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-            Valores corporativos
-          </div>
-          <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '2.5rem', maxWidth: '560px' }}>
-            Los principios que guían <span style={{ color: ACCENT }}>cada proceso jurídico</span>
-          </h2>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '3rem' }}>
-            {VALORES.map(v => (
-              <div key={v} style={{
-                background: 'transparent', border: '1px solid rgba(255,255,255,.18)',
-                borderRadius: '999px', padding: '9px 20px',
-                fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,.75)',
-              }}>
-                {v}
-              </div>
-            ))}
+          <div style={{ marginBottom: '3rem', maxWidth: '680px' }}>
+            <div style={EYEBROW}>Modelo Integral UREA®</div>
+            <h2 style={{ ...H2, marginBottom: '1rem' }}>
+              Tecnología + Inteligencia Jurídica = <span style={{ color: ACCENT }}>Mayor Recuperación</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8 }}>
+              La Unidad de Recuperación Estratégica de Activos opera bajo cuatro pilares.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
             {PILARES.map(p => (
-              <FenixGlowCard key={p.titulo} className="fenix-tech-card" style={{ ...CARD_STYLE, padding: '30px' }}>
-                <div className="fenix-card-text" style={{ position: 'relative', fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>{p.titulo}</div>
+              <FenixGlowCard key={p.num} className="fenix-tech-card" style={{ ...CARD_STYLE, padding: '28px' }}>
+                <div className="fenix-card-text" style={{ position: 'relative', fontSize: '13px', fontWeight: 700, color: ACCENT, marginBottom: '18px', letterSpacing: '.08em' }}>{p.num}</div>
+                <div className="fenix-card-text" style={{ position: 'relative', fontSize: '19px', fontWeight: 700, marginBottom: '10px', lineHeight: 1.25 }}>{p.titulo}</div>
                 <div className="fenix-card-text" style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.7 }}>{p.desc}</div>
               </FenixGlowCard>
             ))}
-            <a href="#contacto" style={{
-              background: ACCENT, borderRadius: '18px', padding: '30px',
-              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start',
-              gap: '10px', textDecoration: 'none', color: '#050505',
-              boxShadow: `0 8px 32px ${ACCENT}45`,
-            }}>
-              <div style={{ fontSize: '17px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>Conoce más <IconArrow /></div>
-              <div style={{ fontSize: '13px', opacity: 0.75, fontWeight: 500 }}>Hable con un especialista de Fenix Consultores.</div>
-            </a>
           </div>
         </div>
       </section>
 
-      {/* ── PROPUESTA DE VALOR ── */}
-      <section id="cartera" style={{ padding: '0 1.5rem 6rem' }}>
+      {/* ── SECCIÓN 5: PLATAFORMA ── */}
+      <section id="plataforma" style={{ padding: '6rem 1.5rem' }}>
         <div style={{
           maxWidth: '1100px', margin: '0 auto', position: 'relative', overflow: 'hidden',
           border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3rem',
           boxShadow: `0 0 60px ${ACCENT}15`,
-          display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(260px, 1.3fr)', gap: '2.5rem', alignItems: 'center',
+          display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(280px, 1.15fr)', gap: '2.5rem', alignItems: 'center',
         }} className="fenix-grid-2">
           <div style={{
             position: 'absolute', top: '-100px', left: '-100px',
@@ -531,129 +521,228 @@ export default function FenixConsultoresPage() {
             background: `radial-gradient(circle, ${ACCENT}22 0%, transparent 70%)`,
             pointerEvents: 'none',
           }} />
-          <div style={{
-            position: 'relative', aspectRatio: '4 / 3', borderRadius: '18px', overflow: 'hidden',
-            background: `radial-gradient(circle at 50% 32%, ${ACCENT}45 0%, transparent 55%), linear-gradient(180deg, #0d0805, #050302)`,
-            border: `1px solid ${ACCENT}35`,
-          }}>
-            {/* Piso/túnel con perspectiva */}
-            <div style={{
-              position: 'absolute', bottom: '-30%', left: '50%', transform: 'translateX(-50%) perspective(260px) rotateX(62deg)',
-              width: '160%', height: '90%',
-              backgroundImage: `repeating-linear-gradient(90deg, ${ACCENT}30 0px, ${ACCENT}30 1px, transparent 1px, transparent 26px)`,
-              maskImage: 'linear-gradient(to top, black, transparent 75%)',
-              WebkitMaskImage: 'linear-gradient(to top, black, transparent 75%)',
-            }} />
-            {/* Silueta caminando */}
-            <div style={{
-              position: 'absolute', bottom: '18%', left: '50%', transform: 'translateX(-50%)',
-              width: '18px', height: '46px',
-            }}>
-              <div style={{ width: '11px', height: '11px', borderRadius: '50%', background: '#050302', margin: '0 auto 2px' }} />
-              <div style={{ width: '18px', height: '30px', borderRadius: '9px 9px 3px 3px', background: '#050302' }} />
-            </div>
-          </div>
           <div style={{ position: 'relative' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-              Gestión de Cartera
-            </div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 36px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, marginBottom: '1.1rem' }}>
-              Propuesta de <span style={{ color: ACCENT }}>valor única</span>
+            <div style={EYEBROW}>Recovery Intelligence®</div>
+            <h2 style={{ ...H2, marginBottom: '1.1rem' }}>
+              Visualice su cartera <span style={{ color: ACCENT }}>como nunca antes</span>
             </h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1rem' }}>
-              En Fenix Consultores, transformamos la recuperación de cartera del sector Real y
-              de entidades del sector Salud a través de un equipo jurídico especializado y un
-              enfoque centrado en el cliente.
-            </p>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1.75rem' }}>
-              Nuestra experiencia de más de 12 años en el sector nos permite ofrecer soluciones
-              efectivas y personalizadas para cada empresa afiliada.
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+              Plataforma Empresarial de Gestión de Recuperación. Ingrese desde cualquier lugar
+              y visualice inmediatamente toda la operación de su cartera en tiempo real.
             </p>
             <a href="#contacto" style={PILL_SOLID}>
-              Conocer Más <IconArrow />
+              Ver la plataforma <IconArrow />
             </a>
+          </div>
+
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {PLATAFORMA_ITEMS.map(item => (
+              <div key={item} style={{
+                border: '1px solid rgba(255,255,255,.1)', borderRadius: '10px',
+                padding: '14px', fontSize: '13px', fontWeight: 600,
+                color: 'rgba(255,255,255,.75)', background: 'rgba(255,255,255,.02)',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                <span style={{ color: ACCENT, flexShrink: 0 }}>▸</span>
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── MISIÓN / VISIÓN / RECURSO HUMANO ── */}
+      {/* ── SECCIÓN 6: STACK TECNOLÓGICO ── */}
+      <section id="tecnologia" style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ marginBottom: '2.5rem', maxWidth: '640px' }}>
+            <div style={EYEBROW}>Stack tecnológico</div>
+            <h2 style={{ ...H2, marginBottom: '1rem' }}>
+              Recuperar cartera dejó de ser una actividad manual. <span style={{ color: ACCENT }}>Hoy requiere tecnología.</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8 }}>
+              Todo coordinado bajo una única estrategia.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            {TECNOLOGIA.map(t => (
+              <div key={t} style={{
+                border: `1px solid ${ACCENT}35`, borderRadius: '999px',
+                padding: '11px 22px', fontSize: '13.5px', fontWeight: 600,
+                color: 'rgba(255,255,255,.8)', background: `${ACCENT}08`,
+              }}>
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SECCIÓN 7 + 8: BENEFICIOS E INDICADORES ── */}
+      <section style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(260px, 1fr)', gap: '2rem' }} className="fenix-grid-2">
+          <div style={{ ...CARD_STYLE, padding: '36px' }}>
+            <CornerGlow />
+            <div style={{ position: 'relative' }}>
+              <div style={EYEBROW}>Lo que obtiene su empresa</div>
+              <h2 style={{ ...H2, fontSize: 'clamp(22px, 2.4vw, 30px)', marginBottom: '1rem' }}>
+                No solo recuperamos dinero.
+              </h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.75, marginBottom: '1.75rem' }}>
+                Entregamos información estratégica para la toma de decisiones.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {BENEFICIOS.map(b => (
+                  <div key={b} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'rgba(255,255,255,.8)' }}>
+                    <span style={{ color: ACCENT }}>✓</span> {b}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ ...CARD_STYLE, padding: '36px' }}>
+            <CornerGlow />
+            <div style={{ position: 'relative' }}>
+              <div style={EYEBROW}>Indicadores</div>
+              <h2 style={{ ...H2, fontSize: 'clamp(22px, 2.4vw, 30px)', marginBottom: '1rem' }}>
+                ¿Por qué nuestros clientes toman <span style={{ color: ACCENT }}>mejores decisiones?</span>
+              </h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.75, marginBottom: '1.75rem' }}>
+                Porque tienen información. Todo disponible para la dirección financiera.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {INDICADORES.map(i => (
+                  <div key={i} style={{
+                    border: '1px solid rgba(255,255,255,.1)', borderRadius: '9px',
+                    padding: '11px 12px', fontSize: '12px', fontWeight: 600,
+                    color: 'rgba(255,255,255,.7)', lineHeight: 1.4,
+                  }}>
+                    {i}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SECCIÓN 9: PARA QUIÉN ── */}
       <section style={{ padding: '0 1.5rem 6rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ marginBottom: '3rem' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-              Nuestro compromiso
-            </div>
-            <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: 0 }}>
-              Los números que nos respaldan
+          <div style={{ marginBottom: '2.5rem', maxWidth: '660px' }}>
+            <div style={EYEBROW}>Para quién</div>
+            <h2 style={H2}>
+              Diseñado para empresas que necesitan <span style={{ color: ACCENT }}>mucho más que una empresa de cobranza.</span>
             </h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            {RESUMEN.map(({ Icono, titulo, desc }) => (
-              <div key={titulo} style={{ ...CARD_STYLE, padding: '30px' }}>
-                <CornerGlow />
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <Icono />
-                  <div style={{ fontSize: '17px', fontWeight: 700, color: ACCENT }}>{titulo}</div>
-                </div>
-                <div style={{ position: 'relative', fontSize: '14px', color: 'rgba(255,255,255,.5)', lineHeight: 1.75 }}>{desc}</div>
+            <div style={{ ...CARD_STYLE, padding: '30px' }}>
+              <CornerGlow />
+              <div style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: ACCENT, marginBottom: '16px' }}>Decisores</div>
+              <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {PERFILES.map(p => (
+                  <span key={p} style={{
+                    border: '1px solid rgba(255,255,255,.15)', borderRadius: '999px',
+                    padding: '7px 15px', fontSize: '12.5px', color: 'rgba(255,255,255,.75)',
+                  }}>{p}</span>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div style={{ ...CARD_STYLE, padding: '30px' }}>
+              <CornerGlow />
+              <div style={{ position: 'relative', fontSize: '15px', fontWeight: 700, color: ACCENT, marginBottom: '16px' }}>Sectores</div>
+              <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {SECTORES_OBJETIVO.map(s => (
+                  <span key={s} style={{
+                    border: '1px solid rgba(255,255,255,.15)', borderRadius: '999px',
+                    padding: '7px 15px', fontSize: '12.5px', color: 'rgba(255,255,255,.75)',
+                  }}>{s}</span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── BLOG ── */}
+      {/* ── SECCIÓN 10: URGENCIA ── */}
       <section style={{ padding: '0 1.5rem 6rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem',
-          }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px' }}>
-                Blog
-              </div>
-              <h2 style={{ fontSize: 'clamp(24px, 2.8vw, 38px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.2, margin: 0 }}>
-                Novedades en <span style={{ color: ACCENT }}>Recuperación</span>
-              </h2>
+        <div style={{
+          maxWidth: '900px', margin: '0 auto', textAlign: 'center',
+          position: 'relative', overflow: 'hidden',
+          border: `1px solid ${ACCENT}45`, borderRadius: '24px', padding: '3.5rem 2.5rem',
+        }}>
+          <div className="fenix-contacto-glow" style={{
+            position: 'absolute', top: '-160px', left: '50%', transform: 'translateX(-50%)',
+            width: '520px', height: '520px', borderRadius: '50%',
+            background: `radial-gradient(circle, ${ACCENT}25 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          }} />
+          <div style={{ position: 'relative' }}>
+            <h2 style={{ ...H2, marginBottom: '1.5rem' }}>
+              Cada día que una obligación permanece <span style={{ color: ACCENT }}>sin estrategia…</span>
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginBottom: '2rem' }}>
+              {['Disminuye su valor', 'Aumenta el riesgo', 'Se reducen las posibilidades jurídicas'].map(t => (
+                <span key={t} style={{
+                  border: '1px solid rgba(255,255,255,.15)', borderRadius: '999px',
+                  padding: '9px 18px', fontSize: '13px', color: 'rgba(255,255,255,.75)',
+                }}>{t}</span>
+              ))}
             </div>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '340px', margin: 0 }}>
-              Explora nuestras últimas publicaciones sobre recuperación de cartera.
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+              Y su empresa continúa financiando involuntariamente a sus deudores.
+            </p>
+            <p style={{ fontSize: 'clamp(17px, 2vw, 22px)', color: '#fff', lineHeight: 1.5, fontWeight: 600 }}>
+              La pregunta ya no es cuánto le deben.<br />
+              <span style={{ color: ACCENT }}>La pregunta es cuánto seguirá perdiendo si no actúa hoy.</span>
             </p>
           </div>
+        </div>
+      </section>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            {BLOG.map(b => (
-              <div key={b.titulo} style={{ ...CARD_STYLE, padding: 0 }}>
-                <div style={{ position: 'relative', aspectRatio: '16 / 10', background: b.grad }}>
-                  <span style={{
-                    position: 'absolute', top: '14px', left: '14px',
-                    background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)',
-                    borderRadius: '999px', padding: '5px 12px',
-                    fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#fff',
-                  }}>
-                    Destacado
-                  </span>
-                  <span style={{
-                    position: 'absolute', top: '14px', right: '14px',
-                    background: ACCENT, borderRadius: '999px', padding: '5px 12px',
-                    fontSize: '10px', fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#050302',
-                  }}>
-                    Artículo
-                  </span>
-                </div>
-                <div style={{ padding: '22px' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1.4, marginBottom: '8px' }}>{b.titulo}</div>
-                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.5)', lineHeight: 1.6 }}>{b.resumen}</div>
-                </div>
+      {/* ── TESTIMONIO VISUAL + GARANTÍA ── */}
+      <section style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'minmax(260px, 1.05fr) minmax(260px, 1fr)', gap: '2rem' }} className="fenix-grid-2">
+          <div style={{ ...CARD_STYLE, padding: '36px' }}>
+            <CornerGlow />
+            <div style={{ position: 'relative' }}>
+              <div style={EYEBROW}>La diferencia</div>
+              <p style={{ fontSize: 'clamp(17px, 1.9vw, 22px)', color: '#fff', lineHeight: 1.5, fontWeight: 600, marginBottom: '1.25rem' }}>
+                Las empresas exitosas no esperan a que la cartera se convierta en pérdida.
+              </p>
+              <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '1rem' }}>
+                Implementan modelos inteligentes de recuperación que combinan tecnología,
+                análisis y estrategia jurídica.
+              </p>
+              <p style={{ fontSize: '15px', color: ACCENT, lineHeight: 1.7, fontWeight: 600 }}>
+                Eso es exactamente lo que hacemos en FÉNIX.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ ...CARD_STYLE, padding: '36px' }}>
+            <CornerGlow />
+            <div style={{ position: 'relative' }}>
+              <div style={EYEBROW}>Garantía de confianza</div>
+              <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.6)', lineHeight: 1.75, marginBottom: '1.5rem' }}>
+                Su información está protegida bajo estrictos protocolos de confidencialidad.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {CONFIANZA.map(c => (
+                  <div key={c} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'rgba(255,255,255,.8)' }}>
+                    <span style={{ color: ACCENT }}>✓</span> {c}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA / CONTACTO ── */}
+      {/* ── CTA FINAL / CONTACTO ── */}
       <section id="contacto" style={{ padding: '1rem 1.5rem 8rem' }}>
         <div style={{
           maxWidth: '1100px', margin: '0 auto', position: 'relative', overflow: 'hidden',
@@ -676,8 +765,7 @@ export default function FenixConsultoresPage() {
               radial-gradient(1.5px 1.5px at 60% 75%, #fff, transparent),
               radial-gradient(1.5px 1.5px at 12% 70%, ${ACCENT}, transparent)
             `,
-            opacity: 0.7,
-            pointerEvents: 'none',
+            opacity: 0.7, pointerEvents: 'none',
           }} />
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5,
@@ -686,11 +774,10 @@ export default function FenixConsultoresPage() {
             maskImage: 'radial-gradient(circle at 15% 20%, black, transparent 65%)',
             WebkitMaskImage: 'radial-gradient(circle at 15% 20%, black, transparent 65%)',
           }} />
+
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: ACCENT, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                Para empresas
-              </div>
+              <div style={{ ...EYEBROW, marginBottom: 0 }}>Diagnóstico ejecutivo</div>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '7px',
                 border: '1px solid rgba(255,255,255,.18)', borderRadius: '999px',
@@ -700,12 +787,14 @@ export default function FenixConsultoresPage() {
                 Especialistas disponibles ahora
               </div>
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 3.2vw, 42px)', fontWeight: 700, letterSpacing: '-.015em', lineHeight: 1.15, marginBottom: '1.1rem' }}>
-              Lleve su cartera y su riesgo legal a <span style={{ color: ACCENT }}>manos expertas</span>
+            <h2 style={{ ...H2, marginBottom: '1.1rem' }}>
+              Conozca el verdadero <span style={{ color: ACCENT }}>potencial de recuperación</span> de su cartera
             </h2>
             <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '2rem' }}>
-              Cuéntenos las necesidades jurídicas o de cartera de su empresa y un especialista
-              de Fenix Consultores le contactará en menos de 24 horas.
+              Solicite un Diagnóstico Ejecutivo Gratuito y descubra cómo una estrategia
+              respaldada por tecnología, inteligencia artificial y un equipo jurídico
+              especializado puede fortalecer la liquidez de su empresa y convertir su
+              cartera en un activo nuevamente productivo.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.75rem' }}>
               <a href="tel:+573215036414" className="fenix-phone-pill">
@@ -723,18 +812,6 @@ export default function FenixConsultoresPage() {
                 </span>
               </a>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(255,255,255,.4)' }}>
-              <span style={{ display: 'flex' }}>
-                {[0, 1, 2].map(i => (
-                  <span key={i} style={{
-                    width: '26px', height: '26px', borderRadius: '50%',
-                    background: `${ACCENT}22`, border: `1.5px solid ${ACCENT}70`,
-                    marginLeft: i === 0 ? 0 : '-8px',
-                  }} />
-                ))}
-              </span>
-              <strong style={{ color: 'rgba(255,255,255,.75)' }}>+200 empresas</strong>&nbsp;ya confiaron su cartera a Fenix
-            </div>
           </div>
 
           <div className="fenix-contacto-form-panel" style={{
@@ -748,7 +825,7 @@ export default function FenixConsultoresPage() {
               border: `1px solid ${ACCENT}40`, borderRadius: '999px', padding: '5px 12px',
               fontSize: '11px', fontWeight: 700, color: ACCENT, letterSpacing: '.04em',
             }}>
-              ⏱ Respuesta en menos de 24h
+              ⏱ Agende su diagnóstico estratégico
             </div>
             <FenixLeadForm />
           </div>
@@ -766,9 +843,10 @@ export default function FenixConsultoresPage() {
             <div style={{ fontSize: '18px', fontWeight: 800, marginBottom: '10px' }}>
               Fenix <span style={{ color: ACCENT }}>Consultores</span>
             </div>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.4)', lineHeight: 1.7, maxWidth: '340px' }}>
-              Bufete de abogados especializado en defensa legal, consultoría empresarial
-              y recaudo de cartera desde 2010.
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.4)', lineHeight: 1.7, maxWidth: '380px' }}>
+              FÉNIX Recovery Intelligence®: plataforma inteligente para la recuperación
+              estratégica de activos empresariales. Bufete especializado en defensa legal,
+              consultoría empresarial y recaudo de cartera desde 2010.
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

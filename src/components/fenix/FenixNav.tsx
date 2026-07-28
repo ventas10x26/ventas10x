@@ -6,9 +6,9 @@ const ACCENT = '#F5821F'
 
 const LINKS = [
   { href: '#inicio', label: 'Inicio' },
-  { href: '#empresa', label: 'Empresa' },
-  { href: '#servicios', label: 'Servicios de Derecho' },
-  { href: '#cartera', label: 'Gestión Cartera' },
+  { href: '#modelo', label: 'El Modelo' },
+  { href: '#plataforma', label: 'Plataforma' },
+  { href: '#tecnologia', label: 'Tecnología' },
 ]
 
 function FlameLogo() {
@@ -54,7 +54,7 @@ export function FenixNav() {
             fontSize: '13px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
             boxShadow: `0 4px 18px ${ACCENT}55`,
           }}>
-            Contáctanos!
+            Diagnóstico Gratuito
           </a>
 
           <button
@@ -95,7 +95,7 @@ export function FenixNav() {
             fontSize: '16px', fontWeight: 700, textDecoration: 'none',
             display: 'block', boxShadow: `0 4px 20px ${ACCENT}55`,
           }}>
-            Contáctanos!
+            Diagnóstico Gratuito
           </a>
         </div>
       )}

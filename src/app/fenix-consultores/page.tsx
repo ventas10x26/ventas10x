@@ -13,9 +13,36 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 })
 
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
+
+const OG_TITLE = 'FÉNIX Recovery Intelligence® | Recuperación estratégica de cartera'
+const OG_DESC = 'El dinero de su empresa no está perdido. Recuperamos activos empresariales con Inteligencia Artificial, plataforma de gestión de cartera y respaldo jurídico especializado.'
+
 export const metadata: Metadata = {
-  title: 'FÉNIX Recovery Intelligence® | Recuperación estratégica de activos empresariales',
-  description: 'Recuperamos activos empresariales mediante un modelo integral que combina Inteligencia Artificial, software de gestión de cartera, analítica financiera, automatización de cobro y respaldo jurídico especializado.',
+  metadataBase: new URL(SITE_URL),
+  title: OG_TITLE,
+  description: OG_DESC,
+  alternates: { canonical: '/fenix-consultores' },
+  openGraph: {
+    type: 'website',
+    url: `${SITE_URL}/fenix-consultores`,
+    siteName: 'Fenix Consultores Empresariales S.A.S.',
+    title: OG_TITLE,
+    description: OG_DESC,
+    locale: 'es_CO',
+    images: [{
+      url: `${SITE_URL}/og/fenix`,
+      width: 1200,
+      height: 630,
+      alt: 'FÉNIX Recovery Intelligence® — Recuperación estratégica de activos empresariales',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: OG_TITLE,
+    description: OG_DESC,
+    images: [`${SITE_URL}/og/fenix`],
+  },
 }
 
 // ─── Paleta cálida (dark suavizado + escala crema→coral) ───

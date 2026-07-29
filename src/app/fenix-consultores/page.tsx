@@ -74,6 +74,14 @@ function IconPhone() {
   )
 }
 
+function IconPlaySmall() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M8 5.5v13l11-6.5z" />
+    </svg>
+  )
+}
+
 function IconFacebook() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={DARK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -166,9 +174,12 @@ const EYEBROW: CSSProperties = {
   letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px',
 }
 
+// Sin `margin` shorthand: los usos hacen override con marginBottom/marginLeft,
+// y mezclar shorthand + longhand dispara un warning de React.
 const H2: CSSProperties = {
   fontSize: 'clamp(28px, 3.6vw, 50px)', fontWeight: 400,
-  letterSpacing: '-.02em', lineHeight: 1.08, margin: 0,
+  letterSpacing: '-.02em', lineHeight: 1.08,
+  marginTop: 0, marginBottom: 0,
 }
 
 // ─── Datos ───
@@ -183,6 +194,30 @@ const CREDIBILIDAD = [
 ]
 
 const IMPACTOS = ['Liquidez', 'Rentabilidad', 'Capacidad de inversión', 'Crecimiento', 'Planeación financiera', 'Valor patrimonial']
+
+// Orden narrativo: primero cómo opera el modelo, después el costo de no aplicarlo.
+const VIDEOS = [
+  {
+    id: 'YdQoqCQNUFY',
+    eyebrow: 'Cómo funciona',
+    duracion: 'Video corto',
+    titulo: 'Así se ve la recuperación',
+    destacado: 'en tiempo real',
+    desc: 'Cada gestión queda registrada, medida y disponible para la dirección financiera. Vea cómo se traduce en trazabilidad, indicadores y decisiones más rápidas sobre su cartera.',
+    cta: 'Quiero ver mi cartera así',
+    label: 'Ver: así se ve la recuperación en tiempo real',
+  },
+  {
+    id: 'nulz93G54W4',
+    eyebrow: 'El costo de esperar',
+    duracion: 'Video corto',
+    titulo: 'Por qué su cartera',
+    destacado: 'pierde valor cada día',
+    desc: 'El tiempo es la variable que más destruye el valor de una obligación. Vea cómo opera ese deterioro y qué se puede recuperar cuando se interviene con estrategia, tecnología y respaldo jurídico.',
+    cta: 'Solicitar Diagnóstico Ejecutivo Gratuito',
+    label: 'Ver: por qué su cartera pierde valor cada día',
+  },
+]
 
 // Fila graduada crema → arena → durazno → coral
 const DIFERENCIALES = [
@@ -412,35 +447,89 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ── VIDEO 1: refuerza el dolor recién planteado ── */}
-      <section style={{ padding: '0 1.5rem 6rem' }}>
-        <div style={{
-          maxWidth: MAXW, margin: '0 auto', position: 'relative', overflow: 'hidden',
-          background: DARK_2, border: '1px solid rgba(255,255,255,.08)',
-          borderRadius: '40px', padding: '3rem',
-          display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: '3rem',
-          alignItems: 'center',
-        }} className="fenix-video-band">
-          <CornerGlow />
-          <div className="fenix-video-media" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <FenixVideoShort
-              videoId="nulz93G54W4"
-              label="Ver: por qué su cartera pierde valor cada día"
-            />
-          </div>
-          <div style={{ position: 'relative' }}>
-            <div style={EYEBROW}>En 60 segundos</div>
-            <h2 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
-              Por qué su cartera <span style={{ color: ACCENT }}>pierde valor cada día</span>
+      {/* ── VIDEOS: bloque narrativo (solución → costo de no actuar) ── */}
+      <section id="videos" style={{ padding: '0 1.5rem 6rem' }}>
+        <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
+          {/* Cabecera compartida: da contexto y anticipa la duración */}
+          <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
+            <div style={{ ...EYEBROW, marginBottom: '16px' }}>Véalo usted mismo</div>
+            <h2 style={{ ...H2, maxWidth: '760px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
+              Dos minutos para entender <span style={{ color: ACCENT }}>qué cambia con FÉNIX</span>
             </h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
-              El tiempo es la variable que más destruye el valor de una obligación.
-              Vea cómo opera ese deterioro y qué se puede recuperar cuando se
-              interviene con estrategia, tecnología y respaldo jurídico.
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '560px', margin: '0 auto' }}>
+              Primero cómo opera el modelo. Después, qué está costando no aplicarlo.
             </p>
-            <a href="#contacto" style={PILL_SOLID}>
-              Solicitar Diagnóstico Ejecutivo Gratuito <IconArrow />
-            </a>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {VIDEOS.map((v, i) => {
+              const destacado = i === 0
+              return (
+                <div
+                  key={v.id}
+                  className={`fenix-video-band${i % 2 === 1 ? ' fenix-video-band-rev' : ''}`}
+                  style={{
+                    position: 'relative', overflow: 'hidden',
+                    background: destacado
+                      ? `linear-gradient(125deg, ${ACCENT}1a 0%, rgba(255,255,255,.02) 55%)`
+                      : DARK_2,
+                    border: destacado ? `1px solid ${ACCENT}45` : '1px solid rgba(255,255,255,.08)',
+                    borderRadius: '40px', padding: '3rem',
+                    display: 'grid',
+                    gridTemplateColumns: i % 2 === 1
+                      ? 'minmax(220px, 300px) 1fr'
+                      : '1fr minmax(220px, 300px)',
+                    gap: '3rem', alignItems: 'center',
+                  }}
+                >
+                  <CornerGlow />
+
+                  {/* Texto */}
+                  <div style={{ position: 'relative', order: i % 2 === 1 ? 2 : 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                      {/* Paso numerado: comunica secuencia y cuántos videos hay */}
+                      <span style={{
+                        width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '13px', fontWeight: 700,
+                        background: destacado ? ACCENT : 'transparent',
+                        color: destacado ? INK : ACCENT,
+                        border: destacado ? 'none' : `1px solid ${ACCENT}70`,
+                      }}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span style={{ ...EYEBROW, marginBottom: 0 }}>{v.eyebrow}</span>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        border: '1px solid rgba(255,255,255,.16)', borderRadius: '999px',
+                        padding: '4px 11px', fontSize: '11px', fontWeight: 600,
+                        color: 'rgba(255,255,255,.5)',
+                      }}>
+                        <IconPlaySmall /> {v.duracion}
+                      </span>
+                    </div>
+
+                    <h3 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
+                      {v.titulo} <span style={{ color: ACCENT }}>{v.destacado}</span>
+                    </h3>
+                    <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
+                      {v.desc}
+                    </p>
+                    <a href="#contacto" style={destacado ? PILL_SOLID : { ...PILL_OUTLINE, borderColor: `${ACCENT}70`, color: ACCENT }}>
+                      {v.cta} <IconArrow />
+                    </a>
+                  </div>
+
+                  {/* Video */}
+                  <div className="fenix-video-media" style={{
+                    position: 'relative', width: '100%', display: 'flex', justifyContent: 'center',
+                    order: i % 2 === 1 ? 1 : 2,
+                  }}>
+                    <FenixVideoShort videoId={v.id} label={v.label} />
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -450,7 +539,7 @@ export default function FenixConsultoresPage() {
         <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ ...EYEBROW, marginBottom: '18px' }}>El diferencial</div>
-            <h2 style={{ ...H2, maxWidth: '820px', margin: '0 auto 1rem' }}>
+            <h2 style={{ ...H2, maxWidth: '820px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
               No solo recuperamos cartera. Diseñamos un <span style={{ color: ACCENT }}>ecosistema inteligente</span> de recuperación.
             </h2>
             <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: '560px', margin: '0 auto' }}>
@@ -560,44 +649,11 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ── VIDEO 2: prueba, justo después de presentar la plataforma ── */}
-      <section style={{ padding: '0 1.5rem 6rem' }}>
-        <div style={{
-          maxWidth: MAXW, margin: '0 auto', position: 'relative', overflow: 'hidden',
-          background: DARK_2, border: '1px solid rgba(255,255,255,.08)',
-          borderRadius: '40px', padding: '3rem',
-          display: 'grid', gridTemplateColumns: '1fr minmax(220px, 300px)', gap: '3rem',
-          alignItems: 'center',
-        }} className="fenix-video-band fenix-video-band-rev">
-          <CornerGlow />
-          <div style={{ position: 'relative' }}>
-            <div style={EYEBROW}>Cómo funciona</div>
-            <h2 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
-              Así se ve la recuperación <span style={{ color: ACCENT }}>en tiempo real</span>
-            </h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
-              Cada gestión queda registrada, medida y disponible para la dirección
-              financiera. Vea cómo se traduce en trazabilidad, indicadores y decisiones
-              más rápidas sobre su cartera.
-            </p>
-            <a href="#contacto" style={PILL_SOLID}>
-              Quiero ver mi cartera así <IconArrow />
-            </a>
-          </div>
-          <div className="fenix-video-media" style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <FenixVideoShort
-              videoId="YdQoqCQNUFY"
-              label="Ver: así se ve la recuperación en tiempo real"
-            />
-          </div>
-        </div>
-      </section>
-
       {/* ── SECCIÓN 6: STACK TECNOLÓGICO ── */}
       <section id="tecnologia" style={{ padding: '0 1.5rem 6rem' }}>
         <div style={{ maxWidth: MAXW, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ ...EYEBROW, marginBottom: '18px' }}>Stack tecnológico</div>
-          <h2 style={{ ...H2, maxWidth: '780px', margin: '0 auto 1rem' }}>
+          <h2 style={{ ...H2, maxWidth: '780px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
             Recuperar cartera dejó de ser manual. <span style={{ color: ACCENT }}>Hoy requiere tecnología.</span>
           </h2>
           <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, marginBottom: '2.5rem' }}>
@@ -712,7 +768,7 @@ export default function FenixConsultoresPage() {
           maxWidth: MAXW, margin: '0 auto', background: CREAM, color: INK,
           borderRadius: '40px', padding: '4.5rem 3rem', textAlign: 'center',
         }}>
-          <h2 style={{ ...H2, color: INK, marginBottom: '1.75rem', maxWidth: '820px', margin: '0 auto 1.75rem' }}>
+          <h2 style={{ ...H2, color: INK, maxWidth: '820px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1.75rem' }}>
             Cada día que una obligación permanece <span style={{ color: ACCENT }}>sin estrategia…</span>
           </h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginBottom: '2rem' }}>
@@ -993,8 +1049,9 @@ export default function FenixConsultoresPage() {
             padding: 2.5rem 1.75rem !important;
             text-align: center;
           }
-          /* En una sola columna el video siempre va primero */
-          .fenix-video-band .fenix-video-media { order: -1; }
+          /* En una sola columna el video siempre va primero.
+             Lleva !important porque el order va en estilo inline (alterna por índice). */
+          .fenix-video-band .fenix-video-media { order: -1 !important; }
           .fenix-video-band h2, .fenix-video-band p { margin-left: auto; margin-right: auto; }
           .fenix-bento-organic { border-radius: 200px 200px 32px 32px !important; padding: 3rem 2.5rem !important; }
           .fenix-bento-organic-right { border-radius: 200px 200px 32px 32px !important; padding: 3rem 2.5rem !important; }

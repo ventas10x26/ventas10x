@@ -577,10 +577,9 @@ export default function FenixConsultoresPage() {
                   className={`fenix-video-band${i % 2 === 1 ? ' fenix-video-band-rev' : ''}`}
                   style={{
                     position: 'relative', overflow: 'hidden',
-                    background: destacado
-                      ? `linear-gradient(125deg, ${ACCENT}1a 0%, rgba(255,255,255,.02) 55%)`
-                      : DARK_2,
-                    border: destacado ? `1px solid ${ACCENT}45` : '1px solid rgba(255,255,255,.08)',
+                    background: destacado ? CREAM : DARK_2,
+                    color: destacado ? INK : '#fff',
+                    border: destacado ? '1px solid rgba(23,18,14,.08)' : '1px solid rgba(255,255,255,.08)',
                     borderRadius: '40px', padding: '3rem',
                     display: 'grid',
                     gridTemplateColumns: i % 2 === 1
@@ -589,7 +588,7 @@ export default function FenixConsultoresPage() {
                     gap: '3rem', alignItems: 'center',
                   }}
                 >
-                  <CornerGlow />
+                  {!destacado && <CornerGlow />}
 
                   {/* Texto */}
                   <div style={{ position: 'relative', order: i % 2 === 1 ? 2 : 1 }}>
@@ -605,12 +604,13 @@ export default function FenixConsultoresPage() {
                       }}>
                         {String(i + 1).padStart(2, '0')}
                       </span>
-                      <span style={{ ...EYEBROW, marginBottom: 0 }}>{v.eyebrow}</span>
+                      <span style={{ ...EYEBROW, marginBottom: 0, color: destacado ? '#b85c07' : ACCENT }}>{v.eyebrow}</span>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        border: '1px solid rgba(255,255,255,.16)', borderRadius: '999px',
+                        border: destacado ? '1px solid rgba(23,18,14,.18)' : '1px solid rgba(255,255,255,.16)',
+                        borderRadius: '999px',
                         padding: '4px 11px', fontSize: '11px', fontWeight: 600,
-                        color: 'rgba(255,255,255,.5)',
+                        color: destacado ? 'rgba(23,18,14,.55)' : 'rgba(255,255,255,.5)',
                       }}>
                         <IconPlaySmall /> {v.duracion}
                       </span>
@@ -619,10 +619,10 @@ export default function FenixConsultoresPage() {
                     <h3 style={{ ...H2, fontSize: 'clamp(24px, 2.8vw, 38px)', marginBottom: '1.1rem' }}>
                       {v.titulo} <span style={{ color: ACCENT }}>{v.destacado}</span>
                     </h3>
-                    <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
+                    <p style={{ fontSize: '15px', color: destacado ? 'rgba(23,18,14,.6)' : 'rgba(255,255,255,.55)', lineHeight: 1.8, marginBottom: '2rem', maxWidth: '520px' }}>
                       {v.desc}
                     </p>
-                    <a href="#contacto" style={destacado ? PILL_SOLID : { ...PILL_OUTLINE, borderColor: `${ACCENT}70`, color: ACCENT }}>
+                    <a href="#contacto" style={destacado ? { ...PILL_SOLID, color: '#fff' } : { ...PILL_OUTLINE, borderColor: `${ACCENT}70`, color: ACCENT }}>
                       {v.cta} <IconArrow />
                     </a>
                   </div>
@@ -1106,6 +1106,20 @@ export default function FenixConsultoresPage() {
         @keyframes fenix-twinkle {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.9; }
+        }
+        /* Cards de video: estado inicial calmado, sobresalen al hover */
+        .fenix-video-band {
+          transition: transform .45s cubic-bezier(.22,.61,.36,1),
+                      box-shadow .45s ease-out,
+                      border-color .35s ease-out;
+        }
+        .fenix-video-band:hover {
+          transform: translateY(-10px);
+          border-color: ${ACCENT} !important;
+          box-shadow: 0 34px 70px rgba(0,0,0,.45);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fenix-video-band:hover { transform: none; }
         }
         /* Revelado por scroll */
         .fenix-reveal-hidden {

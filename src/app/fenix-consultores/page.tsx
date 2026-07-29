@@ -939,10 +939,9 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ── CTA FINAL / CONTACTO (panel dividido: info oscura + formulario claro) ── */}
+      {/* ── CTA FINAL / CONTACTO (panel naranja, se revela al hacer scroll) ── */}
       <section id="contacto" style={{ background: LIGHT, padding: '5rem 1.5rem 6rem' }}>
-        <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
-          <FenixReveal>
+        <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ ...EYEBROW, color: '#b85c07', marginBottom: '16px' }}>Diagnóstico ejecutivo</div>
             <h2 style={{ ...H2, color: INK, maxWidth: '780px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
@@ -953,69 +952,68 @@ export default function FenixConsultoresPage() {
               equipo jurídico especializado puede fortalecer la liquidez de su empresa.
             </p>
           </div>
-          </FenixReveal>
 
-          <div className="fenix-contact-split" style={{
-            display: 'grid', gridTemplateColumns: 'minmax(280px, .82fr) minmax(320px, 1.18fr)',
-            borderRadius: '28px', overflow: 'hidden',
-            boxShadow: '0 30px 80px rgba(23,18,14,.14)',
-            border: '1px solid rgba(23,18,14,.07)',
-          }}>
-            {/* Panel oscuro: datos de contacto */}
-            <div style={{
-              background: INK, color: '#fff', padding: '3rem 2.5rem',
-              position: 'relative', overflow: 'hidden',
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          <FenixReveal>
+            <div className="fenix-contact-panel" style={{
+              background: `linear-gradient(150deg, #ff9440 0%, ${ACCENT} 45%, #e0700e 100%)`,
+              borderRadius: '40px', padding: '3.25rem',
+              display: 'grid', gridTemplateColumns: 'minmax(280px, .92fr) minmax(320px, 1.08fr)',
+              gap: '3rem', alignItems: 'center',
+              boxShadow: `0 40px 90px ${ACCENT}40`,
             }}>
-              <div className="fenix-contacto-glow" style={{
-                position: 'absolute', top: '-140px', left: '-80px',
-                width: '360px', height: '360px', borderRadius: '50%',
-                background: `radial-gradient(circle, ${ACCENT}30 0%, transparent 70%)`,
-                pointerEvents: 'none',
-              }} />
-              <div style={{ position: 'relative' }}>
-                <h3 style={{ fontSize: 'clamp(24px, 2.4vw, 32px)', fontWeight: 700, letterSpacing: '-.02em', marginTop: 0, marginBottom: '1rem' }}>
-                  Contáctenos hoy
+              {/* Columna izquierda: mensaje y líneas de contacto */}
+              <div>
+                <div style={{
+                  fontSize: '11.5px', fontWeight: 800, letterSpacing: '.14em',
+                  textTransform: 'uppercase', color: 'rgba(255,255,255,.75)', marginBottom: '18px',
+                }}>
+                  Recovery Intelligence<sup style={{ fontSize: '8px' }}>®</sup>
+                </div>
+
+                <h3 style={{
+                  fontSize: 'clamp(30px, 3.4vw, 46px)', fontWeight: 700,
+                  letterSpacing: '-.025em', lineHeight: 1.05,
+                  marginTop: 0, marginBottom: '1.25rem', color: '#fff',
+                }}>
+                  Contáctenos hoy.
                 </h3>
-                <p style={{ fontSize: '14.5px', color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: '2.25rem' }}>
-                  Inicie su proceso de recuperación con una asesoría personalizada. Un
-                  especialista le contactará en menos de 24 horas.
+
+                <p style={{ fontSize: '15.5px', color: 'rgba(255,255,255,.88)', lineHeight: 1.7, marginBottom: '2.25rem', maxWidth: '420px' }}>
+                  Inicie su proceso de recuperación con una asesoría personalizada.
+                  Un especialista le contactará en menos de 24 horas.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '2rem' }}>
                   {LINEAS.map(l => (
-                    <a key={l.numero} href={l.href} className="fenix-contact-row">
-                      <span className="fenix-contact-ico"><IconPhone /></span>
+                    <a key={l.numero} href={l.href} className="fenix-linea-naranja">
+                      <span className="fenix-linea-ico"><IconPhone /></span>
                       <span>
-                        <span style={{ display: 'block', fontSize: '11.5px', color: 'rgba(255,255,255,.45)', marginBottom: '3px' }}>{l.label}</span>
-                        <span style={{ display: 'block', fontSize: '16px', fontWeight: 700 }}>{l.numero}</span>
+                        <span style={{ display: 'block', fontSize: '11.5px', color: 'rgba(255,255,255,.7)', marginBottom: '2px' }}>{l.label}</span>
+                        <span style={{ display: 'block', fontSize: '17px', fontWeight: 700, color: '#fff' }}>{l.numero}</span>
                       </span>
                     </a>
                   ))}
                 </div>
 
-                <div style={{
-                  marginTop: '2.25rem', paddingTop: '1.5rem',
-                  borderTop: '1px solid rgba(255,255,255,.1)',
-                  display: 'flex', flexWrap: 'wrap', gap: '8px',
-                }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {['Confidencialidad', 'Gestión documentada', 'Reportes ejecutivos'].map(t => (
                     <span key={t} style={{
-                      border: '1px solid rgba(255,255,255,.16)', borderRadius: '999px',
-                      padding: '6px 13px', fontSize: '11.5px', color: 'rgba(255,255,255,.6)',
+                      background: 'rgba(0,0,0,.14)', borderRadius: '999px',
+                      padding: '7px 14px', fontSize: '11.5px', fontWeight: 600, color: 'rgba(255,255,255,.9)',
                     }}>{t}</span>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Panel claro: formulario (se acerca/aleja segun el scroll) */}
-            <div style={{ background: '#fff', padding: '3rem 2.75rem' }}>
-              <FenixScrollPanel>
+              {/* Columna derecha: formulario sobre tarjeta blanca */}
+              <div style={{
+                background: '#fff', borderRadius: '26px', padding: '2.25rem',
+                boxShadow: '0 24px 60px rgba(23,18,14,.22)',
+              }}>
                 <FenixLeadForm theme="light" />
-              </FenixScrollPanel>
+              </div>
             </div>
-          </div>
+          </FenixReveal>
         </div>
       </section>
 
@@ -1120,6 +1118,31 @@ export default function FenixConsultoresPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .fenix-video-band:hover { transform: none; }
+        }
+        .fenix-linea-naranja {
+          display: flex; align-items: center; gap: 13px;
+          background: rgba(0,0,0,.12);
+          border-radius: 16px; padding: 12px 16px;
+          text-decoration: none;
+          transition: background-color .25s ease-out, transform .25s ease-out;
+        }
+        .fenix-linea-naranja:hover {
+          background: rgba(0,0,0,.22);
+          transform: translateX(4px);
+        }
+        .fenix-linea-ico {
+          width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+          background: rgba(255,255,255,.2); color: #fff;
+          display: flex; align-items: center; justify-content: center;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fenix-linea-naranja:hover { transform: none; }
+        }
+        @media (max-width: 900px) {
+          .fenix-contact-panel {
+            grid-template-columns: 1fr !important;
+            padding: 2.25rem 1.5rem !important;
+          }
         }
         /* Revelado por scroll */
         .fenix-reveal-hidden {

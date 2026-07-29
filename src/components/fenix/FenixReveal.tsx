@@ -23,7 +23,11 @@ export function FenixReveal({ children, delay = 0, className = '' }: Props) {
     const el = ref.current
     if (!el) return
 
-    const reveal = () => {
+    // `instante` corta la transición: se usa en el respaldo, porque una
+    // transición iniciada con el elemento fuera de pantalla queda congelada
+    // en su valor inicial (opacidad 0) y el contenido no se vería nunca.
+    const reveal = (instante = false) => {
+      if (instante) el.style.transition = 'none'
       el.classList.remove('fenix-reveal-hidden')
       el.classList.add('fenix-reveal-in')
     }
@@ -39,7 +43,7 @@ export function FenixReveal({ children, delay = 0, className = '' }: Props) {
     if (delay) el.style.transitionDelay = `${delay}ms`
 
     // Respaldo: si el observer no dispara, se revela de todas formas.
-    const respaldo = setTimeout(reveal, 2500)
+    const respaldo = setTimeout(() => reveal(true), 2500)
 
     const obs = new IntersectionObserver(
       ([entry]) => {

@@ -199,6 +199,28 @@ const LINEAS = [
   { label: 'Línea secundaria', numero: '310 4159173', href: 'tel:3104159173' },
 ]
 
+// Contenido del panel del hero. Es una representación ilustrativa de la
+// plataforma (así se marca en la UI), no cifras reales de ningún cliente.
+const AGING = [
+  { rango: '0-30', h: 34 },
+  { rango: '31-60', h: 52 },
+  { rango: '61-90', h: 45 },
+  { rango: '91-180', h: 71 },
+  { rango: '+180', h: 92 },
+]
+
+const ETAPAS = [
+  { nombre: 'Prejurídico', estado: 'Gestión activa' },
+  { nombre: 'Jurídico', estado: 'En proceso' },
+  { nombre: 'Acuerdos', estado: 'En seguimiento' },
+]
+
+const GESTIONES = [
+  { texto: 'Acuerdo de pago registrado', cuando: 'hoy' },
+  { texto: 'Notificación de cobro enviada', cuando: 'hoy' },
+  { texto: 'Proceso ejecutivo radicado', cuando: 'ayer' },
+]
+
 const CREDIBILIDAD = [
   'Plataforma tecnológica de seguimiento',
   'Inteligencia Artificial aplicada a la recuperación',
@@ -312,7 +334,7 @@ export default function FenixConsultoresPage() {
       <FenixNav />
       <FenixStickyProspecting />
 
-      {/* ── HERO (claro, split: mensaje + visual con card flotante) ── */}
+      {/* ── HERO (claro, split: mensaje + panel de recuperación) ── */}
       <section id="inicio" style={{
         background: LIGHT, color: INK,
         padding: '5.5rem 1.5rem 5rem', position: 'relative', overflow: 'hidden',
@@ -340,7 +362,7 @@ export default function FenixConsultoresPage() {
               textTransform: 'uppercase', color: '#b85c07',
             }}>
               <span className="fenix-live-dot" />
-              FÉNIX Recovery Intelligence<sup style={{ fontSize: '8px' }}>®</sup>
+              Recuperación de cartera empresarial
             </div>
 
             <h1 style={{
@@ -356,94 +378,123 @@ export default function FenixConsultoresPage() {
               fontSize: 'clamp(16px, 1.5vw, 19px)', color: 'rgba(23,18,14,.68)',
               lineHeight: 1.6, marginBottom: '1.25rem', maxWidth: '540px',
             }}>
-              Está inmovilizado en una cartera que necesita estrategia, tecnología
-              y ejecución especializada.
+              Está inmovilizado en una cartera vencida que necesita gestión de cobro,
+              respaldo jurídico y trazabilidad.
             </p>
 
             <p style={{
               fontSize: '15px', color: 'rgba(23,18,14,.5)',
               lineHeight: 1.75, marginBottom: '2.25rem', maxWidth: '540px',
             }}>
-              Recuperamos activos empresariales combinando Inteligencia Artificial,
-              gestión de cartera, analítica financiera, automatización de cobro y respaldo
-              jurídico especializado.
+              Recuperamos cartera del sector Real y de entidades del sector Salud
+              con cobro prejurídico y jurídico, gestión multicanal y seguimiento
+              permanente de cada obligación.
             </p>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '2.25rem' }}>
               <a href="#contacto" style={PILL_SOLID}>
-                Solicitar Diagnóstico Gratuito <IconArrow />
+                Solicitar Diagnóstico de Cartera <IconArrow />
               </a>
               <a href="#modelo" style={PILL_OUTLINE_LIGHT}>
                 Conocer el Modelo UREA<sup style={{ fontSize: '9px' }}>®</sup>
               </a>
             </div>
 
-            {/* Prueba rápida en cifras */}
-            <div style={{ display: 'flex', gap: '2.25rem', flexWrap: 'wrap' }}>
-              {[['+12', 'años de experiencia'], ['B2B', 'enfoque empresarial'], ['24 h', 'para contactarle']].map(([v, l]) => (
-                <div key={l}>
-                  <div style={{ fontSize: '26px', fontWeight: 700, color: INK, lineHeight: 1 }}>{v}</div>
-                  <div style={{ fontSize: '12.5px', color: 'rgba(23,18,14,.45)', marginTop: '5px' }}>{l}</div>
+            {/* Señales de especialización en recaudo */}
+            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+              {[
+                ['+12 años', 'recuperando cartera'],
+                ['Prejurídico + Jurídico', 'ruta completa de cobro'],
+                ['Real y Salud', 'sectores especializados'],
+              ].map(([v, l]) => (
+                <div key={l} style={{ maxWidth: '190px' }}>
+                  <div style={{ fontSize: '17px', fontWeight: 700, color: INK, lineHeight: 1.2 }}>{v}</div>
+                  <div style={{ fontSize: '12.5px', color: 'rgba(23,18,14,.45)', marginTop: '4px' }}>{l}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Columna visual: panel de recuperación + card flotante */}
+          {/* Columna visual: panel de gestión de cartera */}
           <div style={{ position: 'relative' }}>
             <div style={{
-              background: '#fff', borderRadius: '28px', padding: '28px',
+              background: '#fff', borderRadius: '28px',
+              padding: '26px 26px 104px', /* espacio reservado abajo para el card flotante */
               boxShadow: '0 30px 70px rgba(23,18,14,.13)',
               border: '1px solid rgba(23,18,14,.06)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Recuperación de cartera</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: INK }}>Panel de recuperación</div>
                 <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  fontSize: '11px', fontWeight: 700, color: '#1a7f45',
-                  background: '#e8f6ee', borderRadius: '999px', padding: '5px 11px',
+                  fontSize: '10.5px', fontWeight: 700, color: 'rgba(23,18,14,.42)',
+                  background: '#f2efeb', borderRadius: '999px', padding: '5px 11px',
+                  letterSpacing: '.04em', textTransform: 'uppercase',
                 }}>
-                  <span className="fenix-live-dot" /> En vivo
+                  Vista ilustrativa
                 </span>
               </div>
 
-              {/* Barras de avance (ilustrativas) */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '150px', marginBottom: '22px' }}>
-                {[38, 52, 46, 68, 79, 94].map((h, i) => (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+              {/* Aging de cartera */}
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'rgba(23,18,14,.5)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: '14px' }}>
+                Edad de cartera
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '116px', marginBottom: '8px' }}>
+                {AGING.map((a, i) => (
+                  <div key={a.rango} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
                     <div style={{
-                      height: `${h}%`, borderRadius: '8px 8px 4px 4px',
-                      background: i === 5
+                      height: `${a.h}%`, borderRadius: '8px 8px 4px 4px',
+                      background: i === AGING.length - 1
                         ? `linear-gradient(180deg, ${ACCENT}, #d96e0c)`
                         : `${ACCENT}2e`,
                     }} />
                   </div>
                 ))}
               </div>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '22px' }}>
+                {AGING.map(a => (
+                  <div key={a.rango} style={{ flex: 1, textAlign: 'center', fontSize: '10.5px', color: 'rgba(23,18,14,.45)', fontWeight: 600 }}>
+                    {a.rango}
+                  </div>
+                ))}
+              </div>
 
-              {/* Indicadores */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {[['Cartera gestionada', 'Trazable al 100%'], ['Compromisos de pago', 'Seguimiento activo']].map(([t, sub]) => (
-                  <div key={t} style={{ background: '#f6f4f1', borderRadius: '14px', padding: '14px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: INK, marginBottom: '3px' }}>{t}</div>
-                    <div style={{ fontSize: '11.5px', color: 'rgba(23,18,14,.5)' }}>{sub}</div>
+              {/* Etapas de la ruta de cobro */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '22px' }}>
+                {ETAPAS.map(e => (
+                  <div key={e.nombre} style={{ background: '#f6f4f1', borderRadius: '12px', padding: '11px 12px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: 700, color: INK, marginBottom: '2px' }}>{e.nombre}</div>
+                    <div style={{ fontSize: '10.5px', color: 'rgba(23,18,14,.48)' }}>{e.estado}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bitácora de gestiones */}
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'rgba(23,18,14,.5)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                Últimas gestiones
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                {GESTIONES.map(g => (
+                  <div key={g.texto} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
+                    <span style={{ fontSize: '12.5px', color: 'rgba(23,18,14,.72)', flex: 1 }}>{g.texto}</span>
+                    <span style={{ fontSize: '11px', color: 'rgba(23,18,14,.38)' }}>{g.cuando}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Card flotante con la promesa (no es un testimonio atribuido) */}
+            {/* Card flotante: ocupa el espacio reservado, no tapa contenido */}
             <div className="fenix-hero-float" style={{
-              position: 'absolute', left: '-26px', bottom: '-34px',
+              position: 'absolute', left: '-24px', bottom: '20px',
               background: INK, color: '#fff',
-              borderRadius: '20px', padding: '20px 24px',
+              borderRadius: '18px', padding: '18px 22px',
               boxShadow: '0 24px 50px rgba(23,18,14,.3)',
-              maxWidth: '290px',
+              maxWidth: '300px',
             }}>
-              <div style={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.45, marginBottom: '8px' }}>
-                Diagnóstico ejecutivo sin costo de su cartera.
+              <div style={{ fontSize: '14.5px', fontWeight: 600, lineHeight: 1.45, marginBottom: '7px' }}>
+                Diagnóstico de su cartera sin costo.
               </div>
-              <div style={{ fontSize: '11px', letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
+              <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
                 Sin compromiso
               </div>
             </div>

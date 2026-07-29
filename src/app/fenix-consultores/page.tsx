@@ -54,6 +54,7 @@ const SAND = '#e8e0d7'      // arena
 const PEACH = '#ffc9a6'     // durazno
 const ACCENT = '#F5821F'    // coral / naranja de marca
 const INK = '#17120e'       // texto sobre superficies claras
+const LIGHT = '#f7f5f2'     // fondo claro de secciones (hero, contacto)
 
 const MAXW = '1340px'
 
@@ -169,6 +170,15 @@ const PILL_OUTLINE: CSSProperties = {
   border: '1px solid rgba(255,255,255,.25)',
 }
 
+// Botón secundario para superficies claras (el PILL_OUTLINE es para fondo oscuro)
+const PILL_OUTLINE_LIGHT: CSSProperties = {
+  background: '#fff', color: INK,
+  padding: '16px 30px', borderRadius: '999px', fontSize: '14px',
+  fontWeight: 600, textDecoration: 'none', display: 'inline-flex',
+  alignItems: 'center', gap: '8px',
+  border: '1px solid rgba(23,18,14,.15)',
+}
+
 const EYEBROW: CSSProperties = {
   fontSize: '12px', fontWeight: 700, color: ACCENT,
   letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '14px',
@@ -183,6 +193,12 @@ const H2: CSSProperties = {
 }
 
 // ─── Datos ───
+// Solo los teléfonos verificados de Fenix. No se inventan email ni dirección.
+const LINEAS = [
+  { label: 'Línea principal', numero: '+57 321 5036414', href: 'tel:+573215036414' },
+  { label: 'Línea secundaria', numero: '310 4159173', href: 'tel:3104159173' },
+]
+
 const CREDIBILIDAD = [
   'Plataforma tecnológica de seguimiento',
   'Inteligencia Artificial aplicada a la recuperación',
@@ -296,102 +312,157 @@ export default function FenixConsultoresPage() {
       <FenixNav />
       <FenixStickyProspecting />
 
-      {/* ── HERO ── */}
-      <section id="inicio" style={{ padding: '7rem 1.5rem 5rem', position: 'relative', overflow: 'hidden' }}>
+      {/* ── HERO (claro, split: mensaje + visual con card flotante) ── */}
+      <section id="inicio" style={{
+        background: LIGHT, color: INK,
+        padding: '5.5rem 1.5rem 5rem', position: 'relative', overflow: 'hidden',
+      }}>
         <div style={{
-          position: 'absolute', top: '-260px', left: '50%', transform: 'translateX(-50%)',
-          width: '1100px', height: '1000px', borderRadius: '50%',
-          background: `radial-gradient(circle, ${ACCENT}55 0%, ${ACCENT}22 45%, transparent 70%)`,
-          filter: 'blur(10px)', pointerEvents: 'none',
-        }} />
-        <div className="fenix-hero-tube" style={{
-          position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)',
-          width: '560px', height: '560px', borderRadius: '50%',
-          background: `radial-gradient(circle, transparent 60%, ${ACCENT}80 66%, ${ACCENT}f0 70%, ${ACCENT}80 74%, transparent 80%)`,
-          filter: 'blur(7px)', pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', top: '-260px', left: '50%', transform: 'translateX(-50%)',
-          width: '900px', height: '700px',
-          backgroundImage: `
-            radial-gradient(1.5px 1.5px at 15% 30%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 82% 22%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 68% 55%, ${PEACH}, transparent),
-            radial-gradient(1.5px 1.5px at 30% 68%, #fff, transparent),
-            radial-gradient(1.5px 1.5px at 90% 60%, ${PEACH}, transparent),
-            radial-gradient(1.5px 1.5px at 45% 15%, #fff, transparent)
-          `,
-          opacity: 0.75, pointerEvents: 'none',
-        }} />
-        <div className="fenix-hero-ring" style={{
-          position: 'absolute', top: '-40px', left: '50%', transform: 'translateX(-50%)',
-          width: '540px', height: '540px', borderRadius: '50%',
-          border: `1px solid ${ACCENT}60`,
-          boxShadow: `0 0 40px ${ACCENT}35, inset 0 0 40px ${ACCENT}20`,
+          position: 'absolute', top: '-320px', right: '-180px',
+          width: '760px', height: '760px', borderRadius: '50%',
+          background: `radial-gradient(circle, ${ACCENT}22 0%, transparent 68%)`,
           pointerEvents: 'none',
         }} />
 
-        <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            border: `1px solid ${ACCENT}55`, borderRadius: '999px',
-            padding: '7px 16px', marginBottom: '2rem',
-            fontSize: '11px', fontWeight: 700, letterSpacing: '.08em',
-            textTransform: 'uppercase', color: ACCENT,
-          }}>
-            <span className="fenix-live-dot" />
-            FÉNIX Recovery Intelligence<sup style={{ fontSize: '8px' }}>®</sup>
+        <div style={{
+          maxWidth: MAXW, margin: '0 auto', position: 'relative',
+          display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(320px, 1.05fr)',
+          gap: '4rem', alignItems: 'center',
+        }} className="fenix-hero-grid">
+
+          {/* Columna de mensaje */}
+          <div>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              background: `${ACCENT}18`, border: `1px solid ${ACCENT}45`,
+              borderRadius: '999px', padding: '7px 16px', marginBottom: '1.75rem',
+              fontSize: '11px', fontWeight: 800, letterSpacing: '.09em',
+              textTransform: 'uppercase', color: '#b85c07',
+            }}>
+              <span className="fenix-live-dot" />
+              FÉNIX Recovery Intelligence<sup style={{ fontSize: '8px' }}>®</sup>
+            </div>
+
+            <h1 style={{
+              fontSize: 'clamp(36px, 4.6vw, 68px)', fontWeight: 700,
+              lineHeight: 1.04, letterSpacing: '-.03em', marginTop: 0, marginBottom: '1.5rem',
+              color: INK,
+            }}>
+              El dinero de su empresa<br />
+              <span style={{ color: ACCENT }}>no está perdido.</span>
+            </h1>
+
+            <p style={{
+              fontSize: 'clamp(16px, 1.5vw, 19px)', color: 'rgba(23,18,14,.68)',
+              lineHeight: 1.6, marginBottom: '1.25rem', maxWidth: '540px',
+            }}>
+              Está inmovilizado en una cartera que necesita estrategia, tecnología
+              y ejecución especializada.
+            </p>
+
+            <p style={{
+              fontSize: '15px', color: 'rgba(23,18,14,.5)',
+              lineHeight: 1.75, marginBottom: '2.25rem', maxWidth: '540px',
+            }}>
+              Recuperamos activos empresariales combinando Inteligencia Artificial,
+              gestión de cartera, analítica financiera, automatización de cobro y respaldo
+              jurídico especializado.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '2.25rem' }}>
+              <a href="#contacto" style={PILL_SOLID}>
+                Solicitar Diagnóstico Gratuito <IconArrow />
+              </a>
+              <a href="#modelo" style={PILL_OUTLINE_LIGHT}>
+                Conocer el Modelo UREA<sup style={{ fontSize: '9px' }}>®</sup>
+              </a>
+            </div>
+
+            {/* Prueba rápida en cifras */}
+            <div style={{ display: 'flex', gap: '2.25rem', flexWrap: 'wrap' }}>
+              {[['+12', 'años de experiencia'], ['B2B', 'enfoque empresarial'], ['24 h', 'para contactarle']].map(([v, l]) => (
+                <div key={l}>
+                  <div style={{ fontSize: '26px', fontWeight: 700, color: INK, lineHeight: 1 }}>{v}</div>
+                  <div style={{ fontSize: '12.5px', color: 'rgba(23,18,14,.45)', marginTop: '5px' }}>{l}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <h1 style={{
-            fontSize: 'clamp(34px, 6vw, 82px)', fontWeight: 300,
-            lineHeight: 1.02, letterSpacing: '-.035em', marginBottom: '1.75rem',
-          }}>
-            El dinero de su empresa<br />
-            <span style={{ color: ACCENT }}>no está perdido.</span>
-          </h1>
+          {/* Columna visual: panel de recuperación + card flotante */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              background: '#fff', borderRadius: '28px', padding: '28px',
+              boxShadow: '0 30px 70px rgba(23,18,14,.13)',
+              border: '1px solid rgba(23,18,14,.06)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Recuperación de cartera</div>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  fontSize: '11px', fontWeight: 700, color: '#1a7f45',
+                  background: '#e8f6ee', borderRadius: '999px', padding: '5px 11px',
+                }}>
+                  <span className="fenix-live-dot" /> En vivo
+                </span>
+              </div>
 
-          <p style={{
-            fontSize: 'clamp(17px, 1.8vw, 22px)', color: 'rgba(255,255,255,.72)',
-            lineHeight: 1.55, maxWidth: '720px', margin: '0 auto 1.5rem',
-          }}>
-            Está inmovilizado en una cartera que necesita estrategia, tecnología
-            y ejecución especializada.
-          </p>
+              {/* Barras de avance (ilustrativas) */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '150px', marginBottom: '22px' }}>
+                {[38, 52, 46, 68, 79, 94].map((h, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+                    <div style={{
+                      height: `${h}%`, borderRadius: '8px 8px 4px 4px',
+                      background: i === 5
+                        ? `linear-gradient(180deg, ${ACCENT}, #d96e0c)`
+                        : `${ACCENT}2e`,
+                    }} />
+                  </div>
+                ))}
+              </div>
 
-          <p style={{
-            fontSize: '15px', color: 'rgba(255,255,255,.45)',
-            lineHeight: 1.8, maxWidth: '660px', margin: '0 auto 2.5rem',
-          }}>
-            Recuperamos activos empresariales combinando Inteligencia Artificial, software de
-            gestión de cartera, analítica financiera, automatización de cobro y respaldo
-            jurídico especializado. Recuperar cartera hoy ya no depende de insistir: depende
-            de <strong style={{ color: '#fff', fontWeight: 600 }}>información, tecnología y decisiones estratégicas</strong>.
-          </p>
+              {/* Indicadores */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {[['Cartera gestionada', 'Trazable al 100%'], ['Compromisos de pago', 'Seguimiento activo']].map(([t, sub]) => (
+                  <div key={t} style={{ background: '#f6f4f1', borderRadius: '14px', padding: '14px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: INK, marginBottom: '3px' }}>{t}</div>
+                    <div style={{ fontSize: '11.5px', color: 'rgba(23,18,14,.5)' }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="#contacto" style={PILL_SOLID}>
-              Solicitar Diagnóstico Ejecutivo Gratuito <IconArrow />
-            </a>
-            <a href="#modelo" style={PILL_OUTLINE}>
-              Conocer el Modelo Integral UREA<sup style={{ fontSize: '9px' }}>®</sup>
-            </a>
+            {/* Card flotante con la promesa (no es un testimonio atribuido) */}
+            <div className="fenix-hero-float" style={{
+              position: 'absolute', left: '-26px', bottom: '-34px',
+              background: INK, color: '#fff',
+              borderRadius: '20px', padding: '20px 24px',
+              boxShadow: '0 24px 50px rgba(23,18,14,.3)',
+              maxWidth: '290px',
+            }}>
+              <div style={{ fontSize: '15px', fontWeight: 600, lineHeight: 1.45, marginBottom: '8px' }}>
+                Diagnóstico ejecutivo sin costo de su cartera.
+              </div>
+              <div style={{ fontSize: '11px', letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
+                Sin compromiso
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── BARRA DE CREDIBILIDAD ── */}
-      <section style={{ borderTop: '1px solid rgba(255,255,255,.07)', borderBottom: '1px solid rgba(255,255,255,.07)', padding: '2.5rem 1.5rem' }}>
+      {/* ── BARRA DE CREDIBILIDAD (continúa la superficie clara del hero) ── */}
+      <section style={{ background: LIGHT, borderTop: '1px solid rgba(23,18,14,.07)', padding: '2.75rem 1.5rem 3.5rem' }}>
         <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,.45)', textAlign: 'center', marginBottom: '1.75rem' }}>
+          <p style={{ fontSize: '13px', color: 'rgba(23,18,14,.5)', textAlign: 'center', marginBottom: '1.75rem' }}>
             Una solución diseñada para empresas que requieren control, trazabilidad y resultados.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
             {CREDIBILIDAD.map(c => (
               <span key={c} style={{
-                border: '1px solid rgba(255,255,255,.15)', borderRadius: '999px',
-                padding: '8px 18px', fontSize: '12.5px', fontWeight: 600,
-                color: 'rgba(255,255,255,.7)',
+                background: '#fff', border: '1px solid rgba(23,18,14,.1)', borderRadius: '999px',
+                padding: '9px 18px', fontSize: '12.5px', fontWeight: 600,
+                color: 'rgba(23,18,14,.7)',
               }}>
                 {c}
               </span>
@@ -828,86 +899,78 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ── CTA FINAL / CONTACTO ── */}
-      <section id="contacto" style={{ padding: '1rem 1.5rem 8rem' }}>
-        <div style={{
-          maxWidth: MAXW, margin: '0 auto', position: 'relative', overflow: 'hidden',
-          background: DARK_2, border: `1px solid ${ACCENT}40`,
-          borderRadius: '40px', padding: '3.5rem 3rem',
-          boxShadow: `0 40px 100px rgba(0,0,0,.45)`,
-          display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(320px, 1fr)', gap: '3rem',
-          alignItems: 'start',
-        }} className="fenix-grid-2">
-          <div className="fenix-contacto-glow" style={{
-            position: 'absolute', top: '-160px', left: '5%',
-            width: '520px', height: '520px', borderRadius: '50%',
-            background: `radial-gradient(circle, ${ACCENT}28 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }} />
-          <div className="fenix-contacto-sparks" style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `
-              radial-gradient(1.5px 1.5px at 20% 20%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 80% 15%, ${PEACH}, transparent),
-              radial-gradient(1.5px 1.5px at 60% 75%, #fff, transparent),
-              radial-gradient(1.5px 1.5px at 12% 70%, ${PEACH}, transparent)
-            `,
-            opacity: 0.6, pointerEvents: 'none',
-          }} />
-
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <div style={{ ...EYEBROW, marginBottom: 0 }}>Diagnóstico ejecutivo</div>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px',
-                border: '1px solid rgba(255,255,255,.18)', borderRadius: '999px',
-                padding: '4px 11px 4px 9px', fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,.6)',
-              }}>
-                <span className="fenix-live-dot" />
-                Especialistas disponibles ahora
-              </div>
-            </div>
-            <h2 style={{ ...H2, marginBottom: '1.25rem' }}>
+      {/* ── CTA FINAL / CONTACTO (panel dividido: info oscura + formulario claro) ── */}
+      <section id="contacto" style={{ background: LIGHT, padding: '5rem 1.5rem 6rem' }}>
+        <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div style={{ ...EYEBROW, color: '#b85c07', marginBottom: '16px' }}>Diagnóstico ejecutivo</div>
+            <h2 style={{ ...H2, color: INK, maxWidth: '780px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
               Conozca el verdadero <span style={{ color: ACCENT }}>potencial de recuperación</span> de su cartera
             </h2>
-            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,.5)', lineHeight: 1.8, marginBottom: '2rem' }}>
-              Solicite un Diagnóstico Ejecutivo Gratuito y descubra cómo una estrategia
-              respaldada por tecnología, inteligencia artificial y un equipo jurídico
-              especializado puede fortalecer la liquidez de su empresa y convertir su
-              cartera en un activo nuevamente productivo.
+            <p style={{ fontSize: '15px', color: 'rgba(23,18,14,.55)', lineHeight: 1.75, maxWidth: '620px', marginLeft: 'auto', marginRight: 'auto' }}>
+              Descubra cómo una estrategia respaldada por tecnología, inteligencia artificial y un
+              equipo jurídico especializado puede fortalecer la liquidez de su empresa.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <a href="tel:+573215036414" className="fenix-phone-pill">
-                <span className="fenix-phone-icon"><IconPhone /></span>
-                <span>
-                  <span className="fenix-phone-label">Línea principal</span>
-                  <span className="fenix-phone-number">+57 321 5036414</span>
-                </span>
-              </a>
-              <a href="tel:3104159173" className="fenix-phone-pill">
-                <span className="fenix-phone-icon"><IconPhone /></span>
-                <span>
-                  <span className="fenix-phone-label">Línea secundaria</span>
-                  <span className="fenix-phone-number">310 4159173</span>
-                </span>
-              </a>
-            </div>
           </div>
 
-          <div className="fenix-contacto-form-panel" style={{
-            position: 'sticky', top: '96px', alignSelf: 'start',
-            background: 'rgba(255,255,255,.03)',
-            border: `1px solid ${ACCENT}30`, borderRadius: '28px', padding: '30px',
-            boxShadow: `0 0 40px ${ACCENT}12`,
+          <div className="fenix-contact-split" style={{
+            display: 'grid', gridTemplateColumns: 'minmax(280px, .82fr) minmax(320px, 1.18fr)',
+            borderRadius: '28px', overflow: 'hidden',
+            boxShadow: '0 30px 80px rgba(23,18,14,.14)',
+            border: '1px solid rgba(23,18,14,.07)',
           }}>
+            {/* Panel oscuro: datos de contacto */}
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '18px',
-              border: `1px solid ${ACCENT}40`, borderRadius: '999px', padding: '5px 12px',
-              fontSize: '11px', fontWeight: 700, color: ACCENT, letterSpacing: '.04em',
+              background: INK, color: '#fff', padding: '3rem 2.5rem',
+              position: 'relative', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
             }}>
-              ⏱ Agende su diagnóstico estratégico
+              <div className="fenix-contacto-glow" style={{
+                position: 'absolute', top: '-140px', left: '-80px',
+                width: '360px', height: '360px', borderRadius: '50%',
+                background: `radial-gradient(circle, ${ACCENT}30 0%, transparent 70%)`,
+                pointerEvents: 'none',
+              }} />
+              <div style={{ position: 'relative' }}>
+                <h3 style={{ fontSize: 'clamp(24px, 2.4vw, 32px)', fontWeight: 700, letterSpacing: '-.02em', marginTop: 0, marginBottom: '1rem' }}>
+                  Contáctenos hoy
+                </h3>
+                <p style={{ fontSize: '14.5px', color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: '2.25rem' }}>
+                  Inicie su proceso de recuperación con una asesoría personalizada. Un
+                  especialista le contactará en menos de 24 horas.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {LINEAS.map(l => (
+                    <a key={l.numero} href={l.href} className="fenix-contact-row">
+                      <span className="fenix-contact-ico"><IconPhone /></span>
+                      <span>
+                        <span style={{ display: 'block', fontSize: '11.5px', color: 'rgba(255,255,255,.45)', marginBottom: '3px' }}>{l.label}</span>
+                        <span style={{ display: 'block', fontSize: '16px', fontWeight: 700 }}>{l.numero}</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+
+                <div style={{
+                  marginTop: '2.25rem', paddingTop: '1.5rem',
+                  borderTop: '1px solid rgba(255,255,255,.1)',
+                  display: 'flex', flexWrap: 'wrap', gap: '8px',
+                }}>
+                  {['Confidencialidad', 'Gestión documentada', 'Reportes ejecutivos'].map(t => (
+                    <span key={t} style={{
+                      border: '1px solid rgba(255,255,255,.16)', borderRadius: '999px',
+                      padding: '6px 13px', fontSize: '11.5px', color: 'rgba(255,255,255,.6)',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
             </div>
-            <FenixLeadForm />
+
+            {/* Panel claro: formulario */}
+            <div style={{ background: '#fff', padding: '3rem 2.75rem' }}>
+              <FenixLeadForm theme="light" />
+            </div>
           </div>
         </div>
       </section>
@@ -1000,6 +1063,17 @@ export default function FenixConsultoresPage() {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.9; }
         }
+        .fenix-contact-row {
+          display: flex; align-items: center; gap: 14px;
+          text-decoration: none; color: #fff;
+          transition: opacity .2s ease, transform .2s ease;
+        }
+        .fenix-contact-row:hover { opacity: .85; transform: translateX(3px); }
+        .fenix-contact-ico {
+          width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+          background: rgba(255,255,255,.08); color: ${ACCENT};
+          display: flex; align-items: center; justify-content: center;
+        }
         .fenix-live-dot {
           width: 7px; height: 7px; border-radius: 50%;
           background: #3ecf7e; flex-shrink: 0;
@@ -1041,6 +1115,11 @@ export default function FenixConsultoresPage() {
         }
         @media (max-width: 1100px) {
           .fenix-grad-row { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 980px) {
+          .fenix-hero-grid { grid-template-columns: 1fr !important; gap: 3rem !important; }
+          .fenix-hero-float { position: static !important; margin-top: 1.25rem; max-width: none !important; }
+          .fenix-contact-split { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 900px) {
           .fenix-bento { grid-template-columns: 1fr !important; }

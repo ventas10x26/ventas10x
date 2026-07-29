@@ -9,6 +9,8 @@ type Status = 'idle' | 'loading' | 'ok' | 'error'
 type Props = {
   compact?: boolean
   onSuccess?: () => void
+  /** 'light' se usa dentro del panel claro de la sección de contacto */
+  theme?: 'dark' | 'light'
 }
 
 function IconLock() {
@@ -20,7 +22,8 @@ function IconLock() {
   )
 }
 
-export function FenixLeadForm({ compact = false, onSuccess }: Props) {
+export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Props) {
+  const light = theme === 'light'
   const [status, setStatus] = useState<Status>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -68,10 +71,10 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
             <path d="M20 6 9 17l-5-5" />
           </svg>
         </div>
-        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: light ? '#17120e' : undefined }}>
           Solicitud recibida
         </div>
-        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,.55)', lineHeight: 1.6 }}>
+        <div style={{ fontSize: '14px', color: light ? 'rgba(23,18,14,.6)' : 'rgba(255,255,255,.55)', lineHeight: 1.6 }}>
           Un especialista de Fenix Consultores se pondrá en contacto con su empresa muy pronto.
         </div>
       </div>
@@ -82,7 +85,7 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
   const rowCols = compact ? '1fr' : '1fr 1fr'
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap, textAlign: 'left' }}>
+    <form onSubmit={handleSubmit} className={light ? 'fenix-form fenix-form-light' : 'fenix-form'} style={{ display: 'flex', flexDirection: 'column', gap, textAlign: 'left' }}>
       <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
         <div>
           <label className="fenix-label" htmlFor="empresa">Empresa *</label>
@@ -124,7 +127,7 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
         {status === 'loading' ? 'Enviando…' : compact ? 'Enviar →' : 'Solicitar asesoría para mi empresa →'}
       </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11.5px', color: 'rgba(255,255,255,.35)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11.5px', color: light ? 'rgba(23,18,14,.45)' : 'rgba(255,255,255,.35)' }}>
         <IconLock /> Sus datos están protegidos y no se comparten con terceros
       </div>
 
@@ -172,6 +175,27 @@ export function FenixLeadForm({ compact = false, onSuccess }: Props) {
           box-shadow: 0 12px 36px ${ACCENT}65;
         }
         .fenix-submit-btn:active:not(:disabled) { transform: translateY(0); }
+        /* ── Tema claro (panel derecho de la sección de contacto) ── */
+        .fenix-form-light .fenix-input {
+          background: #f1efec;
+          border-color: #e0dbd5;
+          color: #17120e;
+        }
+        .fenix-form-light .fenix-input::placeholder { color: rgba(23,18,14,.38); }
+        .fenix-form-light .fenix-input:hover { border-color: #cfc8c0; }
+        .fenix-form-light .fenix-input:focus {
+          border-color: ${ACCENT};
+          background: #fff;
+          box-shadow: 0 0 0 3px ${ACCENT}28;
+        }
+        .fenix-form-light .fenix-label {
+          color: rgba(23,18,14,.62);
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        .fenix-form-light .fenix-submit-btn { color: #fff; }
         @media (max-width: 560px) {
           .fenix-form-row { grid-template-columns: 1fr !important; }
         }

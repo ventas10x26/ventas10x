@@ -30,20 +30,20 @@ export function FenixNav() {
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '1rem 1.5rem',
-        borderBottom: '1px solid rgba(255,255,255,.07)',
+        borderBottom: '1px solid rgba(23,18,14,.08)',
         position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(6,10,18,.97)', backdropFilter: 'blur(14px)',
+        background: 'rgba(250,247,244,.92)', backdropFilter: 'blur(14px)',
       }}>
         <a href="#inicio" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
           <FlameLogo />
-          <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '-.02em', color: '#fff', lineHeight: 1.1 }}>
-            Fenix <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.55)' }}>Consultores</span>
+          <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '-.02em', color: '#17120e', lineHeight: 1.1 }}>
+            Fenix <span style={{ fontWeight: 500, color: 'rgba(23,18,14,.5)' }}>Consultores</span>
           </span>
         </a>
 
         <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }} className="fenix-nav-desktop">
           {LINKS.map(({ href, label }) => (
-            <a key={href} href={href} style={{ fontSize: '13px', color: 'rgba(255,255,255,.65)', textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap' }}>{label}</a>
+            <a key={href} href={href} style={{ fontSize: '13px', color: 'rgba(23,18,14,.65)', textDecoration: 'none', fontWeight: 500, whiteSpace: 'nowrap' }}>{label}</a>
           ))}
         </div>
 
@@ -67,8 +67,8 @@ export function FenixNav() {
             }}
             aria-label="Menú"
           >
-            <span style={{ display: 'block', width: '22px', height: '2px', background: open ? 'transparent' : '#fff', transition: 'all 0.2s', transform: open ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
-            <span style={{ display: 'block', width: '22px', height: '2px', background: '#fff', transition: 'all 0.2s', transform: open ? 'rotate(-45deg)' : 'none', marginTop: open ? '-7px' : '0' }} />
+            <span style={{ display: 'block', width: '22px', height: '2px', background: open ? 'transparent' : '#17120e', transition: 'all 0.2s', transform: open ? 'rotate(45deg) translate(5px, 5px)' : 'none' }} />
+            <span style={{ display: 'block', width: '22px', height: '2px', background: '#17120e', transition: 'all 0.2s', transform: open ? 'rotate(-45deg)' : 'none', marginTop: open ? '-7px' : '0' }} />
           </button>
         </div>
       </nav>
@@ -76,17 +76,17 @@ export function FenixNav() {
       {open && (
         <div style={{
           position: 'fixed', top: '64px', left: 0, right: 0,
-          background: 'rgba(6,10,18,.98)', backdropFilter: 'blur(14px)',
-          borderBottom: '1px solid rgba(255,255,255,.08)',
+          background: 'rgba(250,247,244,.98)', backdropFilter: 'blur(14px)',
+          borderBottom: '1px solid rgba(23,18,14,.08)',
           zIndex: 49, padding: '1.5rem',
           display: 'flex', flexDirection: 'column', gap: '4px',
         }}>
           {LINKS.map(({ href, label }) => (
             <a key={href} href={href} onClick={() => setOpen(false)} style={{
               padding: '14px 16px', fontSize: '16px', fontWeight: 600,
-              color: 'rgba(255,255,255,.8)', textDecoration: 'none',
+              color: 'rgba(23,18,14,.8)', textDecoration: 'none',
               borderRadius: '12px', display: 'block',
-              borderBottom: '1px solid rgba(255,255,255,.05)',
+              borderBottom: '1px solid rgba(23,18,14,.06)',
             }}>{label}</a>
           ))}
           <a href="#contacto" onClick={() => setOpen(false)} style={{

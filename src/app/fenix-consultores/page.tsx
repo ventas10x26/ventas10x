@@ -7,6 +7,9 @@ import { FenixGlowCard } from '@/components/fenix/FenixGlowCard'
 import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
 import { FenixStickyProspecting } from '@/components/fenix/FenixStickyProspecting'
 import { FenixVideoShort } from '@/components/fenix/FenixVideoShort'
+import { FenixPhotoCarousel } from '@/components/fenix/FenixPhotoCarousel'
+import { FenixReveal } from '@/components/fenix/FenixReveal'
+import { FenixScrollPanel } from '@/components/fenix/FenixScrollPanel'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -197,6 +200,15 @@ const H2: CSSProperties = {
 const LINEAS = [
   { label: 'Línea principal', numero: '+57 321 5036414', href: 'tel:+573215036414' },
   { label: 'Línea secundaria', numero: '310 4159173', href: 'tel:3104159173' },
+]
+
+// Fotos del hero. Son imagenes de banco (licencia Unsplash, uso comercial
+// libre) usadas como contexto visual, NO como fotos del equipo ni de
+// clientes de Fenix. Reemplazables por fotos propias en /public/fenix/.
+const FOTOS = [
+  { src: '/fenix/acuerdo.jpg', alt: 'Dos profesionales celebrando un acuerdo cerrado en una oficina' },
+  { src: '/fenix/asesoria.jpg', alt: 'Reunion de asesoria entre dos profesionales' },
+  { src: '/fenix/analisis.jpg', alt: 'Analisis de documentos y cifras sobre un escritorio' },
 ]
 
 // Contenido del panel del hero. Es una representación ilustrativa de la
@@ -415,87 +427,58 @@ export default function FenixConsultoresPage() {
             </div>
           </div>
 
-          {/* Columna visual: panel de gestión de cartera */}
+          {/* Columna visual: fotos reales + panel de cartera superpuesto */}
           <div style={{ position: 'relative' }}>
-            <div style={{
-              background: '#fff', borderRadius: '28px',
-              padding: '26px 26px 104px', /* espacio reservado abajo para el card flotante */
-              boxShadow: '0 30px 70px rgba(23,18,14,.13)',
+            <FenixPhotoCarousel fotos={FOTOS} />
+
+            {/* Panel de cartera, superpuesto sobre la foto */}
+            <div className="fenix-hero-panel" style={{
+              position: 'absolute', right: '-18px', bottom: '-42px',
+              width: 'min(330px, 82%)',
+              background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(8px)',
+              borderRadius: '22px', padding: '20px',
+              boxShadow: '0 26px 60px rgba(23,18,14,.28)',
               border: '1px solid rgba(23,18,14,.06)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, color: INK }}>Panel de recuperación</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: INK }}>Edad de cartera</div>
                 <span style={{
-                  fontSize: '10.5px', fontWeight: 700, color: 'rgba(23,18,14,.42)',
-                  background: '#f2efeb', borderRadius: '999px', padding: '5px 11px',
+                  fontSize: '9.5px', fontWeight: 700, color: 'rgba(23,18,14,.42)',
+                  background: '#f2efeb', borderRadius: '999px', padding: '4px 9px',
                   letterSpacing: '.04em', textTransform: 'uppercase',
                 }}>
-                  Vista ilustrativa
+                  Ilustrativa
                 </span>
               </div>
 
-              {/* Aging de cartera */}
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'rgba(23,18,14,.5)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: '14px' }}>
-                Edad de cartera
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '116px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '7px', height: '74px', marginBottom: '7px' }}>
                 {AGING.map((a, i) => (
                   <div key={a.rango} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
                     <div style={{
-                      height: `${a.h}%`, borderRadius: '8px 8px 4px 4px',
+                      height: `${a.h}%`, borderRadius: '5px 5px 3px 3px',
                       background: i === AGING.length - 1
                         ? `linear-gradient(180deg, ${ACCENT}, #d96e0c)`
-                        : `${ACCENT}2e`,
+                        : `${ACCENT}30`,
                     }} />
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '22px' }}>
+              <div style={{ display: 'flex', gap: '7px', marginBottom: '16px' }}>
                 {AGING.map(a => (
-                  <div key={a.rango} style={{ flex: 1, textAlign: 'center', fontSize: '10.5px', color: 'rgba(23,18,14,.45)', fontWeight: 600 }}>
+                  <div key={a.rango} style={{ flex: 1, textAlign: 'center', fontSize: '9px', color: 'rgba(23,18,14,.45)', fontWeight: 600 }}>
                     {a.rango}
                   </div>
                 ))}
               </div>
 
-              {/* Etapas de la ruta de cobro */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '22px' }}>
-                {ETAPAS.map(e => (
-                  <div key={e.nombre} style={{ background: '#f6f4f1', borderRadius: '12px', padding: '11px 12px' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 700, color: INK, marginBottom: '2px' }}>{e.nombre}</div>
-                    <div style={{ fontSize: '10.5px', color: 'rgba(23,18,14,.48)' }}>{e.estado}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '14px', borderTop: '1px solid rgba(23,18,14,.08)' }}>
+                {GESTIONES.slice(0, 2).map(g => (
+                  <div key={g.texto} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
+                    <span style={{ fontSize: '11.5px', color: 'rgba(23,18,14,.72)', flex: 1 }}>{g.texto}</span>
+                    <span style={{ fontSize: '10px', color: 'rgba(23,18,14,.38)' }}>{g.cuando}</span>
                   </div>
                 ))}
-              </div>
-
-              {/* Bitácora de gestiones */}
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'rgba(23,18,14,.5)', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: '12px' }}>
-                Últimas gestiones
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                {GESTIONES.map(g => (
-                  <div key={g.texto} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
-                    <span style={{ fontSize: '12.5px', color: 'rgba(23,18,14,.72)', flex: 1 }}>{g.texto}</span>
-                    <span style={{ fontSize: '11px', color: 'rgba(23,18,14,.38)' }}>{g.cuando}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Card flotante: ocupa el espacio reservado, no tapa contenido */}
-            <div className="fenix-hero-float" style={{
-              position: 'absolute', left: '-24px', bottom: '20px',
-              background: INK, color: '#fff',
-              borderRadius: '18px', padding: '18px 22px',
-              boxShadow: '0 24px 50px rgba(23,18,14,.3)',
-              maxWidth: '300px',
-            }}>
-              <div style={{ fontSize: '14.5px', fontWeight: 600, lineHeight: 1.45, marginBottom: '7px' }}>
-                Diagnóstico de su cartera sin costo.
-              </div>
-              <div style={{ fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700 }}>
-                Sin compromiso
               </div>
             </div>
           </div>
@@ -573,6 +556,7 @@ export default function FenixConsultoresPage() {
       <section id="videos" style={{ padding: '0 1.5rem 6rem' }}>
         <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
           {/* Cabecera compartida: da contexto y anticipa la duración */}
+          <FenixReveal>
           <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
             <div style={{ ...EYEBROW, marginBottom: '16px' }}>Véalo usted mismo</div>
             <h2 style={{ ...H2, maxWidth: '760px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
@@ -582,6 +566,7 @@ export default function FenixConsultoresPage() {
               Primero cómo opera el modelo. Después, qué está costando no aplicarlo.
             </p>
           </div>
+          </FenixReveal>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {VIDEOS.map((v, i) => {
@@ -659,6 +644,7 @@ export default function FenixConsultoresPage() {
       {/* ── SECCIÓN 3: DIFERENCIALES (fila graduada) ── */}
       <section id="modelo" style={{ padding: '5rem 1.5rem 6rem', position: 'relative' }}>
         <div style={{ maxWidth: MAXW, margin: '0 auto' }}>
+          <FenixReveal>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ ...EYEBROW, marginBottom: '18px' }}>El diferencial</div>
             <h2 style={{ ...H2, maxWidth: '820px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
@@ -669,7 +655,9 @@ export default function FenixConsultoresPage() {
               jurídico especializado.
             </p>
           </div>
+          </FenixReveal>
 
+          <FenixReveal delay={120}>
           <div className="fenix-grad-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             {DIFERENCIALES.map(({ label, titulo, desc, bg, fg, Art }) => (
               <div key={label} className="fenix-grad-card" style={{
@@ -695,6 +683,7 @@ export default function FenixConsultoresPage() {
               </div>
             ))}
           </div>
+          </FenixReveal>
         </div>
       </section>
 
@@ -953,6 +942,7 @@ export default function FenixConsultoresPage() {
       {/* ── CTA FINAL / CONTACTO (panel dividido: info oscura + formulario claro) ── */}
       <section id="contacto" style={{ background: LIGHT, padding: '5rem 1.5rem 6rem' }}>
         <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
+          <FenixReveal>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ ...EYEBROW, color: '#b85c07', marginBottom: '16px' }}>Diagnóstico ejecutivo</div>
             <h2 style={{ ...H2, color: INK, maxWidth: '780px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '1rem' }}>
@@ -963,6 +953,7 @@ export default function FenixConsultoresPage() {
               equipo jurídico especializado puede fortalecer la liquidez de su empresa.
             </p>
           </div>
+          </FenixReveal>
 
           <div className="fenix-contact-split" style={{
             display: 'grid', gridTemplateColumns: 'minmax(280px, .82fr) minmax(320px, 1.18fr)',
@@ -1018,9 +1009,11 @@ export default function FenixConsultoresPage() {
               </div>
             </div>
 
-            {/* Panel claro: formulario */}
+            {/* Panel claro: formulario (se acerca/aleja segun el scroll) */}
             <div style={{ background: '#fff', padding: '3rem 2.75rem' }}>
-              <FenixLeadForm theme="light" />
+              <FenixScrollPanel>
+                <FenixLeadForm theme="light" />
+              </FenixScrollPanel>
             </div>
           </div>
         </div>
@@ -1113,6 +1106,20 @@ export default function FenixConsultoresPage() {
         @keyframes fenix-twinkle {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.9; }
+        }
+        /* Revelado por scroll */
+        .fenix-reveal-hidden {
+          opacity: 0;
+          transform: translateY(34px);
+        }
+        .fenix-reveal-in {
+          opacity: 1;
+          transform: none;
+          transition: opacity .75s cubic-bezier(.22,.61,.36,1), transform .75s cubic-bezier(.22,.61,.36,1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .fenix-reveal-hidden { opacity: 1; transform: none; }
+          .fenix-reveal-in { transition: none; }
         }
         .fenix-contact-row {
           display: flex; align-items: center; gap: 14px;

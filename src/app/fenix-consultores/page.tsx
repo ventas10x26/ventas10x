@@ -1,5 +1,6 @@
 // Ruta destino: src/app/fenix-consultores/page.tsx
 import type { Metadata } from 'next'
+import type { CSSProperties } from 'react'
 import { Space_Grotesk } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
@@ -304,10 +305,13 @@ export default function FenixConsultoresPage() {
       <section className="fx-sec fx-sec-tight fx-bg-white fx-bordered">
         <div className="fx-container">
           <p className="fx-cap-intro">
-            Una solución diseñada para empresas que requieren control, trazabilidad y resultados.
+            Una solución diseñada para empresas que requieren{' '}
+            <span className="fx-accent">control, trazabilidad y resultados.</span>
           </p>
           <div className="fx-cap-row">
-            {CAPACIDADES.map(c => <span key={c} className="fx-cap">{c}</span>)}
+            {CAPACIDADES.map((c, i) => (
+              <span key={c} className="fx-cap" style={{ '--i': i } as CSSProperties}>{c}</span>
+            ))}
           </div>
         </div>
       </section>
@@ -332,7 +336,7 @@ export default function FenixConsultoresPage() {
           <FenixReveal delay={80}>
             <div className="fx-grid-4">
               {IMPACTOS.map(i => (
-                <article key={i.t} className="fx-card">
+                <article key={i.t} className="fx-card fx-card-lift">
                   <h3 className="fx-card-t">{i.t}</h3>
                   <p className="fx-card-d">{i.d}</p>
                 </article>
@@ -785,12 +789,39 @@ export default function FenixConsultoresPage() {
         .fx-proof-l { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.45; }
 
         /* ── Capacidades ── */
-        .fx-cap-intro { text-align: center; font-size: 13.5px; color: var(--ink-3); margin-bottom: 22px; }
-        .fx-cap-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .fx-cap-intro {
+          text-align: center;
+          font-size: clamp(24px, 3.1vw, 40px);
+          font-weight: 700; letter-spacing: -.025em; line-height: 1.2;
+          color: var(--ink);
+          max-width: 22ch; margin-left: auto; margin-right: auto;
+          margin-top: 0; margin-bottom: clamp(28px, 3.5vw, 44px);
+        }
+        .fx-cap-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
         .fx-cap {
           background: var(--white); border: 1px solid var(--line); border-radius: 999px;
-          padding: 9px 18px; font-size: 13px; font-weight: 600; color: var(--ink-2);
-          box-shadow: var(--sh-sm);
+          padding: 14px 26px; font-size: 15.5px; font-weight: 600; color: var(--ink-2);
+          box-shadow: var(--sh-sm); cursor: default;
+          /* La entrada escalonada corre al montar y no al entrar en viewport:
+             la sección va pegada al hero, así que se ve sin depender de que
+             un observador dispare. El modo "both" deja el estado inicial
+             aplicado durante el retardo, si no habría un parpadeo. */
+          animation: fx-cap-in .6s cubic-bezier(.22,.61,.36,1) both;
+          animation-delay: calc(var(--i) * 80ms);
+          transition: transform .3s cubic-bezier(.22,.61,.36,1),
+                      box-shadow .3s ease-out,
+                      border-color .3s ease-out,
+                      color .3s ease-out;
+        }
+        .fx-cap:hover {
+          transform: translateY(-5px);
+          border-color: var(--accent);
+          color: var(--ink);
+          box-shadow: 0 10px 26px rgba(245,130,31,.22);
+        }
+        @keyframes fx-cap-in {
+          from { opacity: 0; transform: translateY(14px) scale(.96); }
+          to   { opacity: 1; transform: none; }
         }
 
         /* ── Cards ── */
@@ -800,7 +831,39 @@ export default function FenixConsultoresPage() {
           border-radius: var(--r-card); padding: 32px; box-shadow: var(--sh-sm);
           transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
         }
-        .fx-card-lift:hover { transform: translateY(-4px); box-shadow: var(--sh-md); border-color: rgba(245,130,31,.35); }
+        /* Hover de tarjeta: el color sube desde la base y la tarjeta se
+           levanta. El degradado va en un ::before y no en la propiedad
+           background, para poder animar su opacidad — los degradados no
+           interpolan. El contenido sube a z-index 1 para no quedar debajo. */
+        .fx-card-lift {
+          position: relative; overflow: hidden;
+          min-height: 210px;
+          transition: transform .45s cubic-bezier(.22,.61,.36,1),
+                      box-shadow .45s ease-out,
+                      border-color .35s ease-out;
+        }
+        .fx-card-lift::before {
+          content: ''; position: absolute; inset: 0; z-index: 0;
+          background: linear-gradient(0deg,
+            rgba(245,130,31,.95) 0%,
+            rgba(245,130,31,.30) 52%,
+            rgba(245,130,31,0) 100%);
+          opacity: 0; transition: opacity .45s ease-out;
+        }
+        .fx-card-lift:hover::before { opacity: 1; }
+        .fx-card-lift > * { position: relative; z-index: 1; }
+        .fx-card-lift:hover {
+          transform: translateY(-16px);
+          border-color: var(--accent);
+          box-shadow: 0 30px 60px rgba(245,130,31,.32);
+        }
+        /* Sobre el naranja el texto atenuado pierde contraste: se satura. */
+        .fx-card-lift:hover .fx-card-d,
+        .fx-card-lift:hover .fx-list li { color: rgba(20,16,12,.92); }
+        .fx-card-lift:hover .fx-tick { color: var(--ink); }
+        .fx-card-lift:hover .fx-icon {
+          background: #fff; border-color: #fff; color: var(--accent-text);
+        }
         .fx-card-t { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
         .fx-card-d { font-size: 14.5px; line-height: 1.7; color: var(--ink-2); }
         .fx-card-dark { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.1); box-shadow: none; }
@@ -946,8 +1009,12 @@ export default function FenixConsultoresPage() {
           .fx-card { padding: 26px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .fx-btn:hover, .fx-card-lift:hover, .fx-video-card:hover, .fx-linea:hover { transform: none; }
+          .fx-btn:hover, .fx-card-lift:hover, .fx-video-card:hover,
+          .fx-linea:hover, .fx-cap:hover { transform: none; }
           .fx-dot { animation: none; }
+          /* Se conserva el cambio de fondo (no es movimiento) y se quita el
+             desplazamiento de entrada de los chips. */
+          .fx-cap { animation: none; }
         }
       `}</style>
     </div>

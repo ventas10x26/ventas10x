@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { CREDITOS_CONFIG } from '@/lib/pulse/creditos-config'
 
 const supabaseAdmin = createAdmin(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,7 +81,7 @@ async function consumirCredito(instanceName: string, remoteJid: string): Promise
     const { data: creditos } = await (supabaseAdmin.from('pulse_creditos') as any)
       .select('saldo').eq('user_id', wl.user_id).maybeSingle()
 
-    if (!creditos || creditos.saldo <= 0) {
+    if (!creditos || creditos.saldo <= CREDITOS_CONFIG.RESERVA_MINIMA) {
       // Pausar bot automáticamente
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabaseAdmin.from('pulse_waitlist') as any)
@@ -89,22 +90,11 @@ async function consumirCredito(instanceName: string, remoteJid: string): Promise
       return 'agotado'
     }
 
-    const COSTO_MENSAJE = 2
-    const nuevo_saldo = creditos.saldo - COSTO_MENSAJE
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabaseAdmin.from('pulse_creditos') as any)
-      .update({ saldo: nuevo_saldo, updated_at: new Date().toISOString() })
-      .eq('user_id', wl.user_id)
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabaseAdmin.from('pulse_creditos_log') as any).insert({
-      user_id: wl.user_id, tipo: 'consumido', accion: 'mensaje_respondido',
-      cantidad: -COSTO_MENSAJE, saldo_post: nuevo_saldo,
-      metadata: { remote_jid: remoteJid, instance: instanceName },
-    })
-
-    console.log('[webhook] credito consumido — saldo restante:', nuevo_saldo)
+    // Responder un mensaje ya no descuenta saldo: el agente conversa gratis y el
+    // crédito se cobra recién cuando el lead llega a una etapa que vale plata
+    // (ver ETAPA_A_ACCION en creditos-config). El chequeo de saldo de arriba se
+    // mantiene como piso — sin él, una cuenta en cero conversaría gratis y
+    // recién fallaría al cobrar el resultado.
     return 'ok'
   } catch (e) {
     console.error('[webhook] consumirCredito error:', e)

@@ -2,10 +2,47 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  CREDITOS_CONFIG,
+  PACKS,
+  creditosACop,
+  formatearCop,
+  enlaceDePack,
+  type PackCreditos,
+} from '@/lib/pulse/creditos-config'
 
-const FONT      = "var(--font-inter), sans-serif"
-const FONT_BODY = "'DM Sans', sans-serif"
-const BOLD_LINK = 'https://checkout.bold.co/payment/LNK_PGTSIHASWV'
+const FONT = "var(--font-inter), sans-serif"
+const MONO = "var(--font-mono), monospace"
+
+const BLUE   = '#2563EB'
+const BG_0   = '#0B0D0C'
+const BG_1   = '#14120F'
+const BG_2   = '#1B1815'
+const INK    = '#F5F1E9'
+const INK_D  = '#8A8578'
+const LINE    = 'rgba(255,255,255,0.10)'
+
+// Lo que el agente hace gratis vs. lo que se cobra. Sale de CREDITOS_CONFIG para
+// que la página no pueda mostrar un precio distinto al que cobra el backend.
+const GRATIS = [
+  'Responder mensajes de WhatsApp, sin límite',
+  'Follow-up automático día 1, 3 y 7',
+  'Calificar y ordenar el lead en el pipeline',
+  'Conectar tu WhatsApp y entrenar al agente',
+]
+
+const RESULTADOS = [
+  {
+    accion: 'Cita agendada',
+    detalle: 'El lead llega a Test Drive en tu pipeline',
+    creditos: CREDITOS_CONFIG.COSTO.CITA_AGENDADA,
+  },
+  {
+    accion: 'Venta cerrada',
+    detalle: 'El lead llega a Cerrado',
+    creditos: CREDITOS_CONFIG.COSTO.VENTA_CERRADA,
+  },
+]
 
 export default function PulsePricingPage() {
   const [usuarioEmail, setUsuarioEmail] = useState<string | null>(null)
@@ -20,183 +57,174 @@ export default function PulsePricingPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #080f1a; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
-        .fade-up { animation: fadeUp .6s ease forwards; }
-        .check-item { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
-        .check-item:last-child { border-bottom:none; }
-        @keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(16,185,129,0.2)} 50%{box-shadow:0 0 40px rgba(16,185,129,0.4)} }
-        .btn-pagar { transition: all .2s !important; }
-        .btn-pagar:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 32px rgba(16,185,129,0.5) !important; }
-        @media(max-width:700px){ .pricing-grid{grid-template-columns:1fr!important} }
+        body { background: ${BG_0}; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        .fade-up { animation: fadeUp .5s ease forwards; }
+        .pack-card { transition: transform .18s ease, box-shadow .18s ease; }
+        .pack-card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+        @media (prefers-reduced-motion: reduce) {
+          .fade-up { animation: none; }
+          .pack-card:hover { transform: none; }
+        }
+        @media(max-width:860px){ .packs-grid{grid-template-columns:1fr!important} .cobro-split{grid-template-columns:1fr!important} }
       `}</style>
 
-      <div style={{ minHeight:'100vh', background:'#080f1a', color:'#fff', fontFamily:FONT_BODY, position:'relative', overflow:'hidden' }}>
-        <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:0 }}>
-          <div style={{ position:'absolute', top:'-10%', left:'50%', transform:'translateX(-50%)', width:'600px', height:'600px', background:'radial-gradient(circle,rgba(14,165,233,0.07) 0%,transparent 70%)', borderRadius:'50%' }} />
-          <div style={{ position:'absolute', bottom:'10%', right:'-5%', width:'300px', height:'300px', background:'radial-gradient(circle,rgba(16,185,129,0.06) 0%,transparent 70%)', borderRadius:'50%' }} />
-        </div>
+      <div style={{ minHeight: '100vh', background: BG_0, color: INK, fontFamily: FONT }}>
 
-        <header style={{ position:'relative', zIndex:10, padding:'20px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1100px', margin:'0 auto', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-          <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
-            <div style={{ width:'34px', height:'34px', borderRadius:'9px', background:'linear-gradient(135deg,#0ea5e9,#10b981)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>⚡</div>
-            <span style={{ fontSize:'18px', fontWeight:700, fontFamily:FONT, color:'#fff', letterSpacing:'-.3px' }}>Pulse Motor</span>
+        <header style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1080px', margin: '0 auto', borderBottom: `1px solid ${LINE}` }}>
+          <a href="/pulse" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: `linear-gradient(135deg,${BLUE},#1D4ED8)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', color: '#fff' }}>⚡</div>
+            <span style={{ fontSize: '17px', fontWeight: 800, color: INK, letterSpacing: '-.3px' }}>Pulse Motor</span>
           </a>
-          {usuarioEmail && <span style={{ fontSize:'13px', color:'#475569' }}>{usuarioEmail}</span>}
+          {usuarioEmail && <span style={{ fontFamily: MONO, fontSize: '12px', color: INK_D }}>{usuarioEmail}</span>}
         </header>
 
-        <main style={{ position:'relative', zIndex:1, maxWidth:'960px', margin:'0 auto', padding:'60px 24px 80px' }}>
+        <main style={{ maxWidth: '1080px', margin: '0 auto', padding: '56px 24px 80px' }}>
 
-          <div style={{ textAlign:'center', marginBottom:'48px' }} className="fade-up">
-            <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'999px', padding:'5px 16px', fontSize:'12px', fontWeight:600, color:'#6ee7b7', marginBottom:'20px' }}>
-              🎉 14 días gratis ya terminaron — seguí vendiendo
+          {/* Hero */}
+          <div style={{ textAlign: 'center', marginBottom: '44px' }} className="fade-up">
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: '4px', padding: '5px 14px', fontFamily: MONO, fontSize: '11px', fontWeight: 600, color: '#93b4fb', marginBottom: '20px', letterSpacing: '.5px' }}>
+              <span style={{ width: '7px', height: '7px', background: BLUE }} />
+              SIN MENSUALIDAD
             </div>
-            <h1 style={{ fontFamily:FONT, fontSize:'clamp(28px,4vw,48px)', fontWeight:700, lineHeight:1.1, letterSpacing:'-.5px', marginBottom:'14px' }}>
-              Activá tu agente por{' '}
-              <span style={{ background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>$99.000/mes</span>
+            <h1 style={{ fontSize: 'clamp(30px,4.5vw,52px)', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-1px', marginBottom: '16px' }}>
+              Pagás por la cita,<br />no por el <span style={{ color: BLUE }}>mes</span>
             </h1>
-            <p style={{ fontFamily:FONT_BODY, fontSize:'16px', color:'#64748b', maxWidth:'460px', margin:'0 auto', lineHeight:1.6 }}>
-              Sin contratos. Cancelás cuando querás. Seguís usando tu WhatsApp de siempre.
+            <p style={{ fontSize: '16px', color: INK_D, maxWidth: '520px', margin: '0 auto', lineHeight: 1.6 }}>
+              Tu agente conversa gratis, todo lo que haga falta. El saldo se descuenta
+              solo cuando un lead llega a test drive o se cierra la venta.
             </p>
           </div>
 
-          <div className="pricing-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'32px', alignItems:'start' }}>
+          {/* Gratis vs. se cobra */}
+          <div className="cobro-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: LINE, border: `1px solid ${LINE}`, borderRadius: '8px', overflow: 'hidden', marginBottom: '52px' }}>
 
-            {/* Columna izquierda: features */}
-            <div style={{ background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'20px', padding:'32px', animation:'glowPulse 3s ease-in-out infinite' }}>
-              <div style={{ display:'flex', alignItems:'baseline', gap:'6px', marginBottom:'6px' }}>
-                <span style={{ fontFamily:FONT_BODY, fontSize:'42px', fontWeight:800, color:'#fff', lineHeight:1 }}>$99.000</span>
-                <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#475569', fontWeight:500 }}>/mes</span>
-              </div>
-              <p style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#334155', marginBottom:'28px' }}>COP · IVA incluido · Pago mensual</p>
-              <div style={{ marginBottom:'28px' }}>
-                {[
-                  { icon:'⚡', text:'Respuestas automáticas en menos de 30 segundos' },
-                  { icon:'🔁', text:'Follow-up día 1, 3 y 7 sin intervención tuya' },
-                  { icon:'📱', text:'Tu WhatsApp actual, sin SIM nueva' },
-                  { icon:'📅', text:'Agendamiento de test drives automático' },
-                  { icon:'🎯', text:'Agente entrenado con tu estilo de venta' },
-                  { icon:'📊', text:'Panel con pipeline de leads y estadísticas' },
-                  { icon:'🧠', text:'El agente aprende y mejora con el tiempo' },
-                  { icon:'💬', text:'Soporte directo por WhatsApp con el equipo' },
-                ].map(item => (
-                  <div key={item.icon} className="check-item">
-                    <div style={{ width:'28px', height:'28px', borderRadius:'8px', background:'rgba(16,185,129,0.1)', border:'1px solid rgba(16,185,129,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{item.icon}</div>
-                    <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#94a3b8', lineHeight:'1.5' }}>{item.text}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:'12px', padding:'16px' }}>
-                <p style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#6ee7b7', fontWeight:600, marginBottom:'6px' }}>🔒 Sin riesgo</p>
-                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', lineHeight:1.6 }}>Si en los primeros 7 días no ves resultados, te devolvemos el dinero. Sin preguntas.</p>
-              </div>
+            <div style={{ background: BG_1, padding: '28px' }}>
+              <p style={{ fontFamily: MONO, fontSize: '11px', fontWeight: 700, color: INK_D, letterSpacing: '1px', marginBottom: '18px' }}>NO CUESTA NADA</p>
+              {GRATIS.map(t => (
+                <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '9px 0', borderBottom: `1px solid ${LINE}` }}>
+                  <span style={{ fontFamily: MONO, fontSize: '13px', color: BLUE, flexShrink: 0, lineHeight: 1.5 }}>$0</span>
+                  <span style={{ fontSize: '14px', color: INK_D, lineHeight: 1.5 }}>{t}</span>
+                </div>
+              ))}
+              <p style={{ fontSize: '13px', color: INK_D, marginTop: '18px', lineHeight: 1.6 }}>
+                Cobrar por mensaje castiga al agente que conversa más para cerrar mejor.
+                Por eso no lo hacemos.
+              </p>
             </div>
 
-            {/* Columna derecha: checkout */}
-            <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
-
-              {/* Resumen */}
-              <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:'16px', padding:'20px' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontFamily:FONT_BODY, fontSize:'14px', color:'#94a3b8' }}>Pulse Motor — Plan Mensual</span>
-                  <span style={{ fontFamily:FONT_BODY, fontSize:'14px', fontWeight:600 }}>$99.000</span>
-                </div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', paddingBottom:'12px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#475569' }}>IVA (19%)</span>
-                  <span style={{ fontFamily:FONT_BODY, fontSize:'13px', color:'#475569' }}>incluido</span>
-                </div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontFamily:FONT, fontSize:'15px', fontWeight:700 }}>Total hoy</span>
-                  <span style={{ fontFamily:FONT_BODY, fontSize:'20px', fontWeight:800, color:'#10b981' }}>$99.000 COP</span>
-                </div>
-              </div>
-
-              {/* Botón de pago — link directo Bold */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
-                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', textAlign:'center' }}>
-                  Pagá con tarjeta, PSE o Nequi
-                </p>
-                <a
-                  href={BOLD_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-pagar"
-                  style={{
-                    display:'flex', alignItems:'center', justifyContent:'center', gap:'10px',
-                    padding:'16px 24px', borderRadius:'12px',
-                    background:'linear-gradient(135deg,#10b981,#059669)',
-                    color:'#fff', fontSize:'16px', fontWeight:700,
-                    textDecoration:'none', fontFamily:FONT,
-                    boxShadow:'0 4px 20px rgba(16,185,129,0.4)',
-                    letterSpacing:'-.2px',
-                  }}
-                >
-                  {/* Logo Bold inline */}
-                  <svg height="20" viewBox="0 0 52 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0 0h8.4c4.6 0 7.2 2.1 7.2 5.5 0 2-.9 3.4-2.4 4.2 2 .7 3.2 2.3 3.2 4.5C16.4 17.8 13.6 20 9 20H0V0zm8 8.3c1.8 0 2.8-.8 2.8-2.3S9.8 3.7 8 3.7H4.4v4.6H8zm.4 8c2 0 3.1-.9 3.1-2.5s-1.1-2.5-3.1-2.5H4.4v5H8.4z" fill="white"/>
-                    <path d="M19 0h4.4v20H19V0z" fill="white"/>
-                    <path d="M26.2 10C26.2 4.5 30 0 36 0s9.8 4.5 9.8 10-3.8 10-9.8 10-9.8-4.5-9.8-10zm15.1 0c0-3.4-2.1-5.9-5.3-5.9S30.7 6.6 30.7 10s2.1 5.9 5.3 5.9 5.3-2.5 5.3-5.9z" fill="white"/>
-                    <path d="M48 0h4.4v16.3H62V20H48V0z" fill="white"/>
-                  </svg>
-                  Pagar con Bold →
-                </a>
-
-                {/* Métodos de pago */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', flexWrap:'wrap' }}>
-                  {['VISA', 'Mastercard', 'PSE', 'Nequi'].map(m => (
-                    <div key={m} style={{ padding:'4px 10px', borderRadius:'6px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', fontFamily:FONT_BODY, fontSize:'11px', color:'#475569', fontWeight:600 }}>{m}</div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Garantías */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-                {[
-                  { icon:'🔐', text:'Pago 100% seguro procesado por Bold' },
-                  { icon:'📅', text:'Cancelás en cualquier momento desde tu panel' },
-                  { icon:'↩️', text:'Garantía de devolución los primeros 7 días' },
-                ].map(item => (
-                  <div key={item.icon} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                    <span style={{ fontSize:'14px' }}>{item.icon}</span>
-                    <span style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569' }}>{item.text}</span>
+            <div style={{ background: BG_2, padding: '28px' }}>
+              <p style={{ fontFamily: MONO, fontSize: '11px', fontWeight: 700, color: '#93b4fb', letterSpacing: '1px', marginBottom: '18px' }}>SE COBRA AL RESULTADO</p>
+              {RESULTADOS.map(r => (
+                <div key={r.accion} style={{ padding: '12px 0', borderBottom: `1px solid ${LINE}` }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: INK }}>{r.accion}</span>
+                    <span style={{ fontFamily: MONO, fontSize: '15px', fontWeight: 700, color: BLUE, whiteSpace: 'nowrap' }}>
+                      {formatearCop(creditosACop(r.creditos))}
+                    </span>
                   </div>
-                ))}
-              </div>
-
-              {/* FAQ */}
-              <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:'12px', padding:'16px' }}>
-                <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:700, color:'#94a3b8', marginBottom:'10px', textTransform:'uppercase', letterSpacing:'1px' }}>Preguntas frecuentes</p>
-                {[
-                  { q:'¿Puedo cancelar cuando quiero?', a:'Sí. Desde tu panel, en cualquier momento, sin penalidades.' },
-                  { q:'¿Necesito instalar algo?',       a:'No. Solo escanear un QR con tu WhatsApp actual.' },
-                  { q:'¿El cliente sabe que es IA?',    a:'No necesariamente. El agente habla como vos, con tu estilo.' },
-                ].map((item, i) => (
-                  <div key={i} style={{ marginBottom:i<2?'10px':0 }}>
-                    <p style={{ fontFamily:FONT_BODY, fontSize:'12px', fontWeight:600, color:'#e2e8f0', marginBottom:'2px' }}>{item.q}</p>
-                    <p style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', lineHeight:1.5 }}>{item.a}</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
+                    <span style={{ fontSize: '13px', color: INK_D }}>{r.detalle}</span>
+                    <span style={{ fontFamily: MONO, fontSize: '11px', color: INK_D, whiteSpace: 'nowrap' }}>{r.creditos} créditos</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+              <p style={{ fontSize: '13px', color: INK_D, marginTop: '18px', lineHeight: 1.6 }}>
+                Cada resultado se cobra una sola vez por lead. Mover la tarjeta de vuelta
+                y traerla otra vez no vuelve a descontar.
+              </p>
             </div>
           </div>
 
-          {/* Social proof */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'32px', marginTop:'48px', flexWrap:'wrap' }}>
-            {[
-              { val:'< 30 seg', label:'Tiempo de respuesta' },
-              { val:'+500',     label:'Leads atendidos' },
-              { val:'89%',      label:'Tasa de respuesta' },
-            ].map(s => (
-              <div key={s.label} style={{ textAlign:'center' }}>
-                <div style={{ fontFamily:FONT, fontSize:'24px', fontWeight:800, background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>{s.val}</div>
-                <div style={{ fontFamily:FONT_BODY, fontSize:'12px', color:'#475569', marginTop:'2px' }}>{s.label}</div>
-              </div>
-            ))}
+          {/* Packs */}
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <h2 style={{ fontSize: 'clamp(22px,3vw,32px)', fontWeight: 800, letterSpacing: '-.5px', marginBottom: '10px' }}>
+              Cargá saldo cuando lo necesites
+            </h2>
+            <p style={{ fontSize: '15px', color: INK_D }}>
+              El saldo no vence. 1 crédito = {formatearCop(CREDITOS_CONFIG.COP_POR_CREDITO)}.
+            </p>
+          </div>
+
+          <div className="packs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px', marginBottom: '48px' }}>
+            {PACKS.map(pack => <PackCard key={pack.id} pack={pack} />)}
+          </div>
+
+          {/* Nota de saldo actual / bienvenida */}
+          <div style={{ background: BG_1, border: `1px solid ${LINE}`, borderRadius: '8px', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <span style={{ width: '8px', height: '8px', background: BLUE, flexShrink: 0 }} />
+            <span style={{ fontSize: '14px', color: INK_D, lineHeight: 1.6 }}>
+              Al registrarte arrancás con <strong style={{ color: INK }}>{CREDITOS_CONFIG.BIENVENIDA} créditos</strong> —
+              alcanzan para {Math.floor(CREDITOS_CONFIG.BIENVENIDA / CREDITOS_CONFIG.COSTO.CITA_AGENDADA)} citas agendadas
+              sin poner un peso. Si el saldo llega a cero, el agente se pausa hasta que cargues.
+            </span>
           </div>
         </main>
       </div>
     </>
+  )
+}
+
+function PackCard({ pack }: { pack: PackCreditos }) {
+  const citas = Math.floor(pack.creditos / CREDITOS_CONFIG.COSTO.CITA_AGENDADA)
+  const disponible = Boolean(pack.bold_link)
+
+  return (
+    <div
+      className="pack-card"
+      style={{
+        background: pack.destacado ? BG_2 : BG_1,
+        border: `1px solid ${pack.destacado ? 'rgba(37,99,235,0.45)' : LINE}`,
+        borderRadius: '8px',
+        padding: '26px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        opacity: disponible ? 1 : 0.62,
+      }}
+    >
+      {pack.etiqueta && (
+        <span style={{ fontFamily: MONO, fontSize: '10px', fontWeight: 700, letterSpacing: '1px', color: pack.destacado ? '#93b4fb' : INK_D }}>
+          {pack.etiqueta.toUpperCase()}
+        </span>
+      )}
+
+      <div>
+        <div style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-1px', lineHeight: 1 }}>
+          {pack.creditos.toLocaleString('es-CO')}
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: '12px', color: INK_D, marginTop: '4px' }}>créditos</div>
+      </div>
+
+      <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: '14px' }}>
+        <div style={{ fontSize: '22px', fontWeight: 800, color: INK }}>{formatearCop(pack.precio_cop)}</div>
+        <div style={{ fontSize: '13px', color: INK_D, marginTop: '4px' }}>
+          ≈ {citas} citas agendadas
+        </div>
+      </div>
+
+      <a
+        href={enlaceDePack(pack)}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block', textAlign: 'center', padding: '12px',
+          borderRadius: '6px', marginTop: 'auto',
+          background: pack.destacado ? BLUE : 'transparent',
+          border: pack.destacado ? `1px solid ${BLUE}` : `1px solid ${LINE}`,
+          color: pack.destacado ? '#fff' : INK,
+          fontSize: '14px', fontWeight: 700, textDecoration: 'none',
+        }}
+      >
+        {disponible ? 'Cargar saldo →' : 'Coordinar por WhatsApp →'}
+      </a>
+
+      {!disponible && (
+        <div style={{ fontSize: '11px', color: INK_D, textAlign: 'center', lineHeight: 1.5 }}>
+          Te pasamos el link de pago por este monto
+        </div>
+      )}
+    </div>
   )
 }

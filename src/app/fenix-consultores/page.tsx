@@ -12,6 +12,7 @@ import { FenixScrollPanel } from '@/components/fenix/FenixScrollPanel'
 import { FenixDashboard } from '@/components/fenix/FenixDashboard'
 import { FenixHeroSlider } from '@/components/fenix/FenixHeroSlider'
 import { FenixLogo } from '@/components/fenix/FenixLogo'
+import { FenixFocoAuto } from '@/components/fenix/FenixFocoAuto'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -73,32 +74,21 @@ const CAPACIDADES = [
 ]
 
 const IMPACTOS = [
-  { t: 'Liquidez', d: 'El efectivo que financia su operación se queda en manos de terceros.' },
-  { t: 'Rentabilidad', d: 'La utilidad ya causada nunca llega al estado de resultados.' },
-  { t: 'Capacidad de inversión', d: 'Los proyectos se aplazan por falta de caja disponible.' },
-  { t: 'Valor patrimonial', d: 'La cartera envejecida deteriora el valor real de la compañía.' },
+  { t: 'Liquidez', icono: 'billetera', d: 'El efectivo que financia su operación se queda en manos de terceros.' },
+  { t: 'Rentabilidad', icono: 'tendencia', d: 'La utilidad ya causada nunca llega al estado de resultados.' },
+  { t: 'Capacidad de inversión', icono: 'peso', d: 'Los proyectos se aplazan por falta de caja disponible.' },
+  { t: 'Valor patrimonial', icono: 'escudo', d: 'La cartera envejecida deteriora el valor real de la compañía.' },
 ]
 
-const VIDEOS = [
-  {
-    id: 'YdQoqCQNUFY',
-    eyebrow: 'Cómo funciona',
-    titulo: 'Así se ve la recuperación',
-    destacado: 'en tiempo real',
-    desc: 'Cada gestión queda registrada, medida y disponible para la dirección financiera. Vea cómo se traduce en trazabilidad, indicadores y decisiones más rápidas.',
-    cta: 'Quiero ver mi cartera así',
-    label: 'Ver: así se ve la recuperación en tiempo real',
-  },
-  {
-    id: 'nulz93G54W4',
-    eyebrow: 'El costo de esperar',
-    titulo: 'Por qué su cartera',
-    destacado: 'pierde valor cada día',
-    desc: 'El tiempo es la variable que más destruye el valor de una obligación. Vea cómo opera ese deterioro y qué se puede recuperar interviniendo a tiempo.',
-    cta: 'Solicitar diagnóstico',
-    label: 'Ver: por qué su cartera pierde valor cada día',
-  },
-]
+const VIDEO = {
+  id: 'nulz93G54W4',
+  eyebrow: 'El costo de esperar',
+  titulo: 'Por qué su cartera',
+  destacado: 'pierde valor cada día',
+  desc: 'El tiempo es la variable que más destruye el valor de una obligación. Vea cómo opera ese deterioro y qué se puede recuperar interviniendo a tiempo.',
+  cta: 'Solicitar diagnóstico',
+  label: 'Ver: por qué su cartera pierde valor cada día',
+}
 
 const PILARES_IA = [
   {
@@ -206,6 +196,24 @@ function Icono({ tipo }: { tipo: string }) {
     <svg viewBox="0 0 24 24" width="22" height="22" {...p}>
       <rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M3 9h18" />
       <path d="M7.5 16v-3M12 16v-5M16.5 16v-2" />
+    </svg>
+  )
+  if (tipo === 'billetera') return (
+    <svg viewBox="0 0 24 24" width="22" height="22" {...p}>
+      <path d="M3 7.5h18v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" />
+      <path d="M3 7.5 6.4 4h11.2L21 7.5" />
+      <path d="M12 11v6M9.6 12.4h4.8M9.6 15.6h4.8" />
+    </svg>
+  )
+  if (tipo === 'tendencia') return (
+    <svg viewBox="0 0 24 24" width="22" height="22" {...p}>
+      <path d="M3 19h18" /><path d="M4 15.5 9.5 10l3.5 3.2L20 6" /><path d="M15.4 6H20v4.6" />
+    </svg>
+  )
+  if (tipo === 'peso') return (
+    <svg viewBox="0 0 24 24" width="22" height="22" {...p}>
+      <path d="M12 3v18" />
+      <path d="M16.5 7.2c-.6-1.5-2.3-2.4-4.5-2.4-2.6 0-4.4 1.2-4.4 3.1 0 1.9 1.6 2.8 4.4 3.4 3 .7 4.8 1.6 4.8 3.7 0 2.1-2 3.4-4.8 3.4-2.5 0-4.3-1-4.9-2.7" />
     </svg>
   )
   if (tipo === 'flujo') return (
@@ -334,14 +342,18 @@ export default function FenixConsultoresPage() {
           </FenixReveal>
 
           <FenixReveal delay={80}>
-            <div className="fx-grid-4">
+            <FenixFocoAuto className="fx-grid-4" ciclo={2600}>
               {IMPACTOS.map(i => (
-                <article key={i.t} className="fx-card fx-card-lift fx-card-bottom">
-                  <h3 className="fx-card-t">{i.t}</h3>
-                  <p className="fx-card-d">{i.d}</p>
+                <article key={i.t} className="fx-card fx-card-lift fx-card-impacto">
+                  <span className="fx-icon"><Icono tipo={i.icono} /></span>
+                  <div className="fx-card-pie">
+                    <h3 className="fx-card-t">{i.t}</h3>
+                    <p className="fx-card-d">{i.d}</p>
+                  </div>
+                  <span className="fx-foco-barra" aria-hidden="true" />
                 </article>
               ))}
-            </div>
+            </FenixFocoAuto>
           </FenixReveal>
         </div>
       </section>
@@ -353,38 +365,28 @@ export default function FenixConsultoresPage() {
             <header className="fx-head fx-head-center">
               <span className="fx-label">Véalo usted mismo</span>
               <h2 className="fx-h2">
-                Dos minutos para entender <span className="fx-accent">qué cambia con FÉNIX</span>
+                Un minuto para entender <span className="fx-accent">qué le cuesta esperar</span>
               </h2>
-              <p className="fx-body fx-head-desc">
-                Primero cómo opera el modelo. Después, qué está costando no aplicarlo.
-              </p>
             </header>
           </FenixReveal>
 
-          <div className="fx-videos">
-            {VIDEOS.map((v, i) => (
-              <FenixReveal key={v.id} delay={i * 90}>
-                <article className={`fx-video-card${i === 0 ? ' fx-video-card-alt' : ''}`}>
-                  <div className="fx-video-copy">
-                    <div className="fx-video-meta">
-                      <span className="fx-step">{String(i + 1).padStart(2, '0')}</span>
-                      <span className="fx-label fx-label-inline">{v.eyebrow}</span>
-                    </div>
-                    <h3 className="fx-h3">
-                      {v.titulo} <span className="fx-accent">{v.destacado}</span>
-                    </h3>
-                    <p className="fx-body fx-video-desc">{v.desc}</p>
-                    <a href="#contacto" className={`fx-btn ${i === 0 ? 'fx-btn-primary' : 'fx-btn-outline'}`}>
-                      {v.cta} <Flecha />
-                    </a>
-                  </div>
-                  <div className="fx-video-media">
-                    <FenixVideoShort videoId={v.id} label={v.label} />
-                  </div>
-                </article>
-              </FenixReveal>
-            ))}
-          </div>
+          <FenixReveal delay={80}>
+            <article className="fx-video-card fx-video-card-alt">
+              <div className="fx-video-copy">
+                <span className="fx-label">{VIDEO.eyebrow}</span>
+                <h3 className="fx-h3">
+                  {VIDEO.titulo} <span className="fx-accent">{VIDEO.destacado}</span>
+                </h3>
+                <p className="fx-body fx-video-desc">{VIDEO.desc}</p>
+                <a href="#contacto" className="fx-btn fx-btn-primary">
+                  {VIDEO.cta} <Flecha />
+                </a>
+              </div>
+              <div className="fx-video-media">
+                <FenixVideoShort videoId={VIDEO.id} label={VIDEO.label} />
+              </div>
+            </article>
+          </FenixReveal>
         </div>
       </section>
 
@@ -405,20 +407,21 @@ export default function FenixConsultoresPage() {
           </FenixReveal>
 
           <FenixReveal delay={80}>
-            <div className="fx-grid-4">
+            <FenixFocoAuto className="fx-grid-4" ciclo={3400}>
               {PILARES_IA.map(p => (
-                <article key={p.titulo} className="fx-card fx-card-lift">
+                <article key={p.titulo} className="fx-card fx-card-lift fx-card-pilar">
                   <span className="fx-icon"><Icono tipo={p.icono} /></span>
                   <h3 className="fx-card-t">{p.titulo}</h3>
                   <p className="fx-card-d">{p.desc}</p>
-                  <ul className="fx-list">
+                  <ul className="fx-list fx-list-pie">
                     {p.bullets.map(b => (
                       <li key={b}><span className="fx-tick"><Check /></span>{b}</li>
                     ))}
                   </ul>
+                  <span className="fx-foco-barra" aria-hidden="true" />
                 </article>
               ))}
-            </div>
+            </FenixFocoAuto>
           </FenixReveal>
         </div>
       </section>
@@ -727,7 +730,6 @@ export default function FenixConsultoresPage() {
           color: var(--accent-text); margin-bottom: 18px;
         }
         .fx-label-dark { color: var(--accent); }
-        .fx-label-inline { margin-bottom: 0; }
 
         /* Todos los encabezados de ancho completo van centrados: los que
            quedaban a la izquierda rompian el eje con las rejillas de tarjetas
@@ -860,23 +862,52 @@ export default function FenixConsultoresPage() {
             rgba(245,130,31,0) 100%);
           opacity: 0; transition: opacity .45s ease-out;
         }
-        .fx-card-lift:hover::before { opacity: 1; }
+        /* .fx-foco es el mismo estado, puesto por el recorrido automatico. */
+        .fx-card-lift:hover::before,
+        .fx-card-lift.fx-foco::before { opacity: 1; }
         .fx-card-lift > * { position: relative; z-index: 1; }
-        .fx-card-lift:hover {
-          transform: translateY(-16px);
+        .fx-card-lift:hover,
+        .fx-card-lift.fx-foco {
+          transform: translateY(-18px);
           border-color: var(--accent);
-          box-shadow: 0 30px 60px rgba(245,130,31,.32);
+          box-shadow: 0 34px 68px rgba(245,130,31,.34);
         }
         /* Sobre el naranja el texto atenuado pierde contraste: se satura. */
         .fx-card-lift:hover .fx-card-d,
-        .fx-card-lift:hover .fx-list li { color: rgba(20,16,12,.92); }
-        .fx-card-lift:hover .fx-tick { color: var(--ink); }
-        .fx-card-lift:hover .fx-icon {
+        .fx-card-lift:hover .fx-list li,
+        .fx-card-lift.fx-foco .fx-card-d,
+        .fx-card-lift.fx-foco .fx-list li { color: rgba(20,16,12,.92); }
+        .fx-card-lift:hover .fx-tick,
+        .fx-card-lift.fx-foco .fx-tick { color: var(--ink); }
+        .fx-card-lift:hover .fx-icon,
+        .fx-card-lift.fx-foco .fx-icon {
           background: #fff; border-color: #fff; color: var(--accent-text);
         }
-        /* Sin icono el contenido baja al pie: el degradado sube por el hueco
-           libre y el texto queda donde el color ya tiene cuerpo. */
-        .fx-card-bottom { justify-content: flex-end; }
+
+        /* Barra de relevo: hace legible cuando la tarjeta cede el turno. */
+        .fx-foco-barra {
+          position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+          background: rgba(20,16,12,.07);
+          transform: scaleX(0); transform-origin: left;
+        }
+        .fx-card-lift.fx-foco .fx-foco-barra { background: rgba(20,16,12,.28); }
+        .fx-card-lift.fx-foco .fx-foco-barra.fx-foco-corre {
+          animation: fx-relevo var(--fx-ciclo, 2600ms) linear forwards;
+        }
+        @keyframes fx-relevo { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+        /* Tamanos por grupo: los beneficios siguen compactos. */
+        .fx-card-impacto { min-height: 420px; padding: 48px 40px; }
+        .fx-card-impacto .fx-card-t { font-size: 27px; margin-bottom: 14px; }
+        .fx-card-impacto .fx-card-d { font-size: 16.5px; line-height: 1.65; }
+        .fx-card-pie { margin-top: auto; padding-top: 32px; }
+
+        .fx-card-pilar { min-height: 470px; padding: 44px 38px; }
+        .fx-card-pilar .fx-card-t { font-size: 24px; margin-top: 26px; }
+        .fx-card-pilar .fx-card-d { font-size: 16px; }
+        /* Con dos clases gana a .fx-list, que se define mas abajo con su
+           propio margen y si no lo anularia. */
+        .fx-card-pilar .fx-list { margin-top: auto; padding-top: 26px; }
         .fx-card-t { font-size: 21px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 12px; }
         .fx-card-d { font-size: 15.5px; line-height: 1.7; color: var(--ink-2); }
         .fx-card-dark { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.1); box-shadow: none; }
@@ -1019,14 +1050,22 @@ export default function FenixConsultoresPage() {
           .fx-hero-proof { gap: 22px; }
           .fx-proof { max-width: none; flex: 1 1 100%; }
           .fx-footer-grid { grid-template-columns: 1fr; gap: 32px; }
-          /* Apiladas a una columna, 300px de alto minimo son un hueco vacio. */
+          /* Apiladas a una columna el alto minimo solo deja hueco vacio, y el
+             contenido anclado al pie ya no tiene contra que anclarse. */
           .fx-card { padding: 28px; }
-          .fx-card-lift { min-height: 0; }
-          .fx-card-bottom { justify-content: flex-start; }
+          .fx-card-lift, .fx-card-impacto, .fx-card-pilar { min-height: 0; }
+          .fx-card-impacto, .fx-card-pilar { padding: 30px 26px; }
+          .fx-card-pie { margin-top: 26px; padding-top: 0; }
+          .fx-card-pilar .fx-list { margin-top: 22px; padding-top: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .fx-btn:hover, .fx-card-lift:hover, .fx-video-card:hover,
-          .fx-linea:hover, .fx-cap:hover { transform: none; }
+          .fx-btn:hover, .fx-card-lift:hover, .fx-card-lift.fx-foco,
+          .fx-video-card:hover, .fx-linea:hover, .fx-cap:hover { transform: none; }
+          /* El recorrido sigue avanzando: se quita el movimiento, no el cambio
+             de fondo, que es el que comunica cual tarjeta esta activa. */
+          .fx-card-lift.fx-foco .fx-foco-barra.fx-foco-corre {
+            animation: none; transform: scaleX(1);
+          }
           .fx-dot { animation: none; }
           /* Se conserva el cambio de fondo (no es movimiento) y se quita el
              desplazamiento de entrada de los chips. */

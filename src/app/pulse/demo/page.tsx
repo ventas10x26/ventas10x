@@ -9,7 +9,7 @@
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   PERIODOS, SEDES_OPCIONES, calcularDemo,
   calcularKpis, calcularAsesores, serieDiaria, calcularOrigen,
@@ -35,11 +35,38 @@ export default function DemoPage() {
   // previo, el panel se vería un instante antes de pedir los datos. Quien ya se registró
   // pasa el gate en el primer efecto, sin volver a llenar nada.
   const [desbloqueado, setDesbloqueado] = useState(false)
+
+  // Vista "solo panel": la que se abre en pestaña nueva. Deja el panel sin el encabezado
+  // de marketing, para poder proyectarlo en una reunión sin el titular de venta arriba.
+  // Se lee de window y no con useSearchParams para no tener que envolver la página en un
+  // Suspense solo por esto.
+  const [soloPanel, setSoloPanel] = useState(false)
+  const marcoRef = useRef<HTMLDivElement | null>(null)
+  const [enPantallaCompleta, setEnPantallaCompleta] = useState(false)
+
   useEffect(() => {
     try {
       if (window.localStorage.getItem(CLAVE_DESBLOQUEO) === '1') setDesbloqueado(true)
     } catch { /* modo incógnito o storage bloqueado: se pide el registro igual */ }
+    try {
+      setSoloPanel(new URLSearchParams(window.location.search).get('vista') === 'panel')
+    } catch { /* si no se puede leer la query, se muestra la página completa */ }
   }, [])
+
+  // El estado de pantalla completa lo manda el navegador, no el botón: se puede salir con
+  // Escape sin pasar por nuestro handler, y si no escuchamos el evento el rótulo miente.
+  useEffect(() => {
+    const alCambiar = () => setEnPantallaCompleta(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', alCambiar)
+    return () => document.removeEventListener('fullscreenchange', alCambiar)
+  }, [])
+
+  const alternarPantallaCompleta = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else if (marcoRef.current) await marcoRef.current.requestFullscreen()
+    } catch { /* el navegador puede negarlo (permiso o iframe): no rompemos la página */ }
+  }
 
   const [seccion, setSeccion] = useState<SeccionId>('resumen')
 
@@ -59,6 +86,12 @@ export default function DemoPage() {
         .pm-demo-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(37,99,235,0.32); }
         .pm-demo-nav { transition: background .15s ease, color .15s ease; }
         .pm-demo-nav:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
+        .pm-demo-accion { transition: border-color .15s ease, color .15s ease; }
+        .pm-demo-accion:hover { border-color: #2563EB !important; color: #2563EB !important; }
+        /* En pantalla completa el marco ocupa todo: sin el scroll propio, las secciones
+           largas quedarían cortadas contra el borde de la pantalla. */
+        .pm-demo-app:fullscreen { border: none; border-radius: 0; height: 100%; overflow: auto; }
+        .pm-demo-app:fullscreen .pm-demo-side { height: 100%; }
         @media (prefers-reduced-motion: reduce) {
           .pm-demo-chip, .pm-demo-barra, .pm-demo-cta, .pm-demo-nav { transition: none; }
           .pm-demo-cta:hover { transform: none; }
@@ -96,15 +129,19 @@ export default function DemoPage() {
 
         {/* Encabezado + aviso de datos simulados. El aviso va arriba y no al pie: quien abre
             esto tiene que saber desde el primer segundo que no está viendo un cliente real. */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
-          Demo · datos simulados
-        </div>
-        <h1 style={{ fontFamily: FONT, fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.06, margin: '0 0 10px', color: INK }}>
-          Así se ve <span style={{ color: BLUE }}>tu operación</span> cuando está toda junta
-        </h1>
-        <p style={{ fontSize: '15px', color: DIM, lineHeight: 1.6, margin: '0 0 14px', maxWidth: '70ch' }}>
-          El mismo embudo de seis etapas que corre en producción, más las cuatro líneas de integralidad que casi nunca se miden juntas. Filtrá por sede y por periodo para ver cómo se mueve.
-        </p>
+        {!soloPanel && (
+          <>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
+              Demo · datos simulados
+            </div>
+            <h1 style={{ fontFamily: FONT, fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.06, margin: '0 0 10px', color: INK }}>
+              Así se ve <span style={{ color: BLUE }}>tu operación</span> cuando está toda junta
+            </h1>
+            <p style={{ fontSize: '15px', color: DIM, lineHeight: 1.6, margin: '0 0 14px', maxWidth: '70ch' }}>
+              El mismo embudo de seis etapas que corre en producción, más las cuatro líneas de integralidad que casi nunca se miden juntas. Filtrá por sede y por periodo para ver cómo se mueve.
+            </p>
+          </>
+        )}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px 14px', marginBottom: '24px', maxWidth: '76ch' }}>
           <span style={{ fontSize: '13px', lineHeight: 1.5 }} aria-hidden="true">⚠️</span>
           <span style={{ fontSize: '12.5px', color: '#78350f', lineHeight: 1.55 }}>
@@ -128,7 +165,7 @@ export default function DemoPage() {
 
         {/* Marco de aplicación: barra lateral + contenido. La idea es que se lea como el
             producto abierto, no como una lámina de marketing con gráficos. */}
-        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#fff' }}>
+        <div ref={marcoRef} className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: enPantallaCompleta ? '0' : '16px', overflow: 'hidden', background: '#fff' }}>
 
           {/* Navegación del workspace */}
           <aside className="pm-demo-side" style={{ background: '#0f1729', padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -180,11 +217,42 @@ export default function DemoPage() {
                 <div style={{ fontFamily: FONT, fontSize: '17px', fontWeight: 800, color: INK, letterSpacing: '-0.02em' }}>
                   {SECCIONES.find(s => s.id === seccion)?.label}
                 </div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '999px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)' }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: BLUE, flexShrink: 0 }} />
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: BLUE }}>
-                    {formatearNumero(d.totales.oportunidades)} oportunidades
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '999px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)' }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: BLUE, flexShrink: 0 }} />
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: BLUE }}>
+                      {formatearNumero(d.totales.oportunidades)} oportunidades
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={alternarPantallaCompleta}
+                    className="pm-demo-accion"
+                    title={enPantallaCompleta ? 'Salir de pantalla completa' : 'Ver el panel en pantalla completa'}
+                    style={accionBarra}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      {enPantallaCompleta
+                        ? <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+                        : <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />}
+                    </svg>
+                    {enPantallaCompleta ? 'Salir' : 'Pantalla completa'}
+                  </button>
+
+                  {/* Abre el panel sin el encabezado de venta, para proyectarlo o compartirlo. */}
+                  <a
+                    href="/pulse/demo?vista=panel"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pm-demo-accion"
+                    title="Abrir el panel solo, en una pestaña nueva"
+                    style={{ ...accionBarra, textDecoration: 'none' }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M15 3h6v6M10 14 21 3M18 13v8H3V6h8" />
+                    </svg>
+                    Abrir en pestaña
+                  </a>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
@@ -361,7 +429,7 @@ export default function DemoPage() {
         </div>{/* fin del marco de aplicación */}
 
         {/* Cierre */}
-        <div style={{ marginTop: '28px', background: '#fff', border: `1px solid ${LINE}`, borderRadius: '16px', padding: '26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: soloPanel ? 'none' : 'flex', marginTop: '28px', background: '#fff', border: `1px solid ${LINE}`, borderRadius: '16px', padding: '26px', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ maxWidth: '62ch' }}>
             <div style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: INK, marginBottom: '6px' }}>
               Este panel sale de tus propias planillas
@@ -383,6 +451,13 @@ export default function DemoPage() {
 
 // Secciones del workspace. Nombres genéricos del negocio automotor — nada que remita a
 // un cliente, a una marca ni al nombre interno de un módulo de otro producto.
+const accionBarra: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: '6px',
+  padding: '5px 11px', borderRadius: '8px',
+  border: `1px solid ${LINE}`, background: '#fff', color: DIM,
+  fontSize: '11.5px', fontWeight: 700, fontFamily: FONT_BODY, cursor: 'pointer',
+}
+
 type SeccionId = 'resumen' | 'funnel' | 'asesores' | 'integralidad' | 'vitrinas'
 
 const SECCIONES: { id: SeccionId; label: string; icono: string }[] = [

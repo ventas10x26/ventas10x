@@ -3,6 +3,13 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useCreditos } from '@/hooks/useCreditos'
+import {
+  ETAPA_A_ACCION,
+  CREDITOS_CONFIG,
+  creditosACop,
+  formatearCop,
+} from '@/lib/pulse/creditos-config'
 
 export type PulseLead = {
   id: string
@@ -77,6 +84,30 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<PulseLead | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const { consumir } = useCreditos()
+
+  // Cobro por resultado: mover un lead a "Test Drive" o "Cerrado" es el momento
+  // en que el trabajo del agente vale plata, así que es el momento en que se
+  // descuenta. El endpoint se encarga de no cobrar dos veces el mismo lead.
+  //
+  // Nunca bloquea el cambio de etapa: si no hay saldo, el lead igual se mueve y
+  // solo se avisa. El pipeline es el registro comercial del concesionario — que
+  // un tema de facturación le corrompa el dato sería mucho peor que no cobrar.
+  const cobrarResultado = useCallback(async (leadId: string, estado: string) => {
+    const accion = ETAPA_A_ACCION[estado]
+    if (!accion) return
+
+    const res = await consumir(accion, { lead_id: leadId })
+    if (res.ok && res.costo && !res.ya_cobrado) {
+      const etiqueta = accion === 'CITA_AGENDADA' ? 'Cita agendada' : 'Venta cerrada'
+      setAviso(`${etiqueta} · se descontaron ${res.costo} créditos (${formatearCop(creditosACop(res.costo))})`)
+      setTimeout(() => setAviso(null), 4000)
+    } else if (res.error === 'saldo_insuficiente' || res.error === 'sin_creditos') {
+      setAviso(`Sin saldo para cobrar este resultado — el lead se movió igual. Cargá créditos desde ${formatearCop(creditosACop(CREDITOS_CONFIG.COSTO.CITA_AGENDADA))} por cita.`)
+      setTimeout(() => setAviso(null), 6000)
+    }
+  }, [consumir])
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     setDraggingId(leadId)
@@ -104,6 +135,7 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     try {
       await updateLeadAPI(draggingId, updates)
       onLeadUpdated?.()
+      void cobrarResultado(draggingId, estadoKey)
     } catch (err) {
       setLeads(prev)
       setError(err instanceof Error ? err.message : 'No se pudo mover el lead.')
@@ -123,12 +155,13 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
     try {
       await updateLeadAPI(leadDetalle.id, updates)
       onLeadUpdated?.()
+      void cobrarResultado(leadDetalle.id, estado)
     } catch {
       setLeads(prev)
       setError('No se pudo cambiar el estado')
       setTimeout(() => setError(null), 3500)
     }
-  }, [leadDetalle, leads, onLeadUpdated])
+  }, [leadDetalle, leads, onLeadUpdated, cobrarResultado])
 
   const handleLeadEditado = useCallback((leadActualizado: PulseLead) => {
     setLeads(ls => ls.map(l => l.id === leadActualizado.id ? leadActualizado : l))
@@ -175,6 +208,13 @@ export function PulsePipelineKanban({ initialLeads, onLeadUpdated }: Props) {
       {error && (
         <div style={{ marginBottom: '12px', padding: '10px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', fontSize: '13px', color: '#fca5a5' }}>
           ⚠️ {error}
+        </div>
+      )}
+
+      {aviso && (
+        <div style={{ marginBottom: '12px', padding: '10px 14px', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)', borderRadius: '8px', fontSize: '13px', color: '#93b4fb', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '8px', height: '8px', background: '#2563EB', flexShrink: 0 }} />
+          {aviso}
         </div>
       )}
 

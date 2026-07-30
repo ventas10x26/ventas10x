@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { CREDITOS_CONFIG, creditosACop, formatearCop } from '@/lib/pulse/creditos-config'
 
 // Íconos: nunca robot/chip/cerebro (regla dura del skill pulsemotor-design) — "Mi agente" usa
 // el bullet de chat (WhatsApp es el canal real del agente), no un ícono de IA genérico.
@@ -74,8 +75,8 @@ function CreditosPill() {
 
   const { saldo, saldo_total } = creditos
   const pct      = Math.min(100, Math.round((saldo / Math.max(saldo_total, 500)) * 100))
-  const critico  = saldo <= 30
-  const bajo     = saldo <= 100 && !critico
+  const critico  = saldo <= CREDITOS_CONFIG.ALERTA_CRITICO
+  const bajo     = saldo <= CREDITOS_CONFIG.ALERTA_BAJO && !critico
 
   // Sistema monocromático (pivote 2026-07-25, ver skill pulsemotor-design): azul para saldo
   // saludable y para la alerta temprana (mismo acento, la urgencia se marca con el tinte de
@@ -150,15 +151,17 @@ function PaywallModal() {
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(11,13,12,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div style={{ background: 'var(--bg-1)', border: '1px solid rgba(229,72,77,0.35)', borderRadius: '8px', padding: '40px', width: '100%', maxWidth: '460px', textAlign: 'center', boxShadow: '0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3)' }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(229,72,77,0.12)', border: '2px solid var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', margin: '0 auto 20px' }}>●</div>
-        <h2 style={{ fontFamily: F_DISPLAY, fontSize: '22px', fontWeight: 800, color: 'var(--ink)', marginBottom: '10px' }}>Tus créditos se agotaron</h2>
-        <p style={{ fontSize: '15px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '8px' }}>Tu agente respondió activamente leads por vos.</p>
+        <h2 style={{ fontFamily: F_DISPLAY, fontSize: '22px', fontWeight: 800, color: 'var(--ink)', marginBottom: '10px' }}>Tu saldo se agotó</h2>
+        <p style={{ fontSize: '15px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '8px' }}>Tu agente quedó en pausa y dejó de responder leads.</p>
         <p style={{ fontSize: '14px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '28px' }}>
-          Activá tu plan por <strong className="grad-blue" style={{ fontFamily: F_MONO }}>$99.000/mes</strong> para responder leads ilimitados.
+          Cargá saldo para reactivarlo. Conversar es gratis — solo se descuenta
+          cuando un lead llega a <strong style={{ color: 'var(--ink)' }}>test drive</strong> o se cierra la venta,
+          desde <strong className="grad-blue" style={{ fontFamily: F_MONO }}>{formatearCop(creditosACop(CREDITOS_CONFIG.COSTO.CITA_AGENDADA))}</strong> por cita.
         </p>
         <a href="/pulse/pricing" style={{ display: 'block', padding: '14px', borderRadius: '6px', background: 'var(--blue)', color: '#FFFFFF', fontFamily: F_DISPLAY, fontSize: '15px', fontWeight: 700, textDecoration: 'none', marginBottom: '12px' }}>
-          Activar plan — $99.000/mes →
+          Cargar saldo →
         </a>
-        <p style={{ fontFamily: F_MONO, fontSize: '11px', color: 'var(--ink-dim)' }}>Sin tarjeta · Cancelás cuando querás · Garantía 7 días</p>
+        <p style={{ fontFamily: F_MONO, fontSize: '11px', color: 'var(--ink-dim)' }}>Sin mensualidad · El saldo no vence · Pagás solo por resultado</p>
       </div>
     </div>
   )

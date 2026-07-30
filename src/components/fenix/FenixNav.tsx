@@ -1,6 +1,7 @@
 // Ruta destino: src/components/fenix/FenixNav.tsx
 'use client'
 import { useState } from 'react'
+import { FenixLogo } from './FenixLogo'
 
 const ACCENT = '#F5821F'
 
@@ -10,17 +11,6 @@ const LINKS = [
   { href: '#plataforma', label: 'Plataforma' },
   { href: '#tecnologia', label: 'Tecnología' },
 ]
-
-function FlameLogo() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
-      <path
-        d="M16 2c1 5-3 6-3 10 0 2 1 3 2 3-1-2 0-4 1-5 0 3 3 4 3 7 0 4-3 7-7 7s-7-3-7-7c0-6 5-8 7-13 1-1 2-2 4-2z"
-        fill={ACCENT}
-      />
-    </svg>
-  )
-}
 
 export function FenixNav() {
   const [open, setOpen] = useState(false)
@@ -34,11 +24,8 @@ export function FenixNav() {
         position: 'sticky', top: 0, zIndex: 50,
         background: 'rgba(250,247,244,.92)', backdropFilter: 'blur(14px)',
       }}>
-        <a href="#inicio" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-          <FlameLogo />
-          <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '-.02em', color: '#17120e', lineHeight: 1.1 }}>
-            Fenix <span style={{ fontWeight: 500, color: 'rgba(23,18,14,.5)' }}>Consultores</span>
-          </span>
+        <a href="#inicio" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} aria-label="Fénix Consultores Empresariales S.A.S.">
+          <FenixLogo uid="nav" size={34} />
         </a>
 
         <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'center' }} className="fenix-nav-desktop">

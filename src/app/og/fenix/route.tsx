@@ -3,6 +3,7 @@
 // Accesible en: https://ventas10x.co/og/fenix
 
 import { ImageResponse } from 'next/og'
+import { marcaDataUri } from '@/components/fenix/logo-mark'
 
 export const runtime = 'edge'
 
@@ -53,18 +54,19 @@ export async function GET() {
 
         {/* Header: logo + badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{
-              width: '46px', height: '46px',
-              background: ACCENT,
-              borderRadius: '12px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <div style={{ color: DARK, fontSize: '26px', fontWeight: 900, display: 'flex' }}>F</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
-              <span style={{ color: 'white', fontSize: '30px', fontWeight: 800 }}>Fenix</span>
-              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '30px', fontWeight: 500 }}>Consultores</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={marcaDataUri('og', 140)} alt="" width={46} height={64} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ color: 'white', fontSize: '34px', fontWeight: 700, letterSpacing: '-1px', lineHeight: 1 }}>
+                Fénix
+              </span>
+              <span style={{
+                color: 'rgba(255,255,255,0.5)', fontSize: '13px', fontWeight: 600,
+                letterSpacing: '1.6px', marginTop: '7px',
+              }}>
+                CONSULTORES EMPRESARIALES S.A.S.
+              </span>
             </div>
           </div>
 

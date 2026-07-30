@@ -9,6 +9,8 @@ import { FenixPhotoCarousel } from '@/components/fenix/FenixPhotoCarousel'
 import { FenixReveal } from '@/components/fenix/FenixReveal'
 import { FenixScrollPanel } from '@/components/fenix/FenixScrollPanel'
 import { FenixDashboard } from '@/components/fenix/FenixDashboard'
+import { FenixHeroSlider } from '@/components/fenix/FenixHeroSlider'
+import { FenixLogo } from '@/components/fenix/FenixLogo'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -25,6 +27,13 @@ export const metadata: Metadata = {
   title: OG_TITLE,
   description: OG_DESC,
   alternates: { canonical: '/fenix-consultores' },
+  // Iconos propios de Fenix. Van declarados aquí y no como `icon.tsx` de
+  // segmento porque el layout raíz ya declara `icons` de Ventas10x y esa
+  // configuración explícita gana sobre la convención de archivo del hijo.
+  icons: {
+    icon: [{ url: '/og/fenix-logo?size=64', type: 'image/png' }],
+    apple: [{ url: '/og/fenix-logo?size=180&fondo=claro', type: 'image/png' }],
+  },
   openGraph: {
     type: 'website',
     url: `${SITE_URL}/fenix-consultores`,
@@ -157,6 +166,28 @@ const FOTOS = [
   { src: '/fenix/acuerdo.jpg', alt: 'Acuerdo de pago con un cliente empresarial' },
 ]
 
+// Slider del hero: el producto primero, después las personas que lo operan.
+const SLIDES_HERO = [
+  {
+    src: '/fenix/asesoria.jpg',
+    alt: 'Equipo jurídico de Fenix Consultores en asesoría empresarial',
+    titulo: 'Equipo jurídico',
+    pie: 'Abogados especializados en recuperación empresarial detrás de cada obligación.',
+  },
+  {
+    src: '/fenix/analisis.jpg',
+    alt: 'Dirección financiera revisando indicadores de recuperación de cartera',
+    titulo: 'Dirección financiera',
+    pie: 'La dirección conoce el estado de su cartera sin tener que pedir informes.',
+  },
+  {
+    src: '/fenix/acuerdo.jpg',
+    alt: 'Acuerdo de pago cerrado con un cliente empresarial',
+    titulo: 'Acuerdos que se cumplen',
+    pie: 'Negociación estratégica con cada deudor, documentada y con seguimiento.',
+  },
+]
+
 // ─── Iconografía de línea ───
 function Icono({ tipo }: { tipo: string }) {
   const p = {
@@ -264,7 +295,7 @@ export default function FenixConsultoresPage() {
           </div>
 
           <div className="fx-hero-visual">
-            <FenixDashboard />
+            <FenixHeroSlider software={<FenixDashboard />} fotos={SLIDES_HERO} />
           </div>
         </div>
       </section>
@@ -603,7 +634,7 @@ export default function FenixConsultoresPage() {
         <div className="fx-container fx-footer-grid">
           <div>
             <div className="fx-footer-brand">
-              Fenix <span className="fx-accent-on-dark">Consultores</span>
+              <FenixLogo uid="foot" size={44} theme="dark" claim />
             </div>
             <p className="fx-footer-d">
               FÉNIX Recovery Intelligence®. Recuperación estratégica de activos
@@ -888,7 +919,7 @@ export default function FenixConsultoresPage() {
         /* ── Footer ── */
         .fx-footer { background: var(--graphite); color: #fff; padding: clamp(56px, 6vw, 84px) 0 32px; }
         .fx-footer-grid { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 40px; padding-bottom: 40px; }
-        .fx-footer-brand { font-size: 19px; font-weight: 700; margin-bottom: 12px; }
+        .fx-footer-brand { margin-bottom: 20px; }
         .fx-footer-d { font-size: 13.5px; line-height: 1.75; color: rgba(255,255,255,.5); max-width: 34rem; }
         .fx-footer-links { display: flex; flex-direction: column; gap: 10px; }
         .fx-footer-h { font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }

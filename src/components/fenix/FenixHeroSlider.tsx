@@ -8,7 +8,7 @@
 // falta una altura fija y la tarjeta flotante del panel (que es absoluta y
 // sobresale del recuadro) sigue funcionando sin recortarse.
 'use client'
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 export type SlideFoto = { src: string; alt: string; titulo: string; pie: string }
 
@@ -23,29 +23,35 @@ export function FenixHeroSlider({ software, fotos, intervalo = 5000 }: Props) {
   const total = fotos.length + 1
   const [activo, setActivo] = useState(0)
   const [pausado, setPausado] = useState(false)
-  const reducido = useRef(false)
+  // Pulsar un punto es tomar el control: el ciclo se detiene y ya no vuelve
+  // solo. Es el mecanismo de pausa que pide WCAG 2.2.2 para contenido que se
+  // mueve sin intervencion del usuario.
+  const [detenido, setDetenido] = useState(false)
 
   useEffect(() => {
-    reducido.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     // Precarga: evita que la primera rotacion muestre un marco vacio.
     fotos.forEach(f => { const i = new Image(); i.src = f.src })
   }, [fotos])
 
+  // El ciclo corre siempre, tambien con `prefers-reduced-motion`: ahi lo que
+  // se desactiva es la animacion (el fundido y el zoom, via media query en el
+  // CSS), no el avance.
   useEffect(() => {
-    if (pausado || reducido.current) return
+    if (pausado || detenido) return
     const t = setTimeout(() => setActivo(a => (a + 1) % total), intervalo)
     return () => clearTimeout(t)
-  }, [activo, pausado, total, intervalo])
+  }, [activo, pausado, detenido, total, intervalo])
 
-  const ir = useCallback((i: number) => setActivo(i), [])
+  const ir = useCallback((i: number) => {
+    setActivo(i)
+    setDetenido(true)
+  }, [])
 
   return (
     <div
       className="fx-hs"
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
-      onFocus={() => setPausado(true)}
-      onBlur={() => setPausado(false)}
     >
       <div className="fx-hs-stage">
         {/* Diapositiva 0: el software. Define la altura del escenario. */}

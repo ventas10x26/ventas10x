@@ -203,6 +203,152 @@ export function calcularDemo(sede: SedeId, periodo: PeriodoId): DatosDemo {
   }
 }
 
+// ── Panel: metas, asesores y serie diaria ────────────────────────────────────
+//
+// Rige la misma regla dura de arriba: nada de esto sale de la operación de nadie.
+// Las metas son redondas a propósito (40%, 50%, 60%…) porque son objetivos de
+// tablero, no mediciones; los asesores son alias numerados, nunca personas; y la
+// serie diaria se genera con una secuencia determinística, no con Math.random(),
+// para que el server y el cliente rendericen exactamente lo mismo.
+
+export interface KpiDemo {
+  clave: string
+  label: string
+  valor: number      // tasa lograda (0-1)
+  meta: number       // objetivo (0-1)
+  cumplimiento: number // valor / meta
+  pie: string
+}
+
+export interface AsesorDemo {
+  alias: string
+  sede: string
+  oportunidades: number
+  citas: number
+  matriculas: number
+  conversion: number
+  integralidad: number // líneas 360° vendidas por matrícula (0-4)
+}
+
+export interface PuntoDia {
+  dia: number
+  oportunidades: number
+  citas: number
+  cotizaciones: number
+  matriculas: number
+}
+
+const METAS = {
+  citas: 0.40,
+  showUp: 0.50,
+  cotizacion: 0.60,
+  pedido: 0.22,
+  matricula: 0.40,
+  conversion: 0.08,
+}
+
+export function calcularKpis(d: DatosDemo): KpiDemo[] {
+  const e = Object.fromEntries(d.embudo.map(x => [x.clave, x.valor])) as Record<string, number>
+  const pct = (a: number, b: number) => (b > 0 ? a / b : 0)
+
+  const filas: { clave: string; label: string; valor: number; meta: number; pie: string }[] = [
+    { clave: 'citas',       label: 'Citas',        valor: pct(e.citas, e.oportunidades),   meta: METAS.citas,      pie: 'sobre oportunidades' },
+    { clave: 'showup',      label: 'Show up',      valor: pct(e.showup, e.citas),          meta: METAS.showUp,     pie: 'sobre citas' },
+    { clave: 'cotizacion',  label: 'Cotizaciones', valor: pct(e.cotizaciones, e.oportunidades), meta: METAS.cotizacion, pie: 'sobre oportunidades' },
+    { clave: 'pedido',      label: 'Pedidos',      valor: pct(e.pedidos, e.cotizaciones),  meta: METAS.pedido,     pie: 'sobre cotizaciones' },
+    { clave: 'matricula',   label: 'Matrículas',   valor: pct(e.matriculas, e.pedidos),    meta: METAS.matricula,  pie: 'sobre pedidos' },
+    { clave: 'conversion',  label: 'Conversión',   valor: pct(e.matriculas, e.oportunidades), meta: METAS.conversion, pie: 'matrículas / oportunidades' },
+  ]
+
+  return filas.map(f => ({ ...f, cumplimiento: f.meta > 0 ? f.valor / f.meta : 0 }))
+}
+
+// Perfiles de asesor por sede. El número de alias por sede es fijo; lo que cambia
+// con el filtro es cuáles se muestran, no quiénes son.
+const ASESORES_BASE: { alias: string; sede: Exclude<SedeId, 'todas'>; peso: number; skillCita: number; skillCierre: number; integralidad: number }[] = [
+  { alias: 'Asesor 01', sede: 'norte',  peso: 0.22, skillCita: 1.14, skillCierre: 1.18, integralidad: 2.6 },
+  { alias: 'Asesor 02', sede: 'norte',  peso: 0.19, skillCita: 1.02, skillCierre: 0.94, integralidad: 2.1 },
+  { alias: 'Asesor 03', sede: 'norte',  peso: 0.17, skillCita: 0.88, skillCierre: 1.06, integralidad: 1.7 },
+  { alias: 'Asesor 04', sede: 'centro', peso: 0.24, skillCita: 1.21, skillCierre: 1.09, integralidad: 2.9 },
+  { alias: 'Asesor 05', sede: 'centro', peso: 0.20, skillCita: 0.95, skillCierre: 0.87, integralidad: 1.9 },
+  { alias: 'Asesor 06', sede: 'centro', peso: 0.16, skillCita: 1.07, skillCierre: 1.02, integralidad: 2.3 },
+  { alias: 'Asesor 07', sede: 'sur',    peso: 0.26, skillCita: 1.11, skillCierre: 1.13, integralidad: 2.4 },
+  { alias: 'Asesor 08', sede: 'sur',    peso: 0.21, skillCita: 0.91, skillCierre: 0.79, integralidad: 1.5 },
+]
+
+const NOMBRE_SEDE: Record<string, string> = {
+  norte: 'Sede Norte', centro: 'Sede Centro', sur: 'Sede Sur',
+}
+
+export function calcularAsesores(sede: SedeId, periodo: PeriodoId): AsesorDemo[] {
+  const factor = PERIODOS.find(p => p.id === periodo)?.factor ?? 1
+  const activos = sede === 'todas' ? ASESORES_BASE : ASESORES_BASE.filter(a => a.sede === sede)
+
+  return activos.map(a => {
+    const perfil = SEDES_BASE.find(s => s.id === a.sede)!
+    const oportunidades = r(perfil.oportunidades * factor * a.peso)
+    const citas = r(oportunidades * perfil.tasaCita * a.skillCita)
+    const cotizaciones = r(oportunidades * perfil.tasaCotizacion)
+    const pedidos = r(cotizaciones * perfil.tasaPedido * a.skillCierre)
+    const matriculas = r(pedidos * perfil.tasaMatricula)
+    return {
+      alias: a.alias,
+      sede: NOMBRE_SEDE[a.sede],
+      oportunidades,
+      citas,
+      matriculas,
+      conversion: oportunidades > 0 ? matriculas / oportunidades : 0,
+      integralidad: a.integralidad,
+    }
+  }).sort((x, y) => y.conversion - x.conversion)
+}
+
+// Secuencia determinística (LCG). Misma semilla → misma serie, en server y cliente.
+function pseudo(seed: number): () => number {
+  let s = seed % 2147483647
+  if (s <= 0) s += 2147483646
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 }
+}
+
+export function serieDiaria(d: DatosDemo, sede: SedeId): PuntoDia[] {
+  const dias = 30
+  const semilla = 7919 + sede.length * 131
+  const rnd = pseudo(semilla)
+  const e = Object.fromEntries(d.embudo.map(x => [x.clave, x.valor])) as Record<string, number>
+
+  // Pesos diarios con forma de semana laboral: los fines de semana caen, y hay un
+  // repunte de cierre de mes. Sin esto la serie es una línea plana con ruido, que
+  // no se parece en nada a cómo se mueve un mes comercial de verdad.
+  const pesos = Array.from({ length: dias }, (_, i) => {
+    const diaSemana = i % 7
+    const finDeSemana = diaSemana === 5 || diaSemana === 6 ? 0.45 : 1
+    const cierreDeMes = i >= dias - 4 ? 1.5 : 1
+    return finDeSemana * cierreDeMes * (0.75 + rnd() * 0.5)
+  })
+  const total = pesos.reduce((a, b) => a + b, 0)
+
+  return pesos.map((p, i) => {
+    const q = p / total
+    return {
+      dia: i + 1,
+      oportunidades: r(e.oportunidades * q),
+      citas: r(e.citas * q),
+      cotizaciones: r(e.cotizaciones * q),
+      matriculas: r(e.matriculas * q),
+    }
+  })
+}
+
+// Origen del lead. El split es del sector, no de ningún cliente puntual.
+export function calcularOrigen(d: DatosDemo): { label: string; valor: number; share: number }[] {
+  const opp = d.totales.oportunidades
+  const digital = r(opp * 0.58)
+  return [
+    { label: 'Digital', valor: digital, share: opp > 0 ? digital / opp : 0 },
+    { label: 'Walk-in', valor: opp - digital, share: opp > 0 ? (opp - digital) / opp : 0 },
+  ]
+}
+
 export const formatearNumero = (n: number) => new Intl.NumberFormat('es-CO').format(n)
 export const formatearPct = (n: number) => `${Math.round(n * 100)}%`
 export const formatearMillones = (n: number) =>

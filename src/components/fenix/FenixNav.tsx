@@ -43,12 +43,16 @@ export function FenixNav() {
           <FenixLogo uid="nav" size={50} theme="dark" />
         </a>
 
-        {/* Derecha */}
+        {/* Derecha: los enlaces se quedan junto al logotipo y las acciones
+            viajan al borde, que es donde el ojo las busca. */}
         <div className="fenix-nav-lado fenix-nav-der">
-          <div className="fenix-nav-desktop fenix-nav-der-grupo">
+          <div className="fenix-nav-desktop fenix-nav-der-enlaces">
             {DERECHA.map(({ href, label }) => (
               <a key={href} href={href} className="fenix-nav-link">{label}</a>
             ))}
+          </div>
+
+          <div className="fenix-nav-desktop fenix-nav-acciones">
             <a href={TELEFONO.href} className="fenix-pill fenix-pill-ghost">
               {TELEFONO.label} <IconoTel />
             </a>
@@ -87,16 +91,21 @@ export function FenixNav() {
         .fenix-nav {
           display: grid;
           grid-template-columns: 1fr auto 1fr;
+          column-gap: 2.5rem;
           align-items: center;
-          padding: 1.15rem 2rem;
+          padding: 1.6rem 2rem;
           border-bottom: 1px solid rgba(255,255,255,.09);
           position: sticky; top: 0; z-index: 50;
           background: rgba(12,9,7,.94);
           backdrop-filter: blur(16px);
         }
-        .fenix-nav-lado { display: flex; align-items: center; gap: 2rem; min-width: 0; }
-        .fenix-nav-der { justify-content: flex-end; }
-        .fenix-nav-der-grupo { display: flex; align-items: center; gap: 1.5rem; }
+        /* Las columnas laterales miden lo mismo (1fr), pero su contenido se
+           alinea hacia dentro: los enlaces quedan junto al logotipo en vez de
+           pegados a los bordes de la pantalla. */
+        .fenix-nav-lado { display: flex; align-items: center; gap: 2rem; min-width: 0; justify-content: flex-end; }
+        .fenix-nav-der { justify-content: space-between; }
+        .fenix-nav-der-enlaces { display: flex; align-items: center; gap: 2rem; }
+        .fenix-nav-acciones { display: flex; align-items: center; gap: .85rem; }
         .fenix-nav-marca { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
         .fenix-nav-link {
@@ -153,9 +162,12 @@ export function FenixNav() {
 
         /* Por debajo de 1180px los tres bloques ya no caben sin apretarse. */
         @media (max-width: 1180px) {
-          .fenix-nav { grid-template-columns: auto 1fr; padding: 1.15rem 1.25rem; }
+          .fenix-nav { grid-template-columns: auto 1fr; padding: 1.15rem 1.25rem; column-gap: 1rem; }
           .fenix-nav-desktop { display: none !important; }
           .fenix-nav-marca { justify-content: flex-start; }
+          /* Con los enlaces ocultos, space-between dejaria la hamburguesa
+             pegada al logotipo en vez de en el borde. */
+          .fenix-nav-der { justify-content: flex-end; }
           .fenix-nav-hamburger { display: flex !important; }
         }
         @media (max-width: 560px) {

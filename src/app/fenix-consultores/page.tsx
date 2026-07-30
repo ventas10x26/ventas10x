@@ -336,7 +336,7 @@ export default function FenixConsultoresPage() {
           <FenixReveal delay={80}>
             <div className="fx-grid-4">
               {IMPACTOS.map(i => (
-                <article key={i.t} className="fx-card fx-card-lift">
+                <article key={i.t} className="fx-card fx-card-lift fx-card-bottom">
                   <h3 className="fx-card-t">{i.t}</h3>
                   <p className="fx-card-d">{i.d}</p>
                 </article>
@@ -681,9 +681,13 @@ export default function FenixConsultoresPage() {
         }
         .fx h1, .fx h2, .fx h3 {
           font-family: var(--font-space-grotesk), system-ui, sans-serif;
-          margin: 0;
         }
-        .fx p { margin: 0; }
+        /* El reset de margenes va dentro de :where() para que pese cero en
+           especificidad. Sin eso, el selector .fx p (0,1,1) le ganaba a
+           cualquier clase de una sola palabra y anulaba los margenes de
+           .fx-head-desc y .fx-cap-intro: por eso los titulares salian
+           pegados al texto que va debajo. */
+        :where(.fx h1, .fx h2, .fx h3, .fx p) { margin: 0; }
 
         .fx-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
         .fx-narrow { max-width: 840px; }
@@ -725,10 +729,15 @@ export default function FenixConsultoresPage() {
         .fx-label-dark { color: var(--accent); }
         .fx-label-inline { margin-bottom: 0; }
 
-        .fx-head { margin-bottom: clamp(40px, 5vw, 64px); }
-        .fx-head-center { text-align: center; }
-        .fx-head-center .fx-body { margin-left: auto; margin-right: auto; }
-        .fx-head-desc { margin-top: 20px; }
+        /* Todos los encabezados de ancho completo van centrados: los que
+           quedaban a la izquierda rompian el eje con las rejillas de tarjetas
+           que llevan debajo. Los bloques a dos columnas usan .fx-split y no
+           pasan por aqui. */
+        .fx-head { margin-bottom: clamp(48px, 5.5vw, 72px); text-align: center; }
+        .fx-head .fx-body { margin-left: auto; margin-right: auto; }
+        .fx-head-desc { margin-top: 28px; }
+        /* En .fx-split el texto sigue alineado a la izquierda. */
+        .fx-split .fx-head-desc { margin-top: 22px; }
 
         /* ── Botones ── */
         .fx-btn {
@@ -825,10 +834,10 @@ export default function FenixConsultoresPage() {
         }
 
         /* ── Cards ── */
-        .fx-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .fx-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
         .fx-card {
           background: var(--white); border: 1px solid var(--line);
-          border-radius: var(--r-card); padding: 32px; box-shadow: var(--sh-sm);
+          border-radius: 26px; padding: 38px 34px; box-shadow: var(--sh-sm);
           transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
         }
         /* Hover de tarjeta: el color sube desde la base y la tarjeta se
@@ -837,7 +846,8 @@ export default function FenixConsultoresPage() {
            interpolan. El contenido sube a z-index 1 para no quedar debajo. */
         .fx-card-lift {
           position: relative; overflow: hidden;
-          min-height: 210px;
+          min-height: 300px;
+          display: flex; flex-direction: column;
           transition: transform .45s cubic-bezier(.22,.61,.36,1),
                       box-shadow .45s ease-out,
                       border-color .35s ease-out;
@@ -864,8 +874,11 @@ export default function FenixConsultoresPage() {
         .fx-card-lift:hover .fx-icon {
           background: #fff; border-color: #fff; color: var(--accent-text);
         }
-        .fx-card-t { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
-        .fx-card-d { font-size: 14.5px; line-height: 1.7; color: var(--ink-2); }
+        /* Sin icono el contenido baja al pie: el degradado sube por el hueco
+           libre y el texto queda donde el color ya tiene cuerpo. */
+        .fx-card-bottom { justify-content: flex-end; }
+        .fx-card-t { font-size: 21px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 12px; }
+        .fx-card-d { font-size: 15.5px; line-height: 1.7; color: var(--ink-2); }
         .fx-card-dark { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.1); box-shadow: none; }
         .fx-card-t-dark { color: #fff; }
         .fx-card-d-dark { color: rgba(255,255,255,.6); }
@@ -1006,7 +1019,10 @@ export default function FenixConsultoresPage() {
           .fx-hero-proof { gap: 22px; }
           .fx-proof { max-width: none; flex: 1 1 100%; }
           .fx-footer-grid { grid-template-columns: 1fr; gap: 32px; }
-          .fx-card { padding: 26px; }
+          /* Apiladas a una columna, 300px de alto minimo son un hueco vacio. */
+          .fx-card { padding: 28px; }
+          .fx-card-lift { min-height: 0; }
+          .fx-card-bottom { justify-content: flex-start; }
         }
         @media (prefers-reduced-motion: reduce) {
           .fx-btn:hover, .fx-card-lift:hover, .fx-video-card:hover,

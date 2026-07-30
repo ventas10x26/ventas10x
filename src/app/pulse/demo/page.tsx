@@ -9,7 +9,7 @@
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   PERIODOS, SEDES_OPCIONES, calcularDemo,
   calcularKpis, calcularAsesores, serieDiaria, calcularOrigen,
@@ -41,8 +41,6 @@ export default function DemoPage() {
   // Se lee de window y no con useSearchParams para no tener que envolver la página en un
   // Suspense solo por esto.
   const [soloPanel, setSoloPanel] = useState(false)
-  const marcoRef = useRef<HTMLDivElement | null>(null)
-  const [enPantallaCompleta, setEnPantallaCompleta] = useState(false)
 
   useEffect(() => {
     try {
@@ -52,21 +50,6 @@ export default function DemoPage() {
       setSoloPanel(new URLSearchParams(window.location.search).get('vista') === 'panel')
     } catch { /* si no se puede leer la query, se muestra la página completa */ }
   }, [])
-
-  // El estado de pantalla completa lo manda el navegador, no el botón: se puede salir con
-  // Escape sin pasar por nuestro handler, y si no escuchamos el evento el rótulo miente.
-  useEffect(() => {
-    const alCambiar = () => setEnPantallaCompleta(Boolean(document.fullscreenElement))
-    document.addEventListener('fullscreenchange', alCambiar)
-    return () => document.removeEventListener('fullscreenchange', alCambiar)
-  }, [])
-
-  const alternarPantallaCompleta = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen()
-      else if (marcoRef.current) await marcoRef.current.requestFullscreen()
-    } catch { /* el navegador puede negarlo (permiso o iframe): no rompemos la página */ }
-  }
 
   const [seccion, setSeccion] = useState<SeccionId>('resumen')
 
@@ -88,10 +71,6 @@ export default function DemoPage() {
         .pm-demo-nav:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
         .pm-demo-accion { transition: border-color .15s ease, color .15s ease; }
         .pm-demo-accion:hover { border-color: #2563EB !important; color: #2563EB !important; }
-        /* En pantalla completa el marco ocupa todo: sin el scroll propio, las secciones
-           largas quedarían cortadas contra el borde de la pantalla. */
-        .pm-demo-app:fullscreen { border: none; border-radius: 0; height: 100%; overflow: auto; }
-        .pm-demo-app:fullscreen .pm-demo-side { height: 100%; }
         @media (prefers-reduced-motion: reduce) {
           .pm-demo-chip, .pm-demo-barra, .pm-demo-cta, .pm-demo-nav { transition: none; }
           .pm-demo-cta:hover { transform: none; }
@@ -125,7 +104,9 @@ export default function DemoPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '28px 24px 72px' }}>
+      {/* En vista de pantalla completa el contenedor deja de estar acotado a 1180px:
+          la gracia de abrirlo en su propia pestaña es que ocupe el monitor entero. */}
+      <div style={{ maxWidth: soloPanel ? 'none' : '1180px', margin: '0 auto', padding: soloPanel ? '14px 16px 24px' : '28px 24px 72px' }}>
 
         {/* Encabezado + aviso de datos simulados. El aviso va arriba y no al pie: quien abre
             esto tiene que saber desde el primer segundo que no está viendo un cliente real. */}
@@ -165,7 +146,7 @@ export default function DemoPage() {
 
         {/* Marco de aplicación: barra lateral + contenido. La idea es que se lea como el
             producto abierto, no como una lámina de marketing con gráficos. */}
-        <div ref={marcoRef} className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: enPantallaCompleta ? '0' : '16px', overflow: 'hidden', background: '#fff' }}>
+        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#fff' }}>
 
           {/* Navegación del workspace */}
           <aside className="pm-demo-side" style={{ background: '#0f1729', padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -225,34 +206,24 @@ export default function DemoPage() {
                     </span>
                   </div>
 
-                  <button
-                    onClick={alternarPantallaCompleta}
-                    className="pm-demo-accion"
-                    title={enPantallaCompleta ? 'Salir de pantalla completa' : 'Ver el panel en pantalla completa'}
-                    style={accionBarra}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      {enPantallaCompleta
-                        ? <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
-                        : <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />}
-                    </svg>
-                    {enPantallaCompleta ? 'Salir' : 'Pantalla completa'}
-                  </button>
-
-                  {/* Abre el panel sin el encabezado de venta, para proyectarlo o compartirlo. */}
-                  <a
-                    href="/pulse/demo?vista=panel"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="pm-demo-accion"
-                    title="Abrir el panel solo, en una pestaña nueva"
-                    style={{ ...accionBarra, textDecoration: 'none' }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M15 3h6v6M10 14 21 3M18 13v8H3V6h8" />
-                    </svg>
-                    Abrir en pestaña
-                  </a>
+                  {/* Abre el panel a ancho completo en una pestaña nueva, sin el encabezado
+                      de venta. Reemplaza al fullscreen nativo, que dejaba el contenido
+                      largo cortado contra el borde de la pantalla sin poder scrollear. */}
+                  {!soloPanel && (
+                    <a
+                      href="/pulse/demo?vista=panel"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pm-demo-accion"
+                      title="Abrir el panel a pantalla completa, en una pestaña nueva"
+                      style={{ ...accionBarra, textDecoration: 'none' }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                      </svg>
+                      Pantalla completa
+                    </a>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>

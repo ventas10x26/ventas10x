@@ -9,7 +9,7 @@
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   PERIODOS, SEDES_OPCIONES, ASESORES_OPCIONES, CATEGORIAS_OPCIONES, ORIGEN_OPCIONES,
   FILTROS_INICIALES, calcularDemoFiltrado,
@@ -78,6 +78,8 @@ export default function DemoPage() {
         .pm-demo-nav:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
         .pm-demo-accion { transition: border-color .15s ease, color .15s ease; }
         .pm-demo-accion:hover { border-color: #2563EB !important; color: #2563EB !important; }
+        .pm-demo-opcion { transition: background .12s ease; }
+        .pm-demo-opcion:hover { background: #f1f5f9 !important; }
         @media (prefers-reduced-motion: reduce) {
           .pm-demo-chip, .pm-demo-barra, .pm-demo-cta, .pm-demo-nav { transition: none; }
           .pm-demo-cta:hover { transform: none; }
@@ -575,23 +577,102 @@ function CampoFiltro({ titulo, children }: { titulo: string; children: React.Rea
   )
 }
 
+// Desplegable propio en vez de <select> nativo. El nativo delega la lista al sistema
+// operativo: mismo azul de selección, misma tipografía y mismo alto en cualquier tablero,
+// así que dos productos distintos terminan viéndose iguales al abrirlo. Acá la lista es
+// nuestra y usa los tokens de Pulse.
 function SelectFiltro({ valor, onChange, opciones }: {
   valor: string
   onChange: (v: string) => void
   opciones: { id: string; label: string }[]
 }) {
+  const [abierto, setAbierto] = useState(false)
+  const caja = useRef<HTMLDivElement | null>(null)
+  const actual = opciones.find(o => o.id === valor)
+
+  // Cerrar al hacer clic afuera o con Escape. Sin esto el panel queda colgado cuando el
+  // usuario se va a otro filtro, y se superponen dos listas.
+  useEffect(() => {
+    if (!abierto) return
+    const afuera = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false)
+    }
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') setAbierto(false) }
+    document.addEventListener('mousedown', afuera)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('mousedown', afuera)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [abierto])
+
   return (
-    <select
-      value={valor}
-      onChange={e => onChange(e.target.value)}
-      style={{
-        width: '100%', border: 'none', background: 'transparent',
-        fontSize: '14px', fontWeight: 600, color: INK, fontFamily: FONT_BODY,
-        cursor: 'pointer', outline: 'none', padding: 0, minWidth: 0,
-      }}
-    >
-      {opciones.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-    </select>
+    <div ref={caja} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setAbierto(a => !a)}
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
+          width: '100%', padding: 0, border: 'none', background: 'transparent',
+          fontSize: '14px', fontWeight: 600, color: INK, fontFamily: FONT_BODY,
+          cursor: 'pointer', textAlign: 'left', minWidth: 0,
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {actual?.label ?? '—'}
+        </span>
+        <svg
+          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={DIM}
+          strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+          style={{ flexShrink: 0, transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {abierto && (
+        <div
+          role="listbox"
+          style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: '-6px', minWidth: 'calc(100% + 12px)',
+            background: '#fff', border: `1px solid ${LINE}`, borderRadius: '10px',
+            boxShadow: '0 12px 28px rgba(15,23,42,0.14)', padding: '5px',
+            zIndex: 50, maxHeight: '260px', overflowY: 'auto', whiteSpace: 'nowrap',
+          }}
+        >
+          {opciones.map(o => {
+            const activo = o.id === valor
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="option"
+                aria-selected={activo}
+                onClick={() => { onChange(o.id); setAbierto(false) }}
+                className="pm-demo-opcion"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                  padding: '8px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
+                  background: activo ? 'rgba(37,99,235,0.09)' : 'transparent',
+                  color: activo ? BLUE : INK,
+                  fontSize: '13px', fontWeight: activo ? 700 : 500,
+                  fontFamily: FONT_BODY, textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  width: '5px', height: '5px', flexShrink: 0,
+                  background: activo ? BLUE : 'transparent',
+                }} />
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 

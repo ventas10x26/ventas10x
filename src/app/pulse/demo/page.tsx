@@ -11,11 +11,12 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
-  PERIODOS, SEDES_OPCIONES, calcularDemo,
-  calcularKpis, calcularAsesores, serieDiaria, calcularOrigen, GRUPO_CANAL_LABEL,
+  PERIODOS, SEDES_OPCIONES, ASESORES_OPCIONES, CATEGORIAS_OPCIONES, ORIGEN_OPCIONES,
+  FILTROS_INICIALES, calcularDemoFiltrado,
+  calcularKpis, calcularAsesores, serieDiaria, GRUPO_CANAL_LABEL,
   formatearNumero, formatearPct, formatearMillones,
   type PeriodoId, type SedeId, type KpiDemo, type AsesorDemo, type PuntoDia,
-  type OrigenDemo, type CanalDigital,
+  type OrigenDemo, type CanalDigital, type FiltrosDemo, type OrigenId,
 } from './datos'
 
 const FONT = "var(--font-inter), sans-serif"
@@ -29,8 +30,14 @@ const LINE = '#e3e8f0'
 const CLAVE_DESBLOQUEO = 'pulse_demo_registrado'
 
 export default function DemoPage() {
-  const [sede, setSede] = useState<SedeId>('todas')
-  const [periodo, setPeriodo] = useState<PeriodoId>('12m')
+  const [filtros, setFiltros] = useState<FiltrosDemo>(FILTROS_INICIALES)
+  const setFiltro = <K extends keyof FiltrosDemo>(k: K, v: FiltrosDemo[K]) =>
+    setFiltros(f => ({ ...f, [k]: v }))
+
+  // La hora de sync se fija en el cliente, nunca en el render inicial: si saliera del
+  // servidor, el HTML llegaría con una hora y React la reemplazaría por otra.
+  const [sync, setSync] = useState('')
+  useEffect(() => { setSync(horaCorta()) }, [])
 
   // Arranca bloqueado a propósito: si arrancara abierto y recién después leyera el registro
   // previo, el panel se vería un instante antes de pedir los datos. Quien ya se registró
@@ -54,11 +61,10 @@ export default function DemoPage() {
 
   const [seccion, setSeccion] = useState<SeccionId>('resumen')
 
-  const d = useMemo(() => calcularDemo(sede, periodo), [sede, periodo])
+  const { datos: d, origen, sedeEfectiva } = useMemo(() => calcularDemoFiltrado(filtros), [filtros])
   const kpis = useMemo(() => calcularKpis(d), [d])
-  const asesores = useMemo(() => calcularAsesores(sede, periodo), [sede, periodo])
-  const serie = useMemo(() => serieDiaria(d, sede), [d, sede])
-  const origen = useMemo(() => calcularOrigen(sede, periodo), [sede, periodo])
+  const asesores = useMemo(() => calcularAsesores(sedeEfectiva, filtros.periodo), [sedeEfectiva, filtros.periodo])
+  const serie = useMemo(() => serieDiaria(d, sedeEfectiva), [d, sedeEfectiva])
   const maxEmbudo = d.embudo[0].valor || 1
 
   return (
@@ -193,45 +199,16 @@ export default function DemoPage() {
           {/* Contenido */}
           <div style={{ minWidth: 0, background: '#f8f9fb' }}>
 
-            {/* Barra de estado + filtros */}
-            <div style={{ background: '#fff', borderBottom: `1px solid ${LINE}`, padding: '14px 18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                <div style={{ fontFamily: FONT, fontSize: '17px', fontWeight: 800, color: INK, letterSpacing: '-0.02em' }}>
-                  {SECCIONES.find(s => s.id === seccion)?.label}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '999px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)' }}>
-                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: BLUE, flexShrink: 0 }} />
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: BLUE }}>
-                      {formatearNumero(d.totales.oportunidades)} oportunidades
-                    </span>
-                  </div>
-
-                  {/* Abre el panel a ancho completo en una pestaña nueva, sin el encabezado
-                      de venta. Reemplaza al fullscreen nativo, que dejaba el contenido
-                      largo cortado contra el borde de la pantalla sin poder scrollear. */}
-                  {!soloPanel && (
-                    <a
-                      href="/pulse/demo?vista=panel"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="pm-demo-accion"
-                      title="Abrir el panel a pantalla completa, en una pestaña nueva"
-                      style={{ ...accionBarra, textDecoration: 'none' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
-                      </svg>
-                      Pantalla completa
-                    </a>
-                  )}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                <Filtro titulo="Vitrina" opciones={SEDES_OPCIONES.map(s => ({ id: s.id, label: s.label }))} activo={sede} onPick={id => setSede(id as SedeId)} />
-                <Filtro titulo="Periodo" opciones={PERIODOS.map(p => ({ id: p.id, label: p.label }))} activo={periodo} onPick={id => setPeriodo(id as PeriodoId)} />
-              </div>
-            </div>
+            <BarraFiltros
+              seccion={SECCIONES.find(s => s.id === seccion)?.label ?? ''}
+              oportunidades={d.totales.oportunidades}
+              sync={sync}
+              filtros={filtros}
+              setFiltro={setFiltro}
+              onLimpiar={() => setFiltros(FILTROS_INICIALES)}
+              onActualizar={() => setSync(horaCorta())}
+              mostrarPantallaCompleta={!soloPanel}
+            />
 
             <div style={{ padding: '18px' }}>
 
@@ -424,6 +401,199 @@ const SECCIONES: { id: SeccionId; label: string; icono: string }[] = [
   { id: 'integralidad', label: 'Integralidad 360°', icono: '◈' },
   { id: 'vitrinas',     label: 'Vitrinas',          icono: '⌂' },
 ]
+
+function horaCorta(): string {
+  return new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Encabezado del panel: identidad de la vista, estado de los datos y todos los filtros.
+// Cada control filtra de verdad — un select decorativo en un demo es peor que no ponerlo,
+// porque el prospecto lo prueba y descubre que la pantalla es un dibujo.
+function BarraFiltros({
+  seccion, oportunidades, sync, filtros, setFiltro, onLimpiar, onActualizar, mostrarPantallaCompleta,
+}: {
+  seccion: string
+  oportunidades: number
+  sync: string
+  filtros: FiltrosDemo
+  setFiltro: <K extends keyof FiltrosDemo>(k: K, v: FiltrosDemo[K]) => void
+  onLimpiar: () => void
+  onActualizar: () => void
+  mostrarPantallaCompleta: boolean
+}) {
+  const hayFiltros =
+    filtros.sede !== 'todas' || filtros.periodo !== '12m' ||
+    filtros.asesor !== 'todos' || filtros.origen !== 'todos' || filtros.categoria !== 'todas'
+
+  return (
+    <div style={{ background: '#fff', borderBottom: `1px solid ${LINE}` }}>
+
+      {/* Identidad + estado de los datos */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+          <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 4h18l-7 8.5V20l-4-2.5v-5L3 4Z" />
+            </svg>
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: FONT, fontSize: '16px', fontWeight: 800, color: INK, letterSpacing: '-0.01em', textTransform: 'uppercase', lineHeight: 1.15 }}>
+              {seccion}
+            </div>
+            {/* Sin nombre de concesionario ni marca: esta pantalla es publica. */}
+            <div style={{ fontSize: '12px', color: DIM }}>
+              Embudo de conversión · Panel de demostración
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)' }}>
+            <span style={{ width: '7px', height: '7px', background: BLUE, flexShrink: 0 }} />
+            <span style={{ fontSize: '11.5px', fontWeight: 800, color: BLUE, letterSpacing: '0.3px' }}>
+              {formatearNumero(oportunidades)} OPORTUNIDADES
+            </span>
+            {/* suppressHydrationWarning no hace falta: arranca vacio y se llena en efecto. */}
+            {sync && <span style={{ fontSize: '11px', color: DIM }}>· sync {sync}</span>}
+          </div>
+
+          {mostrarPantallaCompleta && (
+            <a
+              href="/pulse/demo?vista=panel"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pm-demo-accion"
+              title="Abrir el panel a pantalla completa, en una pestaña nueva"
+              style={{ ...accionBarra, textDecoration: 'none' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+              </svg>
+              Pantalla completa
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Fila de filtros, con separadores verticales como en un tablero real */}
+      <div className="pm-demo-filtros" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', borderTop: `1px solid ${LINE}` }}>
+        <CampoFiltro titulo="Vitrina">
+          <SelectFiltro
+            valor={filtros.sede}
+            onChange={v => setFiltro('sede', v as SedeId)}
+            opciones={SEDES_OPCIONES.map(s => ({ id: s.id, label: s.label }))}
+          />
+        </CampoFiltro>
+
+        <CampoFiltro titulo="Asesor">
+          <SelectFiltro
+            valor={filtros.asesor}
+            onChange={v => setFiltro('asesor', v)}
+            opciones={ASESORES_OPCIONES.map(a => ({ id: a.id, label: a.sede ? `${a.label} · ${a.sede}` : a.label }))}
+          />
+        </CampoFiltro>
+
+        <CampoFiltro titulo="Periodo">
+          <SelectFiltro
+            valor={filtros.periodo}
+            onChange={v => setFiltro('periodo', v as PeriodoId)}
+            opciones={PERIODOS.map(p => ({ id: p.id, label: p.label }))}
+          />
+        </CampoFiltro>
+
+        <CampoFiltro titulo="Origen">
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            {ORIGEN_OPCIONES.map(o => {
+              const activo = filtros.origen === o.id
+              return (
+                <button
+                  key={o.id}
+                  onClick={() => setFiltro('origen', o.id as OrigenId)}
+                  className="pm-demo-chip"
+                  style={{
+                    padding: '5px 10px', borderRadius: '7px', cursor: 'pointer',
+                    border: `1px solid ${activo ? BLUE : LINE}`,
+                    background: activo ? 'rgba(37,99,235,0.08)' : '#fff',
+                    color: activo ? BLUE : DIM,
+                    fontSize: '12px', fontWeight: activo ? 700 : 500, fontFamily: FONT_BODY,
+                  }}
+                >
+                  {o.label}
+                </button>
+              )
+            })}
+          </div>
+        </CampoFiltro>
+
+        <CampoFiltro titulo="Categoría">
+          <SelectFiltro
+            valor={filtros.categoria}
+            onChange={v => setFiltro('categoria', v)}
+            opciones={CATEGORIAS_OPCIONES}
+          />
+        </CampoFiltro>
+      </div>
+
+      {/* Acciones */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '10px 18px', borderTop: `1px solid ${LINE}`, background: '#fbfcfd' }}>
+        <button
+          onClick={onLimpiar}
+          disabled={!hayFiltros}
+          style={{
+            border: 'none', background: 'transparent', cursor: hayFiltros ? 'pointer' : 'default',
+            color: hayFiltros ? DIM : '#cbd5e1', fontSize: '11.5px', fontWeight: 700,
+            letterSpacing: '0.4px', textTransform: 'uppercase', fontFamily: FONT_BODY,
+            padding: '6px 4px',
+          }}
+        >
+          Limpiar filtros
+        </button>
+        <button
+          onClick={onActualizar}
+          className="pm-demo-accion"
+          title="Vuelve a leer los datos y actualiza la hora de sincronización"
+          style={{ ...accionBarra, background: '#0f1729', color: '#fff', border: '1px solid #0f1729' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" />
+          </svg>
+          Actualizar datos
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CampoFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: '11px 16px', borderRight: `1px solid ${LINE}`, minWidth: 0 }}>
+      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.9px', fontWeight: 700, marginBottom: '6px' }}>
+        {titulo}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function SelectFiltro({ valor, onChange, opciones }: {
+  valor: string
+  onChange: (v: string) => void
+  opciones: { id: string; label: string }[]
+}) {
+  return (
+    <select
+      value={valor}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        width: '100%', border: 'none', background: 'transparent',
+        fontSize: '14px', fontWeight: 600, color: INK, fontFamily: FONT_BODY,
+        cursor: 'pointer', outline: 'none', padding: 0, minWidth: 0,
+      }}
+    >
+      {opciones.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+    </select>
+  )
+}
 
 const COLOR_WALKIN = '#0D9488'
 const COLOR_DIGITAL = BLUE
@@ -768,42 +938,6 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
           Usamos tus datos solo para contactarte. No vas a ver información de ningún otro concesionario.
         </div>
       </form>
-    </div>
-  )
-}
-
-function Filtro({ titulo, opciones, activo, onPick }: {
-  titulo: string
-  opciones: { id: string; label: string }[]
-  activo: string
-  onPick: (id: string) => void
-}) {
-  return (
-    <div>
-      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600, marginBottom: '7px' }}>{titulo}</div>
-      <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
-        {opciones.map(o => {
-          const on = o.id === activo
-          return (
-            <button
-              key={o.id}
-              onClick={() => onPick(o.id)}
-              aria-pressed={on}
-              className="pm-demo-chip"
-              style={{
-                fontSize: '12.5px', fontFamily: FONT_BODY, cursor: 'pointer',
-                padding: '7px 14px', borderRadius: '999px',
-                border: `1px solid ${on ? BLUE : '#dbe3ef'}`,
-                background: on ? 'rgba(37,99,235,0.08)' : '#fff',
-                color: on ? BLUE : '#475569',
-                fontWeight: on ? 700 : 500,
-              }}
-            >
-              {o.label}
-            </button>
-          )
-        })}
-      </div>
     </div>
   )
 }

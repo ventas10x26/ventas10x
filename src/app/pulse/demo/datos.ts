@@ -458,6 +458,181 @@ export function calcularOrigen(sede: SedeId, periodo: PeriodoId): OrigenDemo {
   }
 }
 
+// ── Filtros del encabezado ───────────────────────────────────────────────────
+//
+// Todos los controles de la barra filtran de verdad. Un select que no cambia nada
+// es peor que no ponerlo: en un demo, el prospecto lo prueba y descubre que la
+// pantalla es un dibujo.
+
+export type OrigenId = 'todos' | 'walkin' | 'digital'
+
+export interface FiltrosDemo {
+  sede: SedeId
+  periodo: PeriodoId
+  asesor: string     // 'todos' | alias
+  origen: OrigenId
+  categoria: string  // 'todas' | label de segmento
+}
+
+export const FILTROS_INICIALES: FiltrosDemo = {
+  sede: 'todas', periodo: '12m', asesor: 'todos', origen: 'todos', categoria: 'todas',
+}
+
+export const ASESORES_OPCIONES: { id: string; label: string; sede: string }[] = [
+  { id: 'todos', label: 'Todos los asesores', sede: '' },
+  ...ASESORES_BASE.map(a => ({ id: a.alias, label: a.alias, sede: a.sede })),
+]
+
+export const CATEGORIAS_OPCIONES: { id: string; label: string }[] = [
+  { id: 'todas', label: 'Todas' },
+  ...SEGMENTOS.map(s => ({ id: s.label, label: s.label })),
+]
+
+export const ORIGEN_OPCIONES: { id: OrigenId; label: string }[] = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'digital', label: 'Digital' },
+  { id: 'walkin', label: 'Walk-in' },
+]
+
+/**
+ * Aplica los filtros del encabezado sobre el dataset base.
+ *
+ * Elegir un asesor fija su sede; elegir una categoría reduce el volumen a la
+ * participación de ese segmento; elegir un origen se queda con esa mitad del
+ * embudo usando la descomposición exacta que ya calcula calcularOrigen.
+ *
+ * Las etapas intermedias (citas, cotizaciones) no tienen descomposición propia por
+ * origen, así que heredan la proporción de oportunidades. Se dice acá y no se
+ * disfraza: es la única parte del filtro de origen que es proporcional y no exacta.
+ */
+export function calcularDemoFiltrado(f: FiltrosDemo): {
+  datos: DatosDemo
+  origen: OrigenDemo
+  sedeEfectiva: SedeId
+} {
+  const asesor = ASESORES_BASE.find(a => a.alias === f.asesor)
+  const sedeEfectiva: SedeId = asesor ? asesor.sede : f.sede
+
+  const base = calcularDemo(sedeEfectiva, f.periodo)
+  const origen = calcularOrigen(sedeEfectiva, f.periodo)
+
+  // Factor de reducción por asesor y por categoría. Ambos son recortes del universo,
+  // no cambios de tasa: filtrar por SUV no hace que la gente convierta distinto.
+  let factor = 1
+  if (asesor) factor *= asesor.peso
+  if (f.categoria !== 'todas') {
+    factor *= SEGMENTOS.find(s => s.label === f.categoria)?.share ?? 1
+  }
+
+  // Proporción que sobrevive al filtro de origen, métrica por métrica.
+  const prop = (metrica: 'oportunidades' | 'showUp' | 'pedidos' | 'matriculas') => {
+    if (f.origen === 'todos') return 1
+    const total = base.totales[metrica]
+    if (total <= 0) return 0
+    return origen[f.origen === 'walkin' ? 'walkin' : 'digital'][metrica] / total
+  }
+
+  const propOportunidades = prop('oportunidades')
+  const escalar = (v: number, p: number) => Math.max(0, Math.round(v * factor * p))
+
+  const propPorEtapa: Record<string, number> = {
+    oportunidades: propOportunidades,
+    citas: propOportunidades,
+    showup: prop('showUp'),
+    cotizaciones: propOportunidades,
+    pedidos: prop('pedidos'),
+    matriculas: prop('matriculas'),
+  }
+
+  const embudo = base.embudo.map(e => ({
+    ...e,
+    valor: escalar(e.valor, propPorEtapa[e.clave] ?? propOportunidades),
+  }))
+
+  const propPedidos = prop('pedidos')
+  const integralidad = base.integralidad.map(l => ({
+    ...l,
+    unidades: escalar(l.unidades, propPedidos),
+    valor: Math.round(l.valor * factor * propPedidos),
+  }))
+
+  const totales = {
+    oportunidades: escalar(base.totales.oportunidades, propOportunidades),
+    showUp: escalar(base.totales.showUp, prop('showUp')),
+    pedidos: escalar(base.totales.pedidos, propPedidos),
+    matriculas: escalar(base.totales.matriculas, prop('matriculas')),
+    roe: integralidad.reduce((a, l) => a + l.valor, 0),
+  }
+
+  const datos: DatosDemo = {
+    embudo,
+    integralidad,
+    sedes: base.sedes.map(s => ({
+      ...s,
+      oportunidades: escalar(s.oportunidades, propOportunidades),
+      matriculas: escalar(s.matriculas, prop('matriculas')),
+    })),
+    segmentos: f.categoria === 'todas'
+      ? base.segmentos.map(s => ({ ...s, unidades: escalar(s.unidades, prop('matriculas')) }))
+      : base.segmentos
+          .filter(s => s.label === f.categoria)
+          .map(s => ({ ...s, share: 1, unidades: totales.matriculas })),
+    totales,
+  }
+
+  // La descomposición de origen se recalcula sobre los totales ya filtrados, para que
+  // la ecuación walk-in + digital = total siga cerrando con el filtro puesto.
+  const origenFiltrado: OrigenDemo = f.origen === 'todos'
+    ? {
+        walkin: {
+          oportunidades: Math.round(origen.walkin.oportunidades * factor),
+          showUp: Math.round(origen.walkin.showUp * factor),
+          pedidos: Math.round(origen.walkin.pedidos * factor),
+          matriculas: Math.round(origen.walkin.matriculas * factor),
+          share: origen.walkin.share,
+        },
+        digital: {
+          oportunidades: totales.oportunidades - Math.round(origen.walkin.oportunidades * factor),
+          showUp: totales.showUp - Math.round(origen.walkin.showUp * factor),
+          pedidos: totales.pedidos - Math.round(origen.walkin.pedidos * factor),
+          matriculas: totales.matriculas - Math.round(origen.walkin.matriculas * factor),
+          share: origen.digital.share,
+        },
+        canales: origen.canales.map(c => ({ ...c, valor: Math.round(c.valor * factor) })),
+      }
+    : f.origen === 'walkin'
+      ? {
+          walkin: { ...totales, share: 1 },
+          digital: { oportunidades: 0, showUp: 0, pedidos: 0, matriculas: 0, share: 0 },
+          canales: origen.canales.map(c => ({ ...c, valor: 0 })),
+        }
+      : {
+          walkin: { oportunidades: 0, showUp: 0, pedidos: 0, matriculas: 0, share: 0 },
+          digital: { ...totales, share: 1 },
+          canales: repartirResto(totales.oportunidades, origen.canales),
+        }
+
+  return { datos, origen: origenFiltrado, sedeEfectiva }
+}
+
+// Reparto por resto mayor reutilizable — mismo criterio que usa calcularOrigen para
+// que los canales nunca sumen distinto al total digital.
+function repartirResto(total: number, canales: CanalDigital[]): CanalDigital[] {
+  const exactos = canales.map(c => total * c.share)
+  const pisos = exactos.map(Math.floor)
+  let sobrante = total - pisos.reduce((a, b) => a + b, 0)
+  const orden = exactos
+    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i)
+  const asignados = [...pisos]
+  for (const { i } of orden) {
+    if (sobrante <= 0) break
+    asignados[i] += 1
+    sobrante -= 1
+  }
+  return canales.map((c, i) => ({ ...c, valor: asignados[i] }))
+}
+
 export const formatearNumero = (n: number) => new Intl.NumberFormat('es-CO').format(n)
 export const formatearPct = (n: number) => `${Math.round(n * 100)}%`
 export const formatearMillones = (n: number) =>

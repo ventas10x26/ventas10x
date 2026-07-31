@@ -12,9 +12,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   PERIODOS, SEDES_OPCIONES, calcularDemo,
-  calcularKpis, calcularAsesores, serieDiaria, calcularOrigen,
+  calcularKpis, calcularAsesores, serieDiaria, calcularOrigen, GRUPO_CANAL_LABEL,
   formatearNumero, formatearPct, formatearMillones,
   type PeriodoId, type SedeId, type KpiDemo, type AsesorDemo, type PuntoDia,
+  type OrigenDemo, type CanalDigital,
 } from './datos'
 
 const FONT = "var(--font-inter), sans-serif"
@@ -57,7 +58,7 @@ export default function DemoPage() {
   const kpis = useMemo(() => calcularKpis(d), [d])
   const asesores = useMemo(() => calcularAsesores(sede, periodo), [sede, periodo])
   const serie = useMemo(() => serieDiaria(d, sede), [d, sede])
-  const origen = useMemo(() => calcularOrigen(d), [d])
+  const origen = useMemo(() => calcularOrigen(sede, periodo), [sede, periodo])
   const maxEmbudo = d.embudo[0].valor || 1
 
   return (
@@ -242,19 +243,19 @@ export default function DemoPage() {
                 </div>
 
                 {/* Volumen absoluto */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                {/* Cada card abre su total en las dos puertas de entrada. La suma de las
+                    dos barras es siempre el número de arriba — no es una estimación. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px', marginBottom: '16px' }}>
                   {[
-                    { label: 'Oportunidades', valor: d.totales.oportunidades, pie: 'entraron al embudo' },
-                    { label: 'Show up', valor: d.totales.showUp, pie: 'llegaron a la vitrina' },
-                    { label: 'Pedidos', valor: d.totales.pedidos, pie: 'con anticipo o reserva' },
-                    { label: 'Matrículas', valor: d.totales.matriculas, pie: 'entregadas y registradas' },
-                  ].map(k => (
-                    <div key={k.label} style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: '12px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '11px', color: DIM, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600, marginBottom: '6px' }}>{k.label}</div>
-                      <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', lineHeight: 1 }}>{formatearNumero(k.valor)}</div>
-                      <div style={{ fontSize: '11.5px', color: DIM, marginTop: '5px' }}>{k.pie}</div>
-                    </div>
-                  ))}
+                    { label: 'Oportunidades', valor: d.totales.oportunidades, w: origen.walkin.oportunidades, dg: origen.digital.oportunidades, pie: 'entraron al embudo' },
+                    { label: 'Show up',       valor: d.totales.showUp,        w: origen.walkin.showUp,        dg: origen.digital.showUp,        pie: 'llegaron a la vitrina' },
+                    { label: 'Pedidos',       valor: d.totales.pedidos,       w: origen.walkin.pedidos,       dg: origen.digital.pedidos,       pie: 'con anticipo o reserva' },
+                    { label: 'Matrículas',    valor: d.totales.matriculas,    w: origen.walkin.matriculas,    dg: origen.digital.matriculas,    pie: 'entregadas y registradas' },
+                  ].map(k => <CardConOrigen key={k.label} {...k} />)}
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <ComposicionOrigen origen={origen} total={d.totales.oportunidades} />
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
@@ -275,24 +276,9 @@ export default function DemoPage() {
 
             {seccion === 'funnel' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                <Panel titulo="Origen de la oportunidad" sub="De dónde llega el lead antes de entrar al embudo">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {origen.map(o => (
-                      <div key={o.label}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '5px' }}>
-                          <span style={{ fontSize: '13px', color: INK, fontWeight: 600 }}>{o.label}</span>
-                          <span style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <span style={{ fontSize: '12px', color: DIM }}>{formatearNumero(o.valor)}</span>
-                            <span style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 800, color: INK }}>{formatearPct(o.share)}</span>
-                          </span>
-                        </div>
-                        <div style={{ height: '9px', borderRadius: '5px', background: '#eef2f7', overflow: 'hidden' }}>
-                          <div className="pm-demo-barra" style={{ height: '100%', width: `${o.share * 100}%`, borderRadius: '5px', background: `linear-gradient(90deg, ${BLUE}, ${BLUE_2})` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Panel>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <ComposicionOrigen origen={origen} total={d.totales.oportunidades} />
+                </div>
                 <Panel titulo="Gestión diaria" sub="Cómo se movió el periodo, día por día">
                   <GraficoDiario serie={serie} />
                 </Panel>
@@ -438,6 +424,117 @@ const SECCIONES: { id: SeccionId; label: string; icono: string }[] = [
   { id: 'integralidad', label: 'Integralidad 360°', icono: '◈' },
   { id: 'vitrinas',     label: 'Vitrinas',          icono: '⌂' },
 ]
+
+const COLOR_WALKIN = '#0D9488'
+const COLOR_DIGITAL = BLUE
+
+// Card de volumen que además abre el total en sus dos puertas de entrada. La barra es una
+// sola, partida: se ve de un vistazo qué proporción del número vino de cada lado.
+function CardConOrigen({ label, valor, w, dg, pie }: { label: string; valor: number; w: number; dg: number; pie: string }) {
+  const total = valor || 1
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: '12px', padding: '14px 16px' }}>
+      <div style={{ fontSize: '11px', color: DIM, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600, marginBottom: '6px' }}>{label}</div>
+      <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', lineHeight: 1 }}>{formatearNumero(valor)}</div>
+      <div style={{ fontSize: '11.5px', color: DIM, margin: '5px 0 9px' }}>{pie}</div>
+
+      <div style={{ display: 'flex', height: '7px', borderRadius: '4px', overflow: 'hidden', background: '#eef2f7' }}>
+        <div className="pm-demo-barra" style={{ width: `${(w / total) * 100}%`, background: COLOR_WALKIN }} />
+        <div className="pm-demo-barra" style={{ width: `${(dg / total) * 100}%`, background: COLOR_DIGITAL }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '6px', fontSize: '11px' }}>
+        <span style={{ color: COLOR_WALKIN, fontWeight: 700 }}>{formatearNumero(w)} walk-in</span>
+        <span style={{ color: COLOR_DIGITAL, fontWeight: 700 }}>{formatearNumero(dg)} digital</span>
+      </div>
+    </div>
+  )
+}
+
+// Componente pedido explícitamente: deja escrito de dónde sale el total. No es un gráfico
+// más — su trabajo es que nadie tenga que adivinar qué cuenta como oportunidad.
+function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: number }) {
+  const grupos: CanalDigital['grupo'][] = ['redes', 'buscadores', 'sitio']
+
+  return (
+    <Panel titulo="De dónde salen las oportunidades" sub="Toda oportunidad entra por una de dos puertas. No hay una tercera.">
+
+      {/* La ecuación, escrita */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '13px 15px', borderRadius: '10px', background: '#f8fafc', border: `1px solid ${LINE}`, marginBottom: '18px' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
+          <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: COLOR_WALKIN }}>{formatearNumero(origen.walkin.oportunidades)}</span>
+          <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>walk-in</span>
+        </span>
+        <span style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 700 }}>+</span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
+          <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: COLOR_DIGITAL }}>{formatearNumero(origen.digital.oportunidades)}</span>
+          <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>digital</span>
+        </span>
+        <span style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 700 }}>=</span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
+          <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: INK }}>{formatearNumero(total)}</span>
+          <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>oportunidades</span>
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
+
+        {/* Walk-in */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '3px', background: COLOR_WALKIN, flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Walk-in</span>
+            <span style={{ marginLeft: 'auto', fontFamily: FONT, fontSize: '14px', fontWeight: 800, color: INK }}>{formatearPct(origen.walkin.share)}</span>
+          </div>
+          <div style={{ height: '8px', borderRadius: '4px', background: '#eef2f7', overflow: 'hidden', marginBottom: '9px' }}>
+            <div className="pm-demo-barra" style={{ height: '100%', width: `${origen.walkin.share * 100}%`, background: COLOR_WALKIN, borderRadius: '4px' }} />
+          </div>
+          <p style={{ fontSize: '12.5px', color: DIM, lineHeight: 1.55, margin: 0 }}>
+            La persona entró físicamente a la vitrina. No hubo pauta de por medio: es tráfico
+            de calle, referido o quien vuelve por su cuenta.
+          </p>
+        </div>
+
+        {/* Digital, abierto por canal */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '3px', background: COLOR_DIGITAL, flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Digital</span>
+            <span style={{ marginLeft: 'auto', fontFamily: FONT, fontSize: '14px', fontWeight: 800, color: INK }}>{formatearPct(origen.digital.share)}</span>
+          </div>
+          <div style={{ height: '8px', borderRadius: '4px', background: '#eef2f7', overflow: 'hidden', marginBottom: '12px' }}>
+            <div className="pm-demo-barra" style={{ height: '100%', width: `${origen.digital.share * 100}%`, background: COLOR_DIGITAL, borderRadius: '4px' }} />
+          </div>
+
+          {grupos.map(g => {
+            const canales = origen.canales.filter(c => c.grupo === g)
+            if (canales.length === 0) return null
+            return (
+              <div key={g} style={{ marginBottom: '11px' }}>
+                <div style={{ fontSize: '10.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '6px' }}>
+                  {GRUPO_CANAL_LABEL[g]}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {canales.map(c => (
+                    <span key={c.clave} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', padding: '4px 9px', borderRadius: '7px', border: `1px solid ${LINE}`, background: '#fff', fontSize: '11.5px', color: INK }}>
+                      {c.label}
+                      <span style={{ fontFamily: FONT, fontWeight: 800, color: COLOR_DIGITAL }}>{formatearNumero(c.valor)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <p style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.55, marginTop: '12px', marginBottom: 0 }}>
+        El walk-in pesa más a medida que se baja en el embudo: quien ya está parado frente al
+        auto llega a la prueba y firma más que quien dejó un dato en un aviso. Por eso su
+        participación en matrículas es mayor que en oportunidades.
+      </p>
+    </Panel>
+  )
+}
 
 // Tile de tasa contra meta. El color no decora: azul cuando llega a la meta, rojo cuando
 // no. Es la única lectura que un director necesita hacer de un vistazo.

@@ -339,14 +339,123 @@ export function serieDiaria(d: DatosDemo, sede: SedeId): PuntoDia[] {
   })
 }
 
-// Origen del lead. El split es del sector, no de ningún cliente puntual.
-export function calcularOrigen(d: DatosDemo): { label: string; valor: number; share: number }[] {
-  const opp = d.totales.oportunidades
-  const digital = r(opp * 0.58)
-  return [
-    { label: 'Digital', valor: digital, share: opp > 0 ? digital / opp : 0 },
-    { label: 'Walk-in', valor: opp - digital, share: opp > 0 ? (opp - digital) / opp : 0 },
-  ]
+// ── Origen de la oportunidad ─────────────────────────────────────────────────
+//
+// Toda oportunidad entra por una de dos puertas, y no hay una tercera:
+//   · Walk-in  — la persona entró físicamente a la vitrina.
+//   · Digital  — llegó por pauta en redes, por buscadores o por el sitio.
+//
+// La descomposición se calcula hacia atrás desde el total ya conocido: se reparte
+// cada métrica y el digital queda como el resto (total − walk-in). Así la suma da
+// exacta siempre, sin errores de redondeo que dejarían al panel diciendo que
+// 1.129 + 1.552 = 2.680 cuando en realidad da 2.681.
+
+export interface CanalDigital {
+  clave: string
+  label: string
+  grupo: 'redes' | 'buscadores' | 'sitio'
+  valor: number
+  share: number
+}
+
+export interface OrigenDemo {
+  walkin: { oportunidades: number; showUp: number; pedidos: number; matriculas: number; share: number }
+  digital: { oportunidades: number; showUp: number; pedidos: number; matriculas: number; share: number }
+  canales: CanalDigital[]
+}
+
+// Peso de cada canal dentro del tráfico digital. Suma 1.
+const CANALES_DIGITALES: { clave: string; label: string; grupo: CanalDigital['grupo']; peso: number }[] = [
+  { clave: 'instagram',  label: 'Instagram',           grupo: 'redes',       peso: 0.24 },
+  { clave: 'facebook',   label: 'Facebook',            grupo: 'redes',       peso: 0.22 },
+  { clave: 'whatsapp',   label: 'WhatsApp',            grupo: 'redes',       peso: 0.17 },
+  { clave: 'tiktok',     label: 'TikTok',              grupo: 'redes',       peso: 0.11 },
+  { clave: 'buscadores', label: 'Buscadores',          grupo: 'buscadores',  peso: 0.14 },
+  { clave: 'formulario', label: 'Formulario del sitio', grupo: 'sitio',      peso: 0.08 },
+  { clave: 'bot',        label: 'Bot del sitio',       grupo: 'sitio',       peso: 0.04 },
+]
+
+export const GRUPO_CANAL_LABEL: Record<CanalDigital['grupo'], string> = {
+  redes: 'Pauta en redes sociales',
+  buscadores: 'Buscadores',
+  sitio: 'Sitio web propio',
+}
+
+// Share de walk-in sobre las oportunidades, por sede. Una vitrina sobre avenida
+// recibe más tráfico de calle que una en un centro comercial cerrado.
+const SHARE_WALKIN: Record<Exclude<SedeId, 'todas'>, number> = {
+  norte: 0.40, centro: 0.34, sur: 0.47,
+}
+
+// El walk-in sobre-indexa a medida que se baja en el embudo: quien ya está parado
+// frente al auto llega a la prueba y firma más que quien dejó un dato en un aviso.
+// No es un supuesto neutro, así que queda escrito acá y no enterrado en la vista.
+const VENTAJA_WALKIN = { showUp: 1.30, pedidos: 1.22, matriculas: 1.15 }
+
+export function calcularOrigen(sede: SedeId, periodo: PeriodoId): OrigenDemo {
+  const d = calcularDemo(sede, periodo)
+  const activas = sede === 'todas' ? SEDES_BASE : SEDES_BASE.filter(s => s.id === sede)
+
+  // Share de walk-in ponderado por el volumen de cada sede activa.
+  const totalOpp = activas.reduce((a, s) => a + s.oportunidades, 0)
+  const shareWalkin = totalOpp > 0
+    ? activas.reduce((a, s) => a + s.oportunidades * SHARE_WALKIN[s.id], 0) / totalOpp
+    : 0
+
+  // Reparte una métrica entre las dos puertas, dándole al walk-in la ventaja que
+  // corresponda a esa altura del embudo. El digital es siempre el resto.
+  const repartir = (total: number, ventaja: number) => {
+    const pesoW = shareWalkin * ventaja
+    const pesoD = 1 - shareWalkin
+    const share = pesoW + pesoD > 0 ? pesoW / (pesoW + pesoD) : 0
+    const walkin = r(total * share)
+    return { walkin, digital: total - walkin }
+  }
+
+  const opp = repartir(d.totales.oportunidades, 1)
+  const su  = repartir(d.totales.showUp, VENTAJA_WALKIN.showUp)
+  const ped = repartir(d.totales.pedidos, VENTAJA_WALKIN.pedidos)
+  const mat = repartir(d.totales.matriculas, VENTAJA_WALKIN.matriculas)
+
+  // Reparto por resto mayor (Hamilton). Redondear cada canal por su cuenta hacía que
+  // la suma se desviara del total digital en 1 o 2 unidades según el filtro — el panel
+  // mostraba siete canales que sumaban 1.616 debajo de un digital de 1.615. Acá se
+  // reparten los enteros por piso y las unidades sobrantes van a los canales con mayor
+  // parte fraccionaria, así la suma da exacta en cualquier combinación de filtros.
+  const totalDigital = opp.digital
+  const exactos = CANALES_DIGITALES.map(c => totalDigital * c.peso)
+  const pisos = exactos.map(Math.floor)
+  let sobrante = totalDigital - pisos.reduce((a, b) => a + b, 0)
+  const orden = exactos
+    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i)
+  const asignados = [...pisos]
+  for (const { i } of orden) {
+    if (sobrante <= 0) break
+    asignados[i] += 1
+    sobrante -= 1
+  }
+
+  const canales: CanalDigital[] = CANALES_DIGITALES.map((c, i) => ({
+    clave: c.clave,
+    label: c.label,
+    grupo: c.grupo,
+    valor: asignados[i],
+    share: c.peso,
+  }))
+
+  const den = d.totales.oportunidades || 1
+  return {
+    walkin: {
+      oportunidades: opp.walkin, showUp: su.walkin, pedidos: ped.walkin, matriculas: mat.walkin,
+      share: opp.walkin / den,
+    },
+    digital: {
+      oportunidades: opp.digital, showUp: su.digital, pedidos: ped.digital, matriculas: mat.digital,
+      share: opp.digital / den,
+    },
+    canales,
+  }
 }
 
 export const formatearNumero = (n: number) => new Intl.NumberFormat('es-CO').format(n)

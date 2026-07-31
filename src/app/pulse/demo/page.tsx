@@ -8,6 +8,9 @@
 // Todos los datos salen de ./datos.ts y son sintéticos — ver la regla dura documentada ahí.
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
+//
+// Tema oscuro. Toda la paleta sale de las constantes de abajo: no meter hex sueltos en el
+// JSX, porque después cambiar el fondo obliga a recorrer 900 líneas a mano.
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
@@ -21,11 +24,29 @@ import {
 
 const FONT = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
-const BLUE = '#2563EB'
-const BLUE_2 = '#1D4ED8'
-const INK = '#0f172a'
-const DIM = '#64748b'
-const LINE = '#e3e8f0'
+
+// Azul un punto más claro que el de la landing: el #2563EB sobre fondo negro pierde
+// legibilidad cuando se usa como color de texto (porcentajes, chips activos).
+const BLUE = '#3B82F6'
+const BLUE_2 = '#2563EB'
+
+const INK = '#E6EBF5'
+const DIM = '#93A3BE'
+const MUTED = '#7F8FAE'
+const LINE = 'rgba(255,255,255,0.09)'
+const ROW_LINE = 'rgba(255,255,255,0.06)'
+const TRACK = 'rgba(255,255,255,0.08)'
+
+// Tres niveles de superficie a propósito. Un solo gris para todo deja el panel plano y se
+// pierde el borde entre el lienzo y las tarjetas.
+const BG = '#080B14'       // fondo de página
+const SURFACE = '#0D1220'  // lienzo de contenido dentro del marco de app
+const CARD = '#131A2B'     // tarjetas, paneles, barra superior
+const CARD_2 = '#182034'   // elevado: listas desplegables, botones secundarios
+const SIDE = '#0A0F1C'     // barra lateral
+
+const RED = '#F87171'
+const AMBER = '#FBBF24'
 
 const CLAVE_DESBLOQUEO = 'pulse_demo_registrado'
 
@@ -68,18 +89,24 @@ export default function DemoPage() {
   const maxEmbudo = d.embudo[0].valor || 1
 
   return (
-    <div style={{ background: '#f8f9fb', minHeight: '100vh', fontFamily: FONT_BODY }}>
+    <div style={{ background: BG, minHeight: '100vh', fontFamily: FONT_BODY, colorScheme: 'dark' }}>
+      {/* Sin interpolación de template literal acá dentro: el SWC de Next 15 falla al
+          compilar expresiones dentro de un <style> en JSX. Los colores van literales. */}
       <style>{`
+        body { background: #080B14; }
         .pm-demo-chip { transition: border-color .15s ease, color .15s ease, background .15s ease; }
         .pm-demo-barra { transition: width .35s cubic-bezier(.2,.7,.3,1); }
         .pm-demo-cta { transition: transform .15s ease, box-shadow .15s ease; }
-        .pm-demo-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(37,99,235,0.32); }
+        .pm-demo-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(37,99,235,0.45); }
         .pm-demo-nav { transition: background .15s ease, color .15s ease; }
         .pm-demo-nav:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
         .pm-demo-accion { transition: border-color .15s ease, color .15s ease; }
-        .pm-demo-accion:hover { border-color: #2563EB !important; color: #2563EB !important; }
+        .pm-demo-accion:hover { border-color: #3B82F6 !important; color: #7DA9FF !important; }
         .pm-demo-opcion { transition: background .12s ease; }
-        .pm-demo-opcion:hover { background: #f1f5f9 !important; }
+        .pm-demo-opcion:hover { background: rgba(255,255,255,0.07) !important; }
+        /* El placeholder por defecto queda casi negro sobre el input oscuro del registro. */
+        .pm-demo-gate input::placeholder { color: #5C6B87; }
+        .pm-demo-gate input:focus { border-color: #3B82F6; }
         @media (prefers-reduced-motion: reduce) {
           .pm-demo-chip, .pm-demo-barra, .pm-demo-cta, .pm-demo-nav { transition: none; }
           .pm-demo-cta:hover { transform: none; }
@@ -97,7 +124,7 @@ export default function DemoPage() {
       `}</style>
 
       {/* Barra superior: marca + salida al producto real */}
-      <div style={{ borderBottom: `1px solid ${LINE}`, background: '#fff' }}>
+      <div style={{ borderBottom: `1px solid ${LINE}`, background: CARD }}>
         <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <a href="/pulse" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <span style={{ width: '32px', height: '32px', borderRadius: '9px', background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -121,7 +148,7 @@ export default function DemoPage() {
             esto tiene que saber desde el primer segundo que no está viendo un cliente real. */}
         {!soloPanel && (
           <>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.34)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
               Demo · datos simulados
             </div>
             <h1 style={{ fontFamily: FONT, fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.06, margin: '0 0 10px', color: INK }}>
@@ -132,9 +159,9 @@ export default function DemoPage() {
             </p>
           </>
         )}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px 14px', marginBottom: '24px', maxWidth: '76ch' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: '10px', padding: '10px 14px', marginBottom: '24px', maxWidth: '76ch' }}>
           <span style={{ fontSize: '13px', lineHeight: 1.5 }} aria-hidden="true">⚠️</span>
-          <span style={{ fontSize: '12.5px', color: '#78350f', lineHeight: 1.55 }}>
+          <span style={{ fontSize: '12.5px', color: AMBER, lineHeight: 1.55 }}>
             Cifras generadas para esta demostración. No corresponden a ningún concesionario, asesor, marca ni modelo real — los datos de cada cliente son suyos y no se muestran acá.
           </span>
         </div>
@@ -155,10 +182,10 @@ export default function DemoPage() {
 
         {/* Marco de aplicación: barra lateral + contenido. La idea es que se lea como el
             producto abierto, no como una lámina de marketing con gráficos. */}
-        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: '#fff' }}>
+        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: SURFACE }}>
 
           {/* Navegación del workspace */}
-          <aside className="pm-demo-side" style={{ background: '#0f1729', padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <div style={{ padding: '0 10px 14px', display: 'flex', alignItems: 'center', gap: '9px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px' }}>
               <span style={{ width: '28px', height: '28px', borderRadius: '8px', background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
@@ -167,11 +194,11 @@ export default function DemoPage() {
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: FONT, fontSize: '13px', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>Panel demo</div>
-                <div style={{ fontSize: '10.5px', color: '#7c8db5' }}>Análisis 360°</div>
+                <div style={{ fontSize: '10.5px', color: '#7C8DB5' }}>Análisis 360°</div>
               </div>
             </div>
 
-            <div style={{ padding: '0 10px 8px', fontSize: '10px', color: '#5c6d94', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>Workspace</div>
+            <div style={{ padding: '0 10px 8px', fontSize: '10px', color: '#5C6D94', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>Workspace</div>
             {SECCIONES.map(s => (
               <button
                 key={s.id}
@@ -180,8 +207,8 @@ export default function DemoPage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
                   padding: '9px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                  background: seccion === s.id ? 'rgba(37,99,235,0.22)' : 'transparent',
-                  color: seccion === s.id ? '#fff' : '#93a3c4',
+                  background: seccion === s.id ? 'rgba(59,130,246,0.24)' : 'transparent',
+                  color: seccion === s.id ? '#fff' : '#93A3C4',
                   fontSize: '12.5px', fontWeight: seccion === s.id ? 700 : 500,
                   fontFamily: FONT_BODY, textAlign: 'left',
                 }}
@@ -192,14 +219,14 @@ export default function DemoPage() {
             ))}
 
             <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
-              <div style={{ padding: '10px', borderRadius: '9px', background: 'rgba(255,255,255,0.05)', fontSize: '11px', color: '#93a3c4', lineHeight: 1.5 }}>
+              <div style={{ padding: '10px', borderRadius: '9px', background: 'rgba(255,255,255,0.05)', fontSize: '11px', color: '#93A3C4', lineHeight: 1.5 }}>
                 Cifras simuladas. Tus datos quedan solo en tu cuenta.
               </div>
             </div>
           </aside>
 
           {/* Contenido */}
-          <div style={{ minWidth: 0, background: '#f8f9fb' }}>
+          <div style={{ minWidth: 0, background: SURFACE }}>
 
             <BarraFiltros
               seccion={SECCIONES.find(s => s.id === seccion)?.label ?? ''}
@@ -281,11 +308,11 @@ export default function DemoPage() {
                       )}
                     </span>
                   </div>
-                  <div style={{ height: '9px', borderRadius: '5px', background: '#eef2f7', overflow: 'hidden' }}>
+                  <div style={{ height: '9px', borderRadius: '5px', background: TRACK, overflow: 'hidden' }}>
                     <div className="pm-demo-barra" style={{ height: '100%', width: `${Math.min(100, (e.valor / maxEmbudo) * 100)}%`, borderRadius: '5px', background: `linear-gradient(90deg, ${BLUE}, ${BLUE_2})` }} />
                   </div>
                   {e.base && (
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>sobre {e.base}</div>
+                    <div style={{ fontSize: '11px', color: MUTED, marginTop: '4px' }}>sobre {e.base}</div>
                   )}
                 </div>
               ))}
@@ -307,10 +334,10 @@ export default function DemoPage() {
                       <span style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 800, color: INK }}>{formatearPct(l.penetracion)}</span>
                     </span>
                   </div>
-                  <div style={{ height: '9px', borderRadius: '5px', background: '#eef2f7', overflow: 'hidden' }}>
+                  <div style={{ height: '9px', borderRadius: '5px', background: TRACK, overflow: 'hidden' }}>
                     <div className="pm-demo-barra" style={{ height: '100%', width: `${Math.min(100, l.penetracion * 100)}%`, borderRadius: '5px', background: l.color }} />
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{formatearMillones(l.valor)} asociados</div>
+                  <div style={{ fontSize: '11px', color: MUTED, marginTop: '4px' }}>{formatearMillones(l.valor)} asociados</div>
                 </div>
               ))}
             </div>
@@ -324,11 +351,11 @@ export default function DemoPage() {
           {/* Sedes */}
           <Panel titulo="Rendimiento por sede" sub="Conversión de oportunidad a matrícula">
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 0.9fr', gap: '8px', paddingBottom: '8px', borderBottom: `1px solid ${LINE}`, fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 0.9fr', gap: '8px', paddingBottom: '8px', borderBottom: `1px solid ${LINE}`, fontSize: '11px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
                 <span>Sede</span><span style={{ textAlign: 'right' }}>Oport.</span><span style={{ textAlign: 'right' }}>Matríc.</span><span style={{ textAlign: 'right' }}>Conv.</span>
               </div>
               {d.sedes.map(s => (
-                <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 0.9fr', gap: '8px', padding: '11px 0', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: INK, alignItems: 'center' }}>
+                <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 0.9fr', gap: '8px', padding: '11px 0', borderBottom: `1px solid ${ROW_LINE}`, fontSize: '13px', color: INK, alignItems: 'center' }}>
                   <span style={{ fontWeight: 600 }}>{s.nombre}</span>
                   <span style={{ textAlign: 'right', color: DIM }}>{formatearNumero(s.oportunidades)}</span>
                   <span style={{ textAlign: 'right', color: DIM }}>{formatearNumero(s.matriculas)}</span>
@@ -350,7 +377,7 @@ export default function DemoPage() {
                       <span style={{ fontFamily: FONT, fontSize: '14px', fontWeight: 800, color: INK }}>{formatearPct(s.share)}</span>
                     </span>
                   </div>
-                  <div style={{ height: '9px', borderRadius: '5px', background: '#eef2f7', overflow: 'hidden' }}>
+                  <div style={{ height: '9px', borderRadius: '5px', background: TRACK, overflow: 'hidden' }}>
                     <div className="pm-demo-barra" style={{ height: '100%', width: `${s.share * 100}%`, borderRadius: '5px', background: `linear-gradient(90deg, ${BLUE}, ${BLUE_2})` }} />
                   </div>
                 </div>
@@ -365,7 +392,7 @@ export default function DemoPage() {
         </div>{/* fin del marco de aplicación */}
 
         {/* Cierre */}
-        <div style={{ display: soloPanel ? 'none' : 'flex', marginTop: '28px', background: '#fff', border: `1px solid ${LINE}`, borderRadius: '16px', padding: '26px', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: soloPanel ? 'none' : 'flex', marginTop: '28px', background: CARD, border: `1px solid ${LINE}`, borderRadius: '16px', padding: '26px', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ maxWidth: '62ch' }}>
             <div style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: INK, marginBottom: '6px' }}>
               Este panel sale de tus propias planillas
@@ -390,7 +417,7 @@ export default function DemoPage() {
 const accionBarra: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: '6px',
   padding: '5px 11px', borderRadius: '8px',
-  border: `1px solid ${LINE}`, background: '#fff', color: DIM,
+  border: `1px solid ${LINE}`, background: CARD_2, color: DIM,
   fontSize: '11.5px', fontWeight: 700, fontFamily: FONT_BODY, cursor: 'pointer',
 }
 
@@ -428,7 +455,7 @@ function BarraFiltros({
     filtros.asesor !== 'todos' || filtros.origen !== 'todos' || filtros.categoria !== 'todas'
 
   return (
-    <div style={{ background: '#fff', borderBottom: `1px solid ${LINE}` }}>
+    <div style={{ background: CARD, borderBottom: `1px solid ${LINE}` }}>
 
       {/* Identidad + estado de los datos */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '14px 18px' }}>
@@ -450,7 +477,7 @@ function BarraFiltros({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.22)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.32)' }}>
             <span style={{ width: '7px', height: '7px', background: BLUE, flexShrink: 0 }} />
             <span style={{ fontSize: '11.5px', fontWeight: 800, color: BLUE, letterSpacing: '0.3px' }}>
               {formatearNumero(oportunidades)} OPORTUNIDADES
@@ -515,7 +542,7 @@ function BarraFiltros({
                   style={{
                     padding: '5px 10px', borderRadius: '7px', cursor: 'pointer',
                     border: `1px solid ${activo ? BLUE : LINE}`,
-                    background: activo ? 'rgba(37,99,235,0.08)' : '#fff',
+                    background: activo ? 'rgba(59,130,246,0.16)' : 'transparent',
                     color: activo ? BLUE : DIM,
                     fontSize: '12px', fontWeight: activo ? 700 : 500, fontFamily: FONT_BODY,
                   }}
@@ -537,24 +564,26 @@ function BarraFiltros({
       </div>
 
       {/* Acciones */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '10px 18px', borderTop: `1px solid ${LINE}`, background: '#fbfcfd' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '10px 18px', borderTop: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.02)' }}>
         <button
           onClick={onLimpiar}
           disabled={!hayFiltros}
           style={{
             border: 'none', background: 'transparent', cursor: hayFiltros ? 'pointer' : 'default',
-            color: hayFiltros ? DIM : '#cbd5e1', fontSize: '11.5px', fontWeight: 700,
+            color: hayFiltros ? DIM : '#3D4A63', fontSize: '11.5px', fontWeight: 700,
             letterSpacing: '0.4px', textTransform: 'uppercase', fontFamily: FONT_BODY,
             padding: '6px 4px',
           }}
         >
           Limpiar filtros
         </button>
+        {/* Va con pm-demo-cta y no con pm-demo-accion: el hover de accion pinta el texto de
+            azul, y sobre un botón azul el texto desaparecería. */}
         <button
           onClick={onActualizar}
-          className="pm-demo-accion"
+          className="pm-demo-cta"
           title="Vuelve a leer los datos y actualiza la hora de sincronización"
-          style={{ ...accionBarra, background: '#0f1729', color: '#fff', border: '1px solid #0f1729' }}
+          style={{ ...accionBarra, background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', border: `1px solid ${BLUE}` }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" />
@@ -569,7 +598,7 @@ function BarraFiltros({
 function CampoFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div style={{ padding: '11px 16px', borderRight: `1px solid ${LINE}`, minWidth: 0 }}>
-      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.9px', fontWeight: 700, marginBottom: '6px' }}>
+      <div style={{ fontSize: '10px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.9px', fontWeight: 700, marginBottom: '6px' }}>
         {titulo}
       </div>
       {children}
@@ -638,8 +667,8 @@ function SelectFiltro({ valor, onChange, opciones }: {
           role="listbox"
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: '-6px', minWidth: 'calc(100% + 12px)',
-            background: '#fff', border: `1px solid ${LINE}`, borderRadius: '10px',
-            boxShadow: '0 12px 28px rgba(15,23,42,0.14)', padding: '5px',
+            background: CARD_2, border: `1px solid ${LINE}`, borderRadius: '10px',
+            boxShadow: '0 16px 34px rgba(0,0,0,0.55)', padding: '5px',
             zIndex: 50, maxHeight: '260px', overflowY: 'auto', whiteSpace: 'nowrap',
           }}
         >
@@ -656,7 +685,7 @@ function SelectFiltro({ valor, onChange, opciones }: {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
                   padding: '8px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                  background: activo ? 'rgba(37,99,235,0.09)' : 'transparent',
+                  background: activo ? 'rgba(59,130,246,0.18)' : 'transparent',
                   color: activo ? BLUE : INK,
                   fontSize: '13px', fontWeight: activo ? 700 : 500,
                   fontFamily: FONT_BODY, textAlign: 'left',
@@ -676,20 +705,23 @@ function SelectFiltro({ valor, onChange, opciones }: {
   )
 }
 
-const COLOR_WALKIN = '#0D9488'
+// Teal más claro que el original (#0D9488): sobre fondo oscuro ese verde se apaga y deja
+// de leerse como etiqueta de texto.
+const COLOR_WALKIN = '#2DD4BF'
 const COLOR_DIGITAL = BLUE
+const COLOR_CITAS = '#A78BFA'
 
 // Card de volumen que además abre el total en sus dos puertas de entrada. La barra es una
 // sola, partida: se ve de un vistazo qué proporción del número vino de cada lado.
 function CardConOrigen({ label, valor, w, dg, pie }: { label: string; valor: number; w: number; dg: number; pie: string }) {
   const total = valor || 1
   return (
-    <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: '12px', padding: '14px 16px' }}>
+    <div style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: '12px', padding: '14px 16px' }}>
       <div style={{ fontSize: '11px', color: DIM, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 600, marginBottom: '6px' }}>{label}</div>
       <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', lineHeight: 1 }}>{formatearNumero(valor)}</div>
       <div style={{ fontSize: '11.5px', color: DIM, margin: '5px 0 9px' }}>{pie}</div>
 
-      <div style={{ display: 'flex', height: '7px', borderRadius: '4px', overflow: 'hidden', background: '#eef2f7' }}>
+      <div style={{ display: 'flex', height: '7px', borderRadius: '4px', overflow: 'hidden', background: TRACK }}>
         <div className="pm-demo-barra" style={{ width: `${(w / total) * 100}%`, background: COLOR_WALKIN }} />
         <div className="pm-demo-barra" style={{ width: `${(dg / total) * 100}%`, background: COLOR_DIGITAL }} />
       </div>
@@ -710,17 +742,17 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
     <Panel titulo="De dónde salen las oportunidades" sub="Toda oportunidad entra por una de dos puertas. No hay una tercera.">
 
       {/* La ecuación, escrita */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '13px 15px', borderRadius: '10px', background: '#f8fafc', border: `1px solid ${LINE}`, marginBottom: '18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '13px 15px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${LINE}`, marginBottom: '18px' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
           <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: COLOR_WALKIN }}>{formatearNumero(origen.walkin.oportunidades)}</span>
           <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>walk-in</span>
         </span>
-        <span style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 700 }}>+</span>
+        <span style={{ fontSize: '15px', color: MUTED, fontWeight: 700 }}>+</span>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
           <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: COLOR_DIGITAL }}>{formatearNumero(origen.digital.oportunidades)}</span>
           <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>digital</span>
         </span>
-        <span style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 700 }}>=</span>
+        <span style={{ fontSize: '15px', color: MUTED, fontWeight: 700 }}>=</span>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
           <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: INK }}>{formatearNumero(total)}</span>
           <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>oportunidades</span>
@@ -736,7 +768,7 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
             <span style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Walk-in</span>
             <span style={{ marginLeft: 'auto', fontFamily: FONT, fontSize: '14px', fontWeight: 800, color: INK }}>{formatearPct(origen.walkin.share)}</span>
           </div>
-          <div style={{ height: '8px', borderRadius: '4px', background: '#eef2f7', overflow: 'hidden', marginBottom: '9px' }}>
+          <div style={{ height: '8px', borderRadius: '4px', background: TRACK, overflow: 'hidden', marginBottom: '9px' }}>
             <div className="pm-demo-barra" style={{ height: '100%', width: `${origen.walkin.share * 100}%`, background: COLOR_WALKIN, borderRadius: '4px' }} />
           </div>
           <p style={{ fontSize: '12.5px', color: DIM, lineHeight: 1.55, margin: 0 }}>
@@ -752,7 +784,7 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
             <span style={{ fontSize: '13px', fontWeight: 700, color: INK }}>Digital</span>
             <span style={{ marginLeft: 'auto', fontFamily: FONT, fontSize: '14px', fontWeight: 800, color: INK }}>{formatearPct(origen.digital.share)}</span>
           </div>
-          <div style={{ height: '8px', borderRadius: '4px', background: '#eef2f7', overflow: 'hidden', marginBottom: '12px' }}>
+          <div style={{ height: '8px', borderRadius: '4px', background: TRACK, overflow: 'hidden', marginBottom: '12px' }}>
             <div className="pm-demo-barra" style={{ height: '100%', width: `${origen.digital.share * 100}%`, background: COLOR_DIGITAL, borderRadius: '4px' }} />
           </div>
 
@@ -761,12 +793,12 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
             if (canales.length === 0) return null
             return (
               <div key={g} style={{ marginBottom: '11px' }}>
-                <div style={{ fontSize: '10.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '6px' }}>
+                <div style={{ fontSize: '10.5px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '6px' }}>
                   {GRUPO_CANAL_LABEL[g]}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {canales.map(c => (
-                    <span key={c.clave} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', padding: '4px 9px', borderRadius: '7px', border: `1px solid ${LINE}`, background: '#fff', fontSize: '11.5px', color: INK }}>
+                    <span key={c.clave} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', padding: '4px 9px', borderRadius: '7px', border: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)', fontSize: '11.5px', color: INK }}>
                       {c.label}
                       <span style={{ fontFamily: FONT, fontWeight: 800, color: COLOR_DIGITAL }}>{formatearNumero(c.valor)}</span>
                     </span>
@@ -778,7 +810,7 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
         </div>
       </div>
 
-      <p style={{ fontSize: '11.5px', color: '#94a3b8', lineHeight: 1.55, marginTop: '12px', marginBottom: 0 }}>
+      <p style={{ fontSize: '11.5px', color: MUTED, lineHeight: 1.55, marginTop: '12px', marginBottom: 0 }}>
         El walk-in pesa más a medida que se baja en el embudo: quien ya está parado frente al
         auto llega a la prueba y firma más que quien dejó un dato en un aviso. Por eso su
         participación en matrículas es mayor que en oportunidades.
@@ -791,19 +823,19 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
 // no. Es la única lectura que un director necesita hacer de un vistazo.
 function KpiTile({ k }: { k: KpiDemo }) {
   const cumple = k.cumplimiento >= 1
-  const color = cumple ? BLUE : '#e5484d'
+  const color = cumple ? BLUE : RED
   return (
-    <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: '12px', padding: '13px 15px' }}>
+    <div style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: '12px', padding: '13px 15px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '7px' }}>
         <span style={{ fontSize: '10.5px', color: DIM, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>{k.label}</span>
-        <span style={{ fontSize: '10px', fontWeight: 800, color, background: cumple ? 'rgba(37,99,235,0.10)' : 'rgba(229,72,77,0.10)', padding: '2px 6px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '10px', fontWeight: 800, color, background: cumple ? 'rgba(59,130,246,0.16)' : 'rgba(248,113,113,0.16)', padding: '2px 6px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
           {Math.round(k.cumplimiento * 100)}%
         </span>
       </div>
       <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', lineHeight: 1 }}>
         {formatearPct(k.valor)}
       </div>
-      <div style={{ height: '5px', borderRadius: '3px', background: '#eef2f7', overflow: 'hidden', margin: '9px 0 6px' }}>
+      <div style={{ height: '5px', borderRadius: '3px', background: TRACK, overflow: 'hidden', margin: '9px 0 6px' }}>
         <div className="pm-demo-barra" style={{ height: '100%', width: `${Math.min(100, k.cumplimiento * 100)}%`, borderRadius: '3px', background: color }} />
       </div>
       <div style={{ fontSize: '10.5px', color: DIM }}>Meta {formatearPct(k.meta)} · {k.pie}</div>
@@ -829,8 +861,8 @@ function GraficoDiario({ serie }: { serie: PuntoDia[] }) {
       <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginBottom: '10px' }}>
         {[
           { label: 'Oportunidades', color: BLUE },
-          { label: 'Citas', color: '#7C3AED' },
-          { label: 'Matrículas', color: '#0D9488' },
+          { label: 'Citas', color: COLOR_CITAS },
+          { label: 'Matrículas', color: COLOR_WALKIN },
         ].map(l => (
           <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: DIM }}>
             <span style={{ width: '9px', height: '3px', borderRadius: '2px', background: l.color }} />
@@ -840,21 +872,21 @@ function GraficoDiario({ serie }: { serie: PuntoDia[] }) {
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="170" role="img" aria-label="Movimiento diario de oportunidades, citas y matrículas">
         {[0.25, 0.5, 0.75, 1].map(g => (
-          <line key={g} x1="0" x2={W} y1={y(maxY * g)} y2={y(maxY * g)} stroke="#eef2f7" strokeWidth="1" />
+          <line key={g} x1="0" x2={W} y1={y(maxY * g)} y2={y(maxY * g)} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
         ))}
         {serie.map((p, i) => (
           <rect
             key={p.dia}
             x={x(i) - anchoBarra / 2} width={anchoBarra}
             y={y(p.matriculas)} height={Math.max(0, H - PB - y(p.matriculas))}
-            fill="#0D9488" opacity="0.5" rx="1"
+            fill={COLOR_WALKIN} opacity="0.45" rx="1"
           />
         ))}
-        <path d={linea('citas')} fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinejoin="round" />
+        <path d={linea('citas')} fill="none" stroke={COLOR_CITAS} strokeWidth="2" strokeLinejoin="round" />
         <path d={linea('oportunidades')} fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinejoin="round" />
-        <line x1="0" x2={W} y1={H - PB} y2={H - PB} stroke={LINE} strokeWidth="1" />
+        <line x1="0" x2={W} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
         {serie.filter((_, i) => i % 6 === 0).map((p, k) => (
-          <text key={p.dia} x={x(k * 6)} y={H - 6} fontSize="10" fill="#94a3b8" textAnchor="middle">{p.dia}</text>
+          <text key={p.dia} x={x(k * 6)} y={H - 6} fontSize="10" fill={MUTED} textAnchor="middle">{p.dia}</text>
         ))}
       </svg>
     </div>
@@ -866,7 +898,7 @@ function TablaAsesores({ filas }: { filas: AsesorDemo[] }) {
   return (
     <div style={{ overflowX: 'auto' }}>
       <div style={{ minWidth: '460px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 1fr', gap: '8px', paddingBottom: '8px', borderBottom: `1px solid ${LINE}`, fontSize: '10.5px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 1fr', gap: '8px', paddingBottom: '8px', borderBottom: `1px solid ${LINE}`, fontSize: '10.5px', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
           <span>Asesor</span>
           <span>Vitrina</span>
           <span style={{ textAlign: 'right' }}>Oport.</span>
@@ -874,13 +906,13 @@ function TablaAsesores({ filas }: { filas: AsesorDemo[] }) {
           <span style={{ textAlign: 'right' }}>Conversión</span>
         </div>
         {filas.map(f => (
-          <div key={f.alias} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 1fr', gap: '8px', padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px', color: INK, alignItems: 'center' }}>
+          <div key={f.alias} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.8fr 0.8fr 1fr', gap: '8px', padding: '10px 0', borderBottom: `1px solid ${ROW_LINE}`, fontSize: '12.5px', color: INK, alignItems: 'center' }}>
             <span style={{ fontWeight: 700 }}>{f.alias}</span>
             <span style={{ color: DIM }}>{f.sede}</span>
             <span style={{ textAlign: 'right', color: DIM }}>{formatearNumero(f.oportunidades)}</span>
             <span style={{ textAlign: 'right', color: DIM }}>{formatearNumero(f.matriculas)}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-              <span style={{ flex: 1, maxWidth: '60px', height: '5px', borderRadius: '3px', background: '#eef2f7', overflow: 'hidden' }}>
+              <span style={{ flex: 1, maxWidth: '60px', height: '5px', borderRadius: '3px', background: TRACK, overflow: 'hidden' }}>
                 <span style={{ display: 'block', height: '100%', width: `${(f.conversion / maxConv) * 100}%`, background: BLUE, borderRadius: '3px' }} />
               </span>
               <span style={{ fontWeight: 800, color: BLUE, minWidth: '34px', textAlign: 'right' }}>{formatearPct(f.conversion)}</span>
@@ -888,7 +920,7 @@ function TablaAsesores({ filas }: { filas: AsesorDemo[] }) {
           </div>
         ))}
       </div>
-      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '10px', lineHeight: 1.5 }}>
+      <div style={{ fontSize: '11px', color: MUTED, marginTop: '10px', lineHeight: 1.5 }}>
         Los alias no corresponden a ninguna persona real. En tu cuenta verías tus asesores, con sus nombres y su histórico.
       </div>
     </div>
@@ -935,33 +967,34 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
 
   const input: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: '9px',
-    border: `1px solid ${LINE}`, background: '#fff', color: INK,
+    border: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)', color: INK,
     fontSize: '13.5px', fontFamily: FONT_BODY, outline: 'none',
   }
   const label: React.CSSProperties = {
-    display: 'block', fontSize: '11.5px', fontWeight: 600, color: '#475569',
+    display: 'block', fontSize: '11.5px', fontWeight: 600, color: DIM,
     marginBottom: '5px', fontFamily: FONT_BODY,
   }
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', justifyContent: 'center', paddingTop: '30px' }}>
-      {/* Velo sobre el panel difuminado: azul muy tenue con algo de oscuridad, para
-          que el contenido de atrás se lea como apagado y el formulario quede al
-          frente. No intercepta clicks — el panel de atrás ya está inerte. */}
+      {/* Velo sobre el panel difuminado: azul muy tenue sobre negro, para que el contenido
+          de atrás se lea como apagado y el formulario quede al frente. No intercepta
+          clicks — el panel de atrás ya está inerte. */}
       <div
         aria-hidden="true"
         style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(180deg, rgba(37,99,235,0.13) 0%, rgba(37,99,235,0.09) 100%), rgba(10,14,26,0.22)',
+          background: 'linear-gradient(180deg, rgba(37,99,235,0.14) 0%, rgba(8,11,20,0.55) 100%)',
         }}
       />
       <form
         onSubmit={enviar}
+        className="pm-demo-gate"
         style={{
           position: 'sticky', top: '30px', alignSelf: 'flex-start', zIndex: 1,
           width: '100%', maxWidth: '440px', height: 'fit-content',
-          background: '#fff', border: `1px solid ${LINE}`, borderRadius: '18px',
-          padding: '26px', boxShadow: '0 18px 50px rgba(15,23,42,0.16)',
+          background: CARD, border: `1px solid ${LINE}`, borderRadius: '18px',
+          padding: '26px', boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
         }}
       >
         <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', marginBottom: '7px' }}>
@@ -993,9 +1026,9 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
         </div>
 
         {estado === 'error' && (
-          <div style={{ marginTop: '14px', fontSize: '12.5px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '9px', padding: '9px 12px', lineHeight: 1.5 }}>
+          <div style={{ marginTop: '14px', fontSize: '12.5px', color: RED, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', borderRadius: '9px', padding: '9px 12px', lineHeight: 1.5 }}>
             {error}{' '}
-            <a href={whatsappFallback} target="_blank" rel="noopener noreferrer" style={{ color: '#b91c1c', fontWeight: 700 }}>
+            <a href={whatsappFallback} target="_blank" rel="noopener noreferrer" style={{ color: RED, fontWeight: 700 }}>
               Escribinos por WhatsApp →
             </a>
           </div>
@@ -1015,7 +1048,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
           {estado === 'enviando' ? 'Abriendo…' : 'Ver el panel →'}
         </button>
 
-        <div style={{ marginTop: '11px', fontSize: '11.5px', color: '#94a3b8', textAlign: 'center', lineHeight: 1.5 }}>
+        <div style={{ marginTop: '11px', fontSize: '11.5px', color: MUTED, textAlign: 'center', lineHeight: 1.5 }}>
           Usamos tus datos solo para contactarte. No vas a ver información de ningún otro concesionario.
         </div>
       </form>
@@ -1025,7 +1058,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
 
 function Panel({ titulo, sub, children }: { titulo: string; sub: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: '16px', padding: '20px' }}>
+    <div style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: '16px', padding: '20px' }}>
       <div style={{ marginBottom: '16px' }}>
         <div style={{ fontFamily: FONT, fontSize: '15px', fontWeight: 800, color: INK }}>{titulo}</div>
         <div style={{ fontSize: '12.5px', color: DIM, marginTop: '3px' }}>{sub}</div>

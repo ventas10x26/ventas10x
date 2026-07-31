@@ -9,8 +9,10 @@
 // No agregar acá ninguna cifra, nombre de sede/asesor/marca/modelo que venga de un cliente
 // real, ni siquiera "de ejemplo": esta pantalla es pública.
 //
-// Tema oscuro. Toda la paleta sale de las constantes de abajo: no meter hex sueltos en el
-// JSX, porque después cambiar el fondo obliga a recorrer 900 líneas a mano.
+// TEMA: la paleta vive en variables CSS, no en constantes de JS. Las constantes de abajo
+// son punteros a esas variables, así que cambiar de claro a oscuro es cambiar una clase en
+// el div raíz — ningún componente necesita recibir el tema por props ni re-renderizar.
+// Al agregar un color nuevo: definirlo en los DOS bloques de tema, nunca hex suelto en JSX.
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
@@ -25,30 +27,54 @@ import {
 const FONT = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
 
-// Azul un punto más claro que el de la landing: el #2563EB sobre fondo negro pierde
-// legibilidad cuando se usa como color de texto (porcentajes, chips activos).
-const BLUE = '#3B82F6'
-const BLUE_2 = '#2563EB'
+const BLUE = 'var(--pm-blue)'
+const BLUE_2 = 'var(--pm-blue2)'
+const BLUE_SOFT = 'var(--pm-blue-soft)'
+const BLUE_EDGE = 'var(--pm-blue-edge)'
+const NAV_ACTIVE = 'var(--pm-nav-active)'
 
-const INK = '#E6EBF5'
-const DIM = '#93A3BE'
-const MUTED = '#7F8FAE'
-const LINE = 'rgba(255,255,255,0.09)'
-const ROW_LINE = 'rgba(255,255,255,0.06)'
-const TRACK = 'rgba(255,255,255,0.08)'
+const INK = 'var(--pm-ink)'
+const DIM = 'var(--pm-dim)'
+const MUTED = 'var(--pm-muted)'
+const DISABLED = 'var(--pm-disabled)'
 
-// Tres niveles de superficie a propósito. Un solo gris para todo deja el panel plano y se
-// pierde el borde entre el lienzo y las tarjetas.
-const BG = '#080B14'       // fondo de página
-const SURFACE = '#0D1220'  // lienzo de contenido dentro del marco de app
-const CARD = '#131A2B'     // tarjetas, paneles, barra superior
-const CARD_2 = '#182034'   // elevado: listas desplegables, botones secundarios
-const SIDE = '#0A0F1C'     // barra lateral
+const LINE = 'var(--pm-line)'
+const ROW_LINE = 'var(--pm-rowline)'
+const TRACK = 'var(--pm-track)'
 
-const RED = '#F87171'
-const AMBER = '#FBBF24'
+const BG = 'var(--pm-bg)'
+const SURFACE = 'var(--pm-surface)'
+const CARD = 'var(--pm-card)'
+const CARD_2 = 'var(--pm-card2)'
+const SIDE = 'var(--pm-side)'
+const TOOLBAR = 'var(--pm-toolbar)'
+const INSET = 'var(--pm-inset)'
+const CHIP_BG = 'var(--pm-chip)'
+const INPUT_BG = 'var(--pm-input)'
+
+const RED = 'var(--pm-red)'
+const RED_SOFT = 'var(--pm-red-soft)'
+const RED_EDGE = 'var(--pm-red-edge)'
+const AMBER = 'var(--pm-amber-ink)'
+const AMBER_BG = 'var(--pm-amber-bg)'
+const AMBER_LINE = 'var(--pm-amber-line)'
+
+const GRID = 'var(--pm-grid)'
+const AXIS = 'var(--pm-axis)'
+const SHADOW = 'var(--pm-shadow)'
+const SHADOW_LG = 'var(--pm-shadow-lg)'
+const VEIL = 'var(--pm-veil)'
+
+const GRADIENTE = `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`
 
 const CLAVE_DESBLOQUEO = 'pulse_demo_registrado'
+const CLAVE_TEMA = 'pulse_demo_tema'
+
+type Tema = 'dark' | 'light'
+
+// Fondo del <body>. Se aplica por efecto y no por CSS porque las variables de tema viven en
+// el div raíz de la página, y el body es su ancestro: no las hereda.
+const FONDO_BODY: Record<Tema, string> = { dark: '#080B14', light: '#f8f9fb' }
 
 export default function DemoPage() {
   const [filtros, setFiltros] = useState<FiltrosDemo>(FILTROS_INICIALES)
@@ -71,6 +97,10 @@ export default function DemoPage() {
   // Suspense solo por esto.
   const [soloPanel, setSoloPanel] = useState(false)
 
+  // Oscuro por defecto. La preferencia guardada se lee en el primer efecto y no en el
+  // render inicial: leer localStorage durante el render rompe la hidratación.
+  const [tema, setTema] = useState<Tema>('dark')
+
   useEffect(() => {
     try {
       if (window.localStorage.getItem(CLAVE_DESBLOQUEO) === '1') setDesbloqueado(true)
@@ -78,7 +108,25 @@ export default function DemoPage() {
     try {
       setSoloPanel(new URLSearchParams(window.location.search).get('vista') === 'panel')
     } catch { /* si no se puede leer la query, se muestra la página completa */ }
+    try {
+      const guardado = window.localStorage.getItem(CLAVE_TEMA)
+      if (guardado === 'light' || guardado === 'dark') setTema(guardado)
+    } catch { /* sin preferencia guardada: queda el oscuro */ }
   }, [])
+
+  // El body queda fuera del div raíz, así que hay que pintarlo aparte o el overscroll en
+  // móvil muestra una franja blanca. Se limpia al desmontar para no teñir otras rutas.
+  useEffect(() => {
+    const previo = document.body.style.background
+    document.body.style.background = FONDO_BODY[tema]
+    return () => { document.body.style.background = previo }
+  }, [tema])
+
+  const alternarTema = () => setTema(actual => {
+    const nuevo: Tema = actual === 'dark' ? 'light' : 'dark'
+    try { window.localStorage.setItem(CLAVE_TEMA, nuevo) } catch { /* storage bloqueado */ }
+    return nuevo
+  })
 
   const [seccion, setSeccion] = useState<SeccionId>('resumen')
 
@@ -89,11 +137,87 @@ export default function DemoPage() {
   const maxEmbudo = d.embudo[0].valor || 1
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', fontFamily: FONT_BODY, colorScheme: 'dark' }}>
+    <div
+      className={tema === 'dark' ? 'pm-tema-dark' : 'pm-tema-light'}
+      style={{ background: BG, minHeight: '100vh', fontFamily: FONT_BODY, colorScheme: tema }}
+    >
       {/* Sin interpolación de template literal acá dentro: el SWC de Next 15 falla al
           compilar expresiones dentro de un <style> en JSX. Los colores van literales. */}
       <style>{`
-        body { background: #080B14; }
+        .pm-tema-dark {
+          --pm-bg: #080B14;
+          --pm-surface: #0D1220;
+          --pm-card: #131A2B;
+          --pm-card2: #182034;
+          --pm-side: #0A0F1C;
+          --pm-toolbar: rgba(255,255,255,0.02);
+          --pm-inset: rgba(255,255,255,0.03);
+          --pm-chip: rgba(255,255,255,0.04);
+          --pm-input: rgba(255,255,255,0.04);
+          --pm-hover: rgba(255,255,255,0.07);
+          --pm-ink: #E6EBF5;
+          --pm-dim: #93A3BE;
+          --pm-muted: #7F8FAE;
+          --pm-disabled: #3D4A63;
+          --pm-line: rgba(255,255,255,0.09);
+          --pm-rowline: rgba(255,255,255,0.06);
+          --pm-track: rgba(255,255,255,0.08);
+          --pm-grid: rgba(255,255,255,0.07);
+          --pm-axis: rgba(255,255,255,0.12);
+          --pm-blue: #3B82F6;
+          --pm-blue2: #2563EB;
+          --pm-blue-soft: rgba(59,130,246,0.16);
+          --pm-blue-edge: rgba(59,130,246,0.34);
+          --pm-nav-active: rgba(59,130,246,0.24);
+          --pm-red: #F87171;
+          --pm-red-soft: rgba(248,113,113,0.12);
+          --pm-red-edge: rgba(248,113,113,0.30);
+          --pm-amber-ink: #FBBF24;
+          --pm-amber-bg: rgba(245,158,11,0.10);
+          --pm-amber-line: rgba(245,158,11,0.28);
+          --pm-walkin: #2DD4BF;
+          --pm-citas: #A78BFA;
+          --pm-shadow: 0 16px 34px rgba(0,0,0,0.55);
+          --pm-shadow-lg: 0 24px 60px rgba(0,0,0,0.6);
+          --pm-veil: linear-gradient(180deg, rgba(37,99,235,0.14) 0%, rgba(8,11,20,0.55) 100%);
+        }
+        .pm-tema-light {
+          --pm-bg: #f8f9fb;
+          --pm-surface: #f8f9fb;
+          --pm-card: #ffffff;
+          --pm-card2: #ffffff;
+          --pm-side: #0f1729;
+          --pm-toolbar: #fbfcfd;
+          --pm-inset: #f8fafc;
+          --pm-chip: #ffffff;
+          --pm-input: #ffffff;
+          --pm-hover: #f1f5f9;
+          --pm-ink: #0f172a;
+          --pm-dim: #64748b;
+          --pm-muted: #94a3b8;
+          --pm-disabled: #cbd5e1;
+          --pm-line: #e3e8f0;
+          --pm-rowline: #f1f5f9;
+          --pm-track: #eef2f7;
+          --pm-grid: #eef2f7;
+          --pm-axis: #e3e8f0;
+          --pm-blue: #2563EB;
+          --pm-blue2: #1D4ED8;
+          --pm-blue-soft: rgba(37,99,235,0.08);
+          --pm-blue-edge: rgba(37,99,235,0.22);
+          --pm-nav-active: rgba(37,99,235,0.22);
+          --pm-red: #e5484d;
+          --pm-red-soft: #fef2f2;
+          --pm-red-edge: #fecaca;
+          --pm-amber-ink: #78350f;
+          --pm-amber-bg: #fffbeb;
+          --pm-amber-line: #fde68a;
+          --pm-walkin: #0D9488;
+          --pm-citas: #7C3AED;
+          --pm-shadow: 0 12px 28px rgba(15,23,42,0.14);
+          --pm-shadow-lg: 0 18px 50px rgba(15,23,42,0.16);
+          --pm-veil: linear-gradient(180deg, rgba(37,99,235,0.13) 0%, rgba(37,99,235,0.09) 100%), rgba(10,14,26,0.22);
+        }
         .pm-demo-chip { transition: border-color .15s ease, color .15s ease, background .15s ease; }
         .pm-demo-barra { transition: width .35s cubic-bezier(.2,.7,.3,1); }
         .pm-demo-cta { transition: transform .15s ease, box-shadow .15s ease; }
@@ -101,12 +225,12 @@ export default function DemoPage() {
         .pm-demo-nav { transition: background .15s ease, color .15s ease; }
         .pm-demo-nav:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
         .pm-demo-accion { transition: border-color .15s ease, color .15s ease; }
-        .pm-demo-accion:hover { border-color: #3B82F6 !important; color: #7DA9FF !important; }
+        .pm-demo-accion:hover { border-color: var(--pm-blue) !important; color: var(--pm-blue) !important; }
         .pm-demo-opcion { transition: background .12s ease; }
-        .pm-demo-opcion:hover { background: rgba(255,255,255,0.07) !important; }
-        /* El placeholder por defecto queda casi negro sobre el input oscuro del registro. */
-        .pm-demo-gate input::placeholder { color: #5C6B87; }
-        .pm-demo-gate input:focus { border-color: #3B82F6; }
+        .pm-demo-opcion:hover { background: var(--pm-hover) !important; }
+        /* El placeholder por defecto es casi negro: ilegible sobre el input del tema oscuro. */
+        .pm-demo-gate input::placeholder { color: #7C8AA6; }
+        .pm-demo-gate input:focus { border-color: var(--pm-blue); }
         @media (prefers-reduced-motion: reduce) {
           .pm-demo-chip, .pm-demo-barra, .pm-demo-cta, .pm-demo-nav { transition: none; }
           .pm-demo-cta:hover { transform: none; }
@@ -134,7 +258,7 @@ export default function DemoPage() {
             </span>
             <span style={{ fontFamily: FONT, fontWeight: 800, fontSize: '16px', color: INK }}>Pulse Motor</span>
           </a>
-          <a href="/pulse/databridge" className="pm-demo-cta" style={{ padding: '9px 18px', borderRadius: '11px', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}>
+          <a href="/pulse/databridge" className="pm-demo-cta" style={{ padding: '9px 18px', borderRadius: '11px', background: GRADIENTE, color: '#fff', fontSize: '13px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none' }}>
             Armá este panel con tus datos →
           </a>
         </div>
@@ -148,7 +272,7 @@ export default function DemoPage() {
             esto tiene que saber desde el primer segundo que no está viendo un cliente real. */}
         {!soloPanel && (
           <>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.34)', borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BLUE_SOFT, border: `1px solid ${BLUE_EDGE}`, borderRadius: '999px', padding: '4px 14px', fontSize: '11px', fontWeight: 700, color: BLUE, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '14px', fontFamily: FONT_BODY }}>
               Demo · datos simulados
             </div>
             <h1 style={{ fontFamily: FONT, fontSize: 'clamp(28px,4vw,44px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.06, margin: '0 0 10px', color: INK }}>
@@ -159,7 +283,7 @@ export default function DemoPage() {
             </p>
           </>
         )}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)', borderRadius: '10px', padding: '10px 14px', marginBottom: '24px', maxWidth: '76ch' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', background: AMBER_BG, border: `1px solid ${AMBER_LINE}`, borderRadius: '10px', padding: '10px 14px', marginBottom: '24px', maxWidth: '76ch' }}>
           <span style={{ fontSize: '13px', lineHeight: 1.5 }} aria-hidden="true">⚠️</span>
           <span style={{ fontSize: '12.5px', color: AMBER, lineHeight: 1.55 }}>
             Cifras generadas para esta demostración. No corresponden a ningún concesionario, asesor, marca ni modelo real — los datos de cada cliente son suyos y no se muestran acá.
@@ -184,7 +308,8 @@ export default function DemoPage() {
             producto abierto, no como una lámina de marketing con gráficos. */}
         <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: SURFACE }}>
 
-          {/* Navegación del workspace */}
+          {/* Navegación del workspace. Va oscura en los dos temas a propósito: es la que le
+              da al demo cara de producto y no de landing. */}
           <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <div style={{ padding: '0 10px 14px', display: 'flex', alignItems: 'center', gap: '9px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px' }}>
               <span style={{ width: '28px', height: '28px', borderRadius: '8px', background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -207,7 +332,7 @@ export default function DemoPage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
                   padding: '9px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                  background: seccion === s.id ? 'rgba(59,130,246,0.24)' : 'transparent',
+                  background: seccion === s.id ? NAV_ACTIVE : 'transparent',
                   color: seccion === s.id ? '#fff' : '#93A3C4',
                   fontSize: '12.5px', fontWeight: seccion === s.id ? 700 : 500,
                   fontFamily: FONT_BODY, textAlign: 'left',
@@ -237,6 +362,8 @@ export default function DemoPage() {
               onLimpiar={() => setFiltros(FILTROS_INICIALES)}
               onActualizar={() => setSync(horaCorta())}
               mostrarPantallaCompleta={!soloPanel}
+              tema={tema}
+              onTema={alternarTema}
             />
 
             <div style={{ padding: '18px' }}>
@@ -401,7 +528,7 @@ export default function DemoPage() {
               Subí lo que ya tenés — CRM, pedidos, crédito, matrículas, pólizas, retomas — y DataBridge arma el modelo de datos con sus relaciones. Tus cifras quedan en tu cuenta: no las mostramos ni las mezclamos con las de nadie.
             </div>
           </div>
-          <a href="/pulse/databridge" className="pm-demo-cta" style={{ padding: '13px 24px', borderRadius: '12px', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          <a href="/pulse/databridge" className="pm-demo-cta" style={{ padding: '13px 24px', borderRadius: '12px', background: GRADIENTE, color: '#fff', fontSize: '14px', fontWeight: 700, fontFamily: FONT, textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Empezar con mis datos →
           </a>
         </div>
@@ -435,11 +562,45 @@ function horaCorta(): string {
   return new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Botón de tema. Muestra el ícono del modo al que se va a cambiar, que es la convención
+// que la gente ya tiene incorporada: luna = "pasame a oscuro", sol = "pasame a claro".
+function BotonTema({ tema, onTema }: { tema: Tema; onTema: () => void }) {
+  const irA = tema === 'dark' ? 'claro' : 'oscuro'
+  return (
+    <button
+      type="button"
+      onClick={onTema}
+      className="pm-demo-accion"
+      title={`Cambiar a modo ${irA}`}
+      aria-label={`Cambiar a modo ${irA}`}
+      style={{
+        ...accionBarra,
+        padding: 0, width: '32px', height: '32px',
+        justifyContent: 'center', borderRadius: '9px', gap: 0,
+      }}
+    >
+      {tema === 'dark' ? (
+        // Sol
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+      ) : (
+        // Luna
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 // Encabezado del panel: identidad de la vista, estado de los datos y todos los filtros.
 // Cada control filtra de verdad — un select decorativo en un demo es peor que no ponerlo,
 // porque el prospecto lo prueba y descubre que la pantalla es un dibujo.
 function BarraFiltros({
   seccion, oportunidades, sync, filtros, setFiltro, onLimpiar, onActualizar, mostrarPantallaCompleta,
+  tema, onTema,
 }: {
   seccion: string
   oportunidades: number
@@ -449,6 +610,8 @@ function BarraFiltros({
   onLimpiar: () => void
   onActualizar: () => void
   mostrarPantallaCompleta: boolean
+  tema: Tema
+  onTema: () => void
 }) {
   const hayFiltros =
     filtros.sede !== 'todas' || filtros.periodo !== '12m' ||
@@ -460,7 +623,7 @@ function BarraFiltros({
       {/* Identidad + estado de los datos */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '14px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
-          <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: GRADIENTE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 4h18l-7 8.5V20l-4-2.5v-5L3 4Z" />
             </svg>
@@ -477,7 +640,9 @@ function BarraFiltros({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.32)' }}>
+          <BotonTema tema={tema} onTema={onTema} />
+
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: BLUE_SOFT, border: `1px solid ${BLUE_EDGE}` }}>
             <span style={{ width: '7px', height: '7px', background: BLUE, flexShrink: 0 }} />
             <span style={{ fontSize: '11.5px', fontWeight: 800, color: BLUE, letterSpacing: '0.3px' }}>
               {formatearNumero(oportunidades)} OPORTUNIDADES
@@ -542,7 +707,7 @@ function BarraFiltros({
                   style={{
                     padding: '5px 10px', borderRadius: '7px', cursor: 'pointer',
                     border: `1px solid ${activo ? BLUE : LINE}`,
-                    background: activo ? 'rgba(59,130,246,0.16)' : 'transparent',
+                    background: activo ? BLUE_SOFT : 'transparent',
                     color: activo ? BLUE : DIM,
                     fontSize: '12px', fontWeight: activo ? 700 : 500, fontFamily: FONT_BODY,
                   }}
@@ -564,13 +729,13 @@ function BarraFiltros({
       </div>
 
       {/* Acciones */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '10px 18px', borderTop: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.02)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', padding: '10px 18px', borderTop: `1px solid ${LINE}`, background: TOOLBAR }}>
         <button
           onClick={onLimpiar}
           disabled={!hayFiltros}
           style={{
             border: 'none', background: 'transparent', cursor: hayFiltros ? 'pointer' : 'default',
-            color: hayFiltros ? DIM : '#3D4A63', fontSize: '11.5px', fontWeight: 700,
+            color: hayFiltros ? DIM : DISABLED, fontSize: '11.5px', fontWeight: 700,
             letterSpacing: '0.4px', textTransform: 'uppercase', fontFamily: FONT_BODY,
             padding: '6px 4px',
           }}
@@ -583,7 +748,7 @@ function BarraFiltros({
           onClick={onActualizar}
           className="pm-demo-cta"
           title="Vuelve a leer los datos y actualiza la hora de sincronización"
-          style={{ ...accionBarra, background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff', border: `1px solid ${BLUE}` }}
+          style={{ ...accionBarra, background: GRADIENTE, color: '#fff', border: `1px solid ${BLUE}` }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" />
@@ -652,10 +817,12 @@ function SelectFiltro({ valor, onChange, opciones }: {
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {actual?.label ?? '—'}
         </span>
+        {/* El color va por style y no por atributo: en atributo de presentación, var() no
+            es confiable en todos los navegadores. */}
         <svg
-          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={DIM}
+          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-          style={{ flexShrink: 0, transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
+          style={{ flexShrink: 0, color: DIM, transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
           aria-hidden="true"
         >
           <path d="m6 9 6 6 6-6" />
@@ -668,7 +835,7 @@ function SelectFiltro({ valor, onChange, opciones }: {
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: '-6px', minWidth: 'calc(100% + 12px)',
             background: CARD_2, border: `1px solid ${LINE}`, borderRadius: '10px',
-            boxShadow: '0 16px 34px rgba(0,0,0,0.55)', padding: '5px',
+            boxShadow: SHADOW, padding: '5px',
             zIndex: 50, maxHeight: '260px', overflowY: 'auto', whiteSpace: 'nowrap',
           }}
         >
@@ -685,7 +852,7 @@ function SelectFiltro({ valor, onChange, opciones }: {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
                   padding: '8px 10px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                  background: activo ? 'rgba(59,130,246,0.18)' : 'transparent',
+                  background: activo ? BLUE_SOFT : 'transparent',
                   color: activo ? BLUE : INK,
                   fontSize: '13px', fontWeight: activo ? 700 : 500,
                   fontFamily: FONT_BODY, textAlign: 'left',
@@ -705,11 +872,9 @@ function SelectFiltro({ valor, onChange, opciones }: {
   )
 }
 
-// Teal más claro que el original (#0D9488): sobre fondo oscuro ese verde se apaga y deja
-// de leerse como etiqueta de texto.
-const COLOR_WALKIN = '#2DD4BF'
+const COLOR_WALKIN = 'var(--pm-walkin)'
 const COLOR_DIGITAL = BLUE
-const COLOR_CITAS = '#A78BFA'
+const COLOR_CITAS = 'var(--pm-citas)'
 
 // Card de volumen que además abre el total en sus dos puertas de entrada. La barra es una
 // sola, partida: se ve de un vistazo qué proporción del número vino de cada lado.
@@ -742,7 +907,7 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
     <Panel titulo="De dónde salen las oportunidades" sub="Toda oportunidad entra por una de dos puertas. No hay una tercera.">
 
       {/* La ecuación, escrita */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '13px 15px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${LINE}`, marginBottom: '18px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', padding: '13px 15px', borderRadius: '10px', background: INSET, border: `1px solid ${LINE}`, marginBottom: '18px' }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
           <span style={{ fontFamily: FONT, fontSize: '19px', fontWeight: 800, color: COLOR_WALKIN }}>{formatearNumero(origen.walkin.oportunidades)}</span>
           <span style={{ fontSize: '12px', color: DIM, fontWeight: 600 }}>walk-in</span>
@@ -798,7 +963,7 @@ function ComposicionOrigen({ origen, total }: { origen: OrigenDemo; total: numbe
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {canales.map(c => (
-                    <span key={c.clave} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', padding: '4px 9px', borderRadius: '7px', border: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)', fontSize: '11.5px', color: INK }}>
+                    <span key={c.clave} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', padding: '4px 9px', borderRadius: '7px', border: `1px solid ${LINE}`, background: CHIP_BG, fontSize: '11.5px', color: INK }}>
                       {c.label}
                       <span style={{ fontFamily: FONT, fontWeight: 800, color: COLOR_DIGITAL }}>{formatearNumero(c.valor)}</span>
                     </span>
@@ -828,7 +993,7 @@ function KpiTile({ k }: { k: KpiDemo }) {
     <div style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: '12px', padding: '13px 15px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '7px' }}>
         <span style={{ fontSize: '10.5px', color: DIM, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>{k.label}</span>
-        <span style={{ fontSize: '10px', fontWeight: 800, color, background: cumple ? 'rgba(59,130,246,0.16)' : 'rgba(248,113,113,0.16)', padding: '2px 6px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '10px', fontWeight: 800, color, background: cumple ? BLUE_SOFT : RED_SOFT, padding: '2px 6px', borderRadius: '5px', whiteSpace: 'nowrap' }}>
           {Math.round(k.cumplimiento * 100)}%
         </span>
       </div>
@@ -845,6 +1010,9 @@ function KpiTile({ k }: { k: KpiDemo }) {
 
 // Gestión diaria. SVG a mano en vez de una librería de charts: el proyecto no tiene ninguna
 // instalada y esto son dos líneas y una serie de barras, no un sistema de visualización.
+//
+// Los colores van por `style` y no por atributo (fill=, stroke=): var() dentro de un
+// atributo de presentación no es confiable en todos los navegadores.
 function GraficoDiario({ serie }: { serie: PuntoDia[] }) {
   const W = 620, H = 170, PB = 22, PT = 10
   const maxY = Math.max(...serie.map(p => p.oportunidades), 1)
@@ -872,21 +1040,21 @@ function GraficoDiario({ serie }: { serie: PuntoDia[] }) {
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="170" role="img" aria-label="Movimiento diario de oportunidades, citas y matrículas">
         {[0.25, 0.5, 0.75, 1].map(g => (
-          <line key={g} x1="0" x2={W} y1={y(maxY * g)} y2={y(maxY * g)} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+          <line key={g} x1="0" x2={W} y1={y(maxY * g)} y2={y(maxY * g)} style={{ stroke: GRID }} strokeWidth="1" />
         ))}
         {serie.map((p, i) => (
           <rect
             key={p.dia}
             x={x(i) - anchoBarra / 2} width={anchoBarra}
             y={y(p.matriculas)} height={Math.max(0, H - PB - y(p.matriculas))}
-            fill={COLOR_WALKIN} opacity="0.45" rx="1"
+            style={{ fill: COLOR_WALKIN }} opacity="0.45" rx="1"
           />
         ))}
-        <path d={linea('citas')} fill="none" stroke={COLOR_CITAS} strokeWidth="2" strokeLinejoin="round" />
-        <path d={linea('oportunidades')} fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinejoin="round" />
-        <line x1="0" x2={W} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <path d={linea('citas')} fill="none" style={{ stroke: COLOR_CITAS }} strokeWidth="2" strokeLinejoin="round" />
+        <path d={linea('oportunidades')} fill="none" style={{ stroke: BLUE }} strokeWidth="2.5" strokeLinejoin="round" />
+        <line x1="0" x2={W} y1={H - PB} y2={H - PB} style={{ stroke: AXIS }} strokeWidth="1" />
         {serie.filter((_, i) => i % 6 === 0).map((p, k) => (
-          <text key={p.dia} x={x(k * 6)} y={H - 6} fontSize="10" fill={MUTED} textAnchor="middle">{p.dia}</text>
+          <text key={p.dia} x={x(k * 6)} y={H - 6} fontSize="10" style={{ fill: MUTED }} textAnchor="middle">{p.dia}</text>
         ))}
       </svg>
     </div>
@@ -967,7 +1135,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
 
   const input: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: '9px',
-    border: `1px solid ${LINE}`, background: 'rgba(255,255,255,0.04)', color: INK,
+    border: `1px solid ${LINE}`, background: INPUT_BG, color: INK,
     fontSize: '13.5px', fontFamily: FONT_BODY, outline: 'none',
   }
   const label: React.CSSProperties = {
@@ -977,15 +1145,11 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', justifyContent: 'center', paddingTop: '30px' }}>
-      {/* Velo sobre el panel difuminado: azul muy tenue sobre negro, para que el contenido
-          de atrás se lea como apagado y el formulario quede al frente. No intercepta
-          clicks — el panel de atrás ya está inerte. */}
+      {/* Velo sobre el panel difuminado, para que el contenido de atrás se lea como apagado
+          y el formulario quede al frente. No intercepta clicks — el panel ya está inerte. */}
       <div
         aria-hidden="true"
-        style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(180deg, rgba(37,99,235,0.14) 0%, rgba(8,11,20,0.55) 100%)',
-        }}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: VEIL }}
       />
       <form
         onSubmit={enviar}
@@ -994,7 +1158,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
           position: 'sticky', top: '30px', alignSelf: 'flex-start', zIndex: 1,
           width: '100%', maxWidth: '440px', height: 'fit-content',
           background: CARD, border: `1px solid ${LINE}`, borderRadius: '18px',
-          padding: '26px', boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          padding: '26px', boxShadow: SHADOW_LG,
         }}
       >
         <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: 800, color: INK, letterSpacing: '-0.02em', marginBottom: '7px' }}>
@@ -1026,7 +1190,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
         </div>
 
         {estado === 'error' && (
-          <div style={{ marginTop: '14px', fontSize: '12.5px', color: RED, background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.30)', borderRadius: '9px', padding: '9px 12px', lineHeight: 1.5 }}>
+          <div style={{ marginTop: '14px', fontSize: '12.5px', color: RED, background: RED_SOFT, border: `1px solid ${RED_EDGE}`, borderRadius: '9px', padding: '9px 12px', lineHeight: 1.5 }}>
             {error}{' '}
             <a href={whatsappFallback} target="_blank" rel="noopener noreferrer" style={{ color: RED, fontWeight: 700 }}>
               Escribinos por WhatsApp →
@@ -1040,7 +1204,7 @@ function GateRegistro({ onListo }: { onListo: () => void }) {
           className="pm-demo-cta"
           style={{
             width: '100%', marginTop: '18px', padding: '13px', borderRadius: '11px', border: 'none',
-            background: `linear-gradient(135deg, ${BLUE}, ${BLUE_2})`, color: '#fff',
+            background: GRADIENTE, color: '#fff',
             fontSize: '14px', fontWeight: 700, fontFamily: FONT,
             cursor: estado === 'enviando' ? 'default' : 'pointer', opacity: estado === 'enviando' ? 0.7 : 1,
           }}

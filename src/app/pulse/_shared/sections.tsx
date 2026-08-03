@@ -4,6 +4,7 @@
 // Contiene los tokens/datos/secciones reusables entre la home (que ahora termina en
 // "Segmentos") y las dos landings dedicadas por segmento — ver skill pulsemotor-design.
 
+import { PulseLogo } from '@/components/pulse/PulseLogo'
 import { useState, useEffect, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useReveal } from '@/hooks/useReveal'
@@ -378,11 +379,8 @@ export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, o
   // blanco translúcido en vez de var(--line) (que en soft sería casi invisible sobre negro).
   return (
     <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'var(--header-bg)', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-      <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'10px', textDecoration:'none' }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M2 12h4l2.5-7 4 14 2.5-7H21" />
-        </svg>
-        <span style={{ fontSize:'16px', fontWeight:800, fontFamily:F_DISPLAY, color:'var(--panel-ink)' }}>Pulse Motor</span>
+      <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'9px', textDecoration:'none' }}>
+        <PulseLogo />
       </a>
       <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
         {navItems.map(item => (

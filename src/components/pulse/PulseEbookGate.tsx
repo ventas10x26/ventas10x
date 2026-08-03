@@ -250,27 +250,35 @@ export function PulseEbookGate() {
 
         .pm-ebook-x {
           position: absolute; top: 12px; right: 12px; z-index: 3;
-          background: rgba(255,255,255,.14); border: none; border-radius: 8px;
+          background: rgba(255,255,255,.16); border: none; border-radius: 8px;
           color: #fff; cursor: pointer; padding: 6px; display: flex; line-height: 0;
         }
-        .pm-ebook-x:hover { background: rgba(255,255,255,.28) }
+        .pm-ebook-x:hover { background: rgba(255,255,255,.3) }
 
-        /* ── Portada ─────────────────────────────────────────────────────── */
+        /* ── Portada ─────────────────────────────────────────────────────────
+           Azul profundo, no negro. El casi-negro anterior hacía que el panel se
+           leyera como un hueco al lado del formulario claro; con base azulada y
+           dos focos de luz el contraste entre las dos mitades pasa a ser de
+           color y no de "apagado contra encendido". */
         .pm-ebook-izq {
           position: relative; overflow: hidden;
-          background: #080B14; color: #fff;
+          background:
+            radial-gradient(120% 90% at 100% 0%, #2B4C86 0%, transparent 58%),
+            radial-gradient(90% 70% at 0% 100%, #1B3563 0%, transparent 62%),
+            linear-gradient(155deg, #16233C 0%, #111C31 52%, #1A2C4E 100%);
+          color: #fff;
           padding: 34px 30px 30px; border-radius: 18px 0 0 18px;
           display: flex; flex-direction: column; justify-content: center;
         }
-        /* Trama diagonal muy tenue: le da textura de impreso sin competir con
-           la tipografía. Sin ella el panel se ve como un rectángulo negro. */
+        /* Trama diagonal: textura de impreso, no decoración. Sin ella la
+           superficie se ve como un degradado plano de plantilla. */
         .pm-ebook-izq::before {
           content: ''; position: absolute; inset: 0; pointer-events: none;
-          background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.045) 0 1px, transparent 1px 7px);
+          background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 1px, transparent 1px 7px);
         }
         .pm-ebook-izq::after {
-          content: ''; position: absolute; width: 320px; height: 320px; right: -120px; top: -110px;
-          background: radial-gradient(circle, rgba(37,99,235,.42) 0%, transparent 68%);
+          content: ''; position: absolute; width: 300px; height: 300px; right: -110px; top: -100px;
+          background: radial-gradient(circle, rgba(59,130,246,.5) 0%, transparent 66%);
           pointer-events: none;
         }
         .pm-ebook-izq > * { position: relative; z-index: 1 }
@@ -279,33 +287,36 @@ export function PulseEbookGate() {
           position: absolute; top: 26px; right: 14px; z-index: 1;
           writing-mode: vertical-rl;
           font-family: var(--font-mono), monospace; font-size: 8.5px; font-weight: 500;
-          letter-spacing: 2.2px; text-transform: uppercase; color: rgba(255,255,255,.34);
+          letter-spacing: 2.2px; text-transform: uppercase; color: rgba(255,255,255,.46);
         }
 
         .pm-ebook-cifra { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 26px }
         .pm-ebook-5 {
           font-family: var(--font-oswald), var(--font-display), sans-serif;
           font-size: 116px; font-weight: 700; line-height: .78; letter-spacing: -.04em;
-          color: #3B82F6; flex-shrink: 0;
+          color: #60A5FA; flex-shrink: 0;
+          text-shadow: 0 0 42px rgba(59,130,246,.55);
         }
         .pm-ebook-cifra-txt {
           font-family: var(--font-display), var(--font-inter), sans-serif;
           font-size: 19px; font-weight: 700; line-height: 1.22; letter-spacing: -.02em;
           color: #fff; padding-top: 12px;
         }
-        .pm-ebook-cifra-txt em { font-style: italic; font-weight: 500; color: #93A3BE }
+        .pm-ebook-cifra-txt em { font-style: italic; font-weight: 500; color: #A9BAD6 }
 
         .pm-ebook-barras { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 9px }
         .pm-ebook-barras li { display: flex; align-items: center; gap: 12px }
         .pm-ebook-b {
           width: 78px; height: 9px; border-radius: 2px; flex-shrink: 0;
-          border: 1px dashed rgba(255,255,255,.26); background: transparent;
+          border: 1px dashed rgba(255,255,255,.42); background: rgba(255,255,255,.05);
         }
         .pm-ebook-barras li.on .pm-ebook-b {
-          border: none; background: linear-gradient(90deg, #3B82F6, #2563EB);
-          box-shadow: 0 0 18px rgba(59,130,246,.55);
+          border: none; background: linear-gradient(90deg, #60A5FA, #2563EB);
+          box-shadow: 0 0 20px rgba(96,165,250,.7);
         }
-        .pm-ebook-l { font-size: 12px; color: rgba(255,255,255,.42); letter-spacing: .1px }
+        /* Las apagadas se leen, pero un escalón por debajo de la encendida: si
+           quedan ilegibles se pierde qué línea es cada una, que es el argumento. */
+        .pm-ebook-l { font-size: 12px; color: rgba(255,255,255,.66); letter-spacing: .1px }
         .pm-ebook-barras li.on .pm-ebook-l { color: #fff; font-weight: 600 }
 
         .pm-ebook-preg {
@@ -313,7 +324,7 @@ export function PulseEbookGate() {
           font-size: 40px; font-weight: 600; line-height: .98; letter-spacing: -.015em;
           text-transform: uppercase; color: #fff; margin: 0;
         }
-        .pm-ebook-preg span { color: #3B82F6 }
+        .pm-ebook-preg span { color: #60A5FA }
 
         /* ── Formulario ──────────────────────────────────────────────────── */
         .pm-ebook-der { padding: 34px 30px; display: flex; flex-direction: column; justify-content: center }

@@ -45,18 +45,21 @@ export const DIFERENCIADORES = [
 ]
 
 export const POR_QUE = [
-  'Responde en segundos, no en horas',
-  'Cotiza financiación y pólizas sin transferir la conversación',
-  'Aprende el tono y los precios de tu concesionario',
-  'Corre en tu WhatsApp Business de siempre, sin número nuevo',
-  'Deja registro auditable de cada decisión que toma',
-  'Se despliega en días, no en meses',
+  'Cotiza financiación y póliza en la misma conversación, sin transferir a otra área',
+  'Tasa la retoma y la deja registrada, para que el usado no se vaya a otro lado',
+  'Propone accesorios sobre el modelo que el cliente ya eligió',
+  'Responde en segundos a cualquier hora, para que la oportunidad no se enfríe',
+  'Deja registro auditable de cada decisión, por sede y por asesor',
+  'Corre en tu WhatsApp Business de siempre y se despliega en días, no en meses',
 ]
 
-// ─── Cobertura 24/7 — mismo lenguaje visual del timeline/bitácora, aplicado a franjas horarias ───
+// ─── Las cuatro líneas de margen, una por franja horaria — mismo lenguaje visual
+// del timeline/bitácora. Cada franja muestra una línea distinta a propósito: el
+// panel tiene que dejar ver que ninguna de las cuatro depende del horario del
+// equipo, no solo que "hay actividad de noche" ───
 export const COBERTURA = [
   { rango:'00:00 – 06:00', evento:'Retoma tasada · Sedán 2020' },
-  { rango:'06:00 – 12:00', evento:'Cita agendada · Test drive' },
+  { rango:'06:00 – 12:00', evento:'Accesorios ofrecidos · Kit de seguridad' },
   { rango:'12:00 – 18:00', evento:'Financiación pre-aprobada · 48m' },
   { rango:'18:00 – 24:00', evento:'Póliza cotizada · Todo riesgo' },
 ]
@@ -607,11 +610,11 @@ export function PorQueSection() {
     <section style={{ maxWidth:'1280px', margin:'0 auto', padding:'72px 24px', borderTop:'1px solid var(--line)' }}>
       <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center' }}>
         <div ref={porQueText.ref} className={`reveal${porQueText.inView?' in':''}`} style={{ flex:'1', minWidth:'320px' }}>
-          <p className="kicker">Por qué Pulse Motor</p>
+          <p className="kicker">Las cinco líneas, sin horario</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            La cobertura que tu WhatsApp <span className="grad-blue">nunca tuvo.</span>
+            Ninguna línea se queda sin ofrecer. <span className="grad-blue">A ninguna hora.</span>
           </h2>
-          <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'480px', lineHeight:1.6, marginBottom:'22px' }}>No reemplaza a tu equipo — cubre las horas y los picos que tu equipo no puede.</p>
+          <p style={{ fontSize:'15px', color:'var(--ink-dim)', maxWidth:'480px', lineHeight:1.6, marginBottom:'22px' }}>No reemplaza a tu equipo. Se ocupa de que la financiación, la póliza, el accesorio y la retoma se ofrezcan siempre — también cuando la vitrina está cerrada.</p>
           <div>
             {POR_QUE.map(b => <div key={b} className="seg-check"><span className="mark">✓</span><span>{b}</span></div>)}
           </div>
@@ -619,12 +622,12 @@ export function PorQueSection() {
 
         <div ref={coberturaPanel.ref} className={`reveal${coberturaPanel.inView?' in':''}`} style={{ flex:'1', minWidth:'320px', maxWidth:'460px' }}>
           <div className="panel">
-            <div className="panel-head"><span>Cobertura · 24/7/365</span><span style={{ color:'var(--blue)' }}>Activo</span></div>
+            <div className="panel-head"><span>Líneas 360° · 24/7</span><span style={{ color:'var(--blue)' }}>Activo</span></div>
             {COBERTURA.map((c,i) => (
               <div key={c.rango} className={`log-row log-row-data${coberturaPanel.inView?' in':''}`} style={{ gridTemplateColumns:'130px 1fr 100px', transitionDelay:`${i*90}ms` }}>
                 <span className="log-time">{c.rango}</span>
                 <span className="log-evento">{c.evento}</span>
-                <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--blue)', textAlign:'right' }}>✓ Cubierto</span>
+                <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--blue)', textAlign:'right' }}>✓ Ofrecida</span>
               </div>
             ))}
           </div>

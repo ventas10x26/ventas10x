@@ -13,17 +13,22 @@
 //   · 25 segundos en la página
 // En móvil no hay exit intent, así que ahí gobiernan el scroll y el tiempo.
 //
-// Una vez por sesión. Y nunca más, en ningún dispositivo de esa persona, si ya
-// dejó los datos: volver a pedirle el correo a alguien que ya lo dio es la forma
-// más rápida de quemar un lead que ya era tuyo.
+// Una vez por sesión. Y nunca más, si ya dejó los datos: volver a pedirle el
+// correo a alguien que ya lo dio es la forma más rápida de quemar un lead propio.
 //
 // NO APARECE en /pulse/demo ni en rutas de aplicación: el demo ya es una
 // superficie de conversión y taparlo con un modal es pelearse con uno mismo.
 //
-// CONTENIDO — muestra las tres fugas del documento en vez de una lista de
-// beneficios. Un gerente de concesionario se reconoce en al menos una de las
-// tres en cinco segundos, y ese reconocimiento es lo que justifica dejar el
-// correo. "Optimizá tu operación" no lo justifica.
+// EL LADO IZQUIERDO ES UN GRÁFICO, NO UN TEXTO. La primera versión listaba tres
+// fugas en prosa: unas 120 palabras que nadie lee en un modal. Ahora el
+// argumento lo hace la imagen —cinco barras, una sola encendida— y el texto
+// bajó a una cifra, cinco etiquetas y una pregunta. La barra apagada comunica
+// "esto lo estás dejando" más rápido de lo que puede hacerlo un párrafo.
+//
+// La pregunta final es deliberada: no afirma que el concesionario esté
+// perdiendo esas cuatro líneas —no lo sabemos— sino que lo invita a responderse
+// si las está cobrando. Afirmarlo sería una promesa sin sustento; preguntarlo
+// es lo que hace que quiera el documento.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -32,25 +37,16 @@ const YA_DESCARGO = 'pulse-ebook-descargado'
 const RUTA_PDF = '/pulse/rentabilidad-por-unidad.pdf'
 const NOMBRE_ARCHIVO = 'Pulse Motor - Rentabilidad por unidad.pdf'
 
-// Rutas donde el modal no debe aparecer.
 const EXCLUIDAS = ['/pulse/demo', '/pulse/agente', '/pulse/admin', '/pulse/login', '/pulse/signup', '/pulse/onboarding']
 
-const FUGAS = [
-  {
-    color: '#DC2626',
-    titulo: 'La respuesta que llegó tarde',
-    texto: 'El interesado escribió a las 11:47 de la noche. El asesor lo vio a las 8 de la mañana, cuando ya había agendado con otro.',
-  },
-  {
-    color: '#B45309',
-    titulo: 'La línea que nadie ofreció',
-    texto: 'Se vendió el vehículo, pero sin seguro, sin accesorios o con la retoma que se fue a otro lado. No hubo negativa del cliente: no se ofreció.',
-  },
-  {
-    color: '#2563EB',
-    titulo: 'La unidad que no llegó a placa',
-    texto: 'Pedido firmado y anticipo recibido, pero la matrícula quedó detenida. Es venta hecha que todavía no se factura ni cuenta para el mes.',
-  },
+// La primera va encendida porque es la única que todo concesionario cobra
+// siempre: el vehículo. Las otras cuatro son las que se dejan.
+const LINEAS = [
+  { label: 'Vehículo nuevo', activa: true },
+  { label: 'Financiación', activa: false },
+  { label: 'Seguro todo riesgo', activa: false },
+  { label: 'Accesorios', activa: false },
+  { label: 'Retomas', activa: false },
 ]
 
 export function PulseEbookGate() {
@@ -71,7 +67,6 @@ export function PulseEbookGate() {
   }, [])
 
   useEffect(() => {
-    // Guardas: ruta excluida, ya visto en esta sesión, o ya descargado alguna vez.
     try {
       const ruta = window.location.pathname
       if (EXCLUIDAS.some(r => ruta.startsWith(r))) return
@@ -101,7 +96,6 @@ export function PulseEbookGate() {
     }
   }, [abrir])
 
-  // Bloquear el scroll de fondo y cerrar con Escape mientras está abierto.
   useEffect(() => {
     if (!abierto) return
     const overflow = document.body.style.overflow
@@ -166,35 +160,34 @@ export function PulseEbookGate() {
           </svg>
         </button>
 
-        {/* Columna izquierda: la portada y las tres fugas */}
+        {/* ── Portada ─────────────────────────────────────────────────────── */}
         <div className="pm-ebook-izq">
-          <p className="pm-ebook-eyebrow">Documento · 5 páginas</p>
-          <h2 id="pm-ebook-titulo" className="pm-ebook-h2">
-            Usted sabe cuántas unidades vendió.<br />
-            <span>¿Sabe cuánto margen dejó sobre la mesa?</span>
-          </h2>
-          <p className="pm-ebook-sub">
-            Las tres fugas que casi ningún tablero muestra a tiempo, y qué hacen en su estado de resultados.
-          </p>
+          {/* Marca de canto, como el número de edición de una revista. Es lo que
+              hace leer el panel como una portada y no como un banner. */}
+          <span className="pm-ebook-canto" aria-hidden="true">DOCUMENTO 01 · CONCESIONARIOS</span>
 
-          <ul className="pm-ebook-lista">
-            {FUGAS.map(f => (
-              <li key={f.titulo}>
-                <span className="pm-ebook-barra" style={{ background: f.color }} />
-                <div>
-                  <strong>{f.titulo}</strong>
-                  <span>{f.texto}</span>
-                </div>
+          <div className="pm-ebook-cifra" aria-hidden="true">
+            <span className="pm-ebook-5">5</span>
+            <span className="pm-ebook-cifra-txt">
+              líneas de margen<br /><em>por una sola venta</em>
+            </span>
+          </div>
+
+          <ul className="pm-ebook-barras">
+            {LINEAS.map(l => (
+              <li key={l.label} className={l.activa ? 'on' : ''}>
+                <span className="pm-ebook-b" />
+                <span className="pm-ebook-l">{l.label}</span>
               </li>
             ))}
           </ul>
 
-          <p className="pm-ebook-pie">
-            Para gerencia general, comercial, operaciones y marca de concesionarios de vehículo nuevo.
-          </p>
+          <h2 id="pm-ebook-titulo" className="pm-ebook-preg">
+            ¿Cuántas está<br />cobrando<span>?</span>
+          </h2>
         </div>
 
-        {/* Columna derecha: el formulario */}
+        {/* ── Formulario ──────────────────────────────────────────────────── */}
         <div className="pm-ebook-der">
           {estado === 'listo' ? (
             <div className="pm-ebook-ok">
@@ -204,18 +197,14 @@ export function PulseEbookGate() {
                 </svg>
               </div>
               <h3>La descarga ya arrancó</h3>
-              <p>Si tu navegador la bloqueó, podés bajarla de nuevo acá abajo.</p>
-              <button type="button" onClick={descargar} className="pm-ebook-btn">
-                Descargar otra vez
-              </button>
-              <button type="button" onClick={() => setAbierto(false)} className="pm-ebook-link">
-                Seguir navegando
-              </button>
+              <p>Si tu navegador la bloqueó, bajala de nuevo acá.</p>
+              <button type="button" onClick={descargar} className="pm-ebook-btn">Descargar otra vez</button>
+              <button type="button" onClick={() => setAbierto(false)} className="pm-ebook-link">Seguir navegando</button>
             </div>
           ) : (
             <form onSubmit={enviar}>
+              <p className="pm-ebook-eyebrow">5 páginas · PDF</p>
               <h3 className="pm-ebook-h3">Descargalo completo</h3>
-              <p className="pm-ebook-nota">Se abre en el acto, sin esperar un correo.</p>
 
               <label htmlFor="eb-conc">Concesionario</label>
               <input id="eb-conc" ref={primerCampo} required value={datos.concesionario} onChange={set('concesionario')} placeholder="Nombre del concesionario" />
@@ -232,12 +221,10 @@ export function PulseEbookGate() {
               {estado === 'error' && <p className="pm-ebook-error">{error}</p>}
 
               <button type="submit" disabled={estado === 'enviando'} className="pm-ebook-btn">
-                {estado === 'enviando' ? 'Preparando…' : 'Descargar el documento'}
+                {estado === 'enviando' ? 'Preparando…' : 'Descargar ahora'}
               </button>
 
-              <p className="pm-ebook-legal">
-                No pedimos teléfono. Usamos tu correo solo para enviarte este documento y contactarte una vez.
-              </p>
+              <p className="pm-ebook-legal">Sin teléfono. Se abre en el acto.</p>
             </form>
           )}
         </div>
@@ -246,57 +233,99 @@ export function PulseEbookGate() {
       <style>{`
         .pm-ebook-fondo {
           position: fixed; inset: 0; z-index: 200;
-          background: rgba(6, 9, 16, .74); backdrop-filter: blur(3px);
+          background: rgba(6, 9, 16, .78); backdrop-filter: blur(3px);
           display: flex; align-items: center; justify-content: center; padding: 20px;
           animation: pm-ebook-fade .22s ease-out;
         }
         @keyframes pm-ebook-fade { from { opacity: 0 } to { opacity: 1 } }
 
         .pm-ebook-caja {
-          position: relative; display: grid; grid-template-columns: 1.15fr .85fr;
-          width: 100%; max-width: 860px; max-height: 92vh; overflow-y: auto;
+          position: relative; display: grid; grid-template-columns: 1.08fr .92fr;
+          width: 100%; max-width: 840px; max-height: 92vh; overflow-y: auto;
           background: var(--bg-1, #fff); border-radius: 18px;
-          box-shadow: 0 34px 90px rgba(0,0,0,.5);
+          box-shadow: 0 34px 90px rgba(0,0,0,.55);
           animation: pm-ebook-in .3s cubic-bezier(.2,.7,.3,1);
         }
         @keyframes pm-ebook-in { from { opacity: 0; transform: translateY(18px) scale(.98) } to { opacity: 1; transform: none } }
 
         .pm-ebook-x {
-          position: absolute; top: 12px; right: 12px; z-index: 2;
-          background: rgba(255,255,255,.16); border: none; border-radius: 8px;
+          position: absolute; top: 12px; right: 12px; z-index: 3;
+          background: rgba(255,255,255,.14); border: none; border-radius: 8px;
           color: #fff; cursor: pointer; padding: 6px; display: flex; line-height: 0;
         }
-        .pm-ebook-x:hover { background: rgba(255,255,255,.3) }
+        .pm-ebook-x:hover { background: rgba(255,255,255,.28) }
 
+        /* ── Portada ─────────────────────────────────────────────────────── */
         .pm-ebook-izq {
-          background: linear-gradient(160deg, #0B1120 0%, #131A2B 100%);
-          padding: 30px 28px; border-radius: 18px 0 0 18px; color: #E6EBF5;
+          position: relative; overflow: hidden;
+          background: #080B14; color: #fff;
+          padding: 34px 30px 30px; border-radius: 18px 0 0 18px;
+          display: flex; flex-direction: column; justify-content: center;
         }
+        /* Trama diagonal muy tenue: le da textura de impreso sin competir con
+           la tipografía. Sin ella el panel se ve como un rectángulo negro. */
+        .pm-ebook-izq::before {
+          content: ''; position: absolute; inset: 0; pointer-events: none;
+          background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.045) 0 1px, transparent 1px 7px);
+        }
+        .pm-ebook-izq::after {
+          content: ''; position: absolute; width: 320px; height: 320px; right: -120px; top: -110px;
+          background: radial-gradient(circle, rgba(37,99,235,.42) 0%, transparent 68%);
+          pointer-events: none;
+        }
+        .pm-ebook-izq > * { position: relative; z-index: 1 }
+
+        .pm-ebook-canto {
+          position: absolute; top: 26px; right: 14px; z-index: 1;
+          writing-mode: vertical-rl;
+          font-family: var(--font-mono), monospace; font-size: 8.5px; font-weight: 500;
+          letter-spacing: 2.2px; text-transform: uppercase; color: rgba(255,255,255,.34);
+        }
+
+        .pm-ebook-cifra { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 26px }
+        .pm-ebook-5 {
+          font-family: var(--font-oswald), var(--font-display), sans-serif;
+          font-size: 116px; font-weight: 700; line-height: .78; letter-spacing: -.04em;
+          color: #3B82F6; flex-shrink: 0;
+        }
+        .pm-ebook-cifra-txt {
+          font-family: var(--font-display), var(--font-inter), sans-serif;
+          font-size: 19px; font-weight: 700; line-height: 1.22; letter-spacing: -.02em;
+          color: #fff; padding-top: 12px;
+        }
+        .pm-ebook-cifra-txt em { font-style: italic; font-weight: 500; color: #93A3BE }
+
+        .pm-ebook-barras { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 9px }
+        .pm-ebook-barras li { display: flex; align-items: center; gap: 12px }
+        .pm-ebook-b {
+          width: 78px; height: 9px; border-radius: 2px; flex-shrink: 0;
+          border: 1px dashed rgba(255,255,255,.26); background: transparent;
+        }
+        .pm-ebook-barras li.on .pm-ebook-b {
+          border: none; background: linear-gradient(90deg, #3B82F6, #2563EB);
+          box-shadow: 0 0 18px rgba(59,130,246,.55);
+        }
+        .pm-ebook-l { font-size: 12px; color: rgba(255,255,255,.42); letter-spacing: .1px }
+        .pm-ebook-barras li.on .pm-ebook-l { color: #fff; font-weight: 600 }
+
+        .pm-ebook-preg {
+          font-family: var(--font-oswald), var(--font-display), sans-serif;
+          font-size: 40px; font-weight: 600; line-height: .98; letter-spacing: -.015em;
+          text-transform: uppercase; color: #fff; margin: 0;
+        }
+        .pm-ebook-preg span { color: #3B82F6 }
+
+        /* ── Formulario ──────────────────────────────────────────────────── */
+        .pm-ebook-der { padding: 34px 30px; display: flex; flex-direction: column; justify-content: center }
         .pm-ebook-eyebrow {
-          font-family: var(--font-mono), monospace; font-size: 10px; font-weight: 600;
-          letter-spacing: 1.2px; text-transform: uppercase; color: #7DA9FF; margin: 0 0 12px;
+          font-family: var(--font-mono), monospace; font-size: 9.5px; font-weight: 500;
+          letter-spacing: 1.4px; text-transform: uppercase; color: #2563EB; margin: 0 0 7px;
         }
-        .pm-ebook-h2 {
-          font-family: var(--font-inter), sans-serif; font-size: 21px; font-weight: 800;
-          line-height: 1.24; letter-spacing: -.02em; margin: 0 0 10px; color: #fff;
-        }
-        .pm-ebook-h2 span { color: #60A5FA }
-        .pm-ebook-sub { font-size: 12.5px; line-height: 1.55; color: #93A3BE; margin: 0 0 20px }
-
-        .pm-ebook-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px }
-        .pm-ebook-lista li { display: flex; gap: 11px; align-items: stretch }
-        .pm-ebook-barra { width: 3px; border-radius: 2px; flex-shrink: 0 }
-        .pm-ebook-lista strong { display: block; font-size: 12.5px; color: #fff; margin-bottom: 3px }
-        .pm-ebook-lista span { font-size: 11.5px; line-height: 1.5; color: #93A3BE }
-        .pm-ebook-pie { font-size: 10.5px; color: #7F8FAE; margin: 20px 0 0; line-height: 1.5 }
-
-        .pm-ebook-der { padding: 30px 28px; display: flex; flex-direction: column; justify-content: center }
-        .pm-ebook-h3 { font-family: var(--font-inter), sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 4px }
-        .pm-ebook-nota { font-size: 12px; color: var(--ink-dim); margin: 0 0 18px }
+        .pm-ebook-h3 { font-family: var(--font-display), var(--font-inter), sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); margin: 0 0 6px; letter-spacing: -.02em }
 
         .pm-ebook-der label {
-          display: block; font-size: 11.5px; font-weight: 600; color: var(--ink-dim);
-          margin-bottom: 5px; margin-top: 12px;
+          display: block; font-size: 11px; font-weight: 600; color: var(--ink-dim);
+          margin-bottom: 5px; margin-top: 13px;
         }
         .pm-ebook-der label span { font-weight: 400; opacity: .7 }
         .pm-ebook-der input {
@@ -308,7 +337,7 @@ export function PulseEbookGate() {
         .pm-ebook-der input::placeholder { color: #94A3B8 }
 
         .pm-ebook-btn {
-          width: 100%; margin-top: 18px; padding: 13px; border-radius: 9px; border: none;
+          width: 100%; margin-top: 20px; padding: 13px; border-radius: 9px; border: none;
           background: linear-gradient(135deg, #3B82F6, #2563EB); color: #fff;
           font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
           transition: transform .15s ease, box-shadow .15s ease;
@@ -320,7 +349,7 @@ export function PulseEbookGate() {
           width: 100%; margin-top: 10px; background: none; border: none; cursor: pointer;
           color: var(--ink-dim); font-size: 12.5px; font-family: inherit; text-decoration: underline;
         }
-        .pm-ebook-legal { font-size: 10.5px; color: var(--ink-dim); line-height: 1.5; margin: 11px 0 0; text-align: center }
+        .pm-ebook-legal { font-size: 10.5px; color: var(--ink-dim); margin: 10px 0 0; text-align: center }
         .pm-ebook-error {
           margin: 12px 0 0; font-size: 12px; color: #DC2626;
           background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.25);
@@ -333,20 +362,23 @@ export function PulseEbookGate() {
           background: rgba(13,148,136,.12); color: #0D9488;
           display: flex; align-items: center; justify-content: center;
         }
-        .pm-ebook-ok h3 { font-family: var(--font-inter), sans-serif; font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 6px }
+        .pm-ebook-ok h3 { font-family: var(--font-display), var(--font-inter), sans-serif; font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 6px }
         .pm-ebook-ok p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.5 }
 
         .pm-ebook-fondo :focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px }
 
-        /* En pantalla angosta la columna oscura pasa arriba y se recorta a lo
-           esencial: con las tres fugas completas el formulario queda debajo del
-           pliegue y el modal deja de convertir. */
+        /* En pantalla angosta la portada se achica pero no se elimina: es la que
+           hace el argumento. Lo que se recorta es su respiro, no su contenido. */
         @media (max-width: 720px) {
           .pm-ebook-caja { grid-template-columns: 1fr; max-height: 94vh }
-          .pm-ebook-izq { border-radius: 18px 18px 0 0; padding: 24px 22px 20px }
-          .pm-ebook-lista li:nth-child(n+3) { display: none }
-          .pm-ebook-pie { display: none }
-          .pm-ebook-der { padding: 22px }
+          .pm-ebook-izq { border-radius: 18px 18px 0 0; padding: 26px 22px 22px }
+          .pm-ebook-5 { font-size: 82px }
+          .pm-ebook-cifra-txt { font-size: 16px; padding-top: 8px }
+          .pm-ebook-cifra { margin-bottom: 20px }
+          .pm-ebook-barras { margin-bottom: 20px; gap: 7px }
+          .pm-ebook-preg { font-size: 30px }
+          .pm-ebook-canto { display: none }
+          .pm-ebook-der { padding: 24px 22px }
         }
         @media (prefers-reduced-motion: reduce) {
           .pm-ebook-fondo, .pm-ebook-caja { animation: none }

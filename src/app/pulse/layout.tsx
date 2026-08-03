@@ -1,4 +1,5 @@
 // src/app/pulse/layout.tsx
+import { PulseEbookGate } from '@/components/pulse/PulseEbookGate'
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Oswald, IBM_Plex_Mono, Inter, Plus_Jakarta_Sans } from 'next/font/google'
@@ -73,6 +74,9 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
       `}</Script>
 
       {children}
+
+      {/* El modal decide solo en que rutas mostrarse y con que disparador. */}
+      <PulseEbookGate />
     </div>
   )
 }

@@ -28,14 +28,20 @@ export const TOOL_CALLS = [
   { fn:'reservar_inventario',   ms:7,  chip:'#4C8DFF' }, // Vehículos nuevos
 ]
 
-// ─── Diferenciadores reales del producto (no prueba social — todavía en lanzamiento,
-// sin logos de clientes que mostrar) — un solo chip ámbar, no la paleta multicolor de
-// Ecosistema/Cumplimiento, ver "Chips de categoría" en tokens.md ───
+// ─── Las cuatro líneas de margen que se adhieren a cada unidad vendida.
+//
+// El vehículo nuevo es la quinta y no está acá a propósito: es la puerta de
+// entrada, la que todo concesionario cobra siempre, y por eso vive en el titular.
+// Las que mueven el P&G son estas cuatro, porque no exigen un lead más — exigen
+// no dejar la línea sin ofrecer en la unidad que ya se vendió.
+//
+// Un solo chip ámbar, no la paleta multicolor de Ecosistema/Cumplimiento, ver
+// "Chips de categoría" en tokens.md ───
 export const DIFERENCIADORES = [
-  { num:'01', icon:'▶',  titulo:'Ejecuta, no solo conversa',      desc:'Cada cotización y cada tasación es una acción ejecutada y registrada — no una respuesta genérica de chatbot.' },
-  { num:'02', icon:'🗂', titulo:'Entiende tu inventario solo',     desc:'Subís tu Excel o DMS y DataBridge arma el mapa de tablas automáticamente, sin escribir una línea de SQL.' },
-  { num:'03', icon:'💬', titulo:'Vive en el WhatsApp que ya usás', desc:'Sin número nuevo, sin app aparte: el mismo WhatsApp Business de tu concesionario o tu número personal.' },
-  { num:'04', icon:'💳', titulo:'Precio simple, sin sorpresas',    desc:'Cobrás por plan, no por lead — sin costos ocultos ni contratos de permanencia.' },
+  { num:'01', icon:'◧', titulo:'Financiación',       desc:'Cotiza el crédito dentro de la misma conversación, sin transferir al área ni perder al cliente en el traspaso.' },
+  { num:'02', icon:'◈', titulo:'Seguro todo riesgo', desc:'Ofrece la póliza en el momento del cierre, que es cuando el cliente ya dijo que sí — no una semana después.' },
+  { num:'03', icon:'✚', titulo:'Accesorios',         desc:'Propone el accesorio sobre el modelo que el cliente eligió, antes de que la unidad salga de la vitrina.' },
+  { num:'04', icon:'⇄', titulo:'Retomas',            desc:'Toma los datos del usado y devuelve una tasación registrada, para que la retoma no se vaya a otro lado.' },
 ]
 
 export const POR_QUE = [
@@ -451,12 +457,12 @@ export function DiferenciadoresSection() {
     <section style={{ padding:'72px 24px', borderTop:'1px solid var(--line)', borderBottom:'1px solid var(--line)' }}>
       <div style={{ maxWidth:'1280px', margin:'0 auto' }}>
         <div ref={header.ref} className={`reveal${header.inView?' in':''}`} style={{ textAlign:'center', marginBottom:'44px' }}>
-          <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>Lo que nos hace distintos</p>
+          <p className="kicker" style={{ justifyContent:'center', display:'flex' }}>El negocio completo, no una parte</p>
           <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(28px,3.6vw,44px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.15, marginBottom:'14px', color:'var(--ink)' }}>
-            No es un chatbot más. <span className="grad-blue">Es un agente que ejecuta.</span>
+            El vehículo es la primera línea. <span className="grad-blue">Faltan cuatro.</span>
           </h2>
           <p style={{ fontSize:'16px', color:'var(--ink-dim)', maxWidth:'560px', margin:'0 auto', lineHeight:1.6 }}>
-            Cuatro diferencias que se notan desde el primer lead — no promesas genéricas de IA.
+            Cada unidad que sale de tu vitrina puede cargar cinco líneas de margen. El agente trabaja las cuatro que suelen quedarse sin ofrecer, y el tablero te muestra cuántas cobraste.
           </p>
         </div>
 

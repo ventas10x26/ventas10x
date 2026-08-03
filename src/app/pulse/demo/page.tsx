@@ -111,6 +111,10 @@ export default function DemoPage() {
       setSoloPanel(new URLSearchParams(window.location.search).get('vista') === 'panel')
     } catch { /* si no se puede leer la query, se muestra la página completa */ }
     try {
+      const q = new URLSearchParams(window.location.search).get('seccion')
+      if (q && SECCIONES.some(x => x.id === q)) setSeccion(q as SeccionId)
+    } catch { /* sin query legible: arranca en Resumen */ }
+    try {
       const guardado = window.localStorage.getItem(CLAVE_TEMA)
       if (guardado === 'light' || guardado === 'dark') setTema(guardado)
     } catch { /* sin preferencia guardada: queda el oscuro */ }
@@ -131,6 +135,30 @@ export default function DemoPage() {
   })
 
   const [seccion, setSeccion] = useState<SeccionId>('resumen')
+  const [copiado, setCopiado] = useState(false)
+
+  // La seccion activa viaja en la URL para que cada modulo se pueda compartir
+  // por separado. Se usa replaceState y no pushState a proposito: el boton
+  // "atras" del navegador debe sacar del demo, no recorrer una por una las
+  // pestanas que el visitante miro.
+  const irASeccion = (id: SeccionId) => {
+    setSeccion(id)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('seccion', id)
+      window.history.replaceState(null, '', url)
+    } catch { /* si el navegador bloquea history, la vista igual cambia */ }
+  }
+
+  const copiarEnlace = () => {
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('seccion', seccion)
+      navigator.clipboard.writeText(url.toString())
+      setCopiado(true)
+      window.setTimeout(() => setCopiado(false), 1800)
+    } catch { /* sin permiso de portapapeles: queda copiar de la barra de direcciones */ }
+  }
 
   const { datos: d, origen, sedeEfectiva } = useMemo(() => calcularDemoFiltrado(filtros), [filtros])
   const kpis = useMemo(() => calcularKpis(d), [d])
@@ -329,7 +357,7 @@ export default function DemoPage() {
             {SECCIONES.map(s => (
               <button
                 key={s.id}
-                onClick={() => setSeccion(s.id)}
+                onClick={() => irASeccion(s.id)}
                 className="pm-demo-nav"
                 style={{
                   display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
@@ -346,6 +374,25 @@ export default function DemoPage() {
             ))}
 
             <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+              <button
+                onClick={copiarEnlace}
+                className="pm-demo-nav"
+                title="Copiar el enlace de esta vista"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                  padding: '9px 10px', marginBottom: '8px', borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.12)', background: 'transparent',
+                  color: copiado ? '#2DD4BF' : '#93A3C4', cursor: 'pointer',
+                  fontSize: '11.5px', fontWeight: 600, fontFamily: FONT_BODY, textAlign: 'left',
+                }}
+              >
+                {copiado ? (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7" /></svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                )}
+                {copiado ? 'Enlace copiado' : 'Copiar enlace'}
+              </button>
               <div style={{ padding: '10px', borderRadius: '9px', background: 'rgba(255,255,255,0.05)', fontSize: '11px', color: '#93A3C4', lineHeight: 1.5 }}>
                 Cifras simuladas. Tus datos quedan solo en tu cuenta.
               </div>
@@ -355,6 +402,23 @@ export default function DemoPage() {
           {/* Contenido */}
           <div style={{ minWidth: 0, background: SURFACE }}>
 
+            {/* Matriculas no comparte los filtros del resto del panel: vitrina,
+                asesor, periodo, origen y categoria no mueven nada en ese modulo,
+                y una barra de controles que no hace nada es peor que no ponerla.
+                Se conserva el toggle de tema, que vivia dentro de esa barra. */}
+            {seccion === 'matriculas' ? (
+              <div style={{ background: CARD, borderBottom: `1px solid ${LINE}`, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FONT, fontSize: '16px', fontWeight: 800, color: INK, letterSpacing: '-0.01em', textTransform: 'uppercase', lineHeight: 1.15 }}>
+                    Matrículas
+                  </div>
+                  <div style={{ fontSize: '12px', color: DIM }}>
+                    De pedido a placa · Panel de demostración
+                  </div>
+                </div>
+                <BotonTema tema={tema} onTema={alternarTema} />
+              </div>
+            ) : (
             <BarraFiltros
               seccion={SECCIONES.find(s => s.id === seccion)?.label ?? ''}
               oportunidades={d.totales.oportunidades}
@@ -367,6 +431,7 @@ export default function DemoPage() {
               tema={tema}
               onTema={alternarTema}
             />
+            )}
 
             <div style={{ padding: '18px' }}>
 

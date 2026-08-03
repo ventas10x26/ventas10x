@@ -1,0 +1,87 @@
+---
+name: pulsemotor-design
+description: Sistema de diseño y lineamientos de marca de Pulse Motor (pulsemotor.co), un agente autónomo de IA que orquesta el contexto 360° de la venta automotriz (inventario, financiación, pólizas, retomas, accesorios) dentro de una sola conversación de WhatsApp, para concesionarios y asesores independientes en LatAm. Usar esta skill SIEMPRE que se construya, edite o revise cualquier UI, landing page, componente, email o pieza visual de Pulse Motor — incluso si el usuario no menciona "diseño" explícitamente, solo pide "una sección nueva", "un componente", "el hero", "la pricing page", etc. También usar si el usuario pregunta por la paleta, tipografía, tono de copy o el "arquetipo" de la marca. NO usar para Ventas10x.co ni para Almotores — es un sistema de marca distinto y específico de Pulse Motor.
+---
+
+# Pulse Motor — Sistema de diseño
+
+## El arquetipo: el copiloto autónomo de venta 360°
+
+Pulse Motor no es "un chatbot que responde WhatsApp". Es un **agente autónomo** que orquesta *todo* el contexto de una venta de auto — vehículo, versión, financiación, póliza, retoma, accesorios — dentro de una sola conversación, y que **muestra su trabajo**: cada cotización, cada tasación, cada póliza calculada es una acción trazable (un "tool call") con su propio tiempo de ejecución, no una respuesta de caja negra.
+
+**Todo el lenguaje visual y de copy se ancla en la transparencia y amplitud de ese agente**, no en genérico "SaaS de IA":
+
+- Agente autónomo, copiloto, orquesta, contexto 360°, ecosistema, timeline ejecutado, ruteo, auditable, conversión estimada
+- NUNCA: "asistente virtual" genérico, partículas flotantes, cubos 3D decorativos, mockup de celular como protagonista, iconografía de robot/chip/cerebro
+
+Antes de diseñar cualquier pieza nueva, preguntate: *¿esto muestra al agente haciendo un trabajo real y verificable, o es una promesa vaga de "IA"?* Si es lo segundo, hay que rehacerlo.
+
+**`src/app/pulse/page.tsx` ya implementa este arquetipo** — tratalo como la implementación canónica, junto con `assets/reference-page.html` como catálogo de patrones aislado.
+
+## Los dos segmentos (ambos con el mismo agente)
+
+- **Concesionario (Enterprise)**: fuerza de ventas, inventario multi-punto, integra DMS (Siigo/SAP), atribución por asesor, compliance/auditoría.
+- **Vendedor individual (Pro)**: copiloto personal en su propio WhatsApp Business, cotiza y cierra sin depender de un área de crédito, precio de entrada bajo (self-serve).
+
+Nunca tratar esto como una sola persona genérica "el asesor" — el copy y las secciones deben distinguir explícitamente estos dos públicos (ver sección "Diseñado para cómo realmente se vende" en `page.tsx`).
+
+## Reglas duras (no negociables)
+
+1. **Numeración catalogada permitida** (`01`–`05`) para listar capacidades/ecosistema — a diferencia de un onboarding, acá no describe una secuencia temporal sino un catálogo de puntos de fricción cubiertos, y por eso los números leen como índice, no como decoración vacía. Para procesos que sí son secuenciales en el tiempo, usar sellos (`✓ Paso 1`) en vez de números crudos.
+2. **Nunca partículas, cubos 3D decorativos, ni mockup de teléfono como elemento hero principal.** El WhatsApp es la prueba (una conversación real, recortada), no el protagonista visual — el protagonista es el **timeline de tool-calls** que se ve al lado. Sombras neutras grandes y suaves (elevación física) están permitidas y son deseables en paneles clave (hero panel, price card, segment cards en hover) — la línea sigue siendo *halo de color sangrando* (glow, prohibido) vs. *sombra neutra que sugiere objeto físicamente elevado* (permitido).
+3. **El movimiento es funcional**, no decorativo: el timeline de tool-calls se revela como una traza real de ejecución (uno por uno, con su tiempo), un pulso de "en vivo", timing real de conversación. Revelado por scroll con el hook compartido `useReveal` (`src/hooks/useReveal.ts`) en cada sección — no inventar mecanismos nuevos. Cifras reales cuentan hacia arriba con `useCountUp` (`src/hooks/useCountUp.ts`) al revelarse — solo para cifras reales (leads, retomas, pólizas, conversión), nunca como efecto de texto genérico.
+4. **Ámbar como familia de acento** (`--amber → --amber-2`, degradé tonal permitido para cifras clave y la palabra de énfasis del hero) — no mezclar otros hues como acento de marca. Verde exclusivo para estados on/off/en vivo/aprobado — **con dos excepciones explícitas**:
+   - La sección "Actividad en vivo" (`.section-live`, ver "Ritmo de fondo entre secciones" en `tokens.md`) eleva ese mismo verde a un degradé de fondo a escala hero (`--grad-green`), espejando lo que el ámbar ya hace en el hero. Es la misma semántica de "en vivo", no un segundo hue de marca.
+   - **Chips de categoría** (a pedido explícito del usuario, inspirados en el grid multicolor de Platzi): los íconos de grids catalogados (Ecosistema 360°, Cumplimiento y seguridad) pueden llevar un chip de color decorativo distinto por ítem (azul, violeta, teal, rosa, índigo) — ver "Chips de categoría" en `tokens.md`. Alcance estrictamente limitado al fondo/borde del ícono; texto, CTAs, links, fondo de sección y estados siguen siendo ámbar/verde/neutro. No extender esto a botones, titulares, ni badges de estado.
+5. **No repetir la misma anatomía de sección en cadena.** Alternar: grid catalogado, split de 2 cards de segmento, stats+tabla de auditoría, grid de integraciones, testimonios por segmento. La variedad de composición es parte del sistema.
+6. **Jerarquía tipográfica con confianza**: el H1 del hero es el elemento más grande de la página (`clamp(44px, 7vw, 88px)`); cada H2 de sección escala a partir de ahí, nunca al mismo tamaño para todo.
+7. **Titulares en minúscula/mixta con énfasis en negrita**, NO en mayúscula sostenida (`text-transform:none`, no uppercase) — a diferencia de una iteración anterior de esta skill que usaba Oswald todo en mayúsculas. Los titulares se leen como una frase con una palabra o cláusula resaltada en degradé ámbar, no como un cartel de guardia.
+8. Respetar `prefers-reduced-motion` en todo componente animado.
+9. **Las 3 páginas públicas tienen dos temas — soft (claro) y dark — con soft como default.** El toggle vive en el header (`ThemeToggle`, ícono luna/sol) y persiste en `localStorage` compartido entre `/pulse`, `/pulse/concesionario` y `/pulse/asesor`. Cualquier pieza nueva debe leer color de `var(--bg-*)`/`var(--ink*)`/`var(--line)` (que ya cambian solos con el tema) en vez de hardcodear un hex o un `rgba(0,0,0,...)`/`rgba(255,255,255,...)` — ver "Tokens de tema derivados" en `tokens.md` para la lista de casos ya resueltos (sombras, wash de segment card, badge de prueba social) que necesitaron su propia variable en vez de solo recolorear fondo/texto. Excepción: los paneles "pantalla de producto" (timeline del hero, previews de DataBridge/WhatsApp, panel de Cobertura, tabla de auditoría — todo lo que lleva `.panel`) siempre quedan oscuros, en los dos temas, porque son una captura del producto real, no parte del lienzo de la página — usan el set de variables `--panel-*` en vez de los tokens de tema.
+
+## Tokens de diseño
+
+Ver `references/tokens.md` para la tabla completa. Resumen rápido:
+
+- **Color:** ámbar de señal `#F2A93B` (degradé tonal `#F2A93B → #C9770B` permitido) como único acento y verde `#3ECF7E` solo para "activo/en vivo/aprobado" — estos dos no cambian entre temas. El fondo/texto sí cambia: negro cálido `#0B0D0C`/`#14120F`/`#1B1815` en dark, blanco cálido `#FDFBF7`/`#FFFFFF`/`#F5F1E9` en soft (default).
+- **Tipografía:** Inter (700–800) para titulares en minúscula/mixta con énfasis en degradé ámbar · IBM Plex Mono para timestamps, nombres de función del timeline (`tasar_retoma`, `calcular_financiacion`) y cualquier dato · Inter (400–600) para cuerpo. Cargadas con `next/font/google` en `src/app/pulse/layout.tsx` (autohospedadas en build time) — nunca un `<link>` a Google Fonts en runtime ni `@import` en un `<style>`.
+- **Bordes/radios:** rectos y contenidos, radio 3–8px máximo.
+- **Grids de contenido:** bordes de 1px compartidos entre celdas (`gap:1px` con `background:var(--line)`) en vez de cards flotantes, salvo los segment cards y el hero panel, que sí llevan sombra de elevación real por ser los elementos protagonistas de su sección.
+
+## Elementos de firma (signature elements)
+
+- **Badge de agente activo**: punto verde con pulso + "Agente activo · 24/7/365". Puede llevar detrás el "barrido" cónico ámbar tenue (rotación lenta) como refuerzo visual de "siempre encendido" — nunca compite con el texto.
+- **Panel hero: conversación + timeline de tool-calls**: un mensaje real de lead, la respuesta del agente, y debajo una traza de 4 tool-calls (`nombre_funcion · Nms`) que se revelan una por una — es el elemento más distintivo de la marca, mostrando literalmente lo que el agente ejecutó, no una promesa. Debajo del timeline, un auto (🚗) recorre una pista punteada al ritmo de los tool-calls ejecutados — el trámite avanzando en tiempo real, nunca un auto decorativo suelto (a pedido explícito del usuario, que pidió "autos animados" — el skill solo permite motivo automotriz si está atado a progreso/datos reales, nunca como decoración vacía). Cierra con una cifra de conversión estimada.
+- **Grid catalogado 01–05**: la cobertura del "ecosistema 360°" (vehículos, financiación, accesorios, retomas, pólizas) en un grid de borde compartido con números de índice.
+- **Segment cards**: dos tarjetas con sombra real (Concesionario/Enterprise vs. Vendedor individual/Pro), cada una con tag, título, subtítulo, 4 bullets de valor y su propio CTA — nunca fusionar ambos públicos en una sola tarjeta genérica. La card de Concesionario suma un preview real del diagrama de tablas de `/pulse/databridge` (mini-esquema de nodos conectados: leads, clientes, inventario, financiación, pólizas) — prueba visual de que "subís tu DMS/Excel y la IA arma el mapa" tan literal como el timeline de tool-calls del hero, no un mockup genérico. Asimetría entre las dos cards (Concesionario más alta por el diagrama) es intencional, no un error de layout.
+- **Precios con toggle de segmento**: sección `#precios` con un switch (Vendedor individual / Concesionario) que cambia los 2 planes mostrados — nunca los 4 planes juntos en una sola grilla. El plan de mayor compromiso de cada segmento lleva badge "Recomendado" y CTA sólido (`pm-btn`); el otro va con botón outline (`pm-btn-outline`) — la jerarquía se marca por peso visual dentro de la familia ámbar, nunca con un hue nuevo.
+- **Banner de confianza**: stat de adopción (`+N concesionarios`) + CTA de demo, debajo de la fila de logos — refuerza el trust signal con una acción concreta, no solo el logo wall.
+- **Cobertura 24/7 (panel "por qué")**: reusa el patrón de fila de timeline/auditoría (`log-row`) pero aplicado a 4 franjas horarias con un evento real cada una y `✓ Cubierto` en verde — nunca un mockup de celular ni una captura genérica de la app para ilustrar "siempre activo".
+- **Cumplimiento y seguridad**: grid catalogado (mismo patrón `grid-shared`/`integ-item` que integraciones) con reclamos concretos de seguridad/datos (cifrado, alojamiento, Habeas Data, auditoría, control de acceso) — nunca certificaciones específicas que el producto no tiene realmente.
+- **Actividad en vivo**: fila de 4 stats con delta (`+12%`, `+5pt`) + tabla auditable (timestamp / evento / canal / estado) de eventos reales del ecosistema (retomas, pólizas, financiación, citas, cross-sell) — no solo mensajes de WhatsApp.
+- **Integraciones nativas**: grid de badges de stack real (WhatsApp Business, DMS, aseguradoras, HubSpot/Salesforce) — comunica que el agente vive dentro del stack del concesionario, no como capa aparte.
+- **Revelado progresivo por scroll**: cada sección se descubre al bajar vía `useReveal`; cifras reales cuentan hacia arriba con `useCountUp`. No reemplazar por scroll-jacking, parallax, ni librerías nuevas (no hay `framer-motion` en el proyecto).
+- **Toggle de tema (soft/dark)**: botón circular con ícono de luna (en soft, invita a pasar a oscuro) o sol (en dark, invita a volver a soft) en el header, junto a Login/Ser agente. Soft es el tema por default; ver regla dura 9 y "Tema: soft (claro, default) / dark" en `tokens.md` para la arquitectura completa de tokens.
+
+## Copy y tono
+
+- Español neutro-LatAm, directo, en segunda persona cuando se habla al vendedor individual; en tercera/impersonal cuando se habla del concesionario como organización.
+- Vocabulario del negocio real: retoma, póliza, financiación, DMS, ruteo de leads, cross-sell — nunca jerga de sistema genérica ("dashboard", "insights").
+- Nunca adjetivos vacíos ("revolucionario", "next-gen"). Específico y verificable: "tasé su 2021 en $42.500.000", no "tasación instantánea con IA".
+
+## Más allá del home: el dashboard interno (/pulse/dashboard, /agente, /pipeline, /metricas, /perfil, /databridge, etc.)
+
+Esta skill no es solo para la landing pública — aplica a **todo** `/pulse/**`, incluido el producto autenticado. Antes de esta skill, el dashboard interno usaba un tema navy+naranja completamente distinto (`#0f172a`/`#f97316`, `system-ui`, radios de 20px, ícono 🤖 para "Mi agente") heredado de una iteración anterior, sin relación con el sistema ámbar/negro del home.
+
+- Los tokens de color viven en `src/app/pulse/layout.tsx` (bloque `<style>` scoped a `.pulse-root`) — cualquier página o componente bajo `/pulse` puede usarlos vía `var(--bg-0)`, `var(--amber)`, etc. sin redefinirlos.
+- `PulseAppShell.tsx` (`src/components/pulse/`) es el shell compartido (sidebar + header + pill de créditos + paywall) usado por dashboard/agente/pipeline/métricas/perfil/databridge — ya migrado al sistema ámbar/negro. Es el punto de mayor apalancamiento: cualquier cambio ahí se propaga a las 6 páginas que lo usan.
+- La pill de créditos reusa la semántica de color ya establecida: verde = saldo saludable, ámbar = alerta temprana (no amarillo genérico), rojo = crítico — nunca un cuarto color.
+- `globals.css` (compartido con Ventas10x.co) define `h1, h2, h3 { font-family: 'Syne' }` a nivel global — **nunca editar esa regla directamente** (afectaría también a Ventas10x.co). En su lugar, `layout.tsx` la sobreescribe con `.pulse-root h1, .pulse-root h2, .pulse-root h3 { font-family: var(--font-inter) }` (mayor especificidad, scoped), así que todo título real (`<h1>`/`<h2>`/`<h3>`) bajo `/pulse` ya usa Inter aunque la página en sí no esté migrada. Los `const FONT = "'Syne', ..."` sueltos que aplicaban Syne vía estilo inline (mayor prioridad que cualquier CSS) también se reemplazaron por `var(--font-inter)` en cada archivo que los tenía.
+- El resto de las páginas del dashboard (login, onboarding, pricing, pago-exitoso, playground, onboarding-demo) y los componentes de `src/components/pulse/` (PulseFollowUpPanel, PulsePipelineKanban, PulseAudioLogs, PulseVozRecorder, PulseWhatsappConnect, CreditosBanner, etc.) **todavía no están migrados de color/layout** — los títulos ya usan Inter (ver arriba) pero el resto del texto sigue en DM Sans (cargada por `<Script>` en runtime, patrón frágil) y con sus propios colores navy/naranja sueltos. Migrar de a una página/componente por vez, verificando con capturas antes de dar por hecho el cambio.
+
+## Cómo trabajar con esta skill
+
+1. Leé `references/tokens.md` para valores exactos antes de construir cualquier pieza.
+2. Mirá `assets/reference-page.html` como catálogo estático de patrones (segment cards, timeline de tool-calls, grid 01–05), y `src/app/pulse/page.tsx` como la implementación real con estado/hooks — para revelado por scroll y cuentas ascendentes, reusá `useReveal`/`useCountUp`.
+3. Para el dashboard interno, `PulseAppShell.tsx` es la referencia canónica del shell ya migrado — replicá sus mismos tokens/patrones en vez de inventar variantes nuevas por página.
+4. Si el pedido choca con una regla dura (ej. "ponele un mockup de celular gigante", "fusioná los dos segmentos en una card", o un ícono de robot/chip/cerebro), decilo explícitamente y proponé la alternativa en vez de aplicarlo en silencio.

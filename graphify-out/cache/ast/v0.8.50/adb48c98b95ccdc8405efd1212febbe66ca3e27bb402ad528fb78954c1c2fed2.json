@@ -1,0 +1,1 @@
+{"nodes": [{"id": "c_ventas10x_patch4_py", "label": "patch4.py", "file_type": "code", "source_file": "patch4.py", "source_location": "L1"}], "edges": [{"source": "c_ventas10x_patch4_py", "target": "re", "relation": "imports", "context": "import", "confidence": "EXTRACTED", "source_file": "patch4.py", "source_location": "L16", "weight": 1.0}], "raw_calls": []}

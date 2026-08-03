@@ -23,6 +23,8 @@ import {
   type PeriodoId, type SedeId, type KpiDemo, type AsesorDemo, type PuntoDia,
   type OrigenDemo, type CanalDigital, type FiltrosDemo, type OrigenId,
 } from './datos'
+import CierreIntegralidad from './CierreIntegralidad'
+import ModuloMatriculas from './ModuloMatriculas'
 
 const FONT = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
@@ -399,6 +401,12 @@ export default function DemoPage() {
               </>
             )}
 
+            {seccion === 'matriculas' && (
+              <div style={{ marginBottom: '16px' }}>
+                <ModuloMatriculas />
+              </div>
+            )}
+
             {seccion === 'asesores' && (
               <div style={{ marginBottom: '16px' }}>
                 <Panel titulo="Productividad por asesor" sub="Alias, no personas — el demo no expone a nadie">
@@ -468,6 +476,7 @@ export default function DemoPage() {
                 </div>
               ))}
             </div>
+            <CierreIntegralidad pedidos={d.totales.pedidos} matriculas={d.totales.matriculas} roe={d.totales.roe} />
           </Panel>
         </div>
             )}
@@ -548,7 +557,7 @@ const accionBarra: React.CSSProperties = {
   fontSize: '11.5px', fontWeight: 700, fontFamily: FONT_BODY, cursor: 'pointer',
 }
 
-type SeccionId = 'resumen' | 'funnel' | 'asesores' | 'integralidad' | 'vitrinas'
+type SeccionId = 'resumen' | 'funnel' | 'asesores' | 'integralidad' | 'vitrinas' | 'matriculas'
 
 const SECCIONES: { id: SeccionId; label: string; icono: string }[] = [
   { id: 'resumen',      label: 'Resumen',           icono: '▦' },
@@ -556,6 +565,7 @@ const SECCIONES: { id: SeccionId; label: string; icono: string }[] = [
   { id: 'asesores',     label: 'Asesores',          icono: '◉' },
   { id: 'integralidad', label: 'Integralidad 360°', icono: '◈' },
   { id: 'vitrinas',     label: 'Vitrinas',          icono: '⌂' },
+  { id: 'matriculas',   label: 'Matrículas',        icono: '▤' },
 ]
 
 function horaCorta(): string {

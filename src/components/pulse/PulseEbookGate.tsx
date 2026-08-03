@@ -29,6 +29,12 @@
 // perdiendo esas cuatro líneas —no lo sabemos— sino que lo invita a responderse
 // si las está cobrando. Afirmarlo sería una promesa sin sustento; preguntarlo
 // es lo que hace que quiera el documento.
+//
+// EL MODAL NO SIGUE EL TEMA DE LA PÁGINA. Todos sus colores van literales y no
+// por var(--bg-0/--ink). Dos motivos: los campos heredaban el fondo del tema y
+// en modo oscuro quedaban casi del mismo color que el panel —invisibles como
+// campos—, y una portada editorial que cambia de piel según el tema deja de ser
+// una portada. El modal es su propia superficie, igual en ambos temas.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -242,7 +248,7 @@ export function PulseEbookGate() {
         .pm-ebook-caja {
           position: relative; display: grid; grid-template-columns: 1.08fr .92fr;
           width: 100%; max-width: 840px; max-height: 92vh; overflow-y: auto;
-          background: var(--bg-1, #fff); border-radius: 18px;
+          background: #0E1626; border-radius: 18px;
           box-shadow: 0 34px 90px rgba(0,0,0,.55);
           animation: pm-ebook-in .3s cubic-bezier(.2,.7,.3,1);
         }
@@ -255,11 +261,7 @@ export function PulseEbookGate() {
         }
         .pm-ebook-x:hover { background: rgba(255,255,255,.3) }
 
-        /* ── Portada ─────────────────────────────────────────────────────────
-           Azul profundo, no negro. El casi-negro anterior hacía que el panel se
-           leyera como un hueco al lado del formulario claro; con base azulada y
-           dos focos de luz el contraste entre las dos mitades pasa a ser de
-           color y no de "apagado contra encendido". */
+        /* ── Portada ─────────────────────────────────────────────────────── */
         .pm-ebook-izq {
           position: relative; overflow: hidden;
           background:
@@ -270,8 +272,6 @@ export function PulseEbookGate() {
           padding: 34px 30px 30px; border-radius: 18px 0 0 18px;
           display: flex; flex-direction: column; justify-content: center;
         }
-        /* Trama diagonal: textura de impreso, no decoración. Sin ella la
-           superficie se ve como un degradado plano de plantilla. */
         .pm-ebook-izq::before {
           content: ''; position: absolute; inset: 0; pointer-events: none;
           background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 1px, transparent 1px 7px);
@@ -314,8 +314,6 @@ export function PulseEbookGate() {
           border: none; background: linear-gradient(90deg, #60A5FA, #2563EB);
           box-shadow: 0 0 20px rgba(96,165,250,.7);
         }
-        /* Las apagadas se leen, pero un escalón por debajo de la encendida: si
-           quedan ilegibles se pierde qué línea es cada una, que es el argumento. */
         .pm-ebook-l { font-size: 12px; color: rgba(255,255,255,.66); letter-spacing: .1px }
         .pm-ebook-barras li.on .pm-ebook-l { color: #fff; font-weight: 600 }
 
@@ -326,70 +324,96 @@ export function PulseEbookGate() {
         }
         .pm-ebook-preg span { color: #60A5FA }
 
-        /* ── Formulario ──────────────────────────────────────────────────── */
-        .pm-ebook-der { padding: 34px 30px; display: flex; flex-direction: column; justify-content: center }
+        /* ── Formulario ──────────────────────────────────────────────────────
+           El panel es un escalón más oscuro que los campos, no al revés. Con el
+           campo más oscuro que su fondo el formulario se lee como una lista de
+           huecos; con el campo elevado se lee como algo para llenar. */
+        .pm-ebook-der {
+          padding: 34px 30px; display: flex; flex-direction: column; justify-content: center;
+          background: #0B1220; border-radius: 0 18px 18px 0;
+        }
         .pm-ebook-eyebrow {
           font-family: var(--font-mono), monospace; font-size: 9.5px; font-weight: 500;
-          letter-spacing: 1.4px; text-transform: uppercase; color: #2563EB; margin: 0 0 7px;
+          letter-spacing: 1.4px; text-transform: uppercase; color: #60A5FA; margin: 0 0 7px;
         }
-        .pm-ebook-h3 { font-family: var(--font-display), var(--font-inter), sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); margin: 0 0 6px; letter-spacing: -.02em }
+        .pm-ebook-h3 {
+          font-family: var(--font-display), var(--font-inter), sans-serif;
+          font-size: 20px; font-weight: 800; color: #fff; margin: 0 0 6px; letter-spacing: -.02em;
+        }
 
         .pm-ebook-der label {
-          display: block; font-size: 11px; font-weight: 600; color: var(--ink-dim);
+          display: block; font-size: 11px; font-weight: 600; color: #93A3BE;
           margin-bottom: 5px; margin-top: 13px;
         }
-        .pm-ebook-der label span { font-weight: 400; opacity: .7 }
+        .pm-ebook-der label span { font-weight: 400; color: #64748B }
+
         .pm-ebook-der input {
-          width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
-          border: 1px solid var(--line); background: var(--bg-0, #fff); color: var(--ink);
+          width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 9px;
+          border: 1px solid rgba(255,255,255,.13); background: #182338; color: #F1F5FB;
           font-size: 13.5px; font-family: inherit; outline: none;
+          transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
         }
-        .pm-ebook-der input:focus { border-color: #2563EB }
-        .pm-ebook-der input::placeholder { color: #94A3B8 }
+        .pm-ebook-der input::placeholder { color: #7A8AA6 }
+        .pm-ebook-der input:hover { background: #1D2A42; border-color: rgba(255,255,255,.2) }
+        /* El foco no solo cambia el borde: agrega un halo. En un formulario de
+           cuatro campos seguidos, el borde solo no alcanza para saber dónde
+           está parado el cursor. */
+        .pm-ebook-der input:focus {
+          background: #1D2A42; border-color: #60A5FA;
+          box-shadow: 0 0 0 3px rgba(96,165,250,.22);
+        }
+        /* Chrome pinta el autocompletado de amarillo y rompe el panel entero. */
+        .pm-ebook-der input:-webkit-autofill,
+        .pm-ebook-der input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #F1F5FB;
+          -webkit-box-shadow: 0 0 0 1000px #1D2A42 inset;
+          caret-color: #F1F5FB;
+        }
 
         .pm-ebook-btn {
           width: 100%; margin-top: 20px; padding: 13px; border-radius: 9px; border: none;
           background: linear-gradient(135deg, #3B82F6, #2563EB); color: #fff;
           font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+          box-shadow: 0 6px 18px rgba(37,99,235,.35);
           transition: transform .15s ease, box-shadow .15s ease;
         }
-        .pm-ebook-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(37,99,235,.42) }
+        .pm-ebook-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(37,99,235,.5) }
         .pm-ebook-btn:disabled { opacity: .7; cursor: default; transform: none }
 
         .pm-ebook-link {
           width: 100%; margin-top: 10px; background: none; border: none; cursor: pointer;
-          color: var(--ink-dim); font-size: 12.5px; font-family: inherit; text-decoration: underline;
+          color: #93A3BE; font-size: 12.5px; font-family: inherit; text-decoration: underline;
         }
-        .pm-ebook-legal { font-size: 10.5px; color: var(--ink-dim); margin: 10px 0 0; text-align: center }
+        .pm-ebook-legal { font-size: 10.5px; color: #7F8FAE; margin: 10px 0 0; text-align: center }
         .pm-ebook-error {
-          margin: 12px 0 0; font-size: 12px; color: #DC2626;
-          background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.25);
+          margin: 12px 0 0; font-size: 12px; color: #FCA5A5;
+          background: rgba(220,38,38,.14); border: 1px solid rgba(248,113,113,.38);
           border-radius: 8px; padding: 9px 11px; line-height: 1.45;
         }
 
         .pm-ebook-ok { text-align: center }
         .pm-ebook-check {
           width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%;
-          background: rgba(13,148,136,.12); color: #0D9488;
+          background: rgba(45,212,191,.14); color: #2DD4BF;
           display: flex; align-items: center; justify-content: center;
         }
-        .pm-ebook-ok h3 { font-family: var(--font-display), var(--font-inter), sans-serif; font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 6px }
-        .pm-ebook-ok p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.5 }
+        .pm-ebook-ok h3 { font-family: var(--font-display), var(--font-inter), sans-serif; font-size: 19px; font-weight: 800; color: #fff; margin: 0 0 6px }
+        .pm-ebook-ok p { font-size: 12.5px; color: #93A3BE; margin: 0; line-height: 1.5 }
 
-        .pm-ebook-fondo :focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px }
+        .pm-ebook-fondo :focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px }
 
         /* En pantalla angosta la portada se achica pero no se elimina: es la que
            hace el argumento. Lo que se recorta es su respiro, no su contenido. */
         @media (max-width: 720px) {
           .pm-ebook-caja { grid-template-columns: 1fr; max-height: 94vh }
           .pm-ebook-izq { border-radius: 18px 18px 0 0; padding: 26px 22px 22px }
+          .pm-ebook-der { border-radius: 0 0 18px 18px; padding: 24px 22px }
           .pm-ebook-5 { font-size: 82px }
           .pm-ebook-cifra-txt { font-size: 16px; padding-top: 8px }
           .pm-ebook-cifra { margin-bottom: 20px }
           .pm-ebook-barras { margin-bottom: 20px; gap: 7px }
           .pm-ebook-preg { font-size: 30px }
           .pm-ebook-canto { display: none }
-          .pm-ebook-der { padding: 24px 22px }
         }
         @media (prefers-reduced-motion: reduce) {
           .pm-ebook-fondo, .pm-ebook-caja { animation: none }

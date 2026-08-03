@@ -24,7 +24,7 @@ import {
   type OrigenDemo, type CanalDigital, type FiltrosDemo, type OrigenId,
 } from './datos'
 import CierreIntegralidad from './CierreIntegralidad'
-import ModuloMatriculas from './ModuloMatriculas'
+import ModuloMatriculas, { TOTAL_MATRICULADAS, TOTAL_REPRESADAS } from './ModuloMatriculas'
 
 const FONT = "var(--font-inter), sans-serif"
 const FONT_BODY = "'DM Sans', sans-serif"
@@ -416,7 +416,37 @@ export default function DemoPage() {
                     De pedido a placa · Panel de demostración
                   </div>
                 </div>
-                <BotonTema tema={tema} onTema={alternarTema} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <BotonTema tema={tema} onTema={alternarTema} />
+
+                  {/* Mismo lugar y misma forma que el pill del resto del panel, pero
+                      con las cifras de este modulo: poner "oportunidades" aca seria
+                      mostrar un numero del embudo que no dice nada sobre matriculas. */}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 13px', borderRadius: '999px', background: BLUE_SOFT, border: `1px solid ${BLUE_EDGE}` }}>
+                    <span style={{ width: '7px', height: '7px', background: BLUE, flexShrink: 0 }} />
+                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: BLUE, letterSpacing: '0.3px' }}>
+                      {formatearNumero(TOTAL_MATRICULADAS)} PUBLICADAS
+                    </span>
+                    <span style={{ fontSize: '11px', color: DIM }}>· {formatearNumero(TOTAL_REPRESADAS)} represadas</span>
+                    {sync && <span style={{ fontSize: '11px', color: DIM }}>· sync {sync}</span>}
+                  </div>
+
+                  {!soloPanel && (
+                    <a
+                      href="/pulse/demo?vista=panel&seccion=matriculas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pm-demo-accion"
+                      title="Abrir el panel a pantalla completa, en una pestaña nueva"
+                      style={{ ...accionBarra, textDecoration: 'none' }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                      </svg>
+                      Pantalla completa
+                    </a>
+                  )}
+                </div>
               </div>
             ) : (
             <BarraFiltros

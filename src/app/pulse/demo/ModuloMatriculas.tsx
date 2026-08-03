@@ -87,6 +87,12 @@ const ESTADOS: Estado[] = [
   { estado: 'Programada próximo mes',  total: 2,  dias: 0,  bloqueo: false, pv: [0, 1, 0, 1, 0, 0], nota: 'Decisión comercial, no represa.' },
 ]
 
+// Totales del modulo. Se exportan para que el encabezado del panel los muestre
+// sin duplicar las cifras en page.tsx: si manana cambian los datos sinteticos,
+// el pill del encabezado cambia solo.
+export const TOTAL_MATRICULADAS = MATRICULADAS.reduce((a, f) => a + f.total, 0)
+export const TOTAL_REPRESADAS = ESTADOS.reduce((a, e) => a + e.total, 0)
+
 type VistaId = 'compuerta' | 'calendario' | 'vitrinas'
 
 const VISTAS: { id: VistaId; label: string; sub: string }[] = [

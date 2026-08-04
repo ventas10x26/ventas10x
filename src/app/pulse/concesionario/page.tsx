@@ -23,6 +23,21 @@ const NAV_ITEMS = [
 const SEG = SEGMENTS.find(s => s.slug === 'concesionario')!
 const TESTIMONIOS_CONCESIONARIO = TESTIMONIOS_V2.filter(t => t.seg.startsWith('Concesionario'))
 
+// El titular y la bajada NO salen de SEGMENTS a propósito.
+//
+// El texto de la card del home ("El agente que orquesta todo tu concesionario")
+// habla de la herramienta, y en esta página es lo primero que lee un dueño de
+// concesionario: nadie se levanta queriendo orquestación. Acá se reemplaza por la
+// pregunta que él no puede responder hoy, que es lo que hace que siga leyendo.
+//
+// Se sobrescribe localmente en vez de tocar SEGMENTS porque ese arreglo también
+// alimenta la card del home, que cumple otra función —diferenciar dos segmentos—
+// y necesita un texto más corto y más simétrico con el de asesores.
+const HERO_TITULO_A = 'Sabés cuántas oportunidades entraron.'
+const HERO_TITULO_B = '¿Sabés dónde se cayeron?'
+const HERO_BAJADA =
+  'Entre el primer contacto y la matrícula hay seis etapas, y cada unidad puede cargar cinco líneas de margen. Pulse Motor te muestra en cuál se está yendo la plata — por etapa, por sede y por asesor.'
+
 export default function ConcesionarioLanding() {
   const usuarioLogueado = useUsuarioLogueado()
   const { theme, toggleTheme } = usePulseTheme()
@@ -45,10 +60,10 @@ export default function ConcesionarioLanding() {
               </div>
               <span className="seg-tag amber">{SEG.tag}</span>
               <h1 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(38px,5.4vw,64px)', fontWeight:800, lineHeight:1.05, letterSpacing:'-1.2px', margin:'0 0 20px', color:'var(--ink)' }}>
-                El agente que <span className="grad-blue">orquesta todo tu concesionario.</span>
+                {HERO_TITULO_A} <span className="grad-blue">{HERO_TITULO_B}</span>
               </h1>
               <p style={{ fontSize:'clamp(16px,1.6vw,18px)', color:'var(--ink-dim)', maxWidth:'520px', margin:'0 0 24px', lineHeight:1.65 }}>
-                {SEG.desc}
+                {HERO_BAJADA}
               </p>
               <div style={{ marginBottom:'26px' }}>
                 {SEG.bullets.map(b => (

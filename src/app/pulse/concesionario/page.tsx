@@ -10,9 +10,11 @@ import {
   IntegracionesSection, CumplimientoSection, TestimoniosSection, PreciosSection,
 } from '../_shared/sections'
 import { PulseStickyDemoWidget } from '@/components/pulse/PulseStickyDemoWidget'
+import { PulsePrototipos } from '@/components/pulse/PulsePrototipos'
 
 const NAV_ITEMS = [
   { label:'Inicio', href:'/pulse' },
+  { label:'Prototipos', href:'#prototipos' },
   { label:'Ecosistema 360°', href:'#ecosistema' },
   { label:'Precios', href:'#precios' },
   { label:'Para asesor individual', href:'/pulse/asesor' },
@@ -57,8 +59,10 @@ export default function ConcesionarioLanding() {
                 <a href="/pulse/databridge" className="pm-btn" style={{ display:'inline-flex', width:'auto', padding:'14px 28px', textDecoration:'none' }}>Solicitar acceso<span className="btn-arrow">→</span></a>
                 <a href="#precios" className="pm-btn pm-btn-dark" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver planes</a>
                 {/* Terciario (outline, no sólido): el demo es la acción de menor compromiso de
-                    las tres — se mira antes de pedir acceso o mirar precios. */}
-                <a href="/pulse/demo" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver el panel<span className="btn-arrow">→</span></a>
+                    las tres — se mira antes de pedir acceso o mirar precios. Apunta a la
+                    sección de prototipos de esta misma página, que ya está justo abajo:
+                    mandarlo a otra pestaña antes de que vea nada es pedirle que se vaya. */}
+                <a href="#prototipos" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'14px 24px', textDecoration:'none' }}>Ver el panel<span className="btn-arrow">→</span></a>
               </div>
             </div>
 
@@ -71,6 +75,13 @@ export default function ConcesionarioLanding() {
             </div>
           </div>
         </section>
+
+        {/* PROTOTIPOS — inmediatamente después del hero, y antes que cualquier argumento.
+            En esta landing el visitante ya se autoseleccionó como concesionario al entrar,
+            así que no hace falta convencerlo de que le hablamos a él: lo que sigue es
+            mostrarle el panel funcionando. En el home va más abajo, después de Segmentos,
+            porque ahí esa autoselección todavía no ocurrió. */}
+        <PulsePrototipos />
 
         <DiferenciadoresSection />
         <InsumosSection />

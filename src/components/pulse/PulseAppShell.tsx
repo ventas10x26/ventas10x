@@ -17,6 +17,21 @@ const NAV_ITEMS = [
   { href: '/pulse/perfil',     label: 'Mi cuenta',  icon: '👤', match: ['/pulse/perfil'] },
 ]
 
+// ─── Administración ───────────────────────────────────────────────────────
+// Solo visible para los correos de ADMIN_EMAILS. Se arranca con Contactos, que
+// es lo único construido; el resto se agrega acá a medida que exista, para que
+// el menú no ofrezca puertas que todavía no abren.
+const NAV_ADMIN = [
+  { href: '/pulse/leads', label: 'Contactos', icon: '📥', match: ['/pulse/leads'] },
+]
+
+// Filtro de INTERFAZ, no de autorización: esta lista viaja al navegador y
+// cualquiera puede leerla o escribir la URL a mano. Quien realmente decide es
+// /api/pulse/admin/*, que valida el token contra Supabase en el servidor. Acá
+// solo se decide qué se dibuja.
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_PULSE_ADMIN_EMAILS || 'ricaza81@gmail.com')
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+
 // "Mi agente" y "Pipeline" son vistas del copiloto de UN solo vendedor (su propio WhatsApp,
 // su propio embudo) — no aplican a una cuenta de concesionario, que gestiona varios asesores.
 // El segmento se guarda en user_metadata.pulse_segmento al registrarse (ver signup/page.tsx);
@@ -233,6 +248,8 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
     ? NAV_ITEMS.filter(item => !ITEMS_OCULTOS_PARA_CONCESIONARIO.includes(item.href))
     : NAV_ITEMS
 
+  const esAdmin = !!userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())
+
   const toggleCollapse = () => {
     const next = !collapsed
     setCollapsed(next)
@@ -272,6 +289,12 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
               </div>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
                 {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
+                {esAdmin && (
+                  <>
+                    <div style={{ padding: '16px 10px 6px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: c.inkDim }}>Administración</div>
+                    {NAV_ADMIN.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={false} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
+                  </>
+                )}
               </nav>
               <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: '12px', marginTop: '12px' }}>
                 <div style={{ padding: '8px', marginBottom: '6px' }}>
@@ -304,6 +327,16 @@ export function PulseAppShell({ children, userName = 'Vendedor', userEmail = '',
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
           {navItems.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
+          {esAdmin && (
+            <>
+              {/* Con el menu colapsado el rotulo no cabe: se reemplaza por una
+                  linea, que mantiene la separacion sin texto cortado. */}
+              {collapsed
+                ? <div style={{ height: '1px', background: c.line, margin: '14px 8px 8px' }} />
+                : <div style={{ padding: '16px 10px 6px', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: c.inkDim }}>Administración</div>}
+              {NAV_ADMIN.map(item => <NavLink key={item.href} item={item} active={isActive(item)} collapsed={collapsed} onClick={() => navigate(item.href)} hoverBg={c.bg2} inkDim={c.inkDim} />)}
+            </>
+          )}
         </nav>
 
         <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: '12px', marginTop: '12px' }}>

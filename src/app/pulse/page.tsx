@@ -9,6 +9,7 @@ import {
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
   SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram,
 } from './_shared/sections'
+import { PulsePrototipos } from '@/components/pulse/PulsePrototipos'
 
 // La landing pública ahora termina en "Segmentos" (screen 1): cada card lleva a su
 // propia landing dedicada (/pulse/concesionario, /pulse/asesor) con el contenido
@@ -18,6 +19,7 @@ import {
 const NAV_ITEMS = [
   { label:'Plataforma', href:'#plataforma' },
   { label:'Segmentos', href:'#segmentos' },
+  { label:'Prototipos', href:'#prototipos' },
   { label:'Para concesionarios', href:'/pulse/concesionario' },
   { label:'Para asesores', href:'/pulse/asesor' },
 ]
@@ -183,6 +185,11 @@ export default function PulseMotorLanding() {
             ))}
           </div>
         </section>
+
+        {/* PROTOTIPOS — va DESPUÉS de Segmentos a propósito: recién cuando el visitante
+            se reconoció en un segmento tiene sentido mostrarle el panel, y cada tarjeta
+            entra directo a su módulo del demo. */}
+        <PulsePrototipos />
 
         <PulseFooter />
       </div>

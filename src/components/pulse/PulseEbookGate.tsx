@@ -45,14 +45,25 @@ const NOMBRE_ARCHIVO = 'Pulse Motor - Rentabilidad por unidad.pdf'
 
 const EXCLUIDAS = ['/pulse/demo', '/pulse/agente', '/pulse/admin', '/pulse/login', '/pulse/signup', '/pulse/onboarding']
 
-// La primera va encendida porque es la única que todo concesionario cobra
-// siempre: el vehículo. Las otras cuatro son las que se dejan.
+// Cada línea tiene su propio color, y ese color es su identidad — el mismo que
+// después va a encontrar en el panel. Pero el COLOR no es lo que comunica el
+// argumento: eso lo hace el estado de relleno. La primera va sólida porque es la
+// única que todo concesionario cobra siempre; las otras cuatro quedan en
+// contorno punteado, con su color apenas insinuado en el fondo.
+//
+// Si las cinco fueran sólidas, la pieza pasaría a decir "mirá qué completo es
+// nuestro producto" en vez de "mirá lo que estás dejando", que es lo contrario
+// de lo que tiene que hacer.
+//
+// `tinte` es el tono profundo que rellena la barra apagada; `luz` es el mismo
+// tono en versión clara, para el contorno y el punto de la etiqueta — sobre este
+// fondo los tonos profundos solos se pierden.
 const LINEAS = [
-  { label: 'Vehículo nuevo', activa: true },
-  { label: 'Financiación', activa: false },
-  { label: 'Seguro todo riesgo', activa: false },
-  { label: 'Accesorios', activa: false },
-  { label: 'Retomas', activa: false },
+  { label: 'Vehículo nuevo',     activa: true,  tinte: '#4A4DB4', luz: '#818CF8' },
+  { label: 'Financiación',       activa: false, tinte: '#25749C', luz: '#38BDF8' },
+  { label: 'Seguro todo riesgo', activa: false, tinte: '#593389', luz: '#A78BFA' },
+  { label: 'Accesorios',         activa: false, tinte: '#186A3F', luz: '#34D399' },
+  { label: 'Retomas',            activa: false, tinte: '#4A3529', luz: '#E0A96D' },
 ]
 
 export function PulseEbookGate() {
@@ -182,8 +193,16 @@ export function PulseEbookGate() {
           <ul className="pm-ebook-barras">
             {LINEAS.map(l => (
               <li key={l.label} className={l.activa ? 'on' : ''}>
-                <span className="pm-ebook-b" />
-                <span className="pm-ebook-l">{l.label}</span>
+                <span
+                  className="pm-ebook-b"
+                  style={l.activa
+                    ? { background: `linear-gradient(90deg, ${l.luz}, ${l.tinte})`, boxShadow: `0 0 20px ${l.luz}99` }
+                    : { background: `${l.tinte}66`, borderColor: `${l.luz}80` }}
+                />
+                <span className="pm-ebook-l">
+                  <span className="pm-ebook-punto" style={{ background: l.luz, opacity: l.activa ? 1 : .7 }} />
+                  {l.label}
+                </span>
               </li>
             ))}
           </ul>
@@ -306,15 +325,19 @@ export function PulseEbookGate() {
 
         .pm-ebook-barras { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 9px }
         .pm-ebook-barras li { display: flex; align-items: center; gap: 12px }
+        /* El color de fondo y el del borde llegan por style inline, uno por línea:
+           el estado (sólido o punteado) vive acá, la identidad vive en LINEAS. */
         .pm-ebook-b {
           width: 78px; height: 9px; border-radius: 2px; flex-shrink: 0;
-          border: 1px dashed rgba(255,255,255,.42); background: rgba(255,255,255,.05);
+          border: 1px dashed transparent;
         }
-        .pm-ebook-barras li.on .pm-ebook-b {
-          border: none; background: linear-gradient(90deg, #60A5FA, #2563EB);
-          box-shadow: 0 0 20px rgba(96,165,250,.7);
+        .pm-ebook-barras li.on .pm-ebook-b { border-color: transparent }
+
+        .pm-ebook-l {
+          display: inline-flex; align-items: center; gap: 8px;
+          font-size: 12px; color: rgba(255,255,255,.66); letter-spacing: .1px;
         }
-        .pm-ebook-l { font-size: 12px; color: rgba(255,255,255,.66); letter-spacing: .1px }
+        .pm-ebook-punto { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0 }
         .pm-ebook-barras li.on .pm-ebook-l { color: #fff; font-weight: 600 }
 
         .pm-ebook-preg {

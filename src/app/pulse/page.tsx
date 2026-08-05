@@ -32,6 +32,7 @@ export default function PulseMotorLanding() {
 
   const heroScroll      = useScrollProgress<HTMLDivElement>()
   const heroPanel      = useReveal<HTMLDivElement>()
+  const dataStatReveal  = useReveal<HTMLDivElement>()
   const segHeader       = useReveal<HTMLDivElement>()
   const segGrid         = useReveal<HTMLDivElement>()
 
@@ -147,6 +148,27 @@ export default function PulseMotorLanding() {
           </div>
         </section>
         </div>
+
+        {/* ESPEJO DE MERCADO — dato real de estudio de madurez de IA (no ilustrativo), puente
+            entre el Hero (aspiracional) y Segmentos (a quién le hablamos): primero el problema
+            con fuente citada, después el camino. Ver arquetipo-marca-pulsemotor.md, sección
+            "Uso de estudios de madurez de IA por mercado" — regla: nunca fabricar un dato, citar
+            siempre la fuente, y solo afirmar lo que el producto resuelve de forma directa. */}
+        <section style={{ maxWidth:'1280px', margin:'0 auto', padding:'56px 24px', borderTop:'1px solid var(--line)' }}>
+          <div ref={dataStatReveal.ref} className={`reveal${dataStatReveal.inView?' in':''}`} style={{ maxWidth:'720px' }}>
+            <p className="kicker">No es un caso aislado</p>
+            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(24px,3.2vw,38px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.22, color:'var(--ink)', margin:'0 0 16px' }}>
+              64% de las empresas chilenas todavía trabaja con datos fragmentados o parcialmente integrados.
+            </h2>
+            <p style={{ fontSize:'15.5px', color:'var(--ink-dim)', lineHeight:1.65, margin:'0 0 24px', maxWidth:'620px' }}>
+              Es el mismo patrón que vemos en cada concesionario: el Excel de retomas, el CRM de leads y el DMS nunca se cruzan. Pulse Motor no te pide migrar nada — subís lo que ya tenés y la IA encuentra las relaciones.
+            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:'18px', flexWrap:'wrap' }}>
+              <a href="/pulse/databridge" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'11px 20px', fontSize:'13px', borderRadius:'6px', textDecoration:'none' }}>Probar con tus datos<span className="btn-arrow">→</span></a>
+              <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>Fuente: Índice de Transformación Digital en IA 2026 · CDTIC-PwC Chile, agosto 2026</span>
+            </div>
+          </div>
+        </section>
 
         {/* SEGMENTOS — "screen 1": la home se detiene acá. Cada card es un link completo
             a su propia landing dedicada, donde vive todo el contenido profundo clasificado

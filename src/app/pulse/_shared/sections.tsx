@@ -386,26 +386,31 @@ export function PulseHeader({ navItems, activeSection, usuarioLogueado, theme, o
   // Header siempre oscuro sólido, sin importar el tema de la página (regla dura 9) — por eso
   // su texto usa var(--panel-ink*) en vez de var(--ink*), y el botón "Login" usa un borde
   // blanco translúcido en vez de var(--line) (que en soft sería casi invisible sobre negro).
+  // El fondo va en <header> a todo el ancho del viewport; el contenido se centra en un
+  // wrapper interno de 1280px — antes maxWidth vivía en el propio <header>, así que la
+  // franja oscura no llegaba a los bordes de la pantalla en viewports anchos.
   return (
-    <header style={{ position:'sticky', top:0, zIndex:100, padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto', background:'var(--header-bg)', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-      <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'9px', textDecoration:'none' }}>
-        <PulseLogo />
-      </a>
-      <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
-        {navItems.map(item => (
-          <a key={item.href} href={item.href} style={{ fontSize:'13px', textDecoration:'none' }} className={`pm-nav-link${activeSection && item.href === `#${activeSection}` ?' active':''}`}>{item.label}</a>
-        ))}
-      </nav>
-      <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        {usuarioLogueado ? (
-          <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente<span className="btn-arrow">→</span></a>
-        ) : (
-          <>
-            <a href="/pulse/login" className="pm-btn pm-btn-ghost" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 16px', fontSize:'12px', borderColor:'rgba(255,255,255,0.2)', color:'var(--panel-ink)' }}>Login</a>
-            <a href="/pulse/signup" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 18px', fontSize:'12px' }}>Ser agente<span className="btn-arrow">→</span></a>
-          </>
-        )}
+    <header style={{ position:'sticky', top:0, zIndex:100, background:'var(--header-bg)', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ padding:'16px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:'1280px', margin:'0 auto' }}>
+        <a href="/pulse" style={{ display:'flex', alignItems:'center', gap:'9px', textDecoration:'none' }}>
+          <PulseLogo />
+        </a>
+        <nav style={{ display:'flex', alignItems:'center', gap:'28px' }} className="pm-nav">
+          {navItems.map(item => (
+            <a key={item.href} href={item.href} style={{ fontSize:'13px', textDecoration:'none' }} className={`pm-nav-link${activeSection && item.href === `#${activeSection}` ?' active':''}`}>{item.label}</a>
+          ))}
+        </nav>
+        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          {usuarioLogueado ? (
+            <a href="/pulse/agente" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'10px 18px', fontSize:'13px' }}>Mi agente<span className="btn-arrow">→</span></a>
+          ) : (
+            <>
+              <a href="/pulse/login" className="pm-btn pm-btn-ghost" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 16px', fontSize:'12px', borderColor:'rgba(255,255,255,0.2)', color:'var(--panel-ink)' }}>Login</a>
+              <a href="/pulse/signup" className="pm-btn" style={{ width:'auto', display:'inline-flex', textDecoration:'none', padding:'9px 18px', fontSize:'12px' }}>Ser agente<span className="btn-arrow">→</span></a>
+            </>
+          )}
+        </div>
       </div>
     </header>
   )

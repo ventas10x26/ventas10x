@@ -24,6 +24,18 @@ const NAV_ITEMS = [
   { label:'Para asesores', href:'/pulse/asesor' },
 ]
 
+// ─── Espejo de mercado (sección entre Hero y Segmentos) — 3 estudios de madurez de IA
+// independientes, uno por país prioritario del roadmap de expansión LatAm (ver hoja de
+// ruta: México/Chile como beachhead, Colombia como base). Se muestran los 3 juntos, no uno
+// solo, para que el punto sea válido sin importar desde qué país llegue el visitante —
+// evita el geo-mismatch de citar un único país en una landing global. Cada dato con su
+// fuente real; nunca fabricar un número acá. Ver arquetipo-marca-pulsemotor.md.
+const MARKET_STATS = [
+  { pais:'Colombia', bandera:'🇨🇴', dato:'7 de cada 10 empresas no supera el 20% de madurez analítica — el freno no son las herramientas, es la falta de datos organizados e integrados.', fuente:'Fuente: Sinnetic, 2026' },
+  { pais:'México', bandera:'🇲🇽', dato:'69% señala la gestión y el acceso a los datos como su principal obstáculo para adoptar IA.', fuente:'Fuente: ServiceNow Enterprise AI Maturity Index, 2026' },
+  { pais:'Chile', bandera:'🇨🇱', dato:'64% todavía trabaja con datos fragmentados o parcialmente integrados.', fuente:'Fuente: CDTIC-PwC Chile, 2026' },
+] as const
+
 export default function PulseMotorLanding() {
   const usuarioLogueado = useUsuarioLogueado()
   const { theme, toggleTheme } = usePulseTheme()
@@ -149,24 +161,37 @@ export default function PulseMotorLanding() {
         </section>
         </div>
 
-        {/* ESPEJO DE MERCADO — dato real de estudio de madurez de IA (no ilustrativo), puente
-            entre el Hero (aspiracional) y Segmentos (a quién le hablamos): primero el problema
-            con fuente citada, después el camino. Ver arquetipo-marca-pulsemotor.md, sección
-            "Uso de estudios de madurez de IA por mercado" — regla: nunca fabricar un dato, citar
-            siempre la fuente, y solo afirmar lo que el producto resuelve de forma directa. */}
+        {/* ESPEJO DE MERCADO — antes citaba un solo país (Chile), lo que sonaba ajeno a
+            cualquier visitante de otro mercado de LatAm. Ahora triangula el mismo hallazgo
+            con 3 estudios independientes (CO/MX/CL) enmarcados por un dato regional — más
+            persuasivo que un país solo, y sigue sin requerir geolocalización. Ver
+            arquetipo-marca-pulsemotor.md, sección "Uso de estudios de madurez de IA por
+            mercado" — regla: nunca fabricar un dato, citar siempre la fuente, y solo afirmar
+            lo que el producto resuelve de forma directa. */}
         <section style={{ maxWidth:'1280px', margin:'0 auto', padding:'56px 24px', borderTop:'1px solid var(--line)' }}>
-          <div ref={dataStatReveal.ref} className={`reveal${dataStatReveal.inView?' in':''}`} style={{ maxWidth:'720px' }}>
+          <div ref={dataStatReveal.ref} className={`reveal${dataStatReveal.inView?' in':''}`}>
             <p className="kicker">No es un caso aislado</p>
-            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(24px,3.2vw,38px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.22, color:'var(--ink)', margin:'0 0 16px' }}>
-              64% de las empresas chilenas todavía trabaja con datos fragmentados o parcialmente integrados.
+            <h2 style={{ fontFamily:F_DISPLAY, fontSize:'clamp(24px,3.2vw,38px)', fontWeight:800, letterSpacing:'-.4px', lineHeight:1.22, color:'var(--ink)', margin:'0 0 14px', maxWidth:'760px' }}>
+              El mismo problema, en toda la región.
             </h2>
-            <p style={{ fontSize:'15.5px', color:'var(--ink-dim)', lineHeight:1.65, margin:'0 0 24px', maxWidth:'620px' }}>
-              Es el mismo patrón que vemos en cada concesionario: el Excel de retomas, el CRM de leads y el DMS nunca se cruzan. Pulse Motor no te pide migrar nada — subís lo que ya tenés y la IA encuentra las relaciones.
+            <p style={{ fontSize:'15.5px', color:'var(--ink-dim)', lineHeight:1.65, margin:'0 0 32px', maxWidth:'680px' }}>
+              44% de los líderes tecnológicos de LatAm enfrenta dificultades con la calidad y disponibilidad de sus datos (NTT Data + MIT Español, 2026). No es una excepción de un solo país:
             </p>
-            <div style={{ display:'flex', alignItems:'center', gap:'18px', flexWrap:'wrap' }}>
-              <a href="/pulse/databridge" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'11px 20px', fontSize:'13px', borderRadius:'6px', textDecoration:'none' }}>Probar con tus datos<span className="btn-arrow">→</span></a>
-              <span style={{ fontFamily:F_MONO, fontSize:'11px', color:'var(--ink-dim)' }}>Fuente: Índice de Transformación Digital en IA 2026 · CDTIC-PwC Chile, agosto 2026</span>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px', marginBottom:'32px' }} className="insumos-grid">
+              {MARKET_STATS.map((m,mi) => (
+                <div key={m.pais} style={{ border:'1px solid var(--line)', borderRadius:'8px', padding:'22px 20px' }}>
+                  <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--blue)', fontWeight:700, margin:'0 0 12px' }}>{m.bandera} {m.pais}</p>
+                  <p style={{ fontSize:'14px', color:'var(--ink)', lineHeight:1.55, margin:'0 0 14px' }}>{m.dato}</p>
+                  <p style={{ fontFamily:F_MONO, fontSize:'10.5px', color:'var(--ink-dim)', margin:0 }}>{m.fuente}</p>
+                </div>
+              ))}
             </div>
+
+            <p style={{ fontSize:'15.5px', color:'var(--ink-dim)', lineHeight:1.65, margin:'0 0 24px', maxWidth:'680px' }}>
+              Es el mismo patrón que vemos en cada concesionario, sin importar el país: el Excel de retomas, el CRM de leads y el DMS nunca se cruzan. Pulse Motor no te pide migrar nada — subís lo que ya tenés y la IA encuentra las relaciones.
+            </p>
+            <a href="/pulse/databridge" className="pm-btn-outline" style={{ display:'inline-flex', width:'auto', padding:'11px 20px', fontSize:'13px', borderRadius:'6px', textDecoration:'none' }}>Probar con tus datos<span className="btn-arrow">→</span></a>
           </div>
         </section>
 

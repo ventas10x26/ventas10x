@@ -348,9 +348,10 @@ export function PulseEbookGate() {
         .pm-ebook-preg span { color: #60A5FA }
 
         /* ── Formulario ──────────────────────────────────────────────────────
-           El panel es un escalón más oscuro que los campos, no al revés. Con el
-           campo más oscuro que su fondo el formulario se lee como una lista de
-           huecos; con el campo elevado se lee como algo para llenar. */
+           Campos blancos sólidos sobre panel oscuro. La pieza sigue siendo un
+           objeto oscuro entero —la portada no compite con un panel claro al
+           lado— y los campos quedan como lo único claro de esa mitad, que es
+           exactamente lo único que el visitante tiene que tocar. */
         .pm-ebook-der {
           padding: 34px 30px; display: flex; flex-direction: column; justify-content: center;
           background: #0B1220; border-radius: 0 18px 18px 0;
@@ -365,36 +366,46 @@ export function PulseEbookGate() {
         }
 
         .pm-ebook-der label {
-          display: block; font-size: 11px; font-weight: 600; color: #93A3BE;
-          margin-bottom: 5px; margin-top: 13px;
+          display: block; font-size: 11px; font-weight: 600; color: #A9BAD6;
+          margin-bottom: 6px; margin-top: 14px;
         }
-        .pm-ebook-der label span { font-weight: 400; color: #64748B }
+        .pm-ebook-der label span { font-weight: 400; color: #7F8FAE }
 
         .pm-ebook-der input {
           width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 9px;
-          border: 1px solid rgba(255,255,255,.13); background: #182338; color: #F1F5FB;
+          background: #FFFFFF; color: #0F172A;
+          /* Borde transparente de 2px reservado desde el inicio: si apareciera solo
+             en el foco, el campo saltaría 2px al enfocarse. */
+          border: 2px solid transparent;
           font-size: 13.5px; font-family: inherit; outline: none;
-          transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+          caret-color: #2563EB;
+          transition: border-color .15s ease, box-shadow .15s ease;
         }
-        .pm-ebook-der input::placeholder { color: #7A8AA6 }
-        .pm-ebook-der input:hover { background: #1D2A42; border-color: rgba(255,255,255,.2) }
-        /* El foco no solo cambia el borde: agrega un halo. En un formulario de
-           cuatro campos seguidos, el borde solo no alcanza para saber dónde
-           está parado el cursor. */
+        .pm-ebook-der input::placeholder { color: #94A3B8 }
+        .pm-ebook-der input:hover { box-shadow: 0 0 0 3px rgba(255,255,255,.10) }
+        /* El foco marca borde Y halo: en cuatro campos seguidos, sobre fondo
+           oscuro, el borde solo no alcanza para ubicar el cursor. */
         .pm-ebook-der input:focus {
-          background: #1D2A42; border-color: #60A5FA;
-          box-shadow: 0 0 0 3px rgba(96,165,250,.22);
+          border-color: #2563EB;
+          box-shadow: 0 0 0 4px rgba(96,165,250,.28);
         }
-        /* Chrome pinta el autocompletado de amarillo y rompe el panel entero. */
+        /* Chrome pinta el autocompletado de amarillo. Sobre campo blanco es menos
+           grave que sobre oscuro, pero igual rompe la paleta. */
         .pm-ebook-der input:-webkit-autofill,
+        .pm-ebook-der input:-webkit-autofill:hover,
         .pm-ebook-der input:-webkit-autofill:focus {
-          -webkit-text-fill-color: #F1F5FB;
-          -webkit-box-shadow: 0 0 0 1000px #1D2A42 inset;
-          caret-color: #F1F5FB;
+          -webkit-text-fill-color: #0F172A;
+          -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset;
+          caret-color: #2563EB;
+        }
+        /* El navegador marca en rojo un correo mal escrito, pero solo después de
+           intentar enviar: no molesta mientras se escribe. */
+        .pm-ebook-der input:not(:placeholder-shown):invalid {
+          border-color: #F87171;
         }
 
         .pm-ebook-btn {
-          width: 100%; margin-top: 20px; padding: 13px; border-radius: 9px; border: none;
+          width: 100%; margin-top: 22px; padding: 13px; border-radius: 9px; border: none;
           background: linear-gradient(135deg, #3B82F6, #2563EB); color: #fff;
           font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
           box-shadow: 0 6px 18px rgba(37,99,235,.35);
@@ -424,6 +435,9 @@ export function PulseEbookGate() {
         .pm-ebook-ok p { font-size: 12.5px; color: #93A3BE; margin: 0; line-height: 1.5 }
 
         .pm-ebook-fondo :focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px }
+        /* Los campos ya tienen su propio anillo de foco; el outline global les
+           agregaba un segundo borde encima. */
+        .pm-ebook-der input:focus-visible { outline: none }
 
         /* En pantalla angosta la portada se achica pero no se elimina: es la que
            hace el argumento. Lo que se recorta es su respiro, no su contenido. */

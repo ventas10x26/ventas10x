@@ -98,11 +98,14 @@ const HITOS = [
   { fase: 1, t: 'Cobro judicial', d: 'Solo si el acuerdo no se cumple.' },
 ]
 
+// El rótulo bajo el icono es una insignia decorativa (tipo app-icon), no la
+// etiqueta accesible: esa la sigue dando el <h3> visible. Va en español para
+// no mezclar idioma con el resto de la página.
 const IMPACTOS = [
-  { t: 'Liquidez', icono: 'billetera', d: 'El efectivo que financia su operación se queda en manos de terceros.' },
-  { t: 'Rentabilidad', icono: 'tendencia', d: 'La utilidad ya causada nunca llega al estado de resultados.' },
-  { t: 'Capacidad de inversión', icono: 'peso', d: 'Los proyectos se aplazan por falta de caja disponible.' },
-  { t: 'Valor patrimonial', icono: 'escudo', d: 'La cartera envejecida deteriora el valor real de la compañía.' },
+  { t: 'Liquidez', icono: 'billetera', rotulo: 'FLUJO', d: 'El efectivo que financia su operación se queda en manos de terceros.' },
+  { t: 'Rentabilidad', icono: 'tendencia', rotulo: 'MARGEN', d: 'La utilidad ya causada nunca llega al estado de resultados.' },
+  { t: 'Capacidad de inversión', icono: 'peso', rotulo: 'CAPITAL', d: 'Los proyectos se aplazan por falta de caja disponible.' },
+  { t: 'Valor patrimonial', icono: 'escudo', rotulo: 'ACTIVO', d: 'La cartera envejecida deteriora el valor real de la compañía.' },
 ]
 
 const VIDEO = {
@@ -397,7 +400,10 @@ export default function FenixConsultoresPage() {
             <FenixFocoAuto className="fx-grid-4" ciclo={2600}>
               {IMPACTOS.map(i => (
                 <article key={i.t} className="fx-card fx-card-lift fx-card-impacto">
-                  <span className="fx-icon"><Icono tipo={i.icono} /></span>
+                  <span className="fx-icon-app" aria-hidden="true">
+                    <Icono tipo={i.icono} />
+                    <b>{i.rotulo}</b>
+                  </span>
                   <div className="fx-card-pie">
                     <h3 className="fx-card-t">{i.t}</h3>
                     <p className="fx-card-d">{i.d}</p>
@@ -1104,10 +1110,48 @@ export default function FenixConsultoresPage() {
         @keyframes fx-relevo { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
         /* Tamanos por grupo: los beneficios siguen compactos. */
-        .fx-card-impacto { min-height: 420px; padding: 48px 40px; }
-        .fx-card-impacto .fx-card-t { font-size: 27px; margin-bottom: 14px; }
-        .fx-card-impacto .fx-card-d { font-size: 16.5px; line-height: 1.65; }
         .fx-card-pie { margin-top: auto; padding-top: 32px; }
+
+        /* Impacto: la unica tarjeta oscura fuera de los tres momentos
+           estrategicos del sitio (UREA, decision final, footer). Se acepta
+           aqui porque solo la tarjeta se oscurece, no la franja completa
+           -- la seccion sigue siendo la crema de "El costo de esperar". El
+           texto es blanco desde el reposo y no necesita saturarse al
+           activarse, asi que estas reglas pesan igual que las genericas de
+           .fx-card-lift y las reemplazan por ir despues en la hoja. */
+        .fx-card-impacto {
+          min-height: 460px; padding: 46px 38px 38px;
+          background: var(--graphite); border-color: rgba(255,255,255,.08);
+        }
+        .fx-card-impacto .fx-card-pie { padding-top: 0; }
+        .fx-card-impacto .fx-card-t { font-size: 25px; margin-bottom: 12px; color: #fff; }
+        .fx-card-impacto .fx-card-d { font-size: 15.5px; line-height: 1.65; color: rgba(255,255,255,.66); }
+        .fx-card-impacto.fx-foco .fx-card-d,
+        .fx-card-impacto:hover .fx-card-d { color: rgba(255,255,255,.92); }
+        .fx-card-impacto.fx-foco,
+        .fx-card-impacto:hover {
+          border-color: rgba(255,255,255,.16);
+          box-shadow: 0 34px 68px rgba(245,130,31,.38);
+        }
+
+        /* Insignia tipo app-icon: dibujo + rotulo corto, fija en la esquina
+           para que crecer el icono no desnivele el titulo entre tarjetas. */
+        .fx-icon-app {
+          position: absolute; z-index: 1; top: 38px; left: 38px;
+          width: 58px; height: 58px; border-radius: 17px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+          background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.13);
+          transition: background-color .45s ease-out, border-color .45s ease-out;
+        }
+        .fx-icon-app svg { width: 23px; height: 23px; color: #fff; }
+        .fx-icon-app b {
+          font-size: 7px; font-weight: 800; letter-spacing: .08em;
+          color: rgba(255,255,255,.55); line-height: 1;
+        }
+        .fx-card-impacto.fx-foco .fx-icon-app,
+        .fx-card-impacto:hover .fx-icon-app {
+          background: rgba(20,16,12,.32); border-color: rgba(20,16,12,.4);
+        }
 
         .fx-card-pilar { min-height: 470px; padding: 44px 38px; }
         .fx-card-pilar .fx-card-t { font-size: 24px; margin-top: 26px; }
@@ -1275,6 +1319,9 @@ export default function FenixConsultoresPage() {
           .fx-card-impacto, .fx-card-pilar { padding: 30px 26px; }
           .fx-card-pie { margin-top: 26px; padding-top: 0; }
           .fx-card-pilar .fx-list { margin-top: 22px; padding-top: 0; }
+          /* La insignia vuelve al flujo: fija en la esquina se solaparía
+             con el título en una tarjeta angosta. */
+          .fx-icon-app { position: static; margin-bottom: 20px; }
         }
         @media (prefers-reduced-motion: reduce) {
           .fx-btn:hover, .fx-card-lift:hover, .fx-card-lift.fx-foco,

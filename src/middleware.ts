@@ -12,27 +12,23 @@ export async function middleware(request: NextRequest) {
     hostname.includes('pulsemotor.vercel.app') ||
     hostname.includes('pulsemotor.localhost')
 
+  const isFenix =
+    hostname.includes('app.consultoresfenix.com') ||
+    hostname.includes('fenix.localhost')
+
   // ─── Pulse Motor ──────────────────────────────────────────
   if (isPulseMotor) {
-
-    // sitemap.xml → reescribir al sitemap de /pulse
     if (pathname === '/sitemap.xml') {
       url.pathname = '/pulse/sitemap.xml'
       return NextResponse.rewrite(url)
     }
-
-    // robots.txt → reescribir al robots de /pulse
     if (pathname === '/robots.txt') {
       url.pathname = '/pulse/robots.txt'
       return NextResponse.rewrite(url)
     }
-
-    // Si ya está en /pulse, dejar pasar
     if (pathname.startsWith('/pulse')) {
       return NextResponse.next()
     }
-
-    // Excluir rutas de API y assets
     if (
       pathname.startsWith('/api/pulse') ||
       pathname.startsWith('/api/bot') ||
@@ -43,9 +39,23 @@ export async function middleware(request: NextRequest) {
     ) {
       return NextResponse.next()
     }
-
-    // Reescribir cualquier ruta de pulsemotor.co a /pulse/*
     url.pathname = `/pulse${pathname === '/' ? '' : pathname}`
+    return NextResponse.rewrite(url)
+  }
+
+  // ─── Fénix Consultores ────────────────────────────────────
+  if (isFenix) {
+    if (pathname.startsWith('/fenix-consultores')) {
+      return NextResponse.next()
+    }
+    if (
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/favicon') ||
+      pathname.includes('.')
+    ) {
+      return NextResponse.next()
+    }
+    url.pathname = `/fenix-consultores${pathname === '/' ? '' : pathname}`
     return NextResponse.rewrite(url)
   }
 

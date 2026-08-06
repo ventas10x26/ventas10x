@@ -773,11 +773,13 @@ export default function FenixConsultoresPage() {
           --cream: #FBF9F6;
           --warm: #F5F1EA;
           --graphite: #14100C;
-          /* Un velo azul muy tenue sobre el grafito, no un cambio de color:
-             el negro plano de una sola nota se lee austero; una pizca de
-             frío en una esquina le da profundidad sin competir con el
-             naranja, que sigue siendo el único acento con significado. */
-          --velo-azul: radial-gradient(120% 90% at 16% -14%, rgba(59,95,204,.12) 0%, rgba(59,95,204,0) 55%);
+          /* Diagonal azul de marca sobre el grafito: entra con fuerza por la
+             esquina superior izquierda y se disuelve hacia el negro. Es la
+             mezcla elegida sobre la vista previa (opción C) entre las cinco
+             superficies oscuras del sitio -- video, UREA, la decisión, el
+             panel de contacto y el footer -- todas comparten esta misma
+             variable, así que un solo cambio aquí las actualiza a todas. */
+          --velo-azul: linear-gradient(135deg, rgba(0,38,130,.4) 0%, rgba(20,16,12,0) 55%);
           --azul: #002682;
           --azul-claro: #2F55C4;
           --negro-fusion: #0B0B10;
@@ -1260,7 +1262,7 @@ export default function FenixConsultoresPage() {
           border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-lg);
         }
         .fx-contact-side {
-          background: var(--graphite); color: #fff;
+          background: var(--velo-azul), var(--graphite); color: #fff;
           padding: clamp(32px, 3.5vw, 48px);
           display: flex; flex-direction: column; justify-content: center;
         }

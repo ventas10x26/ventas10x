@@ -17,9 +17,10 @@ const supabase = createClient(
 
 // Cuenta de Resend propia de Fenix, distinta de la que usa el resto de
 // Ventas10x — de ahí la variable de entorno separada en vez de reusar
-// RESEND_API_KEY.
+// RESEND_API_KEY. El dominio consultoresfenix.com ya está verificado en
+// esa cuenta, así que el remitente sale de ahí y no del sandbox de Resend.
 const resend = new Resend(process.env.FENIX_RESEND_API_KEY)
-const FENIX_EMAIL_FROM = 'Fénix Consultores <onboarding@resend.dev>'
+const FENIX_EMAIL_FROM = 'Fénix Consultores <notificaciones@consultoresfenix.com>'
 const FENIX_EMAIL_DESTINOS = [
   'gerencia@consultoresfenix.com',
   'fenixconsultoresempresariales@gmail.com',

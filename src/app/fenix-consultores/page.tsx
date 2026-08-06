@@ -149,7 +149,7 @@ const UREA = [
   { n: '01', t: 'Diagnóstico estratégico', d: 'Analizamos jurídicamente cada obligación antes de actuar.' },
   { n: '02', t: 'Gestión inteligente', d: 'La IA identifica prioridades y optimiza los tiempos de gestión.' },
   { n: '03', t: 'Ejecución especializada', d: 'Cada deudor recibe una estrategia distinta. Ninguna cartera es igual.' },
-  { n: '04', t: 'Información en tiempo real', d: 'Usted conoce el estado de cada obligación sin pedir informes.' },
+  { n: '04', t: 'Información en tiempo real', d: 'Usted conoce en tiempo real el estado del cobro de cartera.' },
 ]
 
 const INDICADORES = [

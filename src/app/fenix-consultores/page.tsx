@@ -160,14 +160,14 @@ const FOTOS = [
 // Slider del hero: el producto primero, después las personas que lo operan.
 const SLIDES_HERO = [
   {
-    src: '/fenix/asesoria.jpg',
-    alt: 'Equipo jurídico de Fenix Consultores en asesoría empresarial',
-    titulo: 'Equipo jurídico',
-    pie: 'Abogados especializados en recuperación empresarial detrás de cada obligación.',
+    src: '/fenix/negociacion-fenix.jpg',
+    alt: 'Dos ejecutivos firmando un acuerdo de pago en una sala de juntas',
+    titulo: 'Negociación estratégica',
+    pie: 'Cada deudor recibe una estrategia distinta. Ninguna cartera es igual.',
   },
   {
-    src: '/fenix/analisis.jpg',
-    alt: 'Dirección financiera revisando indicadores de recuperación de cartera',
+    src: '/fenix/estrategia-fenix.jpg',
+    alt: 'Ejecutiva consultando la plataforma de recuperación desde su portátil',
     titulo: 'Dirección financiera',
     pie: 'La dirección conoce el estado de su cartera sin tener que pedir informes.',
   },
@@ -175,7 +175,7 @@ const SLIDES_HERO = [
     src: '/fenix/acuerdo.jpg',
     alt: 'Acuerdo de pago cerrado con un cliente empresarial',
     titulo: 'Acuerdos que se cumplen',
-    pie: 'Negociación estratégica con cada deudor, documentada y con seguimiento.',
+    pie: 'Compromisos documentados y con seguimiento hasta el pago.',
   },
 ]
 

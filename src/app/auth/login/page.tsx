@@ -43,9 +43,16 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true)
     const supabase = createClient()
-    const redirectTo = process.env.NODE_ENV === 'development'
+    // Entrando desde el dominio de Fenix, Google debe devolver la sesión ahí
+    // (son cookies de dominio raíz distinto) y el callback debe mandar al
+    // panel de leads, no a /dashboard -- que es de otro producto.
+    const esFenix = window.location.hostname.includes('consultoresfenix.com')
+    const base = process.env.NODE_ENV === 'development'
       ? 'http://localhost:3000/auth/callback'
-      : 'https://ventas10x.co/auth/callback'
+      : esFenix
+        ? 'https://app.consultoresfenix.com/auth/callback'
+        : 'https://ventas10x.co/auth/callback'
+    const redirectTo = esFenix ? `${base}?next=/admin/fenix` : base
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo, queryParams: { access_type: 'offline', prompt: 'consent' } },

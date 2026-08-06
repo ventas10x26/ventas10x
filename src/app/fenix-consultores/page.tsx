@@ -778,6 +778,9 @@ export default function FenixConsultoresPage() {
              frío en una esquina le da profundidad sin competir con el
              naranja, que sigue siendo el único acento con significado. */
           --velo-azul: radial-gradient(120% 90% at 16% -14%, rgba(59,95,204,.12) 0%, rgba(59,95,204,0) 55%);
+          --azul: #002682;
+          --azul-claro: #2F55C4;
+          --negro-fusion: #0B0B10;
           --r-card: 20px;
           --r-lg: 28px;
           --sh-sm: 0 1px 2px rgba(20,16,12,.04);
@@ -1140,22 +1143,28 @@ export default function FenixConsultoresPage() {
         }
 
         /* Insignia tipo app-icon: dibujo + rotulo corto, fija en la esquina
-           para que crecer el icono no desnivele el titulo entre tarjetas. */
+           para que crecer el icono no desnivele el titulo entre tarjetas.
+           El azul se concentra detras del icono como una fuente de luz y se
+           apaga hacia el borde -- un nucleo, no un color plano -- y se
+           apaga a un tono neutro cuando la tarjeta se activa en naranja,
+           para que los dos acentos no compitan en el mismo punto. */
         .fx-icon-app {
           position: absolute; z-index: 1; top: 38px; left: 38px;
-          width: 58px; height: 58px; border-radius: 17px;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-          background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.13);
-          transition: background-color .45s ease-out, border-color .45s ease-out;
+          width: 84px; height: 84px; border-radius: 22px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+          background: radial-gradient(circle at 50% 36%, var(--azul-claro) 0%, var(--azul) 34%, var(--negro-fusion) 80%);
+          border: 1px solid rgba(90,130,255,.3);
+          box-shadow: 0 10px 26px rgba(0,38,130,.4);
+          transition: border-color .45s ease-out;
         }
-        .fx-icon-app svg { width: 23px; height: 23px; color: #fff; }
+        .fx-icon-app svg { width: 32px; height: 32px; color: #fff; }
         .fx-icon-app b {
-          font-size: 7px; font-weight: 800; letter-spacing: .08em;
-          color: rgba(255,255,255,.55); line-height: 1;
+          font-size: 8.5px; font-weight: 800; letter-spacing: .08em;
+          color: rgba(200,215,255,.75); line-height: 1;
         }
         .fx-card-impacto.fx-foco .fx-icon-app,
         .fx-card-impacto:hover .fx-icon-app {
-          background: rgba(20,16,12,.32); border-color: rgba(20,16,12,.4);
+          border-color: rgba(20,16,12,.35);
         }
 
         .fx-card-pilar { min-height: 470px; padding: 44px 38px; }

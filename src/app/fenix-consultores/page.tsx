@@ -773,6 +773,11 @@ export default function FenixConsultoresPage() {
           --cream: #FBF9F6;
           --warm: #F5F1EA;
           --graphite: #14100C;
+          /* Un velo azul muy tenue sobre el grafito, no un cambio de color:
+             el negro plano de una sola nota se lee austero; una pizca de
+             frío en una esquina le da profundidad sin competir con el
+             naranja, que sigue siendo el único acento con significado. */
+          --velo-azul: radial-gradient(120% 90% at 16% -14%, rgba(59,95,204,.12) 0%, rgba(59,95,204,0) 55%);
           --r-card: 20px;
           --r-lg: 28px;
           --sh-sm: 0 1px 2px rgba(20,16,12,.04);
@@ -805,7 +810,7 @@ export default function FenixConsultoresPage() {
         .fx-bg-white { background: var(--white); }
         .fx-bg-cream { background: var(--cream); }
         .fx-bg-warm { background: var(--warm); }
-        .fx-bg-graphite { background: var(--graphite); }
+        .fx-bg-graphite { background: var(--velo-azul), var(--graphite); }
         .fx-bordered { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 
         /* ── Tipografía ── */
@@ -1121,7 +1126,7 @@ export default function FenixConsultoresPage() {
            .fx-card-lift y las reemplazan por ir despues en la hoja. */
         .fx-card-impacto {
           min-height: 460px; padding: 46px 38px 38px;
-          background: var(--graphite); border-color: rgba(255,255,255,.08);
+          background: var(--velo-azul), var(--graphite); border-color: rgba(255,255,255,.08);
         }
         .fx-card-impacto .fx-card-pie { padding-top: 0; }
         .fx-card-impacto .fx-card-t { font-size: 25px; margin-bottom: 12px; color: #fff; }
@@ -1203,7 +1208,7 @@ export default function FenixConsultoresPage() {
           border-radius: var(--r-lg); padding: clamp(28px, 3.4vw, 48px);
           transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
         }
-        .fx-video-card-alt { background: var(--graphite); border-color: rgba(255,255,255,.1); }
+        .fx-video-card-alt { background: var(--velo-azul), var(--graphite); border-color: rgba(255,255,255,.1); }
         .fx-video-card-alt .fx-h3 { color: #fff; }
         .fx-video-card-alt .fx-body { color: rgba(255,255,255,.62); }
         .fx-video-card-alt .fx-label { color: var(--accent); }
@@ -1275,7 +1280,7 @@ export default function FenixConsultoresPage() {
         .fx-contact-form { padding: clamp(32px, 3.5vw, 48px); background: var(--white); }
 
         /* ── Footer ── */
-        .fx-footer { background: var(--graphite); color: #fff; padding: clamp(56px, 6vw, 84px) 0 32px; }
+        .fx-footer { background: var(--velo-azul), var(--graphite); color: #fff; padding: clamp(56px, 6vw, 84px) 0 32px; }
         .fx-footer-grid { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); gap: 40px; padding-bottom: 40px; }
         .fx-footer-brand { margin-bottom: 20px; }
         .fx-footer-d { font-size: 13.5px; line-height: 1.75; color: rgba(255,255,255,.5); max-width: 34rem; }

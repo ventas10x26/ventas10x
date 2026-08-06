@@ -180,8 +180,8 @@ const CONFIANZA = [
 ]
 
 const FOTOS = [
-  { src: '/fenix/asesoria.jpg', alt: 'Asesoría jurídica empresarial de Fenix Consultores' },
-  { src: '/fenix/analisis.jpg', alt: 'Análisis de indicadores de recuperación de cartera' },
+  { src: '/fenix/negociacion-fenix.jpg', alt: 'Asesoría jurídica empresarial de Fenix Consultores' },
+  { src: '/fenix/estrategia-fenix.jpg', alt: 'Análisis de indicadores de recuperación de cartera' },
   { src: '/fenix/acuerdo.jpg', alt: 'Acuerdo de pago con un cliente empresarial' },
 ]
 

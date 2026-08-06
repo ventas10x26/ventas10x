@@ -8,6 +8,9 @@ import { useState } from 'react'
 import { FenixLogo } from './FenixLogo'
 
 const ACCENT = '#F5821F'
+// Mismo lenguaje que el nucleo de las insignias de impacto: el azul se
+// concentra detras del logotipo, centrado, y se apaga hacia los bordes.
+const NUCLEO_AZUL = 'radial-gradient(46% 180% at 50% 50%, rgba(47,85,196,.42) 0%, rgba(0,38,130,.16) 45%, rgba(0,38,130,0) 72%)'
 
 const IZQUIERDA = [
   { href: '#modelo', label: 'El Modelo' },
@@ -96,7 +99,7 @@ export function FenixNav() {
           padding: 1.6rem 2rem;
           border-bottom: 1px solid rgba(255,255,255,.09);
           position: sticky; top: 0; z-index: 50;
-          background: rgba(12,9,7,.94);
+          background: ${NUCLEO_AZUL}, rgba(12,9,7,.94);
           backdrop-filter: blur(16px);
         }
         /* Las columnas laterales miden lo mismo (1fr), pero su contenido se

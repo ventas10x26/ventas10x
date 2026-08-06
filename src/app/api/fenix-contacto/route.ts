@@ -19,7 +19,21 @@ const supabase = createClient(
 // Ventas10x — de ahí la variable de entorno separada en vez de reusar
 // RESEND_API_KEY. El dominio consultoresfenix.com ya está verificado en
 // esa cuenta, así que el remitente sale de ahí y no del sandbox de Resend.
-const resend = new Resend(process.env.FENIX_RESEND_API_KEY)
+//
+// El cliente se construye perezosamente (solo al enviar) y no aquí arriba:
+// el SDK de Resend lanza una excepción si la key es undefined, y eso pasaba
+// al CARGAR el módulo — antes de que el try/catch de abajo pudiera hacer
+// nada. Con FENIX_RESEND_API_KEY todavía sin configurar en Vercel, ese
+// throw tumbaba la ruta entera (también el guardado en Supabase y el aviso
+// de WhatsApp), justo lo que Promise.allSettled más abajo existe para
+// evitar. Mismo patrón que ya usa src/lib/email-helpers.ts para esto.
+let _resendFenix: Resend | null = null
+function getResendFenix(): Resend {
+  const apiKey = process.env.FENIX_RESEND_API_KEY
+  if (!apiKey) throw new Error('FENIX_RESEND_API_KEY no configurada')
+  if (!_resendFenix) _resendFenix = new Resend(apiKey)
+  return _resendFenix
+}
 const FENIX_EMAIL_FROM = 'Fénix Consultores <notificaciones@consultoresfenix.com>'
 const FENIX_EMAIL_DESTINOS = [
   'gerencia@consultoresfenix.com',
@@ -97,10 +111,7 @@ function htmlLeadFenix(lead: LeadFenix) {
 }
 
 async function enviarEmailFenix(lead: LeadFenix) {
-  if (!process.env.FENIX_RESEND_API_KEY) {
-    throw new Error('FENIX_RESEND_API_KEY no configurada')
-  }
-  const { error } = await resend.emails.send({
+  const { error } = await getResendFenix().emails.send({
     from: FENIX_EMAIL_FROM,
     to: FENIX_EMAIL_DESTINOS,
     // Responder al correo cae directo en el buzón del prospecto, sin copiar la dirección.

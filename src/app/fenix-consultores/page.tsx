@@ -13,6 +13,7 @@ import { FenixDashboard } from '@/components/fenix/FenixDashboard'
 import { FenixHeroSlider } from '@/components/fenix/FenixHeroSlider'
 import { FenixLogo } from '@/components/fenix/FenixLogo'
 import { FenixFocoAuto } from '@/components/fenix/FenixFocoAuto'
+import { FenixFases } from '@/components/fenix/FenixFases'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -64,13 +65,22 @@ const LINEAS = [
   { label: 'Línea secundaria', numero: '310 4159173', href: 'tel:3104159173' },
 ]
 
-const CAPACIDADES = [
-  'Plataforma de seguimiento',
-  'IA aplicada a la recuperación',
-  'Cobro prejurídico',
-  'Cobro judicial',
-  'Reportes ejecutivos',
-  'Trazabilidad completa',
+// Las seis capacidades no son una lista: dos deciden, dos actúan y dos rinden
+// cuentas. Agruparlas así es lo que separa un método de un catálogo.
+const SISTEMA = [
+  { rot: 'Decide', items: ['Plataforma de seguimiento', 'IA aplicada a la recuperación'] },
+  { rot: 'Actúa', items: ['Cobro prejurídico', 'Cobro judicial'] },
+  { rot: 'Rinde cuentas', items: ['Reportes ejecutivos', 'Trazabilidad completa'] },
+]
+
+// Línea de vida de una obligación. Los hitos comparten `fase` cuando ocurren en
+// el mismo momento del recorrido; reportes y trazabilidad no son hitos porque
+// no ocurren en un punto, cubren todo el trayecto.
+const HITOS = [
+  { fase: 0, t: 'Plataforma de seguimiento', d: 'La obligación entra y queda con estado.' },
+  { fase: 0, t: 'IA aplicada a la recuperación', d: 'Se prioriza y se le asigna estrategia.' },
+  { fase: 1, t: 'Cobro prejurídico', d: 'Negociación y acuerdo de pago.' },
+  { fase: 1, t: 'Cobro judicial', d: 'Solo si el acuerdo no se cumple.' },
 ]
 
 const IMPACTOS = [
@@ -316,11 +326,21 @@ export default function FenixConsultoresPage() {
             Una solución diseñada para empresas que requieren{' '}
             <span className="fx-accent">control, trazabilidad y resultados.</span>
           </p>
-          <div className="fx-cap-row">
-            {CAPACIDADES.map((c, i) => (
-              <span key={c} className="fx-cap" style={{ '--i': i } as CSSProperties}>{c}</span>
+          <FenixFocoAuto className="fx-mods" selector=".fx-mod-par" ciclo={2600}>
+            {SISTEMA.map((g, i) => (
+              <div key={g.rot} className="fx-mod-par" style={{ '--i': i } as CSSProperties}>
+                <div className="fx-mod-rot">{g.rot}</div>
+                <div className="fx-mod-caja">
+                  {g.items.map(it => (
+                    <div key={it} className="fx-mod">
+                      <i aria-hidden="true" />
+                      <b>{it}</b>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
-          </div>
+          </FenixFocoAuto>
         </div>
       </section>
 
@@ -386,6 +406,50 @@ export default function FenixConsultoresPage() {
                 <FenixVideoShort videoId={VIDEO.id} label={VIDEO.label} />
               </div>
             </article>
+          </FenixReveal>
+        </div>
+      </section>
+
+      {/* ═══ LÍNEA DE VIDA DE UNA OBLIGACIÓN ═══ */}
+      <section className="fx-sec fx-bg-cream">
+        <div className="fx-container">
+          <FenixReveal>
+            <header className="fx-head">
+              <span className="fx-label">El sistema</span>
+              <h2 className="fx-h2">
+                Las seis capacidades actúan sobre<br />
+                <span className="fx-accent">una misma obligación.</span>
+              </h2>
+              <p className="fx-body fx-head-desc">
+                Cuatro intervienen en un punto del recorrido. Las otras dos no: cubren
+                el trayecto completo, y por eso lo enmarcan.
+              </p>
+            </header>
+          </FenixReveal>
+
+          <FenixReveal delay={80}>
+            <FenixFases className="fx-vida" total={3} ciclo={2800}>
+              <div className="fx-vida-arco">
+                <span>Reportes ejecutivos · en cualquier momento</span>
+              </div>
+
+              <div className="fx-vida-eje">
+                <span className="fx-vida-linea" aria-hidden="true" />
+                {HITOS.map(h => (
+                  <div key={h.t} className="fx-hito" data-fase={h.fase}>
+                    <span className="fx-hito-punto" aria-hidden="true" />
+                    <div>
+                      <b>{h.t}</b>
+                      <em>{h.d}</em>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="fx-vida-rail">
+                <span>Trazabilidad completa · de principio a fin</span>
+              </div>
+            </FenixFases>
           </FenixReveal>
         </div>
       </section>
@@ -808,31 +872,106 @@ export default function FenixConsultoresPage() {
           max-width: 22ch; margin-left: auto; margin-right: auto;
           margin-top: 0; margin-bottom: clamp(28px, 3.5vw, 44px);
         }
-        .fx-cap-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-        .fx-cap {
-          background: var(--white); border: 1px solid var(--line); border-radius: 999px;
-          padding: 14px 26px; font-size: 15.5px; font-weight: 600; color: var(--ink-2);
-          box-shadow: var(--sh-sm); cursor: default;
-          /* La entrada escalonada corre al montar y no al entrar en viewport:
-             la sección va pegada al hero, así que se ve sin depender de que
-             un observador dispare. El modo "both" deja el estado inicial
-             aplicado durante el retardo, si no habría un parpadeo. */
-          animation: fx-cap-in .6s cubic-bezier(.22,.61,.36,1) both;
-          animation-delay: calc(var(--i) * 80ms);
-          transition: transform .3s cubic-bezier(.22,.61,.36,1),
-                      box-shadow .3s ease-out,
-                      border-color .3s ease-out,
-                      color .3s ease-out;
+        /* Tres grupos de dos: la estructura queda a la vista sin gastar alto.
+           La entrada escalonada corre al montar y no al entrar en viewport:
+           la sección va pegada al hero, así que se ve sin depender de que un
+           observador dispare. El modo "both" deja el estado inicial aplicado
+           durante el retardo, si no habría un parpadeo. */
+        .fx-mods { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+        .fx-mod-par {
+          animation: fx-mod-in .6s cubic-bezier(.22,.61,.36,1) both;
+          animation-delay: calc(var(--i) * 110ms);
         }
-        .fx-cap:hover {
-          transform: translateY(-5px);
-          border-color: var(--accent);
-          color: var(--ink);
-          box-shadow: 0 10px 26px rgba(245,130,31,.22);
-        }
-        @keyframes fx-cap-in {
-          from { opacity: 0; transform: translateY(14px) scale(.96); }
+        @keyframes fx-mod-in {
+          from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: none; }
+        }
+        .fx-mod-rot {
+          font-size: 10.5px; font-weight: 700; letter-spacing: .15em;
+          text-transform: uppercase; color: var(--ink-3);
+          margin-bottom: 9px; padding-left: 2px;
+          transition: color .45s ease-out;
+        }
+        .fx-mod-caja {
+          display: grid; grid-template-columns: repeat(2, minmax(0,1fr));
+          background: var(--white); border: 1px solid var(--line);
+          border-radius: 16px; overflow: hidden; box-shadow: var(--sh-sm);
+          transition: border-color .45s ease-out, box-shadow .45s ease-out;
+        }
+        .fx-mod {
+          padding: 17px 15px; display: flex; flex-direction: column; gap: 10px;
+          border-right: 1px solid var(--line);
+        }
+        .fx-mod:last-child { border-right: none; }
+        .fx-mod i {
+          width: 6px; height: 6px; border-radius: 50%; background: var(--line);
+          transition: background-color .45s ease-out;
+        }
+        .fx-mod b {
+          font-family: var(--font-space-grotesk), system-ui, sans-serif;
+          font-size: 14px; font-weight: 600; line-height: 1.35;
+          letter-spacing: -.01em; color: var(--ink);
+        }
+        .fx-mod-par.fx-foco .fx-mod-rot,
+        .fx-mod-par:hover .fx-mod-rot { color: var(--accent-text); }
+        .fx-mod-par.fx-foco .fx-mod-caja,
+        .fx-mod-par:hover .fx-mod-caja {
+          border-color: var(--accent);
+          box-shadow: 0 12px 28px rgba(245,130,31,.18);
+        }
+        .fx-mod-par.fx-foco .fx-mod i,
+        .fx-mod-par:hover .fx-mod i { background: var(--accent); }
+
+        /* ── Línea de vida ── */
+        .fx-vida { max-width: 62rem; margin-left: auto; margin-right: auto; }
+        .fx-vida-arco, .fx-vida-rail {
+          position: relative; height: 22px; margin: 0 7%;
+          border: 1px solid var(--line);
+          transition: border-color .5s ease-out;
+        }
+        .fx-vida-arco { border-bottom: none; border-radius: 16px 16px 0 0; }
+        .fx-vida-rail { border-top: none; border-radius: 0 0 16px 16px; margin-top: 22px; }
+        .fx-vida-arco span, .fx-vida-rail span {
+          position: absolute; left: 50%; transform: translateX(-50%);
+          background: var(--cream); padding: 0 14px; white-space: nowrap;
+          font-size: 13px; font-weight: 600; color: var(--ink-2);
+          transition: color .5s ease-out;
+        }
+        .fx-vida-arco span { top: -12px; }
+        .fx-vida-rail span { bottom: -12px; }
+        .fx-vida[data-fase="2"] .fx-vida-arco,
+        .fx-vida[data-fase="2"] .fx-vida-rail { border-color: var(--accent); }
+        .fx-vida[data-fase="2"] .fx-vida-arco span,
+        .fx-vida[data-fase="2"] .fx-vida-rail span { color: var(--accent-text); }
+
+        .fx-vida-eje { position: relative; display: flex; margin-top: 18px; }
+        .fx-vida-linea {
+          position: absolute; left: 7%; right: 7%; top: 7px;
+          height: 2px; background: var(--line);
+        }
+        .fx-hito {
+          flex: 1 1 0; display: flex; flex-direction: column; align-items: center;
+          gap: 12px; text-align: center; padding: 0 10px;
+        }
+        .fx-hito-punto {
+          width: 16px; height: 16px; border-radius: 50%; position: relative;
+          background: var(--cream); border: 2px solid var(--line);
+          transition: background-color .5s ease-out, border-color .5s ease-out, transform .5s ease-out;
+        }
+        .fx-hito b {
+          display: block;
+          font-family: var(--font-space-grotesk), system-ui, sans-serif;
+          font-size: 15px; font-weight: 700; letter-spacing: -.015em;
+          line-height: 1.25; color: var(--ink);
+        }
+        .fx-hito em {
+          display: block; font-style: normal; font-size: 13px;
+          line-height: 1.5; color: var(--ink-2); margin-top: 5px;
+        }
+        .fx-vida[data-fase="0"] .fx-hito[data-fase="0"] .fx-hito-punto,
+        .fx-vida[data-fase="1"] .fx-hito[data-fase="1"] .fx-hito-punto,
+        .fx-hito:hover .fx-hito-punto {
+          background: var(--accent); border-color: var(--accent); transform: scale(1.35);
         }
 
         /* ── Cards ── */
@@ -1046,7 +1185,14 @@ export default function FenixConsultoresPage() {
         }
         @media (max-width: 760px) {
           .fx-container { padding: 0 20px; }
-          .fx-grid-4, .fx-trust-row, .fx-metrics { grid-template-columns: 1fr; }
+          .fx-grid-4, .fx-trust-row, .fx-metrics, .fx-mods { grid-template-columns: 1fr; }
+          /* En vertical la linea deja de ser un eje: los hitos pasan a lista. */
+          .fx-vida-eje { flex-direction: column; gap: 22px; }
+          .fx-vida-linea { display: none; }
+          .fx-hito { flex-direction: row; text-align: left; align-items: flex-start; padding: 0; gap: 14px; }
+          .fx-hito-punto { margin-top: 5px; flex: 0 0 auto; }
+          .fx-vida-arco, .fx-vida-rail { margin-left: 0; margin-right: 0; }
+          .fx-vida-arco span, .fx-vida-rail span { font-size: 12px; }
           .fx-hero-proof { gap: 22px; }
           .fx-proof { max-width: none; flex: 1 1 100%; }
           .fx-footer-grid { grid-template-columns: 1fr; gap: 32px; }
@@ -1060,16 +1206,18 @@ export default function FenixConsultoresPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .fx-btn:hover, .fx-card-lift:hover, .fx-card-lift.fx-foco,
-          .fx-video-card:hover, .fx-linea:hover, .fx-cap:hover { transform: none; }
+          .fx-video-card:hover, .fx-linea:hover { transform: none; }
+          .fx-mod-par { animation: none; }
+          .fx-hito-punto { transition: none; }
+          .fx-vida[data-fase="0"] .fx-hito[data-fase="0"] .fx-hito-punto,
+          .fx-vida[data-fase="1"] .fx-hito[data-fase="1"] .fx-hito-punto,
+          .fx-hito:hover .fx-hito-punto { transform: none; }
           /* El recorrido sigue avanzando: se quita el movimiento, no el cambio
              de fondo, que es el que comunica cual tarjeta esta activa. */
           .fx-card-lift.fx-foco .fx-foco-barra.fx-foco-corre {
             animation: none; transform: scaleX(1);
           }
           .fx-dot { animation: none; }
-          /* Se conserva el cambio de fondo (no es movimiento) y se quita el
-             desplazamiento de entrada de los chips. */
-          .fx-cap { animation: none; }
         }
       `}</style>
     </div>

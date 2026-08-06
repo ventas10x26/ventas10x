@@ -12,17 +12,24 @@ type Props = {
   children: ReactNode
   /** ms que dura cada tarjeta antes de ceder el turno */
   ciclo?: number
+  /** Qué elementos entran en el recorrido dentro de este bloque. */
+  selector?: string
   className?: string
 }
 
-export function FenixFocoAuto({ children, ciclo = 2600, className = '' }: Props) {
+export function FenixFocoAuto({
+  children,
+  ciclo = 2600,
+  selector = '.fx-card-lift',
+  className = '',
+}: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const raiz = ref.current
     if (!raiz) return
 
-    const tarjetas = Array.from(raiz.querySelectorAll<HTMLElement>('.fx-card-lift'))
+    const tarjetas = Array.from(raiz.querySelectorAll<HTMLElement>(selector))
     if (tarjetas.length < 2) return
 
     raiz.style.setProperty('--fx-ciclo', `${ciclo}ms`)
@@ -83,7 +90,7 @@ export function FenixFocoAuto({ children, ciclo = 2600, className = '' }: Props)
         t.querySelector('.fx-foco-barra')?.classList.remove('fx-foco-corre')
       })
     }
-  }, [ciclo])
+  }, [ciclo, selector])
 
   return <div ref={ref} className={className}>{children}</div>
 }

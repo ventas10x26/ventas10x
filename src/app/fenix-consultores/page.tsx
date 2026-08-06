@@ -1,6 +1,6 @@
 // Ruta destino: src/app/fenix-consultores/page.tsx
 import type { Metadata } from 'next'
-import type { CSSProperties } from 'react'
+import { Fragment, type CSSProperties } from 'react'
 import { Space_Grotesk } from 'next/font/google'
 import { FenixNav } from '@/components/fenix/FenixNav'
 import { FenixLeadForm } from '@/components/fenix/FenixLeadForm'
@@ -66,11 +66,26 @@ const LINEAS = [
 ]
 
 // Las seis capacidades no son una lista: dos deciden, dos actúan y dos rinden
-// cuentas. Agruparlas así es lo que separa un método de un catálogo.
+// cuentas. Agruparlas así es lo que separa un método de un catálogo. El orden
+// también es real: decidir alimenta la ejecución, y la ejecución alimenta lo
+// que se reporta — por eso el conector entre grupos tiene sentido y no es
+// solo decoración.
 const SISTEMA = [
-  { rot: 'Decide', items: ['Plataforma de seguimiento', 'IA aplicada a la recuperación'] },
-  { rot: 'Actúa', items: ['Cobro prejurídico', 'Cobro judicial'] },
-  { rot: 'Rinde cuentas', items: ['Reportes ejecutivos', 'Trazabilidad completa'] },
+  {
+    rot: 'Decide',
+    sub: 'Qué obligación priorizar y con qué estrategia.',
+    items: ['Plataforma de seguimiento', 'IA aplicada a la recuperación'],
+  },
+  {
+    rot: 'Actúa',
+    sub: 'Negociación primero; lo judicial solo si no basta.',
+    items: ['Cobro prejurídico', 'Cobro judicial'],
+  },
+  {
+    rot: 'Rinde cuentas',
+    sub: 'Todo lo anterior, visible y documentado.',
+    items: ['Reportes ejecutivos', 'Trazabilidad completa'],
+  },
 ]
 
 // Línea de vida de una obligación. Los hitos comparten `fase` cuando ocurren en
@@ -319,26 +334,43 @@ export default function FenixConsultoresPage() {
         </div>
       </section>
 
-      {/* ═══ CAPACIDADES ═══ */}
+      {/* ═══ CAPACIDADES / EL MÉTODO ═══ */}
       <section className="fx-sec fx-sec-tight fx-bg-white fx-bordered">
         <div className="fx-container">
-          <p className="fx-cap-intro">
-            Una solución diseñada para empresas que requieren{' '}
-            <span className="fx-accent">control, trazabilidad y resultados.</span>
-          </p>
-          <FenixFocoAuto className="fx-mods" selector=".fx-mod-par" ciclo={2600}>
+          <div className="fx-cap-head">
+            <span className="fx-label">El método</span>
+            <p className="fx-cap-intro">
+              Una solución diseñada para empresas que requieren{' '}
+              <span className="fx-accent">control, trazabilidad y resultados.</span>
+            </p>
+          </div>
+
+          <FenixFocoAuto className="fx-mods" selector=".fx-mod-par" activador=".fx-mod-btn" ciclo={2600}>
             {SISTEMA.map((g, i) => (
-              <div key={g.rot} className="fx-mod-par" style={{ '--i': i } as CSSProperties}>
-                <div className="fx-mod-rot">{g.rot}</div>
-                <div className="fx-mod-caja">
-                  {g.items.map(it => (
-                    <div key={it} className="fx-mod">
-                      <i aria-hidden="true" />
-                      <b>{it}</b>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Fragment key={g.rot}>
+                {i > 0 && (
+                  <span className="fx-mod-conector" aria-hidden="true">
+                    <Flecha />
+                  </span>
+                )}
+                <article className="fx-mod-par" style={{ '--i': i } as CSSProperties}>
+                  <div className="fx-mod-head">
+                    <span className="fx-step" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                    <button type="button" className="fx-mod-btn" aria-pressed="false">
+                      {g.rot}
+                    </button>
+                  </div>
+                  <p className="fx-mod-sub">{g.sub}</p>
+                  <div className="fx-mod-caja">
+                    {g.items.map(it => (
+                      <div key={it} className="fx-mod">
+                        <i aria-hidden="true" />
+                        <b>{it}</b>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </Fragment>
             ))}
           </FenixFocoAuto>
         </div>
@@ -863,21 +895,27 @@ export default function FenixConsultoresPage() {
         .fx-proof-v { font-size: 21px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
         .fx-proof-l { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.45; }
 
-        /* ── Capacidades ── */
+        /* ── Capacidades / El método ── */
+        .fx-cap-head { text-align: center; margin-bottom: clamp(30px, 3.8vw, 48px); }
         .fx-cap-intro {
-          text-align: center;
           font-size: clamp(24px, 3.1vw, 40px);
           font-weight: 700; letter-spacing: -.025em; line-height: 1.2;
           color: var(--ink);
-          max-width: 22ch; margin-left: auto; margin-right: auto;
-          margin-top: 0; margin-bottom: clamp(28px, 3.5vw, 44px);
+          max-width: 22ch; margin: 0 auto;
         }
         /* Tres grupos de dos: la estructura queda a la vista sin gastar alto.
-           La entrada escalonada corre al montar y no al entrar en viewport:
-           la sección va pegada al hero, así que se ve sin depender de que un
-           observador dispare. El modo "both" deja el estado inicial aplicado
-           durante el retardo, si no habría un parpadeo. */
-        .fx-mods { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+           La rejilla intercala columnas de contenido y de conector
+           (1fr auto 1fr auto 1fr) para que la flecha sea un elemento propio
+           y no un pseudo-elemento difícil de animar. La entrada escalonada
+           corre al montar y no al entrar en viewport: la sección va pegada
+           al hero, así que se ve sin depender de que un observador dispare.
+           El modo "both" deja el estado inicial aplicado durante el
+           retardo, si no habría un parpadeo. */
+        .fx-mods {
+          display: grid;
+          grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);
+          align-items: start; gap: 0 20px;
+        }
         .fx-mod-par {
           animation: fx-mod-in .6s cubic-bezier(.22,.61,.36,1) both;
           animation-delay: calc(var(--i) * 110ms);
@@ -886,11 +924,26 @@ export default function FenixConsultoresPage() {
           from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: none; }
         }
-        .fx-mod-rot {
-          font-size: 10.5px; font-weight: 700; letter-spacing: .15em;
-          text-transform: uppercase; color: var(--ink-3);
-          margin-bottom: 9px; padding-left: 2px;
-          transition: color .45s ease-out;
+        .fx-mod-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+        /* El nombre del grupo es el ancla visual de la fila: mucho más
+           grande que el resto y con el mismo trazo que los H2/H3 del sitio,
+           no una eyebrow diminuta. También es el control que fija el foco
+           con click o teclado — de ahí el reset de <button> y el estado
+           :focus-visible propio. */
+        .fx-mod-btn {
+          font-family: var(--font-space-grotesk), system-ui, sans-serif;
+          font-size: clamp(26px, 3vw, 36px); font-weight: 700;
+          letter-spacing: -.02em; line-height: 1.05; text-align: left;
+          color: var(--ink); background: none; border: none; padding: 0; margin: 0;
+          cursor: pointer; transition: color .3s ease-out;
+        }
+        .fx-mod-btn:hover { color: var(--accent-text); }
+        .fx-mod-btn:focus-visible {
+          outline: 2px solid var(--accent); outline-offset: 5px; border-radius: 4px;
+        }
+        .fx-mod-sub {
+          font-size: 14px; line-height: 1.55; color: var(--ink-2);
+          max-width: 30ch; margin: 0 0 18px;
         }
         .fx-mod-caja {
           display: grid; grid-template-columns: repeat(2, minmax(0,1fr));
@@ -912,8 +965,10 @@ export default function FenixConsultoresPage() {
           font-size: 14px; font-weight: 600; line-height: 1.35;
           letter-spacing: -.01em; color: var(--ink);
         }
-        .fx-mod-par.fx-foco .fx-mod-rot,
-        .fx-mod-par:hover .fx-mod-rot { color: var(--accent-text); }
+        /* .fx-foco es el mismo estado que activa el click sobre .fx-mod-btn
+           (vía activador en FenixFocoAuto) o el hover del mouse. */
+        .fx-mod-par.fx-foco .fx-mod-btn,
+        .fx-mod-par:hover .fx-mod-btn { color: var(--accent-text); }
         .fx-mod-par.fx-foco .fx-mod-caja,
         .fx-mod-par:hover .fx-mod-caja {
           border-color: var(--accent);
@@ -921,6 +976,19 @@ export default function FenixConsultoresPage() {
         }
         .fx-mod-par.fx-foco .fx-mod i,
         .fx-mod-par:hover .fx-mod i { background: var(--accent); }
+
+        /* La flecha se enciende cuando el grupo anterior está activo: hace
+           visible que decide -> actúa -> rinde cuentas es un orden real y
+           no una fila cualquiera de tres tarjetas. */
+        .fx-mod-conector {
+          display: flex; align-items: center; justify-content: center;
+          padding-top: 8px; color: var(--ink-3);
+          transition: color .5s ease-out, transform .5s ease-out;
+        }
+        .fx-mod-conector svg { width: 22px; height: 22px; display: block; }
+        .fx-mod-par.fx-foco + .fx-mod-conector {
+          color: var(--accent); transform: translateX(3px);
+        }
 
         /* ── Línea de vida ── */
         .fx-vida { max-width: 62rem; margin-left: auto; margin-right: auto; }
@@ -1185,7 +1253,11 @@ export default function FenixConsultoresPage() {
         }
         @media (max-width: 760px) {
           .fx-container { padding: 0 20px; }
-          .fx-grid-4, .fx-trust-row, .fx-metrics, .fx-mods { grid-template-columns: 1fr; }
+          .fx-grid-4, .fx-trust-row, .fx-metrics { grid-template-columns: 1fr; }
+          /* Apiladas, el orden vertical ya cuenta la secuencia por sí solo
+             (más el número de cada grupo): la flecha horizontal sobra. */
+          .fx-mods { grid-template-columns: 1fr; row-gap: 30px; }
+          .fx-mod-conector { display: none; }
           /* En vertical la linea deja de ser un eje: los hitos pasan a lista. */
           .fx-vida-eje { flex-direction: column; gap: 22px; }
           .fx-vida-linea { display: none; }
@@ -1208,6 +1280,7 @@ export default function FenixConsultoresPage() {
           .fx-btn:hover, .fx-card-lift:hover, .fx-card-lift.fx-foco,
           .fx-video-card:hover, .fx-linea:hover { transform: none; }
           .fx-mod-par { animation: none; }
+          .fx-mod-par.fx-foco + .fx-mod-conector { transform: none; }
           .fx-hito-punto { transition: none; }
           .fx-vida[data-fase="0"] .fx-hito[data-fase="0"] .fx-hito-punto,
           .fx-vida[data-fase="1"] .fx-hito[data-fase="1"] .fx-hito-punto,

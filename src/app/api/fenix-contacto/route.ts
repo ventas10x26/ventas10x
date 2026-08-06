@@ -1,27 +1,118 @@
 // Ruta destino: src/app/api/fenix-contacto/route.ts
+//
+// Recibe los leads del formulario principal y del widget flotante (ambos usan
+// FenixLeadForm, que postea aquí). El lead se guarda, se avisa por correo y
+// por WhatsApp en paralelo: que la solicitud se dé por recibida no depende de
+// que un solo canal esté arriba — si Supabase, Resend o CallMeBot fallan por
+// separado, los otros dos igual dejan constancia del lead.
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Cuenta de Resend propia de Fenix, distinta de la que usa el resto de
+// Ventas10x — de ahí la variable de entorno separada en vez de reusar
+// RESEND_API_KEY.
+const resend = new Resend(process.env.FENIX_RESEND_API_KEY)
+const FENIX_EMAIL_FROM = 'Fénix Consultores <onboarding@resend.dev>'
+const FENIX_EMAIL_DESTINOS = [
+  'gerencia@consultoresfenix.com',
+  'fenixconsultoresempresariales@gmail.com',
+  'ricaza81@gmail.com',
+]
+
 // Número fijo de Fenix Consultores que recibe la notificación de cada lead nuevo
 const FENIX_WHATSAPP_DESTINO = '573104159173'
 
-async function notificarWhatsAppFenix(lead: {
+type LeadFenix = {
   empresa: string
   nombre: string
   email: string
   telefono: string
   mensaje: string
-}) {
-  const apikey = process.env.FENIX_CALLMEBOT_APIKEY
-  if (!apikey) {
-    console.error('[fenix-contacto] FENIX_CALLMEBOT_APIKEY no configurada, no se envía WhatsApp')
-    return
+}
+
+async function guardarLead(lead: LeadFenix) {
+  const { error } = await supabase.from('fenix_leads').insert({
+    empresa: lead.empresa,
+    nombre: lead.nombre,
+    email: lead.email,
+    telefono: lead.telefono,
+    mensaje: lead.mensaje || null,
+    fuente: 'landing_fenix_consultores',
+  })
+  if (error) throw new Error(error.message)
+}
+
+function htmlLeadFenix(lead: LeadFenix) {
+  const soloDigitos = lead.telefono.replace(/\D/g, '')
+  const fila = (etiqueta: string, valor: string) => `
+    <tr>
+      <td style="padding:9px 0;border-bottom:1px solid #2A241C;font-size:13px;color:#B0A594;width:150px;vertical-align:top;">${etiqueta}</td>
+      <td style="padding:9px 0;border-bottom:1px solid #2A241C;font-size:14px;color:#F7F4EF;font-weight:600;">${valor}</td>
+    </tr>`
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Nuevo lead — Fénix Consultores</title></head>
+<body style="margin:0;padding:0;background:#14100C;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#F7F4EF;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#14100C;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+        <tr>
+          <td style="background:#1B1712;border:1px solid #2A241C;border-top:3px solid #F5821F;border-radius:16px;padding:34px 30px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#F5A455;letter-spacing:1.2px;text-transform:uppercase;">Nuevo lead — Fénix Consultores</p>
+            <h1 style="margin:0 0 20px;font-size:23px;font-weight:700;line-height:1.3;color:#F7F4EF;">${lead.empresa}</h1>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              ${fila('Nombre de contacto', lead.nombre)}
+              ${fila('Correo', `<a href="mailto:${lead.email}" style="color:#F5A455;text-decoration:none;">${lead.email}</a>`)}
+              ${fila('WhatsApp', `<a href="https://wa.me/${soloDigitos}" style="color:#F5A455;text-decoration:none;">${lead.telefono}</a>`)}
+              ${lead.mensaje ? fila('Qué necesita', lead.mensaje) : ''}
+            </table>
+            <table cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
+              <tr>
+                <td style="background:#F5821F;border-radius:10px;padding:12px 24px;">
+                  <a href="https://wa.me/${soloDigitos}" style="color:#12100C;font-size:14px;font-weight:700;text-decoration:none;">Responder por WhatsApp →</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 0 0;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#5C5548;">Fénix Consultores Empresariales S.A.S. · fenix-consultores</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+async function enviarEmailFenix(lead: LeadFenix) {
+  if (!process.env.FENIX_RESEND_API_KEY) {
+    throw new Error('FENIX_RESEND_API_KEY no configurada')
   }
+  const { error } = await resend.emails.send({
+    from: FENIX_EMAIL_FROM,
+    to: FENIX_EMAIL_DESTINOS,
+    // Responder al correo cae directo en el buzón del prospecto, sin copiar la dirección.
+    replyTo: lead.email,
+    subject: `Nuevo lead — ${lead.empresa} (${lead.nombre})`,
+    html: htmlLeadFenix(lead),
+  })
+  if (error) throw new Error(error.message || 'Resend rechazó el envío')
+}
+
+async function notificarWhatsAppFenix(lead: LeadFenix) {
+  const apikey = process.env.FENIX_CALLMEBOT_APIKEY
+  if (!apikey) throw new Error('FENIX_CALLMEBOT_APIKEY no configurada')
 
   const texto = [
     `🔥 *NUEVO LEAD - FENIX CONSULTORES*`,
@@ -45,7 +136,7 @@ async function notificarWhatsAppFenix(lead: {
   try {
     const res = await fetch(url.toString(), { method: 'GET', signal: controller.signal })
     if (!res.ok) {
-      console.error('[fenix-contacto] CallMeBot rechazó:', res.status, await res.text())
+      throw new Error(`CallMeBot rechazó la solicitud: ${res.status} ${await res.text()}`)
     }
   } finally {
     clearTimeout(timeoutId)
@@ -60,7 +151,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
-    const lead = {
+    const lead: LeadFenix = {
       empresa: String(empresa).trim(),
       nombre: String(nombre).trim(),
       email: String(email).trim().toLowerCase(),
@@ -68,24 +159,29 @@ export async function POST(req: NextRequest) {
       mensaje: String(mensaje || '').trim(),
     }
 
-    const { error: dbError } = await supabase.from('fenix_leads').insert({
-      empresa: lead.empresa,
-      nombre: lead.nombre,
-      email: lead.email,
-      telefono: lead.telefono,
-      mensaje: lead.mensaje || null,
-      fuente: 'landing_fenix_consultores',
-    })
+    // Los tres en paralelo: ninguno le agrega su latencia a los otros, y la
+    // caída de uno no le cuesta el lead entero a los demás.
+    const [guardado, porEmail, porWhatsApp] = await Promise.allSettled([
+      guardarLead(lead),
+      enviarEmailFenix(lead),
+      notificarWhatsAppFenix(lead),
+    ])
 
-    if (dbError) {
-      console.error('[fenix-contacto] Supabase error:', dbError)
-      // No bloqueamos la respuesta al usuario — igual intentamos notificar
+    if (guardado.status === 'rejected') {
+      console.error('[fenix-contacto] no se guardó en Supabase:', guardado.reason)
+    }
+    if (porEmail.status === 'rejected') {
+      console.error('[fenix-contacto] email falló:', porEmail.reason)
+    }
+    if (porWhatsApp.status === 'rejected') {
+      console.error('[fenix-contacto] whatsapp falló:', porWhatsApp.reason)
     }
 
-    // Notificación por WhatsApp, best-effort (no bloquea la respuesta al usuario)
-    notificarWhatsAppFenix(lead).catch(err =>
-      console.error('[fenix-contacto] Error notificando WhatsApp:', err)
-    )
+    // Solo se rechaza si el lead no quedó registrado en ningún lado. Mientras
+    // esté guardado o haya salido un aviso, la solicitud está recibida.
+    if (guardado.status === 'rejected' && porEmail.status === 'rejected' && porWhatsApp.status === 'rejected') {
+      return NextResponse.json({ error: 'No pudimos enviar la solicitud. Intenta de nuevo.' }, { status: 502 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

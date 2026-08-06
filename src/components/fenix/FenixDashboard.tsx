@@ -11,7 +11,7 @@ const ACCENT = '#F5821F'
 const INK = '#14100C'
 
 const KPIS = [
-  { label: 'Tasa de recuperación', valor: '68%', delta: '+12 pts' },
+  { label: 'Tasa de recuperación', valor: '82%', delta: '+12 pts' },
   { label: 'Días promedio de cierre', valor: '41', delta: '−9 días' },
   { label: 'Obligaciones activas', valor: '1.284', delta: '+86' },
 ]
@@ -234,6 +234,14 @@ export function FenixDashboard() {
           .fx-dash-main { padding: 20px; }
           .fx-dash-kpis { grid-template-columns: 1fr; }
           .fx-kpi-label { min-height: 0; }
+          /* En vertical el panel completo compite por espacio con el resto
+             del hero: se deja solo el gráfico, que es lo que comunica
+             "hay una plataforma detrás" en una sola mirada. Los KPI, la
+             edad de cartera y la bitácora flotante son detalle que en
+             pantallas anchas suma contexto, pero en un teléfono solo
+             empuja el resto del hero fuera de la pantalla. */
+          .fx-dash-top, .fx-dash-kpis, .fx-dash-aging, .fx-dash-float { display: none; }
+          .fx-dash-chart { margin-bottom: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
           .fx-live { animation: none; }

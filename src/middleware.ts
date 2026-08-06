@@ -48,6 +48,16 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/fenix-consultores')) {
       return NextResponse.next()
     }
+    // /admin y /auth son transversales: no son parte de la landing de
+    // Fenix, pero deben abrirse igual desde este dominio para que el
+    // equipo pueda iniciar sesión y llegar al panel de leads sin pasar
+    // por ventas10x.co. Van por updateSession (no solo next()) porque
+    // necesitan leer y refrescar la cookie de sesión de Supabase, que
+    // aquí queda scoped a app.consultoresfenix.com -- una sesión iniciada
+    // en ventas10x.co no la comparte, son dominios raíz distintos.
+    if (pathname.startsWith('/admin') || pathname.startsWith('/auth')) {
+      return await updateSession(request)
+    }
     if (
       pathname.startsWith('/api/') ||
       pathname.startsWith('/og/') ||

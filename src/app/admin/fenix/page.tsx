@@ -5,6 +5,7 @@
 
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
 import { FenixLeadsClient } from '@/components/admin/FenixLeadsClient'
 
@@ -17,7 +18,14 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminFenixPage() {
   const admin = await getCurrentAdmin()
-  if (!admin) redirect('/dashboard')
+  if (!admin) {
+    // /dashboard no existe bajo el dominio de Fenix (el middleware lo
+    // reescribiría a algo inexistente): sin sesión ahí, lo correcto es
+    // pedir login, no mandarlo a una ruta de otro producto.
+    const host = (await headers()).get('host') || ''
+    const esFenix = host.includes('app.consultoresfenix.com') || host.includes('fenix.localhost')
+    redirect(esFenix ? '/auth/login' : '/dashboard')
+  }
 
   const { data: leads } = await supabaseService
     .from('fenix_leads')

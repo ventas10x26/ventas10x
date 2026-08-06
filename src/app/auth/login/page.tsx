@@ -32,7 +32,10 @@ export default function LoginPage() {
       setError('Correo o contraseña incorrectos')
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      // Entrando desde el dominio de Fenix, /dashboard no existe ahí (es
+      // otro producto) -- el destino correcto es el panel de leads.
+      const esFenix = window.location.hostname.includes('consultoresfenix.com')
+      router.push(esFenix ? '/admin/fenix' : '/dashboard')
       router.refresh()
     }
   }

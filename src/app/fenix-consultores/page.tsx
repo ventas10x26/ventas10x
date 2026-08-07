@@ -147,10 +147,10 @@ const PILARES_IA = [
 ]
 
 const UREA = [
-  { n: '01', t: 'Diagnóstico estratégico', d: 'Un abogado audita jurídicamente cada obligación antes de mover un peso. Sabemos qué es recuperable — y qué no — desde el primer día.' },
-  { n: '02', t: 'Priorización con IA', d: 'El sistema ordena su cartera por probabilidad real de pago, para que el esfuerzo del equipo se concentre donde sí rinde.' },
-  { n: '03', t: 'Ejecución especializada', d: 'Cada deudor recibe la estrategia que su caso exige: conciliación, negociación o vía judicial. Ninguna cartera se gestiona igual.' },
-  { n: '04', t: 'Información en tiempo real', d: 'Usted conoce el estado de su cartera cuando lo necesita, no cuando alguien termina de armar el informe.' },
+  { n: '01', t: 'Diagnóstico estratégico', d: 'Antes de gestionar un peso, un abogado certifica qué es jurídicamente recuperable. Su equipo deja de perseguir cartera que nunca iba a pagar.' },
+  { n: '02', t: 'Priorización con IA', d: 'El algoritmo calcula la probabilidad real de pago de cada deudor y ordena la cartera por impacto. Se gestiona primero lo que sí devuelve resultado.' },
+  { n: '03', t: 'Ejecución especializada', d: 'Conciliación, negociación o vía judicial: cada obligación recibe la estrategia que exige su nivel de riesgo. Cero plantillas, cero cartera tratada igual.' },
+  { n: '04', t: 'Información en tiempo real', d: 'Un tablero, no un correo pidiendo estado. Usted decide cuándo mirar el avance real de su cartera — no cuando alguien termine el informe.' },
 ]
 
 const INDICADORES = [
@@ -548,8 +548,8 @@ export default function FenixConsultoresPage() {
 
           <FenixReveal delay={80}>
             <div className="fx-grid-4">
-              {UREA.map(u => (
-                <article key={u.n} className="fx-card fx-card-dark">
+              {UREA.map((u, i) => (
+                <article key={u.n} className="fx-card fx-card-dark" style={{ '--i': i } as CSSProperties}>
                   <span className="fx-step fx-step-dark">{u.n}</span>
                   <h3 className="fx-card-t fx-card-t-dark">{u.t}</h3>
                   <p className="fx-card-d fx-card-d-dark">{u.d}</p>
@@ -1180,21 +1180,42 @@ export default function FenixConsultoresPage() {
         .fx-card-t { font-size: 21px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 12px; }
         .fx-card-d { font-size: 15.5px; line-height: 1.7; color: var(--ink-2); }
         /* Las tarjetas oscuras se hunden en el graphite/azul del fondo si
-           quedan casi transparentes: se marcan con un degradado propio,
-           borde visible y sombra dura para que se separen del fondo en
-           reposo, no solo al pasar el mouse. */
+           usan el mismo tono: se les da un fondo azulado propio (misma
+           familia que el resto de la identidad Fenix) que contrasta contra
+           el graphite cálido de la sección, más un resplandor que respira
+           en bucle -- desfasado por tarjeta con --i -- para que la sección
+           se sienta viva sin depender del hover. */
         .fx-card-dark {
-          background: linear-gradient(160deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.025) 100%);
-          border-color: rgba(255,255,255,.16);
-          box-shadow: 0 24px 54px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+          position: relative;
+          overflow: hidden;
+          background:
+            radial-gradient(120% 140% at 12% -10%, rgba(47,85,196,.4) 0%, rgba(0,38,130,.22) 40%, transparent 72%),
+            linear-gradient(165deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.015) 100%),
+            var(--negro-fusion);
+          border-color: rgba(130,160,255,.24);
+          box-shadow: 0 24px 54px rgba(0,8,32,.55), inset 0 1px 0 rgba(255,255,255,.08);
+          transition: transform .4s cubic-bezier(.22,.61,.36,1), box-shadow .4s ease-out, border-color .35s ease-out;
+        }
+        .fx-card-dark::after {
+          content: ''; position: absolute; z-index: 0; pointer-events: none;
+          left: -30%; right: -30%; top: -35%; height: 65%;
+          background: radial-gradient(closest-side, rgba(245,130,31,.55), transparent 72%);
+          filter: blur(26px); opacity: .18;
+          animation: fx-card-respira 5.6s ease-in-out infinite;
+          animation-delay: calc(var(--i, 0) * .9s);
+        }
+        .fx-card-dark > * { position: relative; z-index: 1; }
+        @keyframes fx-card-respira {
+          0%, 100% { transform: translateY(0) scale(.92); opacity: .14; }
+          50% { transform: translateY(18%) scale(1.18); opacity: .38; }
         }
         .fx-card-dark:hover {
-          transform: translateY(-6px);
-          border-color: rgba(245,130,31,.45);
-          box-shadow: 0 30px 68px rgba(0,0,0,.5), 0 0 0 1px rgba(245,130,31,.18);
+          transform: translateY(-8px);
+          border-color: rgba(245,130,31,.5);
+          box-shadow: 0 34px 72px rgba(0,8,32,.6), 0 0 0 1px rgba(245,130,31,.2);
         }
         .fx-card-t-dark { color: #fff; }
-        .fx-card-d-dark { color: rgba(255,255,255,.68); }
+        .fx-card-d-dark { color: rgba(255,255,255,.7); }
 
         .fx-icon {
           display: inline-flex; align-items: center; justify-content: center;
@@ -1209,7 +1230,15 @@ export default function FenixConsultoresPage() {
           min-width: 32px; height: 32px; padding: 0 9px; border-radius: 999px;
           background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 700; flex-shrink: 0;
         }
-        .fx-step-dark { background: rgba(245,130,31,.16); color: var(--accent); margin-bottom: 20px; }
+        .fx-step-dark {
+          background: rgba(245,130,31,.16); color: var(--accent); margin-bottom: 20px;
+          animation: fx-step-pulso 3.4s ease-in-out infinite;
+          animation-delay: calc(var(--i, 0) * .35s);
+        }
+        @keyframes fx-step-pulso {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(245,130,31,.4); }
+          50% { box-shadow: 0 0 0 7px rgba(245,130,31,0); }
+        }
 
         .fx-list { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-direction: column; gap: 9px; }
         .fx-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }

@@ -10,6 +10,7 @@ import { getCurrentAdmin } from '@/lib/admin-helpers'
 import { FenixLeadsClient } from '@/components/admin/FenixLeadsClient'
 import { FenixVisitasChart } from '@/components/admin/FenixVisitasChart'
 import { obtenerVisitasDiariasFenix } from '@/lib/ga4'
+import { obtenerMetricasClarity } from '@/lib/clarity'
 
 const supabaseService = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,13 +34,24 @@ export default async function AdminFenixPage() {
   // independientes. Si GA4 no está configurada todavía o Google rechaza la
   // solicitud, el panel de leads debe seguir funcionando igual -- por eso
   // el error se atrapa aquí y no se deja subir.
-  const [leadsRes, visitas] = await Promise.all([
+  const [leadsRes, visitas, clarity] = await Promise.all([
     supabaseService.from('fenix_leads').select('*').order('created_at', { ascending: false }),
     obtenerVisitasDiariasFenix(30).catch(err => {
       console.error('[admin/fenix] GA4 no disponible:', err instanceof Error ? err.message : err)
       return null
     }),
+    obtenerMetricasClarity().catch(err => {
+      console.error('[admin/fenix] Clarity no disponible:', err instanceof Error ? err.message : err)
+      return null
+    }),
   ])
 
-  return <FenixLeadsClient initialLeads={leadsRes.data || []} visitas={visitas} />
+  return (
+    <FenixLeadsClient
+      initialLeads={leadsRes.data || []}
+      visitas={visitas}
+      clarity={clarity}
+      clarityProjectId={process.env.NEXT_PUBLIC_CLARITY_ID}
+    />
+  )
 }

@@ -147,10 +147,10 @@ const PILARES_IA = [
 ]
 
 const UREA = [
-  { n: '01', t: 'Diagnóstico estratégico', d: 'Analizamos jurídicamente cada obligación antes de actuar.' },
-  { n: '02', t: 'Gestión inteligente', d: 'La IA identifica prioridades y optimiza los tiempos de gestión.' },
-  { n: '03', t: 'Ejecución especializada', d: 'Cada deudor recibe una estrategia distinta. Ninguna cartera es igual.' },
-  { n: '04', t: 'Información en tiempo real', d: 'Usted conoce en tiempo real el estado del cobro de cartera.' },
+  { n: '01', t: 'Diagnóstico estratégico', d: 'Un abogado audita jurídicamente cada obligación antes de mover un peso. Sabemos qué es recuperable — y qué no — desde el primer día.' },
+  { n: '02', t: 'Priorización con IA', d: 'El sistema ordena su cartera por probabilidad real de pago, para que el esfuerzo del equipo se concentre donde sí rinde.' },
+  { n: '03', t: 'Ejecución especializada', d: 'Cada deudor recibe la estrategia que su caso exige: conciliación, negociación o vía judicial. Ninguna cartera se gestiona igual.' },
+  { n: '04', t: 'Información en tiempo real', d: 'Usted conoce el estado de su cartera cuando lo necesita, no cuando alguien termina de armar el informe.' },
 ]
 
 const INDICADORES = [
@@ -1179,9 +1179,22 @@ export default function FenixConsultoresPage() {
         .fx-card-pilar .fx-list { margin-top: auto; padding-top: 26px; }
         .fx-card-t { font-size: 21px; font-weight: 700; letter-spacing: -.015em; margin-bottom: 12px; }
         .fx-card-d { font-size: 15.5px; line-height: 1.7; color: var(--ink-2); }
-        .fx-card-dark { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.1); box-shadow: none; }
+        /* Las tarjetas oscuras se hunden en el graphite/azul del fondo si
+           quedan casi transparentes: se marcan con un degradado propio,
+           borde visible y sombra dura para que se separen del fondo en
+           reposo, no solo al pasar el mouse. */
+        .fx-card-dark {
+          background: linear-gradient(160deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.025) 100%);
+          border-color: rgba(255,255,255,.16);
+          box-shadow: 0 24px 54px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+        }
+        .fx-card-dark:hover {
+          transform: translateY(-6px);
+          border-color: rgba(245,130,31,.45);
+          box-shadow: 0 30px 68px rgba(0,0,0,.5), 0 0 0 1px rgba(245,130,31,.18);
+        }
         .fx-card-t-dark { color: #fff; }
-        .fx-card-d-dark { color: rgba(255,255,255,.6); }
+        .fx-card-d-dark { color: rgba(255,255,255,.68); }
 
         .fx-icon {
           display: inline-flex; align-items: center; justify-content: center;

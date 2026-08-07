@@ -822,15 +822,15 @@ export default function FenixConsultoresPage() {
 
         /* ── Tipografía ── */
         .fx-display {
-          font-size: clamp(42px, 6.2vw, 82px);
-          font-weight: 700; line-height: 1.01; letter-spacing: -.035em;
-          margin-bottom: 26px;
+          font-size: clamp(36px, 5vw, 62px);
+          font-weight: 700; line-height: 1.05; letter-spacing: -.035em;
+          margin-bottom: 22px;
         }
         .fx-h2 { font-size: clamp(30px, 3.9vw, 52px); font-weight: 700; line-height: 1.08; letter-spacing: -.028em; }
         .fx-h2-dark { color: #fff; }
         .fx-h3 { font-size: clamp(22px, 2.3vw, 31px); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; margin-bottom: 16px; }
         .fx-lead {
-          font-size: clamp(17px, 1.35vw, 20px); line-height: 1.62;
+          font-size: clamp(17px, 1.35vw, 20px); line-height: 1.45;
           color: var(--ink-2); max-width: 33rem; margin-bottom: 38px;
         }
         .fx-body { font-size: 16px; line-height: 1.75; color: var(--ink-2); max-width: 40rem; }
@@ -876,7 +876,7 @@ export default function FenixConsultoresPage() {
         /* ── Hero ── */
         .fx-hero {
           position: relative; overflow: hidden;
-          padding: clamp(56px, 7vw, 100px) 0 clamp(76px, 9vw, 124px);
+          padding: clamp(24px, 3vw, 40px) 0 clamp(76px, 9vw, 124px);
           background: linear-gradient(180deg, #FFFFFF 0%, #FDFBF8 55%, var(--cream) 100%);
         }
         .fx-hero-glow {

@@ -131,9 +131,13 @@ export function FenixNav() {
         .fenix-pill-ghost:hover { border-color: ${ACCENT}; color: ${ACCENT}; }
         .fenix-pill-solid {
           background: ${ACCENT}; color: #12100C;
-          box-shadow: 0 6px 24px ${ACCENT}45;
+          animation: fenix-cta-brillo 2.6s ease-in-out infinite;
         }
-        .fenix-pill-solid:hover { background: #ff9440; }
+        .fenix-pill-solid:hover { background: #ff9440; animation-play-state: paused; box-shadow: 0 6px 28px ${ACCENT}80; }
+        @keyframes fenix-cta-brillo {
+          0%, 100% { box-shadow: 0 6px 18px ${ACCENT}30, 0 0 0 0 ${ACCENT}55; }
+          50% { box-shadow: 0 6px 26px ${ACCENT}60, 0 0 18px 4px ${ACCENT}40; }
+        }
 
         .fenix-nav-hamburger {
           display: none; flex-direction: column; gap: 5px;

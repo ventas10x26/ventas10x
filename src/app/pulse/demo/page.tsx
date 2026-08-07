@@ -460,6 +460,7 @@ export default function DemoPage() {
               mostrarPantallaCompleta={!soloPanel}
               tema={tema}
               onTema={alternarTema}
+              sedeEfectiva={sedeEfectiva}
             />
             )}
 
@@ -705,7 +706,7 @@ function BotonTema({ tema, onTema }: { tema: Tema; onTema: () => void }) {
 // porque el prospecto lo prueba y descubre que la pantalla es un dibujo.
 function BarraFiltros({
   seccion, oportunidades, sync, filtros, setFiltro, onLimpiar, onActualizar, mostrarPantallaCompleta,
-  tema, onTema,
+  tema, onTema, sedeEfectiva,
 }: {
   seccion: string
   oportunidades: number
@@ -717,6 +718,7 @@ function BarraFiltros({
   mostrarPantallaCompleta: boolean
   tema: Tema
   onTema: () => void
+  sedeEfectiva: SedeId
 }) {
   const hayFiltros =
     filtros.sede !== 'todas' || filtros.periodo !== '12m' ||
@@ -781,6 +783,8 @@ function BarraFiltros({
             valor={filtros.sede}
             onChange={v => setFiltro('sede', v as SedeId)}
             opciones={SEDES_OPCIONES.map(s => ({ id: s.id, label: s.label }))}
+            disabled={filtros.asesor !== 'todos'}
+            disabledLabel={SEDES_OPCIONES.find(s => s.id === sedeEfectiva)?.label}
           />
         </CampoFiltro>
 
@@ -880,10 +884,16 @@ function CampoFiltro({ titulo, children }: { titulo: string; children: React.Rea
 // operativo: mismo azul de selección, misma tipografía y mismo alto en cualquier tablero,
 // así que dos productos distintos terminan viéndose iguales al abrirlo. Acá la lista es
 // nuestra y usa los tokens de Pulse.
-function SelectFiltro({ valor, onChange, opciones }: {
+function SelectFiltro({ valor, onChange, opciones, disabled, disabledLabel }: {
   valor: string
   onChange: (v: string) => void
   opciones: { id: string; label: string }[]
+  // Vitrina se deshabilita cuando hay un asesor elegido: la sede efectiva pasa
+  // a ser la del asesor (ver calcularDemoFiltrado en datos.ts) y dejar el
+  // dropdown clickeable haria creer que la eleccion tiene efecto cuando no lo
+  // tiene.
+  disabled?: boolean
+  disabledLabel?: string
 }) {
   const [abierto, setAbierto] = useState(false)
   const caja = useRef<HTMLDivElement | null>(null)
@@ -909,29 +919,42 @@ function SelectFiltro({ valor, onChange, opciones }: {
     <div ref={caja} style={{ position: 'relative' }}>
       <button
         type="button"
-        onClick={() => setAbierto(a => !a)}
+        onClick={() => { if (!disabled) setAbierto(a => !a) }}
         aria-haspopup="listbox"
         aria-expanded={abierto}
+        aria-disabled={disabled}
+        disabled={disabled}
+        title={disabled ? 'Fijada por el asesor seleccionado' : undefined}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px',
           width: '100%', padding: 0, border: 'none', background: 'transparent',
-          fontSize: '14px', fontWeight: 600, color: INK, fontFamily: FONT_BODY,
-          cursor: 'pointer', textAlign: 'left', minWidth: 0,
+          fontSize: '14px', fontWeight: 600, color: disabled ? MUTED : INK, fontFamily: FONT_BODY,
+          cursor: disabled ? 'not-allowed' : 'pointer', textAlign: 'left', minWidth: 0,
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {actual?.label ?? '—'}
+          {disabled ? (disabledLabel ?? actual?.label ?? '—') : (actual?.label ?? '—')}
         </span>
-        {/* El color va por style y no por atributo: en atributo de presentación, var() no
-            es confiable en todos los navegadores. */}
-        <svg
-          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-          style={{ flexShrink: 0, color: DIM, transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        {/* Con el filtro fijo, la flecha se reemplaza por un candado: la forma
+            distinta evita que alguien confunda "sin opciones abajo" con
+            "deshabilitado", que son dos estados distintos. */}
+        {disabled ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
+            <rect x="4" y="10" width="16" height="10" rx="2" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+          </svg>
+        ) : (
+          /* El color va por style y no por atributo: en atributo de presentación, var() no
+              es confiable en todos los navegadores. */
+          <svg
+            width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+            style={{ flexShrink: 0, color: DIM, transform: abierto ? 'rotate(180deg)' : 'none', transition: 'transform .15s ease' }}
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        )}
       </button>
 
       {abierto && (

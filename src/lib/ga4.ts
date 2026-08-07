@@ -27,6 +27,34 @@ function base64url(input: Buffer | string) {
 
 let tokenCache: { token: string; exp: number } | null = null
 
+/**
+ * Tolera las formas mas comunes en que la clave privada llega deformada al
+ * pegarla a mano en el panel de Vercel: espacios/saltos sobrantes al
+ * inicio o final, comillas que quedaron pegadas del valor JSON original,
+ * y el escape "\n" literal (como llega si se copia tal cual del archivo
+ * .json, donde un salto de linea real es invalido dentro de un string).
+ * Si tras esto el resultado no tiene forma de PEM, se lanza un error que
+ * dice exactamente eso -- la libreria de crypto solo da
+ * "DECODER routines::unsupported", que no dice nada sobre la causa real.
+ */
+function normalizarClavePrivada(raw: string): string {
+  let key = raw.trim()
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1).trim()
+  }
+  if (key.includes('\\n')) key = key.replace(/\\n/g, '\n')
+  key = key.trim()
+
+  if (!key.includes('-----BEGIN PRIVATE KEY-----') || !key.includes('-----END PRIVATE KEY-----')) {
+    throw new Error(
+      'GA_SERVICE_ACCOUNT_PRIVATE_KEY no tiene forma de clave PEM (falta el encabezado o el pie ' +
+      '-----BEGIN/END PRIVATE KEY-----). Vuelva a copiar el valor completo de "private_key" ' +
+      'directamente del .json descargado, sin editarlo a mano.'
+    )
+  }
+  return key
+}
+
 async function obtenerAccessToken(): Promise<string> {
   const email = process.env.GA_SERVICE_ACCOUNT_EMAIL
   const rawKey = process.env.GA_SERVICE_ACCOUNT_PRIVATE_KEY
@@ -37,10 +65,7 @@ async function obtenerAccessToken(): Promise<string> {
   const ahora = Math.floor(Date.now() / 1000)
   if (tokenCache && tokenCache.exp - 60 > ahora) return tokenCache.token
 
-  // En Vercel los saltos de línea de una variable de entorno multilínea
-  // suelen llegar escapados como "\n" literal; hay que revertirlos antes
-  // de pasarle la clave a crypto.
-  const privateKey = rawKey.includes('\\n') ? rawKey.replace(/\\n/g, '\n') : rawKey
+  const privateKey = normalizarClavePrivada(rawKey)
 
   const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
   const claims = base64url(JSON.stringify({

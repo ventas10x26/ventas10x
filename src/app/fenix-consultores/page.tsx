@@ -1183,14 +1183,16 @@ export default function FenixConsultoresPage() {
            usan el mismo tono: se les da un fondo azulado propio (misma
            familia que el resto de la identidad Fenix) que contrasta contra
            el graphite cálido de la sección. El primer intento de animarlas
-           con un halo grande y desfasado dejaba una tarjeta con borde
-           naranja mientras las otras tres se veían normales en cualquier
-           captura -- se leía como un estado roto o aleatorio, no como
-           movimiento intencional. El único elemento animado ahora es el
-           anillo del número (pequeño, contenido, igual en las cuatro), que
-           no rompe la lectura de que las cuatro tarjetas son equivalentes. */
+           con un halo grande y desfasado por tarjeta (via --i) dejaba una
+           tarjeta con borde naranja mientras las otras tres se veían
+           normales en cualquier captura -- se leía como un estado roto, no
+           como movimiento intencional. Este barrido de brillo corre en la
+           misma fase en las cuatro (sin --i): en cualquier instante todas
+           se ven igual, así que nunca hay una tarjeta "distinta" en una
+           captura, pero en vivo el conjunto sí se percibe animado.*/
         .fx-card-dark {
           position: relative;
+          overflow: hidden;
           background:
             radial-gradient(120% 140% at 12% -10%, rgba(47,85,196,.4) 0%, rgba(0,38,130,.22) 40%, transparent 72%),
             linear-gradient(165deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.015) 100%),
@@ -1198,6 +1200,17 @@ export default function FenixConsultoresPage() {
           border-color: rgba(130,160,255,.24);
           box-shadow: 0 24px 54px rgba(0,8,32,.55), inset 0 1px 0 rgba(255,255,255,.08);
           transition: transform .4s cubic-bezier(.22,.61,.36,1), box-shadow .4s ease-out, border-color .35s ease-out;
+        }
+        .fx-card-dark::after {
+          content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+          background: linear-gradient(100deg, transparent 42%, rgba(160,190,255,.16) 50%, transparent 58%);
+          background-size: 260% 100%;
+          animation: fx-card-brillo 5s ease-in-out infinite;
+        }
+        .fx-card-dark > * { position: relative; z-index: 1; }
+        @keyframes fx-card-brillo {
+          0%, 12% { background-position: -80% 0; }
+          60%, 100% { background-position: 180% 0; }
         }
         .fx-card-dark:hover {
           transform: translateY(-8px);
@@ -1223,7 +1236,6 @@ export default function FenixConsultoresPage() {
         .fx-step-dark {
           background: rgba(245,130,31,.16); color: var(--accent); margin-bottom: 20px;
           animation: fx-step-pulso 3.4s ease-in-out infinite;
-          animation-delay: calc(var(--i, 0) * .35s);
         }
         @keyframes fx-step-pulso {
           0%, 100% { box-shadow: 0 0 0 0 rgba(245,130,31,.4); }

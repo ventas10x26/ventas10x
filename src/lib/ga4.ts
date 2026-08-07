@@ -27,32 +27,50 @@ function base64url(input: Buffer | string) {
 
 let tokenCache: { token: string; exp: number } | null = null
 
+const PEM_INICIO = '-----BEGIN PRIVATE KEY-----'
+const PEM_FIN = '-----END PRIVATE KEY-----'
+
 /**
- * Tolera las formas mas comunes en que la clave privada llega deformada al
- * pegarla a mano en el panel de Vercel: espacios/saltos sobrantes al
- * inicio o final, comillas que quedaron pegadas del valor JSON original,
- * y el escape "\n" literal (como llega si se copia tal cual del archivo
- * .json, donde un salto de linea real es invalido dentro de un string).
- * Si tras esto el resultado no tiene forma de PEM, se lanza un error que
- * dice exactamente eso -- la libreria de crypto solo da
- * "DECODER routines::unsupported", que no dice nada sobre la causa real.
+ * Reconstruye el PEM desde cero a partir de su contenido base64, en vez de
+ * confiar en que los saltos de línea internos sobrevivieron intactos al
+ * pegarse a mano en el campo de texto de Vercel -- ahí es donde de verdad
+ * se corrompen (aplanados, duplicados), no en el encabezado/pie, que un
+ * copy-paste normal preserva bien. Mientras los caracteres base64 en sí
+ * sigan intactos y en orden, reenvolverlos a 64 columnas es todo lo que el
+ * decodificador de OpenSSL necesita para aceptarla.
+ *
+ * "DECODER routines::unsupported" es el único mensaje que da crypto si la
+ * clave no es válida, sin decir por qué -- por eso los errores de aquí
+ * incluyen datos no sensibles (longitud, primeros caracteres) para poder
+ * diagnosticar sin necesitar ver la clave completa.
  */
 function normalizarClavePrivada(raw: string): string {
-  let key = raw.trim()
-  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
-    key = key.slice(1, -1).trim()
+  let texto = raw.trim()
+  if ((texto.startsWith('"') && texto.endsWith('"')) || (texto.startsWith("'") && texto.endsWith("'"))) {
+    texto = texto.slice(1, -1).trim()
   }
-  if (key.includes('\\n')) key = key.replace(/\\n/g, '\n')
-  key = key.trim()
+  if (texto.includes('\\n')) texto = texto.replace(/\\n/g, '\n')
 
-  if (!key.includes('-----BEGIN PRIVATE KEY-----') || !key.includes('-----END PRIVATE KEY-----')) {
+  const iInicio = texto.indexOf(PEM_INICIO)
+  const iFin = texto.indexOf(PEM_FIN)
+  if (iInicio === -1 || iFin === -1 || iFin < iInicio) {
     throw new Error(
-      'GA_SERVICE_ACCOUNT_PRIVATE_KEY no tiene forma de clave PEM (falta el encabezado o el pie ' +
-      '-----BEGIN/END PRIVATE KEY-----). Vuelva a copiar el valor completo de "private_key" ' +
-      'directamente del .json descargado, sin editarlo a mano.'
+      `GA_SERVICE_ACCOUNT_PRIVATE_KEY no tiene forma de clave PEM (${texto.length} caracteres, ` +
+      `empieza con "${texto.slice(0, 24)}…"). Vuelva a copiar el valor completo de "private_key" ` +
+      'directamente del .json descargado.'
     )
   }
-  return key
+
+  const cuerpo = texto.slice(iInicio + PEM_INICIO.length, iFin).replace(/\s+/g, '')
+  if (cuerpo.length < 100) {
+    throw new Error(
+      `GA_SERVICE_ACCOUNT_PRIVATE_KEY tiene los encabezados PEM pero el cuerpo llegó con solo ` +
+      `${cuerpo.length} caracteres -- parece truncada. Vuelva a copiarla completa.`
+    )
+  }
+
+  const lineas = cuerpo.match(/.{1,64}/g) || [cuerpo]
+  return `${PEM_INICIO}\n${lineas.join('\n')}\n${PEM_FIN}\n`
 }
 
 async function obtenerAccessToken(): Promise<string> {

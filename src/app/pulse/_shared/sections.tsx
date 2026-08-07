@@ -1335,12 +1335,56 @@ export function PulseStyles() {
         .footer-grid{ grid-template-columns:1fr 1fr!important; }
       }
 
+      /* ── Espejo de mercado: pase de lectura ──────────────────────────────────────
+         Las tres cards de país se van encendiendo una por una, cada una durante lo
+         que cuesta leerla (el tiempo lo calcula la página a partir del largo del
+         texto, no es un intervalo fijo). Marca el orden de lectura en vez de dejar
+         que el visitante saltee, y el estado final —las tres en oscuro— es el
+         argumento de la sección hecho imagen: el mismo problema en los tres países.
+
+         El estado encendido usa los tokens --panel-*, que NO cambian con el tema:
+         así el contraste contra el lienzo funciona igual en soft y en dark. */
+      .espejo-card {
+        position:relative; overflow:hidden;
+        border:1px solid var(--line); border-radius:8px; padding:22px 20px;
+        background:transparent;
+        transition:background .55s ease, border-color .55s ease, transform .55s ease;
+      }
+      .espejo-card .espejo-pais  { color:var(--blue); transition:color .55s ease; }
+      .espejo-card .espejo-dato  { color:var(--ink); transition:color .55s ease; }
+      .espejo-card .espejo-fuente{ color:var(--ink-dim); transition:color .55s ease; }
+
+      .espejo-card.leida {
+        background:var(--panel-bg); border-color:var(--panel-line);
+      }
+      .espejo-card.leida .espejo-dato   { color:var(--panel-ink); }
+      .espejo-card.leida .espejo-fuente { color:var(--panel-ink-dim); }
+
+      /* Solo la card que se está "leyendo" se levanta: es el foco que avanza. */
+      .espejo-card.leyendo { transform:translateY(-3px); }
+
+      /* Barra de avance: se llena en el mismo tiempo que dura la lectura de esa card
+         (la duración se pasa por style inline desde el componente). Es lo que hace
+         que se lea como lectura y no como un simple cambio de color. */
+      .espejo-barra {
+        position:absolute; left:0; bottom:0; height:2px; width:100%;
+        transform:scaleX(0); transform-origin:left center;
+        background:linear-gradient(90deg, var(--blue), var(--blue-2));
+      }
+      .espejo-card.leyendo .espejo-barra { animation:espejoLeer linear forwards; }
+      .espejo-card.leida:not(.leyendo) .espejo-barra { transform:scaleX(1); opacity:.35; transition:opacity .5s ease; }
+      @keyframes espejoLeer { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
       @media (prefers-reduced-motion: reduce) {
         .live-dot, .guard-sweep::before { animation:none; }
         .log-row, .reveal, .tool-row { transition:none; opacity:1; transform:none; }
         .pm-btn:hover:not(:disabled) { transform:none; }
         .scroll-cue { animation:none; }
         .btn-arrow, .eco-cell, .eco-icon, .integ-item, .integ-icon, .quote-card, .stat-cell, .log-row-data, .pm-nav-link::after, .price-card, .seg-card, .seg-card-arrow, .seg-check-mark, .tool-road-car { transition:none; }
+        /* Sin movimiento se muestra el estado final directo: las tres ya leídas. */
+        .espejo-card, .espejo-card .espejo-pais, .espejo-card .espejo-dato, .espejo-card .espejo-fuente { transition:none; }
+        .espejo-card.leyendo { transform:none; }
+        .espejo-barra { animation:none!important; transform:scaleX(1); opacity:.35; }
       }
 
       @media(max-width:700px){

@@ -36,6 +36,16 @@ const MARKET_STATS = [
   { pais:'Chile', bandera:'🇨🇱', dato:'64% todavía trabaja con datos fragmentados o parcialmente integrados.', fuente:'Fuente: CDTIC-PwC Chile, 2026' },
 ] as const
 
+// Ritmo del pase de lectura de las cards de arriba. La duración de cada una sale del
+// largo de SU texto, no de un intervalo fijo: la de Colombia es tres veces más larga que
+// la de Chile, y con un intervalo parejo o se corta la primera o se hace eterna la última.
+// ~130 ms por palabra es deliberadamente más rápido que la lectura real (~300 ms/palabra):
+// acá el pase marca el orden y el ritmo, el visitante no tiene que terminar cada card antes
+// de que avance el foco. El medio segundo de base evita que la card corta apenas parpadee.
+const MS_POR_PALABRA = 130
+const MS_BASE = 500
+const duracionLectura = (texto: string) => MS_BASE + texto.trim().split(/\s+/).length * MS_POR_PALABRA
+
 export default function PulseMotorLanding() {
   const usuarioLogueado = useUsuarioLogueado()
   const { theme, toggleTheme } = usePulseTheme()
@@ -45,6 +55,11 @@ export default function PulseMotorLanding() {
   const heroScroll      = useScrollProgress<HTMLDivElement>()
   const heroPanel      = useReveal<HTMLDivElement>()
   const dataStatReveal  = useReveal<HTMLDivElement>()
+  // Ref propio para la grilla de cards, aparte del reveal del bloque entero: el bloque
+  // entra en viewport con el titular, cuando las cards todavía están abajo del pliegue, y
+  // el pase de lectura arrancaría sin que nadie lo vea.
+  const espejoCards     = useReveal<HTMLDivElement>(0.35)
+  const [cardLeyendo, setCardLeyendo] = useState(-1)
   const segHeader       = useReveal<HTMLDivElement>()
   const segGrid         = useReveal<HTMLDivElement>()
 
@@ -55,6 +70,28 @@ export default function PulseMotorLanding() {
     transform: visible ? 'translateY(0)' : 'translateY(20px)',
     transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
   })
+
+  // Pase de lectura del espejo de mercado: enciende las cards una por una, cada una
+  // durante lo que cuesta leer su propio texto. Corre una sola vez —useReveal desconecta
+  // el observer al primer cruce— y no vuelve atrás: una vez leída, la card queda oscura.
+  useEffect(() => {
+    if (!espejoCards.inView) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCardLeyendo(MARKET_STATS.length)   // estado final, sin recorrido
+      return
+    }
+    const timers: ReturnType<typeof setTimeout>[] = []
+    let acumulado = 0
+    MARKET_STATS.forEach((m, i) => {
+      timers.push(setTimeout(() => setCardLeyendo(i), acumulado))
+      acumulado += duracionLectura(m.dato)
+    })
+    // Un tick final más allá de la última card: sin esto el foco se queda clavado en la
+    // tercera —levantada 3px— mientras las otras dos ya asentaron, y el cierre queda
+    // desparejo. El estado final tiene que ser las tres iguales, que es justo el argumento.
+    timers.push(setTimeout(() => setCardLeyendo(MARKET_STATS.length), acumulado))
+    return () => timers.forEach(clearTimeout)
+  }, [espejoCards.inView])
 
   // Hero pineado (scroll-jacking): "grow" agranda el panel de tool-calls como si fuera
   // el video reproduciéndose; "tilt" lo inclina en 3D y cruza al esquema real de DataBridge.
@@ -178,14 +215,19 @@ export default function PulseMotorLanding() {
               44% de los líderes tecnológicos de LatAm enfrenta dificultades con la calidad y disponibilidad de sus datos (NTT Data + MIT Español, 2026). No es una excepción de un solo país:
             </p>
 
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px', marginBottom:'32px' }} className="insumos-grid">
-              {MARKET_STATS.map((m,mi) => (
-                <div key={m.pais} style={{ border:'1px solid var(--line)', borderRadius:'8px', padding:'22px 20px' }}>
-                  <p style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--blue)', fontWeight:700, margin:'0 0 12px' }}>{m.bandera} {m.pais}</p>
-                  <p style={{ fontSize:'14px', color:'var(--ink)', lineHeight:1.55, margin:'0 0 14px' }}>{m.dato}</p>
-                  <p style={{ fontFamily:F_MONO, fontSize:'10.5px', color:'var(--ink-dim)', margin:0 }}>{m.fuente}</p>
-                </div>
-              ))}
+            <div ref={espejoCards.ref} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'20px', marginBottom:'32px' }} className="insumos-grid">
+              {MARKET_STATS.map((m,mi) => {
+                const leyendo = mi === cardLeyendo
+                const leida   = mi <= cardLeyendo
+                return (
+                  <div key={m.pais} className={`espejo-card${leida?' leida':''}${leyendo?' leyendo':''}`}>
+                    <p className="espejo-pais" style={{ fontFamily:F_MONO, fontSize:'11px', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, margin:'0 0 12px' }}>{m.bandera} {m.pais}</p>
+                    <p className="espejo-dato" style={{ fontSize:'14px', lineHeight:1.55, margin:'0 0 14px' }}>{m.dato}</p>
+                    <p className="espejo-fuente" style={{ fontFamily:F_MONO, fontSize:'10.5px', margin:0 }}>{m.fuente}</p>
+                    <span className="espejo-barra" style={{ animationDuration:`${duracionLectura(m.dato)}ms` }} />
+                  </div>
+                )
+              })}
             </div>
 
             <p style={{ fontSize:'15.5px', color:'var(--ink-dim)', lineHeight:1.65, margin:'0 0 24px', maxWidth:'680px' }}>

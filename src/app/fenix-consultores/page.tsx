@@ -693,7 +693,7 @@ export default function FenixConsultoresPage() {
       </section>
 
       {/* ═══ CONTACTO ═══ */}
-      <section id="contacto" className="fx-sec fx-bg-cream">
+      <section id="contacto" className="fx-sec fx-sec-contact fx-bg-cream">
         <div className="fx-container">
           <FenixReveal>
             <header className="fx-head fx-head-center">
@@ -707,10 +707,20 @@ export default function FenixConsultoresPage() {
               </p>
             </header>
           </FenixReveal>
+        </div>
 
-          <FenixScrollPanel>
-            <div className="fx-contact">
-              <aside className="fx-contact-side">
+        <FenixScrollPanel>
+          {/* Banda full-bleed (fuera de .fx-container) para transmitir escala: una firma
+              consolidada, no una tarjeta de contacto mas. Negro-fusion + azul de marca en
+              degrade, con textura de puntos sutil (registro tecnologico) y el formulario
+              como tarjeta blanca elevada flotando encima, en vez de la mitad de una tarjeta
+              partida en dos. */}
+          <div className="fx-contact-band">
+            <div className="fx-container fx-contact">
+              <div className="fx-contact-side">
+                <span className="fx-contact-badge">
+                  <span className="fx-dot fx-dot-lg" /> Especialistas disponibles ahora
+                </span>
                 <h3 className="fx-contact-t">Contáctenos hoy</h3>
                 <p className="fx-contact-d">
                   Inicie su proceso de recuperación con una asesoría personalizada
@@ -727,17 +737,26 @@ export default function FenixConsultoresPage() {
                     </a>
                   ))}
                 </div>
-                <div className="fx-contact-foot">
-                  <span className="fx-dot" /> Especialistas disponibles
+                <div className="fx-contact-stats">
+                  {[
+                    ['+12', 'años recuperando cartera empresarial'],
+                    ['Real y Salud', 'sectores especializados'],
+                    ['24 h', 'para contactarle'],
+                  ].map(([v, l]) => (
+                    <div key={l} className="fx-contact-stat">
+                      <div className="fx-contact-stat-v">{v}</div>
+                      <div className="fx-contact-stat-l">{l}</div>
+                    </div>
+                  ))}
                 </div>
-              </aside>
+              </div>
 
               <div className="fx-contact-form">
                 <FenixLeadForm theme="light" />
               </div>
             </div>
-          </FenixScrollPanel>
-        </div>
+          </div>
+        </FenixScrollPanel>
       </section>
 
       {/* ═══ FOOTER ═══ */}
@@ -902,6 +921,7 @@ export default function FenixConsultoresPage() {
           box-shadow: 0 0 0 0 rgba(62,207,126,.55);
           animation: fx-pulse 2.4s ease infinite;
         }
+        .fx-dot-lg { width: 8px; height: 8px; }
         @keyframes fx-pulse {
           0% { box-shadow: 0 0 0 0 rgba(62,207,126,.5); }
           70% { box-shadow: 0 0 0 7px rgba(62,207,126,0); }
@@ -1301,40 +1321,71 @@ export default function FenixConsultoresPage() {
         .fx-trust-t { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 7px; }
         .fx-trust-d { font-size: 13.5px; color: rgba(255,255,255,.58); line-height: 1.6; }
 
-        /* ── Contacto ── */
+        /* ── Contacto ──
+           Banda full-bleed: rompe fuera de .fx-container para transmitir escala (una firma
+           consolidada, no un formulario mas). Negro-fusion + azul de marca en degrade
+           diagonal + textura de puntos sutil (registro tecnologico, hace juego con "IA" y
+           "plataforma trazable" del hero). El formulario queda como tarjeta blanca elevada
+           flotando encima -- contraste fuerte en vez de la mitad de una tarjeta partida. */
+        #contacto.fx-sec-contact { padding-bottom: 0; }
+        .fx-contact-band {
+          position: relative; overflow: hidden; isolation: isolate;
+          margin-top: clamp(40px, 5vw, 64px);
+          padding: clamp(64px, 7vw, 104px) 0;
+          background:
+            radial-gradient(820px circle at 10% -8%, rgba(47,85,196,.42), transparent 60%),
+            linear-gradient(160deg, var(--azul) 0%, var(--negro-fusion) 58%);
+        }
+        .fx-contact-band::before {
+          content: ''; position: absolute; inset: 0; z-index: 0;
+          background-image: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1px);
+          background-size: 26px 26px;
+          -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.85), transparent 78%);
+          mask-image: linear-gradient(180deg, rgba(0,0,0,.85), transparent 78%);
+          pointer-events: none;
+        }
         .fx-contact {
-          display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr);
-          background: var(--white); border: 1px solid var(--line);
-          border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-lg);
+          position: relative; z-index: 1;
+          display: grid; grid-template-columns: minmax(0,.92fr) minmax(0,1.08fr);
+          gap: clamp(40px, 5vw, 76px); align-items: center;
         }
-        .fx-contact-side {
-          background: var(--velo-azul), var(--graphite); color: #fff;
-          padding: clamp(32px, 3.5vw, 48px);
-          display: flex; flex-direction: column; justify-content: center;
+        .fx-contact-side { color: #fff; }
+        .fx-contact-badge {
+          display: inline-flex; align-items: center; gap: 9px;
+          background: rgba(62,207,126,.14); border: 1px solid rgba(62,207,126,.4);
+          border-radius: 999px; padding: 8px 16px; margin-bottom: 24px;
+          font-size: 12px; font-weight: 700; letter-spacing: .01em; color: #7EEBAA;
         }
-        .fx-contact-t { font-size: clamp(24px, 2.4vw, 32px); font-weight: 700; letter-spacing: -.02em; margin-bottom: 14px; }
-        .fx-contact-d { font-size: 15px; line-height: 1.7; color: rgba(255,255,255,.62); margin-bottom: 32px; }
-        .fx-lineas { display: flex; flex-direction: column; gap: 12px; }
+        .fx-contact-t { font-size: clamp(28px, 3vw, 40px); font-weight: 700; letter-spacing: -.02em; margin-bottom: 14px; color: #fff; }
+        .fx-contact-d { font-size: 15.5px; line-height: 1.7; color: rgba(255,255,255,.66); margin-bottom: 30px; max-width: 30rem; }
+        .fx-lineas { display: flex; flex-direction: column; gap: 12px; margin-bottom: 34px; }
         .fx-linea {
           display: flex; align-items: center; gap: 14px;
-          background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
           border-radius: 14px; padding: 13px 16px; text-decoration: none;
           transition: background-color .2s ease, transform .2s ease;
         }
-        .fx-linea:hover { background: rgba(255,255,255,.1); transform: translateX(3px); }
+        .fx-linea:hover { background: rgba(255,255,255,.11); transform: translateX(3px); }
         .fx-linea-ico {
           width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-          background: rgba(245,130,31,.16); color: var(--accent);
+          background: rgba(245,130,31,.18); color: var(--accent);
           display: flex; align-items: center; justify-content: center;
         }
-        .fx-linea-l { display: block; font-size: 11.5px; color: rgba(255,255,255,.45); margin-bottom: 2px; }
+        .fx-linea-l { display: block; font-size: 11.5px; color: rgba(255,255,255,.48); margin-bottom: 2px; }
         .fx-linea-n { display: block; font-size: 16px; font-weight: 700; color: #fff; }
-        .fx-contact-foot {
-          display: flex; align-items: center; gap: 9px;
-          margin-top: 32px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.1);
-          font-size: 12.5px; color: rgba(255,255,255,.55);
+        .fx-contact-stats {
+          display: flex; gap: 32px; flex-wrap: wrap;
+          padding-top: 26px; border-top: 1px solid rgba(255,255,255,.14);
         }
-        .fx-contact-form { padding: clamp(32px, 3.5vw, 48px); background: var(--white); }
+        .fx-contact-stat { max-width: 170px; }
+        .fx-contact-stat-v { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: #fff; line-height: 1.1; }
+        .fx-contact-stat-l { font-size: 12px; color: rgba(255,255,255,.56); margin-top: 5px; line-height: 1.4; }
+        .fx-contact-form {
+          position: relative;
+          padding: clamp(32px, 3.5vw, 48px); background: var(--white);
+          border-radius: var(--r-lg);
+          box-shadow: 0 32px 72px rgba(0,0,0,.38), 0 10px 26px rgba(0,0,0,.22);
+        }
 
         /* ── Footer ── */
         .fx-footer { background: var(--velo-azul), var(--graphite); color: #fff; padding: clamp(56px, 6vw, 84px) 0 32px; }

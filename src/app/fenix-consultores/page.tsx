@@ -14,6 +14,7 @@ import { FenixHeroSlider } from '@/components/fenix/FenixHeroSlider'
 import { FenixLogo } from '@/components/fenix/FenixLogo'
 import { FenixFocoAuto } from '@/components/fenix/FenixFocoAuto'
 import { FenixFases } from '@/components/fenix/FenixFases'
+import { FenixClarity } from '@/components/fenix/FenixClarity'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -286,6 +287,7 @@ function Check() {
 export default function FenixConsultoresPage() {
   return (
     <div className={`fx ${spaceGrotesk.variable}`}>
+      <FenixClarity />
       <FenixNav />
       <FenixStickyProspecting />
 

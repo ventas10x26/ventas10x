@@ -5,6 +5,8 @@
 // columnas propias de fenix_leads (empresa, telefono, mensaje, notas).
 'use client'
 import { useState } from 'react'
+import { FenixVisitasChart } from './FenixVisitasChart'
+import type { VisitaDiaria } from '@/lib/ga4'
 
 type FenixLead = {
   id: string
@@ -78,7 +80,7 @@ async function updateLead(id: string, data: { etapa?: string; notas?: string }) 
   return res.json()
 }
 
-export function FenixLeadsClient({ initialLeads }: { initialLeads: FenixLead[] }) {
+export function FenixLeadsClient({ initialLeads, visitas }: { initialLeads: FenixLead[]; visitas: VisitaDiaria[] | null }) {
   const [leads, setLeads] = useState<FenixLead[]>(initialLeads)
   const [vista, setVista] = useState<'tabla' | 'pipeline'>('pipeline')
   const [search, setSearch] = useState('')
@@ -179,6 +181,8 @@ export function FenixLeadsClient({ initialLeads }: { initialLeads: FenixLead[] }
             </button>
           </div>
         </div>
+
+        <FenixVisitasChart dias={visitas} />
 
         {/* Métricas */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>

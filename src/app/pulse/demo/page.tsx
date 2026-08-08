@@ -269,7 +269,7 @@ export default function DemoPage() {
            212px fijos dejarían el panel en nada. */
         @media (max-width: 820px) {
           .pm-demo-app { grid-template-columns: 1fr !important; }
-          .pm-demo-side { flex-direction: row !important; overflow-x: auto; align-items: center; gap: 6px !important; padding: 10px !important; }
+          .pm-demo-side { position: static !important; height: auto !important; overflow-y: visible !important; flex-direction: row !important; overflow-x: auto; align-items: center; gap: 6px !important; padding: 10px !important; }
           .pm-demo-side > div:first-child { display: none !important; }
           .pm-demo-side > div:nth-child(2) { display: none !important; }
           .pm-demo-side > div:last-child { display: none !important; }
@@ -339,8 +339,14 @@ export default function DemoPage() {
         <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: SURFACE }}>
 
           {/* Navegación del workspace. Va oscura en los dos temas a propósito: es la que le
-              da al demo cara de producto y no de landing. */}
-          <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              da al demo cara de producto y no de landing.
+              STICKY: sin esto, al ser un CSS Grid con align-items stretch por defecto, el
+              aside se estira para igualar la altura del contenido (que es larguísimo) y el
+              menu de navegacion se pierde de vista al bajar, dejando una franja de color
+              solido sin nada. Mismo tratamiento que ya usa PulseAppShell en el resto de la
+              app (position:sticky, top:0, height:100vh). En movil se anula, ver la media
+              query de pm-demo-side. */}
+          <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', flexShrink: 0 }}>
             <div style={{ padding: '0 10px 14px', display: 'flex', alignItems: 'center', gap: '9px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px' }}>
               <span style={{ width: '28px', height: '28px', borderRadius: '8px', background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">

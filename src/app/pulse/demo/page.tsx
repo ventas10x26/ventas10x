@@ -336,7 +336,12 @@ export default function DemoPage() {
 
         {/* Marco de aplicación: barra lateral + contenido. La idea es que se lea como el
             producto abierto, no como una lámina de marketing con gráficos. */}
-        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', overflow: 'hidden', background: SURFACE }}>
+        {/* SIN overflow:hidden acá a propósito: un ancestro con overflow:hidden anula
+            position:sticky en sus hijos, aunque el sticky esté bien puesto — es lo que
+            impedía que el sidebar quedara fijo. El redondeado de las cuatro esquinas se
+            logra ahora con borderRadius puntual en aside (izquierda) y en el primer
+            elemento con fondo propio del contenido (derecha), no recortando el contenedor. */}
+        <div className="pm-demo-app" style={{ display: 'grid', gridTemplateColumns: '212px 1fr', gap: '0', border: `1px solid ${LINE}`, borderRadius: '16px', background: SURFACE }}>
 
           {/* Navegación del workspace. Va oscura en los dos temas a propósito: es la que le
               da al demo cara de producto y no de landing.
@@ -346,7 +351,7 @@ export default function DemoPage() {
               solido sin nada. Mismo tratamiento que ya usa PulseAppShell en el resto de la
               app (position:sticky, top:0, height:100vh). En movil se anula, ver la media
               query de pm-demo-side. */}
-          <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', flexShrink: 0 }}>
+          <aside className="pm-demo-side" style={{ background: SIDE, padding: '18px 12px', display: 'flex', flexDirection: 'column', gap: '3px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', flexShrink: 0, borderRadius: '16px 0 0 16px' }}>
             <div style={{ padding: '0 10px 14px', display: 'flex', alignItems: 'center', gap: '9px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '12px' }}>
               <span style={{ width: '28px', height: '28px', borderRadius: '8px', background: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
@@ -413,7 +418,7 @@ export default function DemoPage() {
                 y una barra de controles que no hace nada es peor que no ponerla.
                 Se conserva el toggle de tema, que vivia dentro de esa barra. */}
             {seccion === 'matriculas' ? (
-              <div style={{ background: CARD, borderBottom: `1px solid ${LINE}`, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ background: CARD, borderBottom: `1px solid ${LINE}`, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', borderTopRightRadius: '16px' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: FONT, fontSize: '16px', fontWeight: 800, color: INK, letterSpacing: '-0.01em', textTransform: 'uppercase', lineHeight: 1.15 }}>
                     Matrículas
@@ -731,7 +736,7 @@ function BarraFiltros({
     filtros.asesor !== 'todos' || filtros.origen !== 'todos' || filtros.categoria !== 'todas'
 
   return (
-    <div style={{ background: CARD, borderBottom: `1px solid ${LINE}` }}>
+    <div style={{ background: CARD, borderBottom: `1px solid ${LINE}`, borderTopRightRadius: '16px' }}>
 
       {/* Identidad + estado de los datos */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '14px 18px' }}>

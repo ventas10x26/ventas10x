@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useReveal } from '@/hooks/useReveal'
 import { useScrollProgress } from '@/hooks/useScrollProgress'
 import {
-  F_DISPLAY, F_MONO, F_BODY, AGENT_LOG_STEPS, SEGMENTS,
+  F_DISPLAY, F_MONO, F_BODY, SEGMENTS,
   PulseStyles, PulseHeader, PulseFooter,
   useUsuarioLogueado, useSectionScrollSpy, usePulseTheme,
-  SegIcon, SchemaPreview, WhatsAppMiniPreview, DataBridgeMiniDiagram,
+  SegIcon, SchemaPreview, WhatsAppMiniPreview,
 } from './_shared/sections'
 import { PulsePrototipos } from '@/components/pulse/PulsePrototipos'
 
@@ -54,6 +54,18 @@ export default function PulseMotorLanding() {
 
   const heroScroll      = useScrollProgress<HTMLDivElement>()
   const heroPanel      = useReveal<HTMLDivElement>()
+  // Video real del panel en el slot del hero. Arranca silenciado porque los
+  // navegadores no permiten autoplay con sonido bajo ninguna circunstancia —
+  // el boton de abajo lo desmutea con gesto explicito del usuario, que es la
+  // unica forma en que el audio puede sonar.
+  const heroVideoRef    = useRef<HTMLVideoElement>(null)
+  const [conSonido, setConSonido] = useState(false)
+  const alternarSonido = () => {
+    if (!heroVideoRef.current) return
+    const next = !conSonido
+    heroVideoRef.current.muted = !next
+    setConSonido(next)
+  }
   const dataStatReveal  = useReveal<HTMLDivElement>()
   // Ref propio para la grilla de cards, aparte del reveal del bloque entero: el bloque
   // entra en viewport con el titular, cuando las cards todavía están abajo del pliegue, y
@@ -98,7 +110,6 @@ export default function PulseMotorLanding() {
   const heroP = heroScroll.progress
   const grow = Math.min(1, Math.max(0, (heroP - 0.12) / 0.38))
   const tilt = Math.min(1, Math.max(0, (heroP - 0.55) / 0.4))
-  const crossfade = Math.min(1, Math.max(0, (tilt - 0.25) / 0.75))
   // Destello blanco a mitad del giro (pico en tilt=0.5, cero en los extremos) — refuerzo
   // funcional para que el momento exacto del scroll que dispara el giro 3D sea inconfundible.
   const flash = Math.max(0, 1 - Math.abs(tilt - 0.5) * 2)
@@ -146,8 +157,12 @@ export default function PulseMotorLanding() {
               </a>
             </div>
 
-            {/* Panel hero: log vertical de pasos del agente, que al hacer scroll se agranda,
-                se inclina en 3D y cruza al esquema real detectado por DataBridge. */}
+            {/* Panel hero: video real del panel de demo, en un marco de "ventana de
+                app" — mismo contenedor (max-width 460px) y mismo comportamiento de
+                scroll (agrandado + inclinado en 3D) que tenia el panel simulado
+                anterior. La diferencia es el contenido: antes eran dos vistas
+                animadas (un log falso y un diagrama), ahora es la grabacion real
+                del producto funcionando. */}
             <div
               ref={heroPanel.ref}
               className={`reveal${heroPanel.inView?' in':''}`}
@@ -158,40 +173,54 @@ export default function PulseMotorLanding() {
               }}
             >
               <div className="panel" style={{
-                position:'relative', minHeight: heroScroll.reduced ? undefined : '412px',
+                position:'relative', overflow:'hidden', minHeight: heroScroll.reduced ? undefined : '412px',
                 boxShadow: heroScroll.reduced ? undefined : `0 24px 48px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.3), 0 0 ${56 * flash}px ${6 * flash}px rgba(255,255,255,${0.6 * flash})`,
               }}>
-                <div style={heroScroll.reduced ? undefined : { opacity:1 - crossfade, pointerEvents: crossfade > 0.5 ? 'none' : undefined, position: heroScroll.reduced ? undefined : 'absolute', inset: heroScroll.reduced ? undefined : 0 }}>
-                  <div className="panel-head">
-                    <span>📄 pulse_agent_v4.2.log</span>
-                    <span style={{ letterSpacing:'2px', color:'var(--panel-ink-dim)' }}>···</span>
-                  </div>
-                  <div style={{ padding:'18px 18px 6px' }}>
-                    {AGENT_LOG_STEPS.map((s, i) => (
-                      <div key={s.titulo} className={`reveal agent-log-step${heroPanel.inView ? ' in' : ''}${i === 1 ? ' agent-log-step-active' : ''}`} style={{ transitionDelay:`${i * 180}ms` }}>
-                        <div className="agent-log-icon">{s.icon}</div>
-                        <div style={{ minWidth:0 }}>
-                          <div style={{ fontSize:'13px', fontWeight:600, color:'var(--panel-ink)' }}>{s.titulo}</div>
-                          <div style={{ fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO }}>{s.dato}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="agent-log-footer">
-                    <span><span className="live-dot" style={{ background:'var(--blue)' }} /> SISTEMA EN LÍNEA</span>
-                    <span><strong style={{ color:'var(--blue)', fontSize:'14px' }}>99.8%</strong> <span style={{ color:'var(--panel-ink-dim)' }}>PRECISIÓN</span></span>
-                  </div>
+                {/* Barra de titulo tipo "ventana de app": los tres puntos son la
+                    convencion universal de "esto es una ventana real", no un
+                    gesto de marca — por eso van en semaforo clasico y no en
+                    azul. La URL que muestra es la real, no un nombre inventado:
+                    si alguien la escribe en su navegador, llega al panel de
+                    verdad. */}
+                <div className="panel-head">
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:'9px', minWidth:0 }}>
+                    <span aria-hidden="true" style={{ display:'inline-flex', gap:'5px', flexShrink:0 }}>
+                      <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#F87171' }} />
+                      <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#FBBF24' }} />
+                      <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#34D399' }} />
+                    </span>
+                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>pulsemotor.co/pulse/demo</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={alternarSonido}
+                    aria-label={conSonido ? 'Silenciar el video' : 'Activar el sonido'}
+                    title={conSonido ? 'Silenciar' : 'Activar sonido'}
+                    style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--panel-ink-dim)', padding:'2px', display:'flex', flexShrink:0 }}
+                  >
+                    {conSonido ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="m23 9-6 6M17 9l6 6" /></svg>
+                    )}
+                  </button>
                 </div>
 
-                {!heroScroll.reduced && (
-                  <div style={{ opacity:crossfade, pointerEvents: crossfade > 0.5 ? undefined : 'none', position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                    <div className="panel-head"><span>DataBridge · Esquema detectado</span><span style={{ color:'var(--blue)' }}>✓ 5 tablas</span></div>
-                    <DataBridgeMiniDiagram />
-                    <div style={{ padding:'14px 18px', fontSize:'12px', color:'var(--panel-ink-dim)', fontFamily:F_MONO, borderTop:'1px solid var(--panel-line)' }}>
-                      Detectado desde tu Excel o DMS — sin escribir una sola línea de SQL.
-                    </div>
-                  </div>
-                )}
+                <video
+                  ref={heroVideoRef}
+                  src="/pulse/hero-demo.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  style={{ display:'block', width:'100%', height:'auto' }}
+                />
+
+                <div className="agent-log-footer">
+                  <span><span className="live-dot" style={{ background:'var(--blue)' }} /> GRABACIÓN REAL DEL PANEL</span>
+                  <span style={{ color:'var(--panel-ink-dim)', fontSize:'12px' }}>Sin actores, sin guion</span>
+                </div>
               </div>
             </div>
           </div>

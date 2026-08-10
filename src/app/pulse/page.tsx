@@ -206,16 +206,54 @@ export default function PulseMotorLanding() {
                   </button>
                 </div>
 
-                <video
-                  ref={heroVideoRef}
-                  src="/pulse/hero-demo.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  style={{ display:'block', width:'100%', height:'auto' }}
-                />
+                {/* El icono chico de la barra de titulo se perdia de vista — este
+                    boton flota sobre el video mismo, grande y con texto, para que
+                    nadie tenga dudas de que hay sonido para activar. Fondo con
+                    blur para que se lea encima de cualquier fotograma, y un
+                    resplandor pulsante sutil que llama el ojo sin ser invasivo. */}
+                <div style={{ position:'relative' }}>
+                  <video
+                    ref={heroVideoRef}
+                    src="/pulse/hero-demo.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    style={{ display:'block', width:'100%', height:'auto' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={alternarSonido}
+                    className="pm-vol-btn"
+                    aria-label={conSonido ? 'Silenciar el video' : 'Subir el volumen'}
+                    style={{
+                      position:'absolute', right:'14px', bottom:'14px', zIndex:2,
+                      display:'inline-flex', alignItems:'center', gap:'8px',
+                      padding:'10px 18px', borderRadius:'999px',
+                      border:'1px solid rgba(255,255,255,.22)',
+                      background:'rgba(10,14,24,.74)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+                      color:'#fff', fontSize:'13px', fontWeight:700, fontFamily:F_BODY, cursor:'pointer',
+                      boxShadow:'0 8px 24px rgba(0,0,0,.35)',
+                    }}
+                  >
+                    {conSonido ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z" /><path d="m23 9-6 6M17 9l6 6" /></svg>
+                    )}
+                    {conSonido ? 'Silenciar' : 'Subir volumen'}
+                  </button>
+                  <style>{`
+                    .pm-vol-btn { transition: transform .15s ease, background .15s ease; animation: pm-vol-pulse 2.6s ease-in-out infinite; }
+                    .pm-vol-btn:hover { transform: translateY(-1px); background: rgba(15,20,32,.86) !important; }
+                    @keyframes pm-vol-pulse {
+                      0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,.35), 0 0 0 0 rgba(59,130,246,.35); }
+                      50% { box-shadow: 0 8px 24px rgba(0,0,0,.35), 0 0 0 8px rgba(59,130,246,0); }
+                    }
+                    @media (prefers-reduced-motion: reduce) { .pm-vol-btn { animation: none; } }
+                  `}</style>
+                </div>
 
                 <div className="agent-log-footer">
                   <span><span className="live-dot" style={{ background:'var(--blue)' }} /> GRABACIÓN REAL DEL PANEL</span>

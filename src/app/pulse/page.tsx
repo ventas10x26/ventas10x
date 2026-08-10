@@ -128,7 +128,7 @@ export default function PulseMotorLanding() {
         <div ref={heroScroll.ref} style={heroScroll.reduced ? undefined : { height:'300vh', position:'relative' }}>
         <section id="plataforma" style={heroScroll.reduced ? { maxWidth:'1280px', margin:'0 auto', padding:'64px 24px 40px' } : {
           position:'sticky', top:0, height:'100vh', overflow:'hidden',
-          maxWidth:'1280px', margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center',
+          maxWidth:'1280px', margin:'0 auto', padding:'0 40px', display:'flex', alignItems:'center',
         }}>
           <div className="hero-grid" style={{ display:'flex', gap:'56px', alignItems:'center', width:'100%' }}>
             <div style={heroScroll.reduced ? { flex:'1', minWidth:'320px' } : {

@@ -14,10 +14,32 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], variabl
 // referencia tipo Outcourt/Incourt) para h1/h2/h3 — Inter se mantiene para texto de cuerpo.
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-display', display: 'swap' })
 
+// pulsemotor.co URL real. Antes esto no existia en ningun lado de /pulse, asi que
+// alternates.canonical de TODO el sitio caia al fallback del layout raiz compartido
+// con Ventas10x (: https://ventas10x.co — la etiqueta canonical mas fuerte que existe
+// le estaba diciendo a Google "la version de referencia de esto vive en otro dominio".
+const PULSE_URL = 'https://pulsemotor.co'
+
 export const metadata: Metadata = {
   title: 'Pulse Motor — Responde a tus leads en 30 segundos',
   description: 'IA para vendedores de concesionarios automotrices. Responde al lead en 30 segundos, automatiza el seguimiento, no pierdas ventas por demora.',
-  keywords: ['pulse motor','IA para vendedores de auto','CRM concesionario','speed to lead','WhatsApp vendedores','KIA','Hyundai','Renault','leads automotriz'],
+  // Antes incluia "KIA, Hyundai, Renault" — contradice la regla de marca-agnostica del
+  // proyecto y ademas reforzaba la asociacion automotriz-generica que ya juega en contra
+  // con la confusion "Pulse Motor" / "Fiat Pulse" en resultados de busqueda. Reemplazado
+  // por terminos de intencion real, ligados a lo que el producto efectivamente resuelve.
+  keywords: [
+    'software para concesionarios',
+    'CRM concesionario automotriz',
+    'integralidad de venta automotriz',
+    'agente IA WhatsApp concesionario',
+    'gestión de leads automotriz',
+    'financiación seguros accesorios retomas',
+    'panel 360 concesionario',
+    'speed to lead automotriz',
+    'CRM y DMS conectados',
+    'DataBridge concesionario',
+  ],
+  alternates: { canonical: PULSE_URL },
   openGraph: {
     title: 'Pulse Motor — Responde a tus leads en 30 segundos',
     description: 'El primer asistente IA para vendedores de concesionarios automotrices.',
@@ -32,6 +54,54 @@ export const metadata: Metadata = {
 }
 
 const PULSE_GA_ID = 'G-M0KS0D3G5D'
+
+// Datos estructurados propios de Pulse Motor. El layout raiz (compartido con Ventas10x,
+// el otro producto del repo) ya emite su propio Organization/WebSite/SoftwareApplication
+// en cada pagina del sitio, incluidas las de /pulse — y ese bloque describe a "Ventas10x",
+// no a Pulse Motor, con una calificacion de 4.9/200 reseñas que no existen. Este bloque
+// no reemplaza al del layout raiz (no se puede desde acá sin tocar codigo compartido con
+// Ventas10x) pero suma una entidad propia y honesta, con su propio @id, para que Google
+// tenga una señal real de que "Pulse Motor" es su propia cosa. Sin aggregateRating: no
+// hay reseñas reales todavia, y una calificacion inventada es exactamente lo que se evita
+// en toda la marca — mejor ausente que falsa.
+const pulseOrgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': `${PULSE_URL}/#organization`,
+  name: 'Pulse Motor',
+  url: PULSE_URL,
+  logo: { '@type': 'ImageObject', url: `${PULSE_URL}/pulse/icon.png` },
+  description: 'Agente de IA que responde leads de concesionarios automotrices por WhatsApp en segundos, y panel que mide la integralidad de cada venta — vehículo, financiación, seguro, accesorios y retoma — en un solo lugar.',
+  areaServed: ['CO', 'MX', 'CL', 'PE', 'AR'],
+}
+
+const pulseWebsiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${PULSE_URL}/#website`,
+  url: PULSE_URL,
+  name: 'Pulse Motor',
+  publisher: { '@id': `${PULSE_URL}/#organization` },
+  inLanguage: 'es',
+}
+
+const pulseSoftwareJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Pulse Motor',
+  applicationCategory: 'BusinessApplication',
+  applicationSubCategory: 'Automotive Dealership Software',
+  operatingSystem: 'Web',
+  description: 'Agente de IA para concesionarios y asesores automotrices: responde leads por WhatsApp, cotiza financiación y pólizas, y mide la integralidad de cada venta.',
+  // Precio real, tal como aparece hoy en la pagina del segmento asesor individual — no
+  // se inventa un numero para el plan Enterprise, que es a cotizacion.
+  offers: {
+    '@type': 'Offer',
+    price: '49',
+    priceCurrency: 'USD',
+    description: 'Plan para asesor individual, desde. El plan Enterprise para concesionarios es a cotización.',
+  },
+}
 
 export default function PulseLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -55,6 +125,13 @@ export default function PulseLayout({ children }: { children: React.ReactNode })
            que ningún título de /pulse dependa de esa fuente ancha. */
         .pulse-root h1, .pulse-root h2, .pulse-root h3 { font-family: var(--font-display), sans-serif; }
       `}</style>
+
+      {/* Datos estructurados propios de Pulse Motor — ver comentario arriba de cada
+          constante. Van en el body (no en head, que ya cerró el layout raíz), pero
+          Google los lee igual en cualquier parte del documento. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pulseOrgJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pulseWebsiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pulseSoftwareJsonLd) }} />
 
       {/* Google Fonts — DM Sans, usada como texto de cuerpo en componentes aún no migrados a next/font */}
       <Script id="pulse-fonts" strategy="beforeInteractive">{`

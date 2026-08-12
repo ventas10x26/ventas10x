@@ -166,8 +166,14 @@ export default function PulseMotorLanding() {
             <div
               ref={heroPanel.ref}
               className={`reveal${heroPanel.inView?' in':''}`}
-              style={heroScroll.reduced ? { flex:'1', minWidth:'320px', maxWidth:'460px' } : {
-                flex:'1', minWidth:'320px', maxWidth:'460px',
+              // paddingTop empuja el marco hacia abajo para que la barra de titulo
+              // quede a la altura del H1, no del badge de arriba — el video real
+              // (720x960, retrato) es bastante mas alto que el panel simulado
+              // anterior (412px fijos), y sin este ajuste el marco arrancaba mas
+              // arriba que el propio badge "Agente activo", descompensando la
+              // columna contra el ritmo vertical del texto.
+              style={heroScroll.reduced ? { flex:'1', minWidth:'320px', maxWidth:'460px', paddingTop:'96px' } : {
+                flex:'1', minWidth:'320px', maxWidth:'460px', paddingTop:'96px',
                 transform: `perspective(1200px) translateX(${-26 * grow + 8 * tilt}%) scale(${1 + 0.55 * grow - 0.4 * tilt}) rotateY(${20 * tilt}deg) rotateX(${-9 * tilt}deg)`,
                 willChange:'transform',
               }}

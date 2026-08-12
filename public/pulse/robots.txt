@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /pulse/dashboard
+Disallow: /pulse/agente
+Disallow: /pulse/admin
+Disallow: /pulse/onboarding
+Disallow: /pulse/onboarding-demo
+Disallow: /api/
+
+Sitemap: https://pulsemotor.co/sitemap.xml
+Host: https://pulsemotor.co

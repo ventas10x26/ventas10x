@@ -31,6 +31,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
   const [qr, setQr] = useState<string | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [phone, setPhone] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [creando, setCreando] = useState(false)
   const [polling, setPolling] = useState(false)
@@ -45,6 +46,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
         setEstado('connected')
         setPhone(data.phone)
         setQr(null)
+        setDebugInfo(data.debug ? JSON.stringify(data.debug, null, 2) : null)
         onEstadoChange?.(true)
         if (data.phone) onConnected?.(String(data.phone).replace(/\D/g, ''))
         return true
@@ -122,6 +124,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
     setEstado('no_instance')
     setQr(null)
     setPhone(null)
+    setDebugInfo(null)
     onEstadoChange?.(false)
   }
 
@@ -159,22 +162,32 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
       </div>
 
       {estado === 'connected' && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 8px #16a34a' }} />
-            <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: c.ink }}>WhatsApp conectado ✓</p>
-              {phone ? (
-                <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>{phone}</p>
-              ) : (
-                <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>Detectando número…</p>
-              )}
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: c.ink3 }}>El bot responde automáticamente a los deudores que escriban</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 8px #16a34a' }} />
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: c.ink }}>WhatsApp conectado ✓</p>
+                {phone ? (
+                  <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>{phone}</p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>Detectando número…</p>
+                )}
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: c.ink3 }}>El bot responde automáticamente a los deudores que escriban</p>
+              </div>
             </div>
+            <button onClick={desconectar} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Desconectar
+            </button>
           </div>
-          <button onClick={desconectar} style={{ padding: '8px 16px', borderRadius: 8, border: `1px solid ${c.border}`, background: 'transparent', color: c.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            Desconectar
-          </button>
+          {!phone && debugInfo && (
+            <div style={{ padding: '10px 12px', background: `${ACCENT}08`, border: `1px solid ${ACCENT}25`, borderRadius: 8 }}>
+              <p style={{ fontSize: 11, color: c.ink3, margin: '0 0 6px' }}>
+                No se pudo detectar el número automáticamente. Puedes escribirlo abajo en &quot;Datos de contacto&quot;, o mandar esta info técnica para ajustarlo:
+              </p>
+              <pre style={{ fontSize: 10, color: c.ink3, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 160, overflow: 'auto', fontFamily: 'monospace' }}>{debugInfo}</pre>
+            </div>
+          )}
         </div>
       )}
 

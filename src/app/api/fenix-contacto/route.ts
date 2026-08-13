@@ -8,7 +8,8 @@
 //
 // Además, en paralelo con los tres anteriores, se le envía al LEAD (no al
 // equipo) una autorespuesta por WhatsApp con información de Fénix y el
-// enlace del entregable descargable. Esa conversación queda marcada como
+// entregable descargable -- como documento nativo de WhatsApp (nombre
+// enmascarado, no un link crudo). Esa conversación queda marcada como
 // tipo='lead' en fenix_conversaciones para que el webhook de WhatsApp
 // (src/app/api/fenix/whatsapp/webhook/[...event]/route.ts) siga la charla
 // con el agente informativo en vez del agente de cobro de cartera.
@@ -181,9 +182,31 @@ function mensajeBienvenidaLead(lead: LeadFenix): string {
   return [
     `¡Hola ${primerNombre}! 👋 Soy el asistente virtual de FÉNIX Consultores. Gracias por tu interés en recuperar la cartera vencida de ${lead.empresa}.`,
     `Combinamos IA, una plataforma de gestión trazable y un equipo jurídico especializado para recuperar cartera empresarial (llevamos +12 años, sectores Real y Salud).`,
-    `Te comparto nuestro brochure con el detalle del modelo: ${ENTREGABLE_URL}`,
-    `Cuéntame qué necesitas -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?`,
+    `Te comparto nuestro brochure con el detalle del modelo 👇`,
   ].join('\n\n')
+}
+
+const PREGUNTA_CIERRE_LEAD = '¿Qué necesitas? -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?'
+
+// Envía el entregable como documento nativo de WhatsApp (no como link de
+// texto): así el nombre visible es el que nosotros definamos ("Factores
+// claves...") en vez de la URL cruda de Supabase, y al tocarlo se descarga
+// directo -- comportamiento nativo de WhatsApp para documentos.
+async function enviarDocumentoEntregable(remoteJid: string) {
+  const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+    body: JSON.stringify({
+      number: remoteJid,
+      mediatype: 'document',
+      mimetype: 'application/pdf',
+      media: ENTREGABLE_URL,
+      fileName: 'Factores claves - Fénix Consultores.pdf',
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`Evolution API rechazó el envío del documento: ${res.status} ${await res.text().catch(() => '')}`)
+  }
 }
 
 async function enviarAutorespuestaLead(lead: LeadFenix) {
@@ -192,16 +215,27 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
   const digitos = lead.telefono.replace(/\D/g, '')
   if (!digitos) throw new Error('Teléfono del lead vacío tras limpiar')
   const remoteJid = `${digitos}@s.whatsapp.net`
-  const mensaje = mensajeBienvenidaLead(lead)
+  const intro = mensajeBienvenidaLead(lead)
 
-  const res = await fetch(`${EVO_URL}/message/sendText/${INSTANCE_NAME}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-    body: JSON.stringify({ number: remoteJid, text: mensaje }),
-  })
-  if (!res.ok) {
-    throw new Error(`Evolution API rechazó el envío: ${res.status} ${await res.text().catch(() => '')}`)
+  const enviarTexto = async (texto: string) => {
+    const res = await fetch(`${EVO_URL}/message/sendText/${INSTANCE_NAME}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+      body: JSON.stringify({ number: remoteJid, text: texto }),
+    })
+    if (!res.ok) {
+      throw new Error(`Evolution API rechazó el envío: ${res.status} ${await res.text().catch(() => '')}`)
+    }
   }
+
+  // Secuencia: texto de bienvenida -> documento nativo (nombre enmascarado,
+  // no un link crudo) -> pregunta de cierre. Con pausas cortas para que
+  // lleguen en ese orden y no se amontonen en WhatsApp.
+  await enviarTexto(intro)
+  await new Promise((r) => setTimeout(r, 900))
+  await enviarDocumentoEntregable(remoteJid)
+  await new Promise((r) => setTimeout(r, 900))
+  await enviarTexto(PREGUNTA_CIERRE_LEAD)
 
   // Deja constancia en fenix_conversaciones para que el webhook siga la
   // charla como agente informativo (tipo='lead') y no repita este saludo.
@@ -209,7 +243,11 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
     instance_name: INSTANCE_NAME,
     remote_jid: remoteJid,
     tipo: 'lead',
-    historial: [{ role: 'assistant', content: mensaje }],
+    historial: [
+      { role: 'assistant', content: intro },
+      { role: 'assistant', content: '[Documento enviado: Factores claves - Fénix Consultores.pdf]' },
+      { role: 'assistant', content: PREGUNTA_CIERRE_LEAD },
+    ],
     updated_at: new Date().toISOString(),
   }, { onConflict: 'instance_name,remote_jid' })
   if (error) throw new Error(error.message)

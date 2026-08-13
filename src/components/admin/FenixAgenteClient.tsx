@@ -373,13 +373,20 @@ export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgent
           </>
         )}
 
-        <div style={{ marginTop: 20 }}>
+        <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link href="/admin/fenix" style={{
             display: 'inline-block', padding: '10px 16px', borderRadius: 10,
             border: `1px solid ${c.linkBorder}`, background: c.linkBg, color: c.linkColor,
             fontSize: 13, textDecoration: 'none', fontWeight: 600,
           }}>
             ← Leads y pipeline
+          </Link>
+          <Link href="/admin/fenix/leads-agente" style={{
+            display: 'inline-block', padding: '10px 16px', borderRadius: 10,
+            border: `1px solid ${c.linkBorder}`, background: c.linkBg, color: c.linkColor,
+            fontSize: 13, textDecoration: 'none', fontWeight: 600,
+          }}>
+            Agente de leads comerciales →
           </Link>
         </div>
       </div>

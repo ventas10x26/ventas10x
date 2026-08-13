@@ -5,6 +5,13 @@
 // por WhatsApp en paralelo: que la solicitud se dé por recibida no depende de
 // que un solo canal esté arriba — si Supabase, Resend o CallMeBot fallan por
 // separado, los otros dos igual dejan constancia del lead.
+//
+// Además, en paralelo con los tres anteriores, se le envía al LEAD (no al
+// equipo) una autorespuesta por WhatsApp con información de Fénix y el
+// enlace del entregable descargable. Esa conversación queda marcada como
+// tipo='lead' en fenix_conversaciones para que el webhook de WhatsApp
+// (src/app/api/fenix/whatsapp/webhook/[...event]/route.ts) siga la charla
+// con el agente informativo en vez del agente de cobro de cartera.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -43,6 +50,15 @@ const FENIX_EMAIL_DESTINOS = [
 
 // Número fijo de Fenix Consultores que recibe la notificación de cada lead nuevo
 const FENIX_WHATSAPP_DESTINO = '573104159173'
+
+// Instancia de Evolution API + entregable descargable para la autorespuesta
+// al lead. Mismos EVOLUTION_API_URL/EVOLUTION_API_KEY que usa
+// /api/fenix/whatsapp/instance -- una sola línea de WhatsApp para todo lo
+// de Fenix (cobro y leads comerciales por igual).
+const EVO_URL = process.env.EVOLUTION_API_URL!
+const EVO_KEY = process.env.EVOLUTION_API_KEY!
+const INSTANCE_NAME = 'fenix_cobranza'
+const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/entregable-fenix.pdf'
 
 type LeadFenix = {
   empresa: string
@@ -155,6 +171,50 @@ async function notificarWhatsAppFenix(lead: LeadFenix) {
   }
 }
 
+// ── Autorespuesta de WhatsApp AL LEAD (no al equipo) ───────────────────────────
+// Distinto de notificarWhatsAppFenix: ese avisa al equipo por CallMeBot: esto
+// le escribe al prospecto desde la instancia conectada de Evolution API, con
+// info de Fénix y el enlace del entregable, y deja la conversación marcada
+// como tipo='lead' para que el webhook la siga con el agente informativo.
+function mensajeBienvenidaLead(lead: LeadFenix): string {
+  const primerNombre = lead.nombre.trim().split(/\s+/)[0] || lead.nombre
+  return [
+    `¡Hola ${primerNombre}! 👋 Soy el asistente virtual de FÉNIX Consultores. Gracias por tu interés en recuperar la cartera vencida de ${lead.empresa}.`,
+    `Combinamos IA, una plataforma de gestión trazable y un equipo jurídico especializado para recuperar cartera empresarial (llevamos +12 años, sectores Real y Salud).`,
+    `Te comparto nuestro brochure con el detalle del modelo: ${ENTREGABLE_URL}`,
+    `Cuéntame qué necesitas -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?`,
+  ].join('\n\n')
+}
+
+async function enviarAutorespuestaLead(lead: LeadFenix) {
+  if (!EVO_URL || !EVO_KEY) throw new Error('EVOLUTION_API_URL/EVOLUTION_API_KEY no configuradas')
+
+  const digitos = lead.telefono.replace(/\D/g, '')
+  if (!digitos) throw new Error('Teléfono del lead vacío tras limpiar')
+  const remoteJid = `${digitos}@s.whatsapp.net`
+  const mensaje = mensajeBienvenidaLead(lead)
+
+  const res = await fetch(`${EVO_URL}/message/sendText/${INSTANCE_NAME}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+    body: JSON.stringify({ number: remoteJid, text: mensaje }),
+  })
+  if (!res.ok) {
+    throw new Error(`Evolution API rechazó el envío: ${res.status} ${await res.text().catch(() => '')}`)
+  }
+
+  // Deja constancia en fenix_conversaciones para que el webhook siga la
+  // charla como agente informativo (tipo='lead') y no repita este saludo.
+  const { error } = await supabase.from('fenix_conversaciones').upsert({
+    instance_name: INSTANCE_NAME,
+    remote_jid: remoteJid,
+    tipo: 'lead',
+    historial: [{ role: 'assistant', content: mensaje }],
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'instance_name,remote_jid' })
+  if (error) throw new Error(error.message)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { empresa, nombre, email, telefono, mensaje } = await req.json()
@@ -171,12 +231,13 @@ export async function POST(req: NextRequest) {
       mensaje: String(mensaje || '').trim(),
     }
 
-    // Los tres en paralelo: ninguno le agrega su latencia a los otros, y la
+    // Los cuatro en paralelo: ninguno le agrega su latencia a los otros, y la
     // caída de uno no le cuesta el lead entero a los demás.
-    const [guardado, porEmail, porWhatsApp] = await Promise.allSettled([
+    const [guardado, porEmail, porWhatsApp, autorespuesta] = await Promise.allSettled([
       guardarLead(lead),
       enviarEmailFenix(lead),
       notificarWhatsAppFenix(lead),
+      enviarAutorespuestaLead(lead),
     ])
 
     if (guardado.status === 'rejected') {
@@ -186,7 +247,10 @@ export async function POST(req: NextRequest) {
       console.error('[fenix-contacto] email falló:', porEmail.reason)
     }
     if (porWhatsApp.status === 'rejected') {
-      console.error('[fenix-contacto] whatsapp falló:', porWhatsApp.reason)
+      console.error('[fenix-contacto] whatsapp al equipo falló:', porWhatsApp.reason)
+    }
+    if (autorespuesta.status === 'rejected') {
+      console.error('[fenix-contacto] autorespuesta al lead falló:', autorespuesta.reason)
     }
 
     // Solo se rechaza si el lead no quedó registrado en ningún lado. Mientras

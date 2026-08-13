@@ -204,8 +204,16 @@ export default function PulseAgentePage() {
         {/* ── BANNER DE CRÉDITOS — arriba de todo ── */}
         <CreditosBanner onAgotado={() => setCreditosAgotados(true)} />
 
-        {/* ── Cabecera ── */}
-        <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        {/* ── Cabecera — sticky: el formulario es largo (System prompt queda a
+            ~1300px de acá) y "Guardar cambios" es el unico boton que guarda
+            todo el form. Sin esto, quien edita una seccion de mas abajo tiene
+            que scrollear hasta arriba del todo para encontrar donde guardar. */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 20,
+          background: '#0b1220', borderBottom: '1px solid #1e293b',
+          marginLeft: -24, marginRight: -24, padding: '16px 24px',
+          marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16,
+        }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 6px', letterSpacing: -0.5 }}>Mi agente IA{form.marca ? ` ${form.marca}` : ''}</h1>
             <p style={{ fontSize: 14, color: '#94a3b8', margin: 0, maxWidth: 520 }}>

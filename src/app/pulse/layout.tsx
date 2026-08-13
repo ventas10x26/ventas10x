@@ -40,6 +40,15 @@ export const metadata: Metadata = {
     'DataBridge concesionario',
   ],
   alternates: { canonical: PULSE_URL },
+  // Estos cuatro campos no aparecen en el resultado de busqueda de Google (no son
+  // ranking signal directo), pero seguian heredando "Ventas10x" del layout raiz
+  // compartido — confirmado leyendo el HTML crudo que recibe un bot sin JS. Bajo
+  // impacto, pero es la ultima pieza suelta de la desambiguacion de marca.
+  authors: [{ name: 'Pulse Motor', url: PULSE_URL }],
+  creator: 'Pulse Motor',
+  publisher: 'Pulse Motor',
+  applicationName: 'Pulse Motor',
+  appleWebApp: { title: 'Pulse Motor' },
   openGraph: {
     title: 'Pulse Motor — Responde a tus leads en 30 segundos',
     description: 'El primer asistente IA para vendedores de concesionarios automotrices.',

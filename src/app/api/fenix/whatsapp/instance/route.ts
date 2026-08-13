@@ -7,6 +7,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
+import { createClient as createAdmin } from '@supabase/supabase-js'
+
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
@@ -61,16 +68,39 @@ export async function GET() {
   }
 
   const state = data?.instance?.state || data?.state || 'unknown'
-  let ownerJid = data?.instance?.ownerJid || data?.ownerJid || null
+  let ownerJid = data?.instance?.ownerJid || data?.instance?.owner || data?.ownerJid || data?.owner || null
   let profileName = data?.instance?.profileName || data?.profileName || null
 
   if (state === 'open' && !ownerJid) {
     const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${INSTANCE_NAME}`)
-    ownerJid = fetchData?.instance?.ownerJid || fetchData?.ownerJid || null
-    profileName = fetchData?.instance?.profileName || fetchData?.profileName || profileName
+    // fetchInstances puede devolver un objeto único o un arreglo según la
+    // versión de Evolution API -- cubrimos ambos casos.
+    const entry = Array.isArray(fetchData)
+      ? fetchData.find((it: Record<string, unknown>) => {
+          const inst = it?.instance as Record<string, unknown> | undefined
+          return (inst?.instanceName || it?.instanceName) === INSTANCE_NAME
+        }) || fetchData[0]
+      : fetchData
+    const entryInstance = entry?.instance as Record<string, unknown> | undefined
+    ownerJid = (entryInstance?.ownerJid as string) || (entryInstance?.owner as string) || (entry?.ownerJid as string) || (entry?.owner as string) || null
+    profileName = (entryInstance?.profileName as string) || (entry?.profileName as string) || profileName
   }
 
-  const phone = ownerJid?.replace('@s.whatsapp.net', '') || profileName || null
+  let phone = ownerJid?.replace('@s.whatsapp.net', '').replace(/\D/g, '') || profileName || null
+
+  if (state === 'open' && !phone) {
+    try {
+      const { data: fila } = await supabaseAdmin
+        .from('fenix_agente')
+        .select('whatsapp')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (fila?.whatsapp) phone = fila.whatsapp
+    } catch (e) {
+      console.error('[fenix instance] fallback whatsapp guardado error:', e)
+    }
+  }
 
   if (state === 'open') {
     await corregirWebhook()

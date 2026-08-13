@@ -23,9 +23,10 @@ type ColorTokens = {
 type Props = {
   c: ColorTokens
   onEstadoChange?: (conectado: boolean) => void
+  onConnected?: (phone: string) => void
 }
 
-export function FenixWhatsappConnect({ c, onEstadoChange }: Props) {
+export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) {
   const [estado, setEstado] = useState<EstadoConexion>('loading')
   const [qr, setQr] = useState<string | null>(null)
   const [pairingCode, setPairingCode] = useState<string | null>(null)
@@ -45,6 +46,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange }: Props) {
         setPhone(data.phone)
         setQr(null)
         onEstadoChange?.(true)
+        if (data.phone) onConnected?.(String(data.phone).replace(/\D/g, ''))
         return true
       }
 
@@ -64,7 +66,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange }: Props) {
       onEstadoChange?.(false)
       return false
     }
-  }, [onEstadoChange])
+  }, [onEstadoChange, onConnected])
 
   useEffect(() => { verificarEstado() }, [verificarEstado])
 

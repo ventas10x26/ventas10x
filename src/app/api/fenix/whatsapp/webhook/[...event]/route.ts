@@ -32,17 +32,17 @@ type FenixAgenteConfig = {
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 
-async function leerConversacion(instanceName: string, remoteJid: string): Promise<MensajeHistorial[]> {
+async function leerConversacion(instanceName: string, remoteJid: string): Promise<{ historial: MensajeHistorial[]; tipo: string }> {
   try {
     const { data } = await supabaseAdmin
       .from('fenix_conversaciones')
-      .select('historial')
+      .select('historial, tipo')
       .eq('instance_name', instanceName).eq('remote_jid', remoteJid).maybeSingle()
-    if (!data) return []
-    return (data.historial as MensajeHistorial[]) || []
+    if (!data) return { historial: [], tipo: 'deudor' }
+    return { historial: (data.historial as MensajeHistorial[]) || [], tipo: data.tipo || 'deudor' }
   } catch (e) {
     console.error('[fenix webhook] leerConversacion error:', e)
-    return []
+    return { historial: [], tipo: 'deudor' }
   }
 }
 
@@ -91,6 +91,28 @@ function construirSystemPrompt(cfg: FenixAgenteConfig): string {
     'Nunca amenaces ni uses lenguaje agresivo o intimidante. Mantente dentro de un tono de cobranza profesional y legal.',
   ]
   return partes.filter(Boolean).join('\n')
+}
+
+// Variante para conversaciones que arrancan desde el formulario de leads
+// (fenix_leads / /api/fenix-contacto) -- no son deudores, son empresas
+// interesadas en contratar a Fénix. Contenido tomado de la landing
+// https://app.consultoresfenix.com (que resuelve al mismo sitio que
+// /fenix-consultores). Prompt fijo, no depende de fenix_agente porque ese
+// panel es exclusivo del agente de cobro.
+const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/entregable-fenix.pdf'
+function construirSystemPromptLead(): string {
+  return [
+    'Eres el asistente virtual de FÉNIX Consultores Empresariales S.A.S. (FÉNIX Recovery Intelligence®), escribiendo por WhatsApp a una empresa que llenó el formulario de contacto en la landing pidiendo información sobre recuperación de cartera.',
+    'QUÉ ES FÉNIX: empresa colombiana con +12 años de experiencia (desde 2010), especializada en recuperación estratégica de cartera empresarial vencida, con foco en los sectores Real y Salud (también atiende Industria, Construcción, Tecnología, Distribución, Cooperativas e Instituciones financieras).',
+    'EL MODELO (Modelo Integral UREA®): combina (1) un abogado que certifica qué es jurídicamente recuperable antes de gestionar nada, (2) un algoritmo de IA que prioriza la cartera por probabilidad real de pago, (3) ejecución especializada -- negociación y cobro prejurídico primero, cobro judicial solo si el acuerdo no se cumple -- y (4) un tablero en tiempo real con reportes ejecutivos, sin tener que pedir informes.',
+    'DIFERENCIALES: plataforma tecnológica con trazabilidad total, automatización de cobranza multicanal (WhatsApp y correo), y equipo jurídico propio para procesos ejecutivos y medidas cautelares cuando la negociación no basta.',
+    `RECURSO PARA COMPARTIR: si el lead quiere más detalle, comparte este enlace del brochure/entregable: ${ENTREGABLE_URL}`,
+    'CONTACTO PARA AGENDAR: línea principal +57 321 5036414, línea secundaria 310 4159173. El diagnóstico inicial es gratuito y sin compromiso, y un especialista contacta en menos de 24 horas.',
+    'TU OBJETIVO: resolver dudas sobre el servicio y motivar a agendar el diagnóstico gratuito con un especialista humano -- no cierres la venta tú mismo, guía hacia ese siguiente paso.',
+    'FORMATO -- sin excepción: máximo 2-4 oraciones por mensaje (esto es WhatsApp). Cero asteriscos, cero negritas, cero markdown, cero listas numeradas.',
+    'Si preguntan algo muy específico de su caso (monto exacto recuperable, tiempos exactos para su situación, condiciones comerciales) no lo inventes -- explica que eso lo define el especialista en el diagnóstico gratuito.',
+    'Tono cercano, profesional y colombiano -- nada de sonar como script leído.',
+  ].join('\n')
 }
 
 // ── ANTHROPIC ─────────────────────────────────────────────────────────────────
@@ -154,12 +176,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     else if (body.data?.key) msgs = [body.data]
     else if (body.messages) msgs = body.messages
 
-    const cfg = await obtenerConfigAgente()
-    if (!cfg || !cfg.bot_activo) {
-      return NextResponse.json({ ok: true, paused: true })
-    }
-    const systemPrompt = construirSystemPrompt(cfg)
-
     for (const msg of msgs) {
       const m = msg as Record<string, unknown>
       const key = m.key as Record<string, unknown>
@@ -175,7 +191,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
-      const historial = await leerConversacion(instanceName, remoteJid)
+      const { historial, tipo } = await leerConversacion(instanceName, remoteJid)
+
+      let systemPrompt: string
+      if (tipo === 'lead') {
+        // Conversación iniciada desde el formulario de leads -- agente
+        // informativo de Fénix, no depende del toggle bot_activo del
+        // panel de cobro (son cosas distintas).
+        systemPrompt = construirSystemPromptLead()
+      } else {
+        const cfg = await obtenerConfigAgente()
+        if (!cfg || !cfg.bot_activo) continue
+        systemPrompt = construirSystemPrompt(cfg)
+      }
+
       const respuesta = await generarRespuesta(texto, systemPrompt, historial)
 
       const nuevoHistorial: MensajeHistorial[] = [

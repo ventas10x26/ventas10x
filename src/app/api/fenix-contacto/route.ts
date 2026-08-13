@@ -9,10 +9,12 @@
 // Además, en paralelo con los tres anteriores, se le envía al LEAD (no al
 // equipo) una autorespuesta por WhatsApp con información de Fénix y el
 // entregable descargable -- como documento nativo de WhatsApp (nombre
-// enmascarado, no un link crudo). Esa conversación queda marcada como
-// tipo='lead' en fenix_conversaciones para que el webhook de WhatsApp
-// (src/app/api/fenix/whatsapp/webhook/[...event]/route.ts) siga la charla
-// con el agente informativo en vez del agente de cobro de cartera.
+// enmascarado, no un link crudo). El mensaje de bienvenida, el nombre del
+// archivo y la pregunta de cierre son editables desde
+// /admin/fenix/leads-agente (tabla fenix_leads_agente). Esa conversación
+// queda marcada como tipo='lead' en fenix_conversaciones para que el
+// webhook de WhatsApp (src/app/api/fenix/whatsapp/webhook/[...event]/route.ts)
+// siga la charla con el agente informativo en vez del agente de cobro de cartera.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -175,24 +177,55 @@ async function notificarWhatsAppFenix(lead: LeadFenix) {
 // ── Autorespuesta de WhatsApp AL LEAD (no al equipo) ───────────────────────────
 // Distinto de notificarWhatsAppFenix: ese avisa al equipo por CallMeBot: esto
 // le escribe al prospecto desde la instancia conectada de Evolution API, con
-// info de Fénix y el enlace del entregable, y deja la conversación marcada
+// info de Fénix y el entregable descargable, y deja la conversación marcada
 // como tipo='lead' para que el webhook la siga con el agente informativo.
-function mensajeBienvenidaLead(lead: LeadFenix): string {
-  const primerNombre = lead.nombre.trim().split(/\s+/)[0] || lead.nombre
-  return [
-    `¡Hola ${primerNombre}! 👋 Soy el asistente virtual de FÉNIX Consultores. Gracias por tu interés en recuperar la cartera vencida de ${lead.empresa}.`,
-    `Combinamos IA, una plataforma de gestión trazable y un equipo jurídico especializado para recuperar cartera empresarial (llevamos +12 años, sectores Real y Salud).`,
-    `Te comparto nuestro brochure con el detalle del modelo 👇`,
-  ].join('\n\n')
+// El mensaje de bienvenida, el nombre del archivo y la pregunta de cierre
+// son editables desde /admin/fenix/leads-agente -- acá solo quedan los
+// valores por defecto como respaldo si la fila aún no existe.
+type LeadsAgenteConfig = {
+  mensaje_bienvenida: string | null
+  nombre_archivo_entregable: string | null
+  pregunta_cierre: string | null
 }
 
-const PREGUNTA_CIERRE_LEAD = '¿Qué necesitas? -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?'
+const DEFAULT_MENSAJE_BIENVENIDA = [
+  '¡Hola {nombre}! 👋 Soy el asistente virtual de FÉNIX Consultores. Gracias por tu interés en recuperar la cartera vencida de {empresa}.',
+  'Combinamos IA, una plataforma de gestión trazable y un equipo jurídico especializado para recuperar cartera empresarial (llevamos +12 años, sectores Real y Salud).',
+  'Te comparto nuestro brochure con el detalle del modelo 👇',
+].join('\n\n')
+const DEFAULT_NOMBRE_ARCHIVO = 'Factores claves - Fénix Consultores.pdf'
+const DEFAULT_PREGUNTA_CIERRE = '¿Qué necesitas? -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?'
+
+async function obtenerConfigLeadsAgente(): Promise<LeadsAgenteConfig> {
+  try {
+    const { data } = await supabase
+      .from('fenix_leads_agente')
+      .select('mensaje_bienvenida, nombre_archivo_entregable, pregunta_cierre')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    return {
+      mensaje_bienvenida: data?.mensaje_bienvenida || null,
+      nombre_archivo_entregable: data?.nombre_archivo_entregable || null,
+      pregunta_cierre: data?.pregunta_cierre || null,
+    }
+  } catch (e) {
+    console.error('[fenix-contacto] obtenerConfigLeadsAgente error:', e)
+    return { mensaje_bienvenida: null, nombre_archivo_entregable: null, pregunta_cierre: null }
+  }
+}
+
+function mensajeBienvenidaLead(lead: LeadFenix, plantilla: string): string {
+  return plantilla
+    .replaceAll('{nombre}', lead.nombre.trim().split(/\s+/)[0] || lead.nombre)
+    .replaceAll('{empresa}', lead.empresa)
+}
 
 // Envía el entregable como documento nativo de WhatsApp (no como link de
-// texto): así el nombre visible es el que nosotros definamos ("Factores
-// claves...") en vez de la URL cruda de Supabase, y al tocarlo se descarga
-// directo -- comportamiento nativo de WhatsApp para documentos.
-async function enviarDocumentoEntregable(remoteJid: string) {
+// texto): así el nombre visible es el que se configure en el panel admin
+// ("Factores claves...") en vez de la URL cruda de Supabase, y al tocarlo
+// se descarga directo -- comportamiento nativo de WhatsApp para documentos.
+async function enviarDocumentoEntregable(remoteJid: string, nombreArchivo: string) {
   const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
@@ -201,7 +234,7 @@ async function enviarDocumentoEntregable(remoteJid: string) {
       mediatype: 'document',
       mimetype: 'application/pdf',
       media: ENTREGABLE_URL,
-      fileName: 'Factores claves - Fénix Consultores.pdf',
+      fileName: nombreArchivo,
     }),
   })
   if (!res.ok) {
@@ -215,7 +248,11 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
   const digitos = lead.telefono.replace(/\D/g, '')
   if (!digitos) throw new Error('Teléfono del lead vacío tras limpiar')
   const remoteJid = `${digitos}@s.whatsapp.net`
-  const intro = mensajeBienvenidaLead(lead)
+
+  const cfg = await obtenerConfigLeadsAgente()
+  const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
+  const nombreArchivo = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
+  const preguntaCierre = cfg.pregunta_cierre || DEFAULT_PREGUNTA_CIERRE
 
   const enviarTexto = async (texto: string) => {
     const res = await fetch(`${EVO_URL}/message/sendText/${INSTANCE_NAME}`, {
@@ -233,9 +270,9 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
   // lleguen en ese orden y no se amontonen en WhatsApp.
   await enviarTexto(intro)
   await new Promise((r) => setTimeout(r, 900))
-  await enviarDocumentoEntregable(remoteJid)
+  await enviarDocumentoEntregable(remoteJid, nombreArchivo)
   await new Promise((r) => setTimeout(r, 900))
-  await enviarTexto(PREGUNTA_CIERRE_LEAD)
+  await enviarTexto(preguntaCierre)
 
   // Deja constancia en fenix_conversaciones para que el webhook siga la
   // charla como agente informativo (tipo='lead') y no repita este saludo.
@@ -245,8 +282,8 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
     tipo: 'lead',
     historial: [
       { role: 'assistant', content: intro },
-      { role: 'assistant', content: '[Documento enviado: Factores claves - Fénix Consultores.pdf]' },
-      { role: 'assistant', content: PREGUNTA_CIERRE_LEAD },
+      { role: 'assistant', content: `[Documento enviado: ${nombreArchivo}]` },
+      { role: 'assistant', content: preguntaCierre },
     ],
     updated_at: new Date().toISOString(),
   }, { onConflict: 'instance_name,remote_jid' })

@@ -87,6 +87,7 @@ export async function GET() {
   }
 
   let phone = ownerJid?.replace('@s.whatsapp.net', '').replace(/\D/g, '') || profileName || null
+  let debugRaw: unknown = undefined
 
   if (state === 'open' && !phone) {
     try {
@@ -102,9 +103,20 @@ export async function GET() {
     }
   }
 
+  if (state === 'open' && !phone) {
+    // Diagnóstico: si tras todos los intentos seguimos sin número, exponemos
+    // la respuesta cruda de Evolution API para poder ver exactamente qué
+    // formato usa este servidor y ajustar la extracción del dato.
+    const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${INSTANCE_NAME}`)
+    debugRaw = { connectionState: data, fetchInstances: fetchData }
+  }
+
   if (state === 'open') {
     await corregirWebhook()
-    return NextResponse.json({ connected: true, status: 'connected', instanceName: INSTANCE_NAME, phone, profileName })
+    return NextResponse.json({
+      connected: true, status: 'connected', instanceName: INSTANCE_NAME, phone, profileName,
+      ...(debugRaw !== undefined ? { debug: debugRaw } : {}),
+    })
   }
 
   const { data: qrData } = await evoFetch(`/instance/connect/${INSTANCE_NAME}`)

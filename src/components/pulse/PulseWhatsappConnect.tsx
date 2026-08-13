@@ -19,6 +19,9 @@ export function PulseWhatsappConnect({ email, onConnected, onEstadoChange }: Pro
   const [error, setError] = useState('')
   const [creando, setCreando] = useState(false)
   const [polling, setPolling] = useState(false)
+  // Estado del boton de copiar del codigo tecnico — feedback breve, mismo
+  // patron que "Enlace copiado" en el resto de la app.
+  const [codigoCopiado, setCodigoCopiado] = useState(false)
 
   const verificarEstado = useCallback(async () => {
     try {
@@ -98,6 +101,15 @@ export function PulseWhatsappConnect({ email, onConnected, onEstadoChange }: Pro
     onEstadoChange?.(false)
   }
 
+  const copiarCodigo = async () => {
+    if (!pairingCode) return
+    try {
+      await navigator.clipboard.writeText(pairingCode)
+      setCodigoCopiado(true)
+      setTimeout(() => setCodigoCopiado(false), 1800)
+    } catch { /* sin permiso de portapapeles: el texto sigue seleccionable a mano */ }
+  }
+
   const C = { blue: '#0ea5e9', green: '#10b981', gradBtn: 'linear-gradient(135deg, #0ea5e9, #059669)' }
 
   return (
@@ -164,10 +176,32 @@ export function PulseWhatsappConnect({ email, onConnected, onEstadoChange }: Pro
                   <span style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{paso}</span>
                 </div>
               ))}
+              {/* Antes decia "CÓDIGO ALTERNATIVO" y mostraba el string completo (150+
+                  caracteres) con letter-spacing ancho — se salia de la caja, y aun
+                  contenido, nadie puede escribir eso a mano en el celular: no es el
+                  codigo corto real de emparejamiento (ese requeriria pasarle el
+                  numero de telefono a la conexion en el backend). Se relabela como
+                  lo que realmente es — un dato tecnico de respaldo, no una
+                  alternativa usable al QR — truncado a una linea con boton de
+                  copiar para quien lo necesite para soporte/debug. */}
               {pairingCode && (
-                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 8 }}>
-                  <p style={{ fontSize: 11, color: C.blue, fontWeight: 700, margin: '0 0 4px', letterSpacing: 0.5 }}>CÓDIGO ALTERNATIVO</p>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0, fontFamily: 'monospace', letterSpacing: 4 }}>{pairingCode}</p>
+                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p style={{ fontSize: 10.5, color: C.blue, fontWeight: 700, margin: '0 0 4px', letterSpacing: 0.5 }}>CÓDIGO TÉCNICO</p>
+                    <p style={{ fontSize: 12, color: '#e2e8f0', margin: 0, fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pairingCode}</p>
+                  </div>
+                  <button
+                    onClick={copiarCodigo}
+                    title="Copiar código completo"
+                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6, border: `1px solid ${codigoCopiado ? 'rgba(16,185,129,0.4)' : 'rgba(14,165,233,0.4)'}`, background: 'transparent', color: codigoCopiado ? C.green : C.blue, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {codigoCopiado ? (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7" /></svg>
+                    ) : (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    )}
+                    {codigoCopiado ? 'Copiado' : 'Copiar'}
+                  </button>
                 </div>
               )}
             </div>

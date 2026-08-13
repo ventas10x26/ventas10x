@@ -1,1 +1,370 @@
-Ly8gUnV0YSBkZXN0aW5vOiBzcmMvY29tcG9uZW50cy9hZG1pbi9GZW5peEFnZW50ZUNsaWVudC50c3gKLy8gQWRhcHRhY2nDs24gZGUgc3JjL2FwcC9wdWxzZS9hZ2VudGUvcGFnZS50c3ggYWwgY2FzbyBkZSBGZW5peDogbWlzbW8KLy8gcGF0csOzbiBkZSB0YWJzICh2b3ovY29tcG9ydGFtaWVudG8vbWVuc2FqZXMvYXZhbnphZG8pICsgZ3VhcmRhZG8sIGNvbgovLyB0ZW1hIGNsYXJvL29zY3VybyBjb25tdXRhYmxlIChlbCBjbGFybyBlcyBlbCBsb29rIGJhc2UgZGVsIGFkbWluIGRlCi8vIEZlbml4IC0tIEZlbml4TGVhZHNDbGllbnQgLS0sIGVsIG9zY3VybyByZXV0aWxpemEgbGEgcGFsZXRhIGRlCi8vIHNyYy9hcHAvcHVsc2UvYWdlbnRlIHBhcmEgcXVlZGFyIGNvbnNpc3RlbnRlIGNvbiBlbCByZXN0byBkZWwgY8OzZGlnbykuCi8vIFNpbiBsYXMgcGllemFzIGVzcGVjw61maWNhcyBkZSBQdWxzZSBxdWUgYWPDoSBubyBhcGxpY2FuIC0tIG5vIGhheQovLyBncmFiYWNpw7NuIGRlIHZveiwgY29uZXhpw7NuIFdoYXRzQXBwIHBvciBRUiBuaSBiYW5uZXIgZGUgY3LDqWRpdG9zLAovLyBwb3JxdWUgRmVuaXggbm8gdGllbmUgZXNhIGluZnJhZXN0cnVjdHVyYSAoZXMgdW4gc29sbyBhZ2VudGUgcGFyYSB0b2RvCi8vIGVsIGVxdWlwbywgbm8gdW5vIHBvciB2ZW5kZWRvcikuCid1c2UgY2xpZW50JwoKaW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VTdGF0ZSwgdHlwZSBDU1NQcm9wZXJ0aWVzLCB0eXBlIFJlYWN0Tm9kZSB9IGZyb20gJ3JlYWN0JwppbXBvcnQgTGluayBmcm9tICduZXh0L2xpbmsnCgpjb25zdCBBQ0NFTlQgPSAnI0Y1ODIxRicKY29uc3QgVEhFTUVfS0VZID0gJ2Zlbml4X2FkbWluX3RoZW1lJwoKdHlwZSBUZW1hID0gJ2NsYXJvJyB8ICdvc2N1cm8nCgovLyBUb2tlbnMgZGUgY29sb3IgcG9yIHRlbWEuIEVsIGFjZW50byBuYXJhbmphIGRlIG1hcmNhIG5vIGNhbWJpYS4KZnVuY3Rpb24gY29sb3Jlcyh0ZW1hOiBUZW1hKSB7CiAgcmV0dXJuIHRlbWEgPT09ICdvc2N1cm8nCiAgICA/IHsKICAgICAgICBwYWdlQmc6ICcjMGIxMjIwJywgaGVhZGVyQmc6ICcjMGIxMjIwJywgY2FyZEJnOiAncmdiYSgxNSwyMyw0MiwwLjUpJywKICAgICAgICBib3JkZXI6ICcjMWUyOTNiJywgaW5rOiAnI2ZmZicsIGluazI6ICcjOTRhM2I4JywgaW5rMzogJyM2NDc0OGInLAogICAgICAgIGlucHV0Qmc6ICdyZ2JhKDE1LDIzLDQyLDAuOCknLCBpbnB1dEJvcmRlcjogJyMzMzQxNTUnLCBpbnB1dENvbG9yOiAnI2ZmZicsCiAgICAgICAgdGFiSW5hY3RpdmU6ICcjOTRhM2I4JywgdGFiQWN0aXZlQmc6IGAke0FDQ0VOVH0yNWAsCiAgICAgICAgbGlua0JnOiAncmdiYSgyNTUsMjU1LDI1NSwwLjA0KScsIGxpbmtCb3JkZXI6ICcjMzM0MTU1JywgbGlua0NvbG9yOiAnIzk0YTNiOCcsCiAgICAgICAgdG9nZ2xlT2ZmOiAnIzMzNDE1NScsIGVyckJnOiAncmdiYSgyMjAsMzgsMzgsMC4xKScsIG9rQmc6ICdyZ2JhKDIyLDE2Myw3NCwwLjEpJywKICAgICAgfQogICAgOiB7CiAgICAgICAgcGFnZUJnOiAnI2Y3ZjZmNCcsIGhlYWRlckJnOiAnI2Y3ZjZmNCcsIGNhcmRCZzogJyNmZmYnLAogICAgICAgIGJvcmRlcjogJyNlMmU4ZjAnLCBpbms6ICcjMGYxNzJhJywgaW5rMjogJyM2NDc0OGInLCBpbmszOiAnIzk0YTNiOCcsCiAgICAgICAgaW5wdXRCZzogJyNmZmYnLCBpbnB1dEJvcmRlcjogJyNlMmU4ZjAnLCBpbnB1dENvbG9yOiAnIzBmMTcyYScsCiAgICAgICAgdGFiSW5hY3RpdmU6ICcjNjQ3NDhiJywgdGFiQWN0aXZlQmc6IGAke0FDQ0VOVH0xOGAsCiAgICAgICAgbGlua0JnOiAnI2ZmZicsIGxpbmtCb3JkZXI6ICcjZTJlOGYwJywgbGlua0NvbG9yOiAnIzY0NzQ4YicsCiAgICAgICAgdG9nZ2xlT2ZmOiAnI2UyZThmMCcsIGVyckJnOiAnI2ZlZjJmMicsIG9rQmc6ICcjZjBmZGY0JywKICAgICAgfQp9Cgp0eXBlIEZlbml4QWdlbnRlID0gewogIGlkOiBzdHJpbmcKICBub21icmU6IHN0cmluZwogIGVzdGlsb19jb2Jybzogc3RyaW5nIHwgbnVsbAogIHRvbm86IHN0cmluZyB8IG51bGwKICBzYWx1ZG9fdGlwbzogc3RyaW5nIHwgbnVsbAogIG1hbmVqb19vYmplY2lvbmVzOiBzdHJpbmcgfCBudWxsCiAgcmVzcHVlc3Rhc190aXBvOiBzdHJpbmcgfCBudWxsCiAgZXNjYWxhbWllbnRvX2p1cmlkaWNvOiBzdHJpbmcgfCBudWxsCiAgcHJpbWVyX21lbnNhamU6IHN0cmluZyB8IG51bGwKICBtZW5zYWplX3JlY29yZGF0b3Jpbzogc3RyaW5nIHwgbnVsbAogIG1lbnNhamVfYWN1ZXJkb19wYWdvOiBzdHJpbmcgfCBudWxsCiAgd2hhdHNhcHA6IHN0cmluZyB8IG51bGwKICBib3RfYWN0aXZvOiBib29sZWFuCiAgc3lzdGVtX3Byb21wdDogc3RyaW5nIHwgbnVsbAogIHVwZGF0ZWRfYXQ6IHN0cmluZyB8IG51bGwKfQoKdHlwZSBDID0gUmV0dXJuVHlwZTx0eXBlb2YgY29sb3Jlcz4KCmZ1bmN0aW9uIFNlY3Rpb24oeyBjLCB0aXRsZSwgYmFkZ2UsIGNoaWxkcmVuIH06IHsgYzogQzsgdGl0bGU6IHN0cmluZzsgYmFkZ2U/OiBzdHJpbmc7IGNoaWxkcmVuOiBSZWFjdE5vZGUgfSkgewogIHJldHVybiAoCiAgICA8c2VjdGlvbiBzdHlsZT17eyBiYWNrZ3JvdW5kOiBjLmNhcmRCZywgYm9yZGVyOiBgMXB4IHNvbGlkICR7Yy5ib3JkZXJ9YCwgYm9yZGVyUmFkaXVzOiAxNiwgcGFkZGluZzogMjAsIG1hcmdpbkJvdHRvbTogMTQgfX0+CiAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogJ2ZsZXgnLCBhbGlnbkl0ZW1zOiAnY2VudGVyJywgZ2FwOiAxMCwgbWFyZ2luQm90dG9tOiAxNCB9fT4KICAgICAgICA8aDIgc3R5bGU9e3sgZm9udFNpemU6IDE0LjUsIGZvbnRXZWlnaHQ6IDgwMCwgbWFyZ2luOiAwLCBjb2xvcjogYy5pbmsgfX0+e3RpdGxlfTwvaDI+CiAgICAgICAge2JhZGdlICYmICgKICAgICAgICAgIDxzcGFuIHN0eWxlPXt7IGZvbnRTaXplOiA5LCBmb250V2VpZ2h0OiA4MDAsIGNvbG9yOiBBQ0NFTlQsIGJhY2tncm91bmQ6IGAke0FDQ0VOVH0xNWAsIGJvcmRlcjogYDFweCBzb2xpZCAke0FDQ0VOVH00MGAsIHBhZGRpbmc6ICc0cHggMTBweCcsIGJvcmRlclJhZGl1czogOTk5LCBsZXR0ZXJTcGFjaW5nOiAwLjUgfX0+CiAgICAgICAgICAgIHtiYWRnZX0KICAgICAgICAgIDwvc3Bhbj4KICAgICAgICApfQogICAgICA8L2Rpdj4KICAgICAge2NoaWxkcmVufQogICAgPC9zZWN0aW9uPgogICkKfQoKdHlwZSBUYWIgPSAndm96JyB8ICdjb21wb3J0YW1pZW50bycgfCAnbWVuc2FqZXMnIHwgJ2F2YW56YWRvJwpjb25zdCBUQUJTOiB7IGlkOiBUYWI7IGxhYmVsOiBzdHJpbmcgfVtdID0gWwogIHsgaWQ6ICd2b3onLCAgICAgICAgICAgIGxhYmVsOiAn8J+OmeuPjyBWb3ogeSB0b25vJyB9LAogIHsgaWQ6ICdjb21wb3J0YW1pZW50bycsIGxhYmVsOiAn8J+noCBDb21wb3J0YW1pZW50bycgfSwKICB7IGlkOiAnbWVuc2FqZXMnLCAgICAgICBsYWJlbDogJ/CfkqwgTWVuc2FqZXMnIH0sCiAgeyBpZDogJ2F2YW56YWRvJywgICAgICAgbGFiZWw6ICfimpnvuI8gQXZhbnphZG8nIH0sCl0KCmV4cG9ydCBmdW5jdGlvbiBGZW5peEFnZW50ZUNsaWVudCh7IGluaXRpYWxBZ2VudGUgfTogeyBpbml0aWFsQWdlbnRlOiBGZW5peEFnZW50ZSB8IG51bGwgfSkgewogIGNvbnN0IFtmb3JtLCBzZXRGb3JtXSAgICAgICAgICAgPSB1c2VTdGF0ZTxGZW5peEFnZW50ZSB8IG51bGw+KGluaXRpYWxBZ2VudGUpCiAgY29uc3QgW3RhYiwgc2V0VGFiXSAgICAgICAgICAgICA9IHVzZVN0YXRlPFRhYj4oJ3ZveicpCiAgY29uc3QgW2d1YXJkYW5kbywgc2V0R3VhcmRhbmRvXSA9IHVzZVN0YXRlKGZhbHNlKQogIGNvbnN0IFttZW5zYWplLCBzZXRNZW5zYWplXSAgICAgPSB1c2VTdGF0ZSgnJykKICBjb25zdCBbZXJyb3IsIHNldEVycm9yXSAgICAgICAgID0gdXNlU3RhdGUoJycpCgogIC8vIEFycmFuY2EgZW4gY2xhcm8geSwgdHJhcyBtb250YXIsIGFkb3B0YSBsbyBndWFyZGFkbyAtLSBldml0YSBlbAogIC8vIG1pc21hdGNoIGRlIGhpZHJhdGFjacOzbiBkZSBsZWVyIGxvY2FsU3RvcmFnZSBkdXJhbnRlIGVsIHJlbmRlciBpbmljaWFsLgogIGNvbnN0IFt0ZW1hLCBzZXRUZW1hXSA9IHVzZVN0YXRlPFRlbWE+KCdjbGFybycpCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGNvbnN0IGd1YXJkYWRvID0gdHlwZW9mIHdpbmRvdyAhPT0gJ3VuZGVmaW5lZCcgPyBsb2NhbFN0b3JhZ2UuZ2V0SXRlbShUSEVNRV9LRVkpIDogbnVsbAogICAgaWYgKGd1YXJkYWRvID09PSAnY2xhcm8nIHx8IGd1YXJkYWRvID09PSAnb3NjdXJvJykgc2V0VGVtYShndWFyZGFkbykKICB9LCBbXSkKICBjb25zdCB0b2dnbGVUZW1hID0gKCkgPT4gewogICAgc2V0VGVtYSgodCkgPT4gewogICAgICBjb25zdCBudWV2byA9IHQgPT09ICdjbGFybycgPyAnb3NjdXJvJyA6ICdjbGFybycKICAgICAgaWYgKHR5cGVvZiB3aW5kb3cgIT09ICd1bmRlZmluZWQnKSBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShUSEVNRV9LRVksIG51ZXZvKQogICAgICByZXR1cm4gbnVldm8KICAgIH0pCiAgfQoKICBjb25zdCBjID0gY29sb3Jlcyh0ZW1hKQogIGNvbnN0IGlucHV0U3R5bGU6IENTU1Byb3BlcnRpZXMgPSB7CiAgICB3aWR0aDogJzEwMCUnLCBwYWRkaW5nOiAnMTFweCAxM3B4JywgYm9yZGVyUmFkaXVzOiAxMCwKICAgIGJvcmRlcjogYDFweCBzb2xpZCAke2MuaW5wdXRCb3JkZXJ9YCwgYmFja2dyb3VuZDogYy5pbnB1dEJnLAogICAgY29sb3I6IGMuaW5wdXRDb2xvciwgZm9udFNpemU6IDEzLjUsIGZvbnRGYW1pbHk6ICdpbmhlcml0JywgYm94U2l6aW5nOiAnYm9yZGVyLWJveCcsCiAgfQogIGNvbnN0IGxhYmVsU3R5bGU6IENTU1Byb3BlcnRpZXMgPSB7CiAgICBkaXNwbGF5OiAnYmxvY2snLCBmb250U2l6ZTogMTEuNSwgZm9udFdlaWdodDogNzAwLCBjb2xvcjogYy5pbmsyLAogICAgbWFyZ2luQm90dG9tOiA2LCB0ZXh0VHJhbnNmb3JtOiAndXBwZXJjYXNlJywgbGV0dGVyU3BhY2luZzogJy4wNGVtJywKICB9CgogIGNvbnN0IHBhdGNoID0gKHA6IFBhcnRpYWw8RmVuaXhBZ2VudGU+KSA9PiBzZXRGb3JtKChmKSA9PiAoZiA/IHsgLi4uZiwgLi4ucCB9IDogZikpCgogIGNvbnN0IGd1YXJkYXIgPSBhc3luYyAoKSA9PiB7CiAgICBpZiAoIWZvcm0pIHJldHVybgogICAgc2V0R3VhcmRhbmRvKHRydWUpCiAgICBzZXRNZW5zYWplKCcnKQogICAgc2V0RXJyb3IoJycpCiAgICB0cnkgewogICAgICBjb25zdCByZXMgID0gYXdhaXQgZmV0Y2goJy9hcGkvYWRtaW4vZmVuaXgtYWdlbnRlJywgewogICAgICAgIG1ldGhvZDogICdQVVQnLAogICAgICAgIGhlYWRlcnM6IHsgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJyB9LAogICAgICAgIGJvZHk6ICAgIEpTT04uc3RyaW5naWZ5KGZvcm0pLAogICAgICB9KQogICAgICBjb25zdCBkYXRhID0gYXdhaXQgcmVzLmpzb24oKQogICAgICBpZiAoIXJlcy5vayB8fCAhZGF0YS5vaykgdGhyb3cgbmV3IEVycm9yKGRhdGEuZXJyb3IgfHwgJ05vIHNlIHB1ZG8gZ3VhcmRhcicpCiAgICAgIHNldEZvcm0oZGF0YS5hZ2VudGUpCiAgICAgIHNldE1lbnNhamUoJ+KckyBDb25maWd1cmFjacOzbiBndWFyZGFkYScpCiAgICAgIHNldFRpbWVvdXQoKCkgPT4gc2V0TWVuc2FqZSgnJyksIDI1MDApCiAgICB9IGNhdGNoIChlKSB7CiAgICAgIHNldEVycm9yKGUgaW5zdGFuY2VvZiBFcnJvciA/IGUubWVzc2FnZSA6ICdFcnJvciBhbCBndWFyZGFyJykKICAgIH0gZmluYWxseSB7CiAgICAgIHNldEd1YXJkYW5kbyhmYWxzZSkKICAgIH0KICB9CgogIGNvbnN0IFRoZW1lVG9nZ2xlID0gKAogICAgPGJ1dHRvbgogICAgICB0eXBlPSJidXR0b24iCiAgICAgIG9uQ2xpY2s9e3RvZ2dsZVRlbWF9CiAgICAgIHRpdGxlPXt0ZW1hID09PSAnY2xhcm8nID8gJ0NhbWJpYXIgYSB0ZW1hIG9zY3VybycgOiAnQ2FtYmlhciBhIHRlbWEgY2xhcm8nfQogICAgICBhcmlhLWxhYmVsPXt0ZW1hID09PSAnY2xhcm8nID8gJ0NhbWJpYXIgYSB0ZW1hIG9zY3VybycgOiAnQ2FtYmlhciBhIHRlbWEgY2xhcm8nfQogICAgICBzdHlsZT17ewogICAgICAgIHdpZHRoOiAzOCwgaGVpZ2h0OiAzOCwgYm9yZGVyUmFkaXVzOiAxMCwgZmxleFNocmluazogMCwKICAgICAgICBib3JkZXI6IGAxcHggc29saWQgJHtjLmxpbmtCb3JkZXJ9YCwgYmFja2dyb3VuZDogYy5saW5rQmcsCiAgICAgICAgZGlzcGxheTogJ2ZsZXgnLCBhbGlnbkl0ZW1zOiAnY2VudGVyJywganVzdGlmeUNvbnRlbnQ6ICdjZW50ZXInLAogICAgICAgIGN1cnNvcjogJ3BvaW50ZXInLCBmb250U2l6ZTogMTYsIGZvbnRGYW1pbHk6ICdpbmhlcml0JywKICAgICAgfX0KICAgID4KICAgICAge3RlbWEgPT09ICdjbGFybycgPyAn8J+MmScgOiAn4piA77iPJ30KICAgIDwvYnV0dG9uPgogICkKCiAgaWYgKCFmb3JtKSB7CiAgICByZXR1cm4gKAogICAgICA8ZGl2IHN0eWxlPXt7IG1pbkhlaWdodDogJzEwMHZoJywgYmFja2dyb3VuZDogYy5wYWdlQmcsIGRpc3BsYXk6ICdmbGV4JywgYWxpZ25JdGVtczogJ2NlbnRlcicsIGp1c3RpZnlDb250ZW50OiAnY2VudGVyJywgZm9udEZhbWlseTogJ3N5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZicgfX0+CiAgICAgICAgPGRpdiBzdHlsZT17eyB0ZXh0QWxpZ246ICdjZW50ZXInIH19PgogICAgICAgICAgPHAgc3R5bGU9e3sgY29sb3I6IGMuaW5rMiwgZm9udFNpemU6IDE0LCBtYXJnaW5Cb3R0b206IDEyIH19Pk5vIGhheSB1bmEgY29uZmlndXJhY2nDs24gZGUgYWdlbnRlIHRvZGF2w61hLjwvcD4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CiAgICApCiAgfQoKICByZXR1cm4gKAogICAgPGRpdiBzdHlsZT17eyBtaW5IZWlnaHQ6ICcxMDB2aCcsIGJhY2tncm91bmQ6IGMucGFnZUJnLCBmb250RmFtaWx5OiAnc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmJywgdHJhbnNpdGlvbjogJ2JhY2tncm91bmQgMC4ycycgfX0+CiAgICAgIDxkaXYgc3R5bGU9e3sgbWF4V2lkdGg6IDg2MCwgbWFyZ2luOiAnMCBhdXRvJywgcGFkZGluZzogJzI0cHggY2xhbXAoMTZweCwgNHZ3LCAzMnB4KSA4MHB4JyB9fT4KCiAgICAgICAgey8qIENhYmVjZXJhICovfQogICAgICAgIDxkaXYgc3R5bGU9e3sKICAgICAgICAgIHBvc2l0aW9uOiAnc3RpY2t5JywgdG9wOiAwLCB6SW5kZXg6IDIwLCBiYWNrZ3JvdW5kOiBjLmhlYWRlckJnLAogICAgICAgICAgbWFyZ2luTGVmdDogLTI0LCBtYXJnaW5SaWdodDogLTI0LCBwYWRkaW5nOiAnMCAyNHB4IDE2cHgnLAogICAgICAgICAgbWFyZ2luQm90dG9tOiA4LCBkaXNwbGF5OiAnZmxleCcsIGp1c3RpZnlDb250ZW50OiAnc3BhY2UtYmV0d2VlbicsCiAgICAgICAgICBhbGlnbkl0ZW1zOiAnZmxleC1zdGFydCcsIGZsZXhXcmFwOiAnd3JhcCcsIGdhcDogMTYsIHBhZGRpbmdUb3A6IDI0LAogICAgICAgIH19PgogICAgICAgICAgPGRpdj4KICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBmb250U2l6ZTogJzExcHgnLCBmb250V2VpZ2h0OiA3MDAsIGxldHRlclNwYWNpbmc6ICcuMDhlbScsIHRleHRUcmFuc2Zvcm06ICd1cHBlcmNhc2UnLCBjb2xvcjogQUNDRU5ULCBtYXJnaW5Cb3R0b206ICc0cHgnIH19PgogICAgICAgICAgICAgIEbDqW5peCBDb25zdWx0b3JlcwogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGgxIHN0eWxlPXt7IGZvbnRTaXplOiAyMiwgZm9udFdlaWdodDogNzAwLCBtYXJnaW46ICcwIDAgNnB4JywgY29sb3I6IGMuaW5rIH19PgogICAgICAgICAgICAgIEFnZW50ZSBJQSDCtyBDb2JybyBkZSBjYXJ0ZXJhCiAgICAgICAgICAgIDwvaDE+CiAgICAgICAgICAgIDxwIHN0eWxlPXt7IGZvbnRTaXplOiAxMywgY29sb3I6IGMuaW5rMiwgbWFyZ2luOiAwLCBtYXhXaWR0aDogNDgwIH19PgogICAgICAgICAgICAgIEVudHJlbmEgZWwgdG9ubywgbGFzIG9iamVjaW9uZXMgeSBsb3MgbWVuc2FqZXMgcXVlIHVzYSBlbCBhZ2VudGUgYWwgZ2VzdGlvbmFyIGVsIGNvYnJvIGNvbiBsb3MgZGV1ZG9yZXMuCiAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAge2Zvcm0udXBkYXRlZF9hdCAmJiAoCiAgICAgICAgICAgICAgPHAgc3R5bGU9e3sgZm9udFNpemU6IDExLCBjb2xvcjogYy5pbmszLCBtYXJnaW46ICc4cHggMCAwJyB9fT4KICAgICAgICAgICAgICAgIMOabHRpbWEgYWN0dWFsaXphY2nDs246IHtuZXcgRGF0ZShmb3JtLnVwZGF0ZWRfYXQpLnRvTG9jYWxlU3RyaW5nKCdlcy1DTycpfQogICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgKX0KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiAnZmxleCcsIGdhcDogOCwgZmxleFNocmluazogMCB9fT4KICAgICAgICAgICAge1RoZW1lVG9nZ2xlfQogICAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgIG9uQ2xpY2s9e2d1YXJkYXJ9CiAgICAgICAgICAgICAgZGlzYWJsZWQ9e2d1YXJkYW5kb30KICAgICAgICAgICAgICBzdHlsZT17ewogICAgICAgICAgICAgICAgcGFkZGluZzogJzEwcHggMThweCcsIGJvcmRlclJhZGl1czogMTAsIGJvcmRlcjogJ25vbmUnLAogICAgICAgICAgICAgICAgYmFja2dyb3VuZDogQUNDRU5ULCBjb2xvcjogJyNmZmYnLCBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiAxMywKICAgICAgICAgICAgICAgIGN1cnNvcjogZ3VhcmRhbmRvID8gJ2RlZmF1bHQnIDogJ3BvaW50ZXInLCBvcGFjaXR5OiBndWFyZGFuZG8gPyAwLjcgOiAxLAogICAgICAgICAgICAgICAgZm9udEZhbWlseTogJ2luaGVyaXQnLAogICAgICAgICAgICAgIH19CiAgICAgICAgICAgID4KICAgICAgICAgICAgICB7Z3VhcmRhbmRvID8gJ0d1YXJkYW5kb+KApic6ICdHdWFyZGFyIGNhbWJpb3MnfQogICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvZGl2PgoKICAgICAgICB7ZXJyb3IgICAmJiA8cCBzdHlsZT17eyBjb2xvcjogdGVtYSA9PT0gJ29zY3VybycgPyAnI2Y4NzE3MScgOiAnI2RjMjYyNicsIGZvbnRTaXplOiAxMywgbWFyZ2luQm90dG9tOiAxMiB9fT57ZXJyb3J9PC9wPn0KICAgICAgICB7bWVuc2FqZSAmJiA8cCBzdHlsZT17eyBjb2xvcjogdGVtYSA9PT0gJ29zY3VybycgPyAnIzRhZGU4MCcgOiAnIzE2YTM0YScsIGZvbnRTaXplOiAxMywgbWFyZ2luQm90dG9tOiAxMiB9fT57bWVuc2FqZX08L3A+fQoKICAgICAgICB7LyogVGFicyAqL30KICAgICAgICA8ZGl2IHN0eWxlPXt7IGRpc3BsYXk6ICdmbGV4JywgZ2FwOiA2LCBmbGV4V3JhcDogJ3dyYXAnLCBtYXJnaW5Cb3R0b206IDE4LCBib3JkZXJCb3R0b206IGAxcHggc29saWQgJHtjLmJvcmRlcn1gLCBwYWRkaW5nQm90dG9tOiA4IH19PgogICAgICAgICAge1RBQlMubWFwKCh0KSA9PiAoCiAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICBrZXk9e3QuaWR9CiAgICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFRhYih0LmlkKX0KICAgICAgICAgICAgICBzdHlsZT17ewogICAgICAgICAgICAgICAgcGFkZGluZzogJzhweCAxNHB4JywgYm9yZGVyUmFkaXVzOiA4LCBib3JkZXI6ICdub25lJywKICAgICAgICAgICAgICAgIGJhY2tncm91bmQ6IHRhYiA9PT0gdC5pZCA/IGMudGFiQWN0aXZlQmcgOiAndHJhbnNwYXJlbnQnLAogICAgICAgICAgICAgICAgY29sb3I6IHRhYiA9PT0gdC5pZCA/IEFDQ0VOVCA6IGMudGFiSW5hY3RpdmUsCiAgICAgICAgICAgICAgICBmb250V2VpZ2h0OiA3MDAsIGZvbnRTaXplOiAxMiwgY3Vyc29yOiAncG9pbnRlcicsIGZvbnRGYW1pbHk6ICdpbmhlcml0JywKICAgICAgICAgICAgICB9fQogICAgICAgICAgICA+CiAgICAgICAgICAgICAge3QubGFiZWx9CiAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgKSl9CiAgICAgICAgPC9kaXY+CgogICAgICAgIHsvKiBUQUI6IFZPWiBZIFRPTk8gKi99CiAgICAgICAge3RhYiA9PT0gJ3ZveicgJiYgKAogICAgICAgICAgPD4KICAgICAgICAgICAgPFNlY3Rpb24gYz17Y30gdGl0bGU9Ik5vbWJyZSB5IHRvbm8gZGVsIGFnZW50ZSI+CiAgICAgICAgICAgICAgPGRpdiBzdHlsZT17eyBkaXNwbGF5OiAnZ3JpZCcsIGdhcDogMTIgfX0+CiAgICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e2xhYmVsU3R5bGV9Pk5vbWJyZSBkZWwgYWdlbnRlPC9sYWJlbD4KICAgICAgICAgICAgICAgICAgPGlucHV0IHN0eWxlPXtpbnB1dFN0eWxlfSB2YWx1ZT17Zm9ybS5ub21icmV9IG9uQ2hhbmdlPXsoZSkgPT4gcGF0Y2goeyBub21icmU6IGUudGFyZ2V0LnZhbHVlIH0pfSAvPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e2xhYmVsU3R5bGV9PlRvbm88L2xhYmVsPgogICAgICAgICAgICAgICAgICA8aW5wdXQgc3R5bGU9e2lucHV0U3R5bGV9IHBsYWNlaG9sZGVyPSJFajogRmlybWUsIGVtcMOhdGljbywgcHJvZmVzaW9uYWwiIHZhbHVlPXtmb3JtLnRvbm8gfHwgJyd9IG9uQ2hhbmdlPXsoZSkgPT4gcGF0Y2goeyB0b25vOiBlLnRhcmdldC52YWx1ZSB9KX0gLz4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L1NlY3Rpb24+CiAgICAgICAgICAgIDxTZWN0aW9uIGM9e2N9IHRpdGxlPSJFc3RpbG8gZGUgY29icm8iIGJhZGdlPSJFTlRSRU5BTUlFTlRPIj4KICAgICAgICAgICAgICA8bGFiZWwgc3R5bGU9e2xhYmVsU3R5bGV9PkPDs21vIHNlIGNvbXVuaWNhIGVsIGFnZW50ZSBjb24gZWwgZGV1ZG9yPC9sYWJlbD4KICAgICAgICAgICAgICA8dGV4dGFyZWEgdmFsdWU9e2Zvcm0uZXN0aWxvX2NvYnJvIHx8ICcnfSBvbkNoYW5nZT17KGUpID0+IHBhdGNoKHsgZXN0aWxvX2NvYnJvOiBlLnRhcmdldC52YWx1ZSB9KX0gcm93cz17NX0gc3R5bGU9e3sgLi4uaW5wdXRTdHlsZSwgcmVzaXplOiAndmVydGljYWwnIH19IC8+CiAgICAgICAgICAgIDwvU2VjdGlvbj4KICAgICAgICAgICAgPFNlY3Rpb24gYz17Y30gdGl0bGU9Ikd1aW9uIGRlIHNhbHVkbyI+CiAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXtsYWJlbFN0eWxlfT5Dw7NtbyBhYnJlIGxhIGNvbnZlcnNhY2nDs24gKHVzYSB7J3tub21icmV9J30sIHsne2VtcHJlc2FfYWNyZWVkb3JhfSd9LCB7J3ttb250b30nfSk8L2xhYmVsPgogICAgICAgICAgICAgIDx0ZXh0YXJlYSB2YWx1ZT17Zm9ybS5zYWx1ZG9fdGlwbyB8fCAnJ30gb25DaGFuZ2U9eyhlKSA9PiBwYXRjaCh7IHNhbHVkb190aXBvOiBlLnRhcmdldC52YWx1ZSB9KX0gcm93cz17M30gc3R5bGU9e3sgLi4uaW5wdXRTdHlsZSwgcmVzaXplOiAndmVydGljYWwnIH19IC8+CiAgICAgICAgICAgIDwvU2VjdGlvbj4KICAgICAgICAgIDwvPgogICAgICAgICl9CgogICAgICAgIHsvKiBUQUI6IENPTVBPUlRBTUlFTlRPICovfQogICAgICAgIHt0YWIgPT09ICdjb21wb3J0YW1pZW50bycgJiYgKAogICAgICAgICAgPD4KICAgICAgICAgICAgPFNlY3Rpb24gYz17Y30gdGl0bGU9Ik1hbmVqbyBkZSBvYmplY2lvbmVzIiBiYWRnZT0iUEVSU09OQUxJWkFETyI+CiAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXtsYWJlbFN0eWxlfT5Dw7NtbyByZXNwb25kZSBhICJubyB0ZW5nbyBjb24gcXXDqSBwYWdhciIsICJ5YSBwYWd1w6kiLCAibm8gcmVjb25vemNvIGxhIGRldWRhIiwgZXRjLjwvbGFiZWw+CiAgICAgICAgICAgICAgPHRleHRhcmVhIHZhbHVlPXtmb3JtLm1hbmVqb19vYmplY2lvbmVzIHx8ICcnfSBvbkNoYW5nZT17KGUpID0+IHBhdGNoKHsgbWFuZWpvX29iamVjaW9uZXM6IGUudGFyZ2V0LnZhbHVlIH0pfSByb3dzPXs3fSBzdHlsZT17eyAuLi5pbnB1dFN0eWxlLCByZXNpemU6ICd2ZXJ0aWNhbCcgfX0gLz4KICAgICAgICAgICAgPC9TZWN0aW9uPgogICAgICAgICAgICA8U2VjdGlvbiBjPXtjfSB0aXRsZT0iUmVzcHVlc3RhcyB5IGd1aW9uZXMgdGlwbyI+CiAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXtsYWJlbFN0eWxlfT5HdWlvbmVzIHF1ZSB1c2Egc2VndWlkbyAocHJvcHVlc3RhIGRlIHBsYW4gZGUgcGFnbywgY29uZmlybWFjacOzbiBkZSBhY3VlcmRv4oCmKTwvbGFiZWw+CiAgICAgICAgICAgICAgPHRleHRhcmVhIHZhbHVlPXtmb3JtLnJlc3B1ZXN0YXNfdGlwbyB8fCAnJ30gb25DaGFuZ2U9eyhlKSA9PiBwYXRjaCh7IHJlc3B1ZXN0YXNfdGlwbzogZS50YXJnZXQudmFsdWUgfSl9IHJvd3M9ezZ9IHN0eWxlPXt7IC4uLmlucHV0U3R5bGUsIHJlc2l6ZTogJ3ZlcnRpY2FsJyB9fSAvPgogICAgICAgICAgICA8L1NlY3Rpb24+CiAgICAgICAgICAgIDxTZWN0aW9uIGM9e2N9IHRpdGxlPSJSZWdsYXMgZGUgZXNjYWxhbWllbnRvIGEgZ2VzdGnDs24ganVyw61kaWNhIiBiYWRnZT0iSU1QT1JUQU5URSI+CiAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXtsYWJlbFN0eWxlfT5DdcOhbmRvIHBhc2FyIGVsIGNhc28gZGUgY29icm8gcHJlanVyw61kaWNvIGEgY29icm8ganVkaWNpYWw8L2xhYmVsPgogICAgICAgICAgICAgIDx0ZXh0YXJlYSB2YWx1ZT17Zm9ybS5lc2NhbGFtaWVudG9fanVyaWRpY28gfHwgJyd9IG9uQ2hhbmdlPXsoZSkgPT4gcGF0Y2goeyBlc2NhbGFtaWVudG9fanVyaWRpY286IGUudGFyZ2V0LnZhbHVlIH0pfSByb3dzPXs0fSBzdHlsZT17eyAuLi5pbnB1dFN0eWxlLCByZXNpemU6ICd2ZXJ0aWNhbCcgfX0gLz4KICAgICAgICAgICAgPC9TZWN0aW9uPgogICAgICAgICAgPC8+CiAgICAgICAgKX0KCiAgICAgICAgey8qIFRBQjogTUVOU0FKRVMgKi99CiAgICAgICAge3RhYiA9PT0gJ21lbnNhamVzJyAmJiAoCiAgICAgICAgICA8PgogICAgICAgICAgICA8U2VjdGlvbiBjPXtjfSB0aXRsZT0iUHJpbWVyIG1lbnNhamUgZGUgY29udGFjdG8gKFdoYXRzQXBwKSI+CiAgICAgICAgICAgICAgPHRleHRhcmVhIHZhbHVlPXtmb3JtLnByaW1lcl9tZW5zYWplIHx8ICcnfSBvbkNoYW5nZT17KGUpID0+IHBhdGNoKHsgcHJpbWVyX21lbnNhamU6IGUudGFyZ2V0LnZhbHVlIH0pfSByb3dzPXs0fSBzdHlsZT17eyAuLi5pbnB1dFN0eWxlLCByZXNpemU6ICd2ZXJ0aWNhbCcsIGZvbnRGYW1pbHk6ICdtb25vc3BhY2UnIH19IC8+CiAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gewogICAgICAgICAgICAgICAgICBpZiAoIWZvcm0ud2hhdHNhcHApIHsgYWxlcnQoJ0NvbmZpZ3VyYSBlbCBXaGF0c0FwcCBkZWwgZXF1aXBvIGRlIGNvYnJvIGVuIGxhIHBlc3Rhw7FhIEF2YW56YWRvJyk7IHJldHVybiB9CiAgICAgICAgICAgICAgICAgIHdpbmRvdy5vcGVuKGBodHRwczovL3dhLm1lLyR7Zm9ybS53aGF0c2FwcC5yZXBsYWNlKC9cRC9nLCAnJyl9P3RleHQ9JHtlbmNvZGVVUklDb21wb25lbnQoZm9ybS5wcmltZXJfbWVuc2FqZSB8fCAnJyl9YCwgJ19ibGFuaycpCiAgICAgICAgICAgICAgICB9fQogICAgICAgICAgICAgICAgc3R5bGU9e3sgbWFyZ2luVG9wOiAxMiwgcGFkZGluZzogJzEwcHggMTZweCcsIGJvcmRlclJhZGl1czogMTAsIGJvcmRlcjogJ25vbmUnLCBiYWNrZ3JvdW5kOiAnIzIyYzU1ZScsIGNvbG9yOiAnI2ZmZicsIGZvbnRXZWlnaHQ6IDcwMCwgZm9udFNpemU6IDEzLCBjdXJzb3I6ICdwb2ludGVyJywgZm9udEZhbWlseTogJ2luaGVyaXQnIH19CiAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgUHJvYmFyIG1lbnNhamUgZW4gV2hhdHNBcHAKICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgPC9TZWN0aW9uPgogICAgICAgICAgICA8U2VjdGlvbiBjPXtjfSB0aXRsZT0iUmVjb3JkYXRvcmlvIGRlIHBhZ28iPgogICAgICAgICAgICAgIDx0ZXh0YXJlYSB2YWx1ZT17Zm9ybS5tZW5zYWplX3JlY29yZGF0b3JpbyB8fCAnJ30gb25DaGFuZ2U9eyhlKSA9PiBwYXRjaCh7IG1lbnNhamVfcmVjb3JkYXRvcmlvOiBlLnRhcmdldC52YWx1ZSB9KX0gcm93cz17NH0gc3R5bGU9e3sgLi4uaW5wdXRTdHlsZSwgcmVzaXplOiAndmVydGljYWwnLCBmb250RmFtaWx5OiAnbW9ub3NwYWNlJyB9fSAvPgogICAgICAgICAgICA8L1NlY3Rpb24+CiAgICAgICAgICAgIDxTZWN0aW9uIGM9e2N9IHRpdGxlPSJDb25maXJtYWNpw7NuIGRlIGFjdWVyZG8gZGUgcGFnbyI+CiAgICAgICAgICAgICAgPHRleHRhcmVhIHZhbHVlPXtmb3JtLm1lbnNhamVfYWN1ZXJkb19wYWdvIHx8ICcnfSBvbkNoYW5nZT17KGUpID0+IHBhdGNoKHsgbWVuc2FqZV9hY3VlcmRvX3BhZ286IGUudGFyZ2V0LnZhbHVlIH0pfSByb3dzPXs0fSBzdHlsZT17eyAuLi5pbnB1dFN0eWxlLCByZXNpemU6ICd2ZXJ0aWNhbCcsIGZvbnRGYW1pbHk6ICdtb25vc3BhY2UnIH19IC8+CiAgICAgICAgICAgIDwvU2VjdGlvbj4KICAgICAgICAgIDwvPgogICAgICAgICl9CgogICAgICAgIHsvKiBUQUI6IEFWQU5aQURPICovfQogICAgICAgIHt0YWIgPT09ICdhdmFuemFkbycgJiYgKAogICAgICAgICAgPD4KICAgICAgICAgICAgPHNlY3Rpb24gc3R5bGU9e3sgYmFja2dyb3VuZDogYy5jYXJkQmcsIGJvcmRlcjogYDFweCBzb2xpZCAke2MuYm9yZGVyfWAsIGJvcmRlclJhZGl1czogMTYsIHBhZGRpbmc6IDIwLCBtYXJnaW5Cb3R0b206IDE0IH19PgogICAgICAgICAgICAgIDxkaXYgc3R5bGU9e3sgZGlzcGxheTogJ2ZsZXgnLCBhbGlnbkl0ZW1zOiAnY2VudGVyJywganVzdGlmeUNvbnRlbnQ6ICdzcGFjZS1iZXR3ZWVuJyB9fT4KICAgICAgICAgICAgICAgIDxkaXY+CiAgICAgICAgICAgICAgICAgIDxoMiBzdHlsZT17eyBmb250U2l6ZTogMTQuNSwgZm9udFdlaWdodDogODAwLCBtYXJnaW46ICcwIDAgNHB4JywgY29sb3I6IGMuaW5rIH19PkJvdCBkZSBXaGF0c0FwcDwvaDI+CiAgICAgICAgICAgICAgICAgIDxwIHN0eWxlPXt7IGZvbnRTaXplOiAxMiwgY29sb3I6IGMuaW5rMiwgbWFyZ2luOiAwIH19PgogICAgICAgICAgICAgICAgICAgIHtmb3JtLmJvdF9hY3Rpdm8KICAgICAgICAgICAgICAgICAgICAgID8gJ/Cfn6IgQWN0aXZvIOKAlCBlbCBhZ2VudGUgcmVzcG9uZGUgYXV0b23DoXRpY2FtZW50ZSBhIGxvcyBkZXVkb3JlcycKICAgICAgICAgICAgICAgICAgICAgIDogJ+KaqiBJbmFjdGl2byDigJQgbGEgZ2VzdGnDs24gZGUgY29icm8gc2lndWUgc2llbmRvIG1hbnVhbCd9CiAgICAgICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgICB0eXBlPSJidXR0b24iCiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHBhdGNoKHsgYm90X2FjdGl2bzogIWZvcm0uYm90X2FjdGl2byB9KX0KICAgICAgICAgICAgICAgICAgc3R5bGU9e3sKICAgICAgICAgICAgICAgICAgICBwb3NpdGlvbjogJ3JlbGF0aXZlJywgd2lkdGg6IDUyLCBoZWlnaHQ6IDI4LCBib3JkZXJSYWRpdXM6IDk5OSwKICAgICAgICAgICAgICAgICAgICBib3JkZXI6ICdub25lJywgcGFkZGluZzogMCwgZmxleFNocmluazogMCwgY3Vyc29yOiAncG9pbnRlcicsCiAgICAgICAgICAgICAgICAgICAgYmFja2dyb3VuZDogZm9ybS5ib3RfYWN0aXZvID8gQUNDRU5UIDogYy50b2dnbGVPZmYsCiAgICAgICAgICAgICAgICAgICAgdHJhbnNpdGlvbjogJ2JhY2tncm91bmQgMC4ycycsCiAgICAgICAgICAgICAgICAgIH19CiAgICAgICAgICAgICAgICAgIGFyaWEtbGFiZWw9e2Zvcm0uYm90X2FjdGl2byA/ICdEZXNhY3RpdmFyIGJvdCcgOiAnQWN0aXZhciBib3QnfQogICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICA8c3BhbiBzdHlsZT17ewogICAgICAgICAgICAgICAgICAgIHBvc2l0aW9uOiAnYWJzb2x1dGUnLCB0b3A6IDMsIGxlZnQ6IGZvcm0uYm90X2FjdGl2byA/IDI3IDogMywKICAgICAgICAgICAgICAgICAgICB3aWR0aDogMjIsIGhlaWdodDogMjIsIGJvcmRlclJhZGl1czogJzUwJScsCiAgICAgICAgICAgICAgICAgICAgYmFja2dyb3VuZDogJyNmZmYnLCBib3hTaGFkb3c6ICcwIDFweCA0cHggcmdiYSgwLDAsMCwwLjIpJywKICAgICAgICAgICAgICAgICAgICB0cmFuc2l0aW9uOiAnbGVmdCAwLjJzJywgZGlzcGxheTogJ2Jsb2NrJywKICAgICAgICAgICAgICAgICAgfX0gLz4KICAgICAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L3NlY3Rpb24+CgogICAgICAgICAgICA8U2VjdGlvbiBjPXtjfSB0aXRsZT0iRGF0b3MgZGUgY29udGFjdG8iPgogICAgICAgICAgICAgIDxsYWJlbCBzdHlsZT17bGFiZWxTdHlsZX0+V2hhdHNBcHAgZGVsIGVxdWlwbyBkZSBjb2Jybzwvc3Bhbj4KICAgICAgICAgICAgICA8aW5wdXQgc3R5bGU9e2lucHV0U3R5bGV9IHBsYWNlaG9sZGVyPSJFajogNTczMDAxMjM0NTY3IiB2YWx1ZT17Zm9ybS53aGF0c2FwcCB8fCAnJ30gb25DaGFuZ2U9eyhlKSA9PiBwYXRjaCh7IHdoYXRzYXBwOiBlLnRhcmdldC52YWx1ZSB9KX0gLz4KICAgICAgICAgICAgPC9TZWN0aW9uPgoKICAgICAgICAgICAgPFNlY3Rpb24gYz17Y30gdGl0bGU9IlN5c3RlbSBwcm9tcHQgaW50ZXJubyIgYmFkZ2U9IkFWQU5aQURPIj4KICAgICAgICAgICAgICA8cCBzdHlsZT17eyBmb250U2l6ZTogMTIsIGNvbG9yOiBjLmluazMsIG1hcmdpbjogJzAgMCAxMHB4JyB9fT4KICAgICAgICAgICAgICAgIEluc3RydWNjaW9uZXMgcXVlIHVzYSBsYSBJQSBhbCBnZW5lcmFyIG1lbnNhamVzIGRlIGNvYnJvLiBFZMOtdGFsbyBzb2xvIHNpIHNhYmVzIGxvIHF1ZSBoYWNlcy4KICAgICAgICAgICAgICA8L3A+CiAgICAgICAgICAgICAgPHRleHRhcmVhIHZhbHVlPXtmb3JtLnN5c3RlbV9wcm9tcHQgfHwgJyd9IG9uQ2hhbmdlPXsoZSkgPT4gcGF0Y2goeyBzeXN0ZW1fcHJvbXB0OiBlLnRhcmdldC52YWx1ZSB9KX0gcm93cz17OX0gc3R5bGU9e3sgLi4uaW5wdXRTdHlsZSwgcmVzaXplOiAndmVydGljYWwnLCBmb250RmFtaWx5OiAnbW9ub3NwYWNlJywgZm9udFNpemU6IDEyIH19IC8+CiAgICAgICAgICAgIDwvU2VjdGlvbj4KICAgICAgICAgIDwvPgogICAgICAgICl9CgogICAgICAgIDxkaXYgc3R5bGU9e3sgbWFyZ2luVG9wOiAyMCB9fT4KICAgICAgICAgIDxMaW5rIGhyZWY9Ii9hZG1pbi9mZW5peCIgc3R5bGU9e3sKICAgICAgICAgICAgZGlzcGxheTogJ2lubGluZS1ibG9jaycsIHBhZGRpbmc6ICcxMHB4IDE2cHgnLCBib3JkZXJSYWRpdXM6IDEwLAogICAgICAgICAgICBib3JkZXI6IGAxcHggc29saWQgJHtjLmxpbmtCb3JkZXJ9YCwgYmFja2dyb3VuZDogYy5saW5rQmcsIGNvbG9yOiBjLmxpbmtDb2xvciwKICAgICAgICAgICAgZm9udFNpemU6IDEzLCB0ZXh0RGVjb3JhdGlvbjogJ25vbmUnLCBmb250V2VpZ2h0OiA2MDAsCiAgICAgICAgICB9fT4KICAgICAgICAgICAg4oaQIExlYWRzIHkgcGlwZWxpbmUKICAgICAgICAgIDwvTGluaz4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CiAgICA8L2Rpdj4KICApCn0K
+// Ruta destino: src/components/admin/FenixAgenteClient.tsx
+// Adaptación de src/app/pulse/agente/page.tsx al caso de Fenix: mismo
+// patrón de tabs (voz/comportamiento/mensajes/avanzado) + guardado, con
+// tema claro/oscuro conmutable (el claro es el look base del admin de
+// Fenix -- FenixLeadsClient --, el oscuro reutiliza la paleta de
+// src/app/pulse/agente para quedar consistente con el resto del código).
+// Sin las piezas específicas de Pulse que acá no aplican -- no hay
+// grabación de voz, conexión WhatsApp por QR ni banner de créditos,
+// porque Fenix no tiene esa infraestructura (es un solo agente para todo
+// el equipo, no uno por vendedor).
+'use client'
+
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import Link from 'next/link'
+import { FenixWhatsappConnect } from './FenixWhatsappConnect'
+
+const ACCENT = '#F5821F'
+const THEME_KEY = 'fenix_admin_theme'
+
+type Tema = 'claro' | 'oscuro'
+
+// Tokens de color por tema. El acento naranja de marca no cambia.
+function colores(tema: Tema) {
+  return tema === 'oscuro'
+    ? {
+        pageBg: '#0b1220', headerBg: '#0b1220', cardBg: 'rgba(15,23,42,0.5)',
+        border: '#1e293b', ink: '#fff', ink2: '#94a3b8', ink3: '#64748b',
+        inputBg: 'rgba(15,23,42,0.8)', inputBorder: '#334155', inputColor: '#fff',
+        tabInactive: '#94a3b8', tabActiveBg: `${ACCENT}25`,
+        linkBg: 'rgba(255,255,255,0.04)', linkBorder: '#334155', linkColor: '#94a3b8',
+        toggleOff: '#334155', errBg: 'rgba(220,38,38,0.1)', okBg: 'rgba(22,163,74,0.1)',
+      }
+    : {
+        pageBg: '#f7f6f4', headerBg: '#f7f6f4', cardBg: '#fff',
+        border: '#e2e8f0', ink: '#0f172a', ink2: '#64748b', ink3: '#94a3b8',
+        inputBg: '#fff', inputBorder: '#e2e8f0', inputColor: '#0f172a',
+        tabInactive: '#64748b', tabActiveBg: `${ACCENT}18`,
+        linkBg: '#fff', linkBorder: '#e2e8f0', linkColor: '#64748b',
+        toggleOff: '#e2e8f0', errBg: '#fef2f2', okBg: '#f0fdf4',
+      }
+}
+
+type FenixAgente = {
+  id: string
+  nombre: string
+  estilo_cobro: string | null
+  tono: string | null
+  saludo_tipo: string | null
+  manejo_objeciones: string | null
+  respuestas_tipo: string | null
+  escalamiento_juridico: string | null
+  primer_mensaje: string | null
+  mensaje_recordatorio: string | null
+  mensaje_acuerdo_pago: string | null
+  whatsapp: string | null
+  bot_activo: boolean
+  system_prompt: string | null
+  updated_at: string | null
+}
+
+type C = ReturnType<typeof colores>
+
+function Section({ c, title, badge, children }: { c: C; title: string; badge?: string; children: ReactNode }) {
+  return (
+    <section style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 16, padding: 20, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: 0, color: c.ink }}>{title}</h2>
+        {badge && (
+          <span style={{ fontSize: 9, fontWeight: 800, color: ACCENT, background: `${ACCENT}15`, border: `1px solid ${ACCENT}40`, padding: '4px 10px', borderRadius: 999, letterSpacing: 0.5 }}>
+            {badge}
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+type Tab = 'voz' | 'comportamiento' | 'mensajes' | 'avanzado'
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'voz',            label: '🎙️ Voz y tono' },
+  { id: 'comportamiento', label: '🧠 Comportamiento' },
+  { id: 'mensajes',       label: '💬 Mensajes' },
+  { id: 'avanzado',       label: '⚙️ Avanzado' },
+]
+
+export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgente | null }) {
+  const [form, setForm]           = useState<FenixAgente | null>(initialAgente)
+  const [tab, setTab]             = useState<Tab>('voz')
+  const [guardando, setGuardando] = useState(false)
+  const [mensaje, setMensaje]     = useState('')
+  const [error, setError]         = useState('')
+
+  // Arranca en claro y, tras montar, adopta lo guardado -- evita el
+  // mismatch de hidratación de leer localStorage durante el render inicial.
+  const [tema, setTema] = useState<Tema>('claro')
+  useEffect(() => {
+    const guardado = typeof window !== 'undefined' ? localStorage.getItem(THEME_KEY) : null
+    if (guardado === 'claro' || guardado === 'oscuro') setTema(guardado)
+  }, [])
+  const toggleTema = () => {
+    setTema((t) => {
+      const nuevo = t === 'claro' ? 'oscuro' : 'claro'
+      if (typeof window !== 'undefined') localStorage.setItem(THEME_KEY, nuevo)
+      return nuevo
+    })
+  }
+
+  const c = colores(tema)
+  const inputStyle: CSSProperties = {
+    width: '100%', padding: '11px 13px', borderRadius: 10,
+    border: `1px solid ${c.inputBorder}`, background: c.inputBg,
+    color: c.inputColor, fontSize: 13.5, fontFamily: 'inherit', boxSizing: 'border-box',
+  }
+  const labelStyle: CSSProperties = {
+    display: 'block', fontSize: 11.5, fontWeight: 700, color: c.ink2,
+    marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.04em',
+  }
+
+  const patch = (p: Partial<FenixAgente>) => setForm((f) => (f ? { ...f, ...p } : f))
+
+  const guardar = async () => {
+    if (!form) return
+    setGuardando(true)
+    setMensaje('')
+    setError('')
+    try {
+      const res  = await fetch('/api/admin/fenix-agente', {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar')
+      setForm(data.agente)
+      setMensaje('✓ Configuración guardada')
+      setTimeout(() => setMensaje(''), 2500)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const ThemeToggle = (
+    <button
+      type="button"
+      onClick={toggleTema}
+      title={tema === 'claro' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
+      aria-label={tema === 'claro' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
+      style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+        border: `1px solid ${c.linkBorder}`, background: c.linkBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
+      }}
+    >
+      {tema === 'claro' ? '🌙' : '☀️'}
+    </button>
+  )
+
+  if (!form) {
+    return (
+      <div style={{ minHeight: '100vh', background: c.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: c.ink2, fontSize: 14, marginBottom: 12 }}>No hay una configuración de agente todavía.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: c.pageBg, fontFamily: 'system-ui, -apple-system, sans-serif', transition: 'background 0.2s' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px clamp(16px, 4vw, 32px) 80px' }}>
+
+        {/* Cabecera */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 20, background: c.headerBg,
+          marginLeft: -24, marginRight: -24, padding: '0 24px 16px',
+          marginBottom: 8, display: 'flex', justifyContent: 'space-between',
+          alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, paddingTop: 24,
+        }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, marginBottom: '4px' }}>
+              Fénix Consultores
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px', color: c.ink }}>
+              Agente IA · Cobro de cartera
+            </h1>
+            <p style={{ fontSize: 13, color: c.ink2, margin: 0, maxWidth: 480 }}>
+              Entrena el tono, las objeciones y los mensajes que usa el agente al gestionar el cobro con los deudores.
+            </p>
+            {form.updated_at && (
+              <p style={{ fontSize: 11, color: c.ink3, margin: '8px 0 0' }}>
+                Última actualización: {new Date(form.updated_at).toLocaleString('es-CO')}
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            {ThemeToggle}
+            <button
+              type="button"
+              onClick={guardar}
+              disabled={guardando}
+              style={{
+                padding: '10px 18px', borderRadius: 10, border: 'none',
+                background: ACCENT, color: '#fff', fontWeight: 700, fontSize: 13,
+                cursor: guardando ? 'default' : 'pointer', opacity: guardando ? 0.7 : 1,
+                fontFamily: 'inherit',
+              }}
+            >
+              {guardando ? 'Guardando…': 'Guardar cambios'}
+            </button>
+          </div>
+        </div>
+
+        {error   && <p style={{ color: tema === 'oscuro' ? '#f87171' : '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+        {mensaje && <p style={{ color: tema === 'oscuro' ? '#4ade80' : '#16a34a', fontSize: 13, marginBottom: 12 }}>{mensaje}</p>}
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18, borderBottom: `1px solid ${c.border}`, paddingBottom: 8 }}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              style={{
+                padding: '8px 14px', borderRadius: 8, border: 'none',
+                background: tab === t.id ? c.tabActiveBg : 'transparent',
+                color: tab === t.id ? ACCENT : c.tabInactive,
+                fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB: VOZ Y TONO */}
+        {tab === 'voz' && (
+          <>
+            <Section c={c} title="Nombre y tono del agente">
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Nombre del agente</label>
+                  <input style={inputStyle} value={form.nombre} onChange={(e) => patch({ nombre: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Tono</label>
+                  <input style={inputStyle} placeholder="Ej: Firme, empático, profesional" value={form.tono || ''} onChange={(e) => patch({ tono: e.target.value })} />
+                </div>
+              </div>
+            </Section>
+            <Section c={c} title="Estilo de cobro" badge="ENTRENAMIENTO">
+              <label style={labelStyle}>Cómo se comunica el agente con el deudor</label>
+              <textarea value={form.estilo_cobro || ''} onChange={(e) => patch({ estilo_cobro: e.target.value })} rows={5} style={{ ...inputStyle, resize: 'vertical' }} />
+            </Section>
+            <Section c={c} title="Guion de saludo">
+              <label style={labelStyle}>Cómo abre la conversación (usa {'{nombre}'}, {'{empresa_acreedora}'}, {'{monto}'})</label>
+              <textarea value={form.saludo_tipo || ''} onChange={(e) => patch({ saludo_tipo: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+            </Section>
+          </>
+        )}
+
+        {/* TAB: COMPORTAMIENTO */}
+        {tab === 'comportamiento' && (
+          <>
+            <Section c={c} title="Manejo de objeciones" badge="PERSONALIZADO">
+              <label style={labelStyle}>Cómo responde a "no tengo con qué pagar", "ya pagué", "no reconozco la deuda", etc.</label>
+              <textarea value={form.manejo_objeciones || ''} onChange={(e) => patch({ manejo_objeciones: e.target.value })} rows={7} style={{ ...inputStyle, resize: 'vertical' }} />
+            </Section>
+            <Section c={c} title="Respuestas y guiones tipo">
+              <label style={labelStyle}>Guiones que usa seguido (propuesta de plan de pago, confirmación de acuerdo…)</label>
+              <textarea value={form.respuestas_tipo || ''} onChange={(e) => patch({ respuestas_tipo: e.target.value })} rows={6} style={{ ...inputStyle, resize: 'vertical' }} />
+            </Section>
+            <Section c={c} title="Reglas de escalamiento a gestión jurídica" badge="IMPORTANTE">
+              <label style={labelStyle}>Cuándo pasar el caso de cobro prejurídico a cobro judicial</label>
+              <textarea value={form.escalamiento_juridico || ''} onChange={(e) => patch({ escalamiento_juridico: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
+            </Section>
+          </>
+        )}
+
+        {/* TAB: MENSAJES */}
+        {tab === 'mensajes' && (
+          <>
+            <Section c={c} title="Primer mensaje de contacto (WhatsApp)">
+              <textarea value={form.primer_mensaje || ''} onChange={(e) => patch({ primer_mensaje: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }} />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!form.whatsapp) { alert('Configura el WhatsApp del equipo de cobro en la pestaña Avanzado'); return }
+                  window.open(`https://wa.me/${form.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(form.primer_mensaje || '')}`, '_blank')
+                }}
+                style={{ marginTop: 12, padding: '10px 16px', borderRadius: 10, border: 'none', background: '#22c55e', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Probar mensaje en WhatsApp
+              </button>
+            </Section>
+            <Section c={c} title="Recordatorio de pago">
+              <textarea value={form.mensaje_recordatorio || ''} onChange={(e) => patch({ mensaje_recordatorio: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }} />
+            </Section>
+            <Section c={c} title="Confirmación de acuerdo de pago">
+              <textarea value={form.mensaje_acuerdo_pago || ''} onChange={(e) => patch({ mensaje_acuerdo_pago: e.target.value })} rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace' }} />
+            </Section>
+          </>
+        )}
+
+        {/* TAB: AVANZADO */}
+        {tab === 'avanzado' && (
+          <>
+            <section style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 16, padding: 20, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: '0 0 4px', color: c.ink }}>Bot de WhatsApp</h2>
+                  <p style={{ fontSize: 12, color: c.ink2, margin: 0 }}>
+                    {form.bot_activo
+                      ? '🟢 Activo — el agente responde automáticamente a los deudores'
+                      : '⚪ Inactivo — la gestión de cobro sigue siendo manual'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => patch({ bot_activo: !form.bot_activo })}
+                  style={{
+                    position: 'relative', width: 52, height: 28, borderRadius: 999,
+                    border: 'none', padding: 0, flexShrink: 0, cursor: 'pointer',
+                    background: form.bot_activo ? ACCENT : c.toggleOff,
+                    transition: 'background 0.2s',
+                  }}
+                  aria-label={form.bot_activo ? 'Desactivar bot' : 'Activar bot'}
+                >
+                  <span style={{
+                    position: 'absolute', top: 3, left: form.bot_activo ? 27 : 3,
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                    transition: 'left 0.2s', display: 'block',
+                  }} />
+                </button>
+              </div>
+            </section>
+
+            <FenixWhatsappConnect c={c} />
+
+            <Section c={c} title="Datos de contacto">
+              <label style={labelStyle}>WhatsApp del equipo de cobro</label>
+              <input style={inputStyle} placeholder="Ej: 573001234567" value={form.whatsapp || ''} onChange={(e) => patch({ whatsapp: e.target.value })} />
+            </Section>
+
+            <Section c={c} title="System prompt interno" badge="AVANZADO">
+              <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
+                Instrucciones que usa la IA al generar mensajes de cobro. Edítalo solo si sabes lo que haces.
+              </p>
+              <textarea value={form.system_prompt || ''} onChange={(e) => patch({ system_prompt: e.target.value })} rows={9} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }} />
+            </Section>
+          </>
+        )}
+
+        <div style={{ marginTop: 20 }}>
+          <Link href="/admin/fenix" style={{
+            display: 'inline-block', padding: '10px 16px', borderRadius: 10,
+            border: `1px solid ${c.linkBorder}`, background: c.linkBg, color: c.linkColor,
+            fontSize: 13, textDecoration: 'none', fontWeight: 600,
+          }}>
+            ← Leads y pipeline
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -80,6 +80,21 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
     return () => clearInterval(interval)
   }, [estado, verificarEstado])
 
+  // A veces Evolution API marca la instancia como conectada un momento antes
+  // de tener el número (ownerJid) disponible en sus propias respuestas. Si
+  // ya estamos "connected" pero sin phone, reintentamos unas cuantas veces
+  // más antes de rendirnos -- así no se pierde el autoguardado del número.
+  useEffect(() => {
+    if (estado !== 'connected' || phone) return
+    let intentos = 0
+    const interval = setInterval(async () => {
+      intentos += 1
+      await verificarEstado()
+      if (intentos >= 10) clearInterval(interval)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [estado, phone, verificarEstado])
+
   const conectar = async () => {
     setCreando(true)
     setError('')
@@ -149,7 +164,11 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', boxShadow: '0 0 8px #16a34a' }} />
             <div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: c.ink }}>WhatsApp conectado ✓</p>
-              {phone && <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>{phone}</p>}
+              {phone ? (
+                <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>{phone}</p>
+              ) : (
+                <p style={{ margin: 0, fontSize: 12, color: c.ink3 }}>Detectando número…</p>
+              )}
               <p style={{ margin: '4px 0 0', fontSize: 12, color: c.ink3 }}>El bot responde automáticamente a los deudores que escriban</p>
             </div>
           </div>

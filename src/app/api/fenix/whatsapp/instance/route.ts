@@ -72,14 +72,15 @@ export async function GET() {
   let profileName = data?.instance?.profileName || data?.profileName || null
 
   if (state === 'open' && !ownerJid) {
-    const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${INSTANCE_NAME}`)
-    // fetchInstances puede devolver un objeto único o un arreglo según la
-    // versión de Evolution API -- cubrimos ambos casos.
+    // Este servidor de Evolution API no soporta /instance/fetchInstances/{nombre}
+    // (devuelve 404) -- solo el endpoint sin nombre, que lista todas las
+    // instancias y hay que filtrar del lado del cliente.
+    const { data: fetchData } = await evoFetch('/instance/fetchInstances')
     const entry = Array.isArray(fetchData)
       ? fetchData.find((it: Record<string, unknown>) => {
           const inst = it?.instance as Record<string, unknown> | undefined
-          return (inst?.instanceName || it?.instanceName) === INSTANCE_NAME
-        }) || fetchData[0]
+          return (inst?.instanceName || it?.instanceName || it?.name) === INSTANCE_NAME
+        })
       : fetchData
     const entryInstance = entry?.instance as Record<string, unknown> | undefined
     ownerJid = (entryInstance?.ownerJid as string) || (entryInstance?.owner as string) || (entry?.ownerJid as string) || (entry?.owner as string) || null
@@ -107,7 +108,7 @@ export async function GET() {
     // Diagnóstico: si tras todos los intentos seguimos sin número, exponemos
     // la respuesta cruda de Evolution API para poder ver exactamente qué
     // formato usa este servidor y ajustar la extracción del dato.
-    const { data: fetchData } = await evoFetch(`/instance/fetchInstances/${INSTANCE_NAME}`)
+    const { data: fetchData } = await evoFetch('/instance/fetchInstances')
     debugRaw = { connectionState: data, fetchInstances: fetchData }
   }
 

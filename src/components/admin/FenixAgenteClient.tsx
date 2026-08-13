@@ -119,6 +119,24 @@ export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgent
 
   const patch = (p: Partial<FenixAgente>) => setForm((f) => (f ? { ...f, ...p } : f))
 
+  // Cuando se conecta el WhatsApp por QR, Evolution API ya sabe el número real
+  // conectado -- lo autoguardamos en "whatsapp del equipo de cobro" para que
+  // no haya que escribirlo a mano dos veces (uno para el bot, otro para el
+  // campo). Si ya coincide, no hace nada.
+  const handleWhatsappConectado = async (phone: string) => {
+    setForm((f) => (f && f.whatsapp !== phone ? { ...f, whatsapp: phone } : f))
+    if (!form || form.whatsapp === phone) return
+    try {
+      const res = await fetch('/api/admin/fenix-agente', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp: phone }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) setForm(data.agente)
+    } catch { /* si falla, el número queda en el campo y se guarda con "Guardar cambios" */ }
+  }
+
   const guardar = async () => {
     if (!form) return
     setGuardando(true)
@@ -339,7 +357,7 @@ export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgent
               </div>
             </section>
 
-            <FenixWhatsappConnect c={c} />
+            <FenixWhatsappConnect c={c} onConnected={handleWhatsappConectado} />
 
             <Section c={c} title="Datos de contacto">
               <label style={labelStyle}>WhatsApp del equipo de cobro</label>

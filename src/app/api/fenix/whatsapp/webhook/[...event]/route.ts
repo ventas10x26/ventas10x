@@ -95,11 +95,26 @@ function construirSystemPrompt(cfg: FenixAgenteConfig): string {
 
 // Variante para conversaciones que arrancan desde el formulario de leads
 // (fenix_leads / /api/fenix-contacto) -- no son deudores, son empresas
-// interesadas en contratar a Fénix. Contenido tomado de la landing
-// https://app.consultoresfenix.com (que resuelve al mismo sitio que
-// /fenix-consultores). Prompt fijo, no depende de fenix_agente porque ese
-// panel es exclusivo del agente de cobro.
-function construirSystemPromptLead(): string {
+// interesadas en contratar a Fénix. El system_prompt es editable desde
+// /admin/fenix/leads-agente; si está vacío se usa este por defecto,
+// construido con contenido de la landing https://app.consultoresfenix.com
+// (que resuelve al mismo sitio que /fenix-consultores).
+async function obtenerSystemPromptLead(): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from('fenix_leads_agente')
+      .select('system_prompt')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (data?.system_prompt && data.system_prompt.trim()) return data.system_prompt
+  } catch (e) {
+    console.error('[fenix webhook] obtenerSystemPromptLead error:', e)
+  }
+  return construirSystemPromptLeadDefault()
+}
+
+function construirSystemPromptLeadDefault(): string {
   return [
     'Eres el asistente virtual de FÉNIX Consultores Empresariales S.A.S. (FÉNIX Recovery Intelligence®), escribiendo por WhatsApp a una empresa que llenó el formulario de contacto en la landing pidiendo información sobre recuperación de cartera.',
     'QUÉ ES FÉNIX: empresa colombiana con +12 años de experiencia (desde 2010), especializada en recuperación estratégica de cartera empresarial vencida, con foco en los sectores Real y Salud (también atiende Industria, Construcción, Tecnología, Distribución, Cooperativas e Instituciones financieras).',
@@ -197,7 +212,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         // Conversación iniciada desde el formulario de leads -- agente
         // informativo de Fénix, no depende del toggle bot_activo del
         // panel de cobro (son cosas distintas).
-        systemPrompt = construirSystemPromptLead()
+        systemPrompt = await obtenerSystemPromptLead()
       } else {
         const cfg = await obtenerConfigAgente()
         if (!cfg || !cfg.bot_activo) continue

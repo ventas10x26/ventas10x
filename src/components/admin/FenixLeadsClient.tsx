@@ -5,6 +5,7 @@
 // columnas propias de fenix_leads (empresa, telefono, mensaje, notas).
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { FenixVisitasChart } from './FenixVisitasChart'
 import { FenixClarityCard } from './FenixClarityCard'
 import type { VisitaDiaria } from '@/lib/ga4'
@@ -166,7 +167,7 @@ export function FenixLeadsClient({ initialLeads, visitas, clarity, clarityProjec
             </div>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Leads y pipeline</h1>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '3px' }}>
               {(['pipeline', 'tabla'] as const).map(v => (
                 <button key={v} onClick={() => setVista(v)} style={{
@@ -179,6 +180,14 @@ export function FenixLeadsClient({ initialLeads, visitas, clarity, clarityProjec
                 </button>
               ))}
             </div>
+            <Link href="/admin/fenix/agente" style={{
+              padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
+              background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+            }}>
+              🤖 Agente IA
+            </Link>
             <button onClick={() => exportCSV(filtrados)} style={{
               padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
               background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,

@@ -9,9 +9,10 @@
 // Además, en paralelo con los tres anteriores, se le envía al LEAD (no al
 // equipo) una autorespuesta por WhatsApp con información de Fénix y el
 // entregable descargable -- como documento nativo de WhatsApp (nombre
-// enmascarado, no un link crudo). El mensaje de bienvenida, el nombre del
-// archivo y la pregunta de cierre son editables desde
-// /admin/fenix/leads-agente (tabla fenix_leads_agente). Esa conversación
+// enmascarado, no un link crudo). El interruptor "activo", el mensaje de
+// bienvenida, el nombre del archivo y la pregunta de cierre son editables
+// desde /admin/fenix/leads-agente (tabla fenix_leads_agente) -- el toggle
+// es independiente de si el WhatsApp sigue conectado. Esa conversación
 // queda marcada como tipo='lead' en fenix_conversaciones para que el
 // webhook de WhatsApp (src/app/api/fenix/whatsapp/webhook/[...event]/route.ts)
 // siga la charla con el agente informativo en vez del agente de cobro de cartera.
@@ -179,10 +180,11 @@ async function notificarWhatsAppFenix(lead: LeadFenix) {
 // le escribe al prospecto desde la instancia conectada de Evolution API, con
 // info de Fénix y el entregable descargable, y deja la conversación marcada
 // como tipo='lead' para que el webhook la siga con el agente informativo.
-// El mensaje de bienvenida, el nombre del archivo y la pregunta de cierre
-// son editables desde /admin/fenix/leads-agente -- acá solo quedan los
-// valores por defecto como respaldo si la fila aún no existe.
+// El interruptor "activo", el mensaje de bienvenida, el nombre del archivo
+// y la pregunta de cierre son editables desde /admin/fenix/leads-agente --
+// acá solo quedan los valores por defecto como respaldo si la fila aún no existe.
 type LeadsAgenteConfig = {
+  activo: boolean
   mensaje_bienvenida: string | null
   nombre_archivo_entregable: string | null
   pregunta_cierre: string | null
@@ -200,18 +202,19 @@ async function obtenerConfigLeadsAgente(): Promise<LeadsAgenteConfig> {
   try {
     const { data } = await supabase
       .from('fenix_leads_agente')
-      .select('mensaje_bienvenida, nombre_archivo_entregable, pregunta_cierre')
+      .select('activo, mensaje_bienvenida, nombre_archivo_entregable, pregunta_cierre')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
     return {
+      activo: data?.activo !== false,
       mensaje_bienvenida: data?.mensaje_bienvenida || null,
       nombre_archivo_entregable: data?.nombre_archivo_entregable || null,
       pregunta_cierre: data?.pregunta_cierre || null,
     }
   } catch (e) {
     console.error('[fenix-contacto] obtenerConfigLeadsAgente error:', e)
-    return { mensaje_bienvenida: null, nombre_archivo_entregable: null, pregunta_cierre: null }
+    return { activo: true, mensaje_bienvenida: null, nombre_archivo_entregable: null, pregunta_cierre: null }
   }
 }
 
@@ -250,6 +253,8 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
   const remoteJid = `${digitos}@s.whatsapp.net`
 
   const cfg = await obtenerConfigLeadsAgente()
+  if (!cfg.activo) return // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
+
   const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
   const nombreArchivo = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
   const preguntaCierre = cfg.pregunta_cierre || DEFAULT_PREGUNTA_CIERRE

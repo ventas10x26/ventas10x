@@ -124,6 +124,7 @@ function construirSystemPromptLeadDefault(): string {
     'QUÉ ES FÉNIX: empresa colombiana con +12 años de experiencia (desde 2010), especializada en recuperación estratégica de cartera empresarial vencida, con foco en los sectores Real y Salud (también atiende Industria, Construcción, Tecnología, Distribución, Cooperativas e Instituciones financieras).',
     'EL MODELO (Modelo Integral UREA®): combina (1) un abogado que certifica qué es jurídicamente recuperable antes de gestionar nada, (2) un algoritmo de IA que prioriza la cartera por probabilidad real de pago, (3) ejecución especializada -- negociación y cobro prejurídico primero, cobro judicial solo si el acuerdo no se cumple -- y (4) un tablero en tiempo real con reportes ejecutivos, sin tener que pedir informes.',
     'DIFERENCIALES: plataforma tecnológica con trazabilidad total, automatización de cobranza multicanal (WhatsApp y correo), y equipo jurídico propio para procesos ejecutivos y medidas cautelares cuando la negociación no basta.',
+    'RECURSO: si el lead pide más información general de la empresa (equipo, casos de éxito, blog, más detalle del que cabe en un mensaje de WhatsApp), puedes compartir la landing: https://app.consultoresfenix.com',
     'ENTREGABLE: al inicio de esta conversación ya se le envió al lead un documento de WhatsApp llamado "Factores claves - Fénix Consultores.pdf" con el brochure del modelo. Si pregunta por más info o dice que no lo recibió, dile que lo revise arriba en el chat (llegó como documento adjunto, no como link) -- nunca pegues una URL cruda en el mensaje.',
     'CONTACTO PARA AGENDAR: línea principal +57 321 5036414, línea secundaria 310 4159173. El diagnóstico inicial es gratuito y sin compromiso, y un especialista contacta en menos de 24 horas.',
     'TU OBJETIVO: resolver dudas sobre el servicio y motivar a agendar el diagnóstico gratuito con un especialista humano -- no cierres la venta tú mismo, guía hacia ese siguiente paso.',
@@ -156,6 +157,30 @@ async function generarRespuesta(texto: string, systemPrompt: string, historial: 
   } catch (e) {
     console.error('[fenix webhook] generarRespuesta error:', e)
     return null
+  }
+}
+
+// Cuando un lead responde por primera vez (la conversación no tenía
+// ningún mensaje suyo todavía), lo pasamos de "nuevo" a "contactado" en el
+// pipeline -- señal automática de que el lead está enganchado. Solo mueve
+// si sigue en "nuevo" (no pisa una etapa que el equipo ya haya movido a
+// mano). El match es por los últimos dígitos del teléfono porque
+// fenix_leads.telefono no siempre trae el mismo formato que remoteJid.
+async function marcarLeadContactado(remoteJid: string) {
+  try {
+    const digitos = remoteJid.replace(/\D/g, '')
+    if (digitos.length < 8) return
+    const sufijo = digitos.slice(-8)
+    const { data: candidatos } = await supabaseAdmin
+      .from('fenix_leads')
+      .select('id, telefono, etapa')
+      .eq('etapa', 'nuevo')
+      .ilike('telefono', `%${sufijo}%`)
+    const match = candidatos?.[0]
+    if (!match) return
+    await supabaseAdmin.from('fenix_leads').update({ etapa: 'contactado' }).eq('id', match.id)
+  } catch (e) {
+    console.error('[fenix webhook] marcarLeadContactado error:', e)
   }
 }
 
@@ -221,6 +246,9 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
         const cfgLead = await obtenerConfigLeadsAgenteWebhook()
         if (!cfgLead.activo) continue
         systemPrompt = cfgLead.systemPrompt
+
+        const esPrimeraRespuesta = !historial.some((h) => h.role === 'user')
+        if (esPrimeraRespuesta) await marcarLeadContactado(remoteJid)
       } else {
         const cfg = await obtenerConfigAgente()
         if (!cfg || !cfg.bot_activo) continue

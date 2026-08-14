@@ -40,6 +40,8 @@ type FenixLeadsAgente = {
   nombre_archivo_entregable: string | null
   pregunta_cierre: string | null
   mensaje_followup: string | null
+  horas_followup: number
+  horas_perdido: number
   system_prompt: string | null
   updated_at: string | null
 }
@@ -67,6 +69,10 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje]     = useState('')
   const [error, setError]         = useState('')
+  const [probando, setProbando]   = useState(false)
+  const [resultadoPrueba, setResultadoPrueba] = useState<{
+    followupsEnviados: number; marcadosPerdidos: number; detalle: string[]; errores: string[]
+  } | null>(null)
 
   const [tema, setTema] = useState<Tema>('claro')
   useEffect(() => {
@@ -114,6 +120,22 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
       setError(e instanceof Error ? e.message : 'Error al guardar')
     } finally {
       setGuardando(false)
+    }
+  }
+
+  const probarFollowup = async () => {
+    setProbando(true)
+    setResultadoPrueba(null)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/fenix-leads-agente/followup-test', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo ejecutar')
+      setResultadoPrueba(data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al probar el follow-up')
+    } finally {
+      setProbando(false)
     }
   }
 
@@ -265,14 +287,68 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
 
         <Section c={c} title="Mensaje de seguimiento (follow-up)" badge="AUTOMÁTICO">
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-            Si el lead nunca responde, este mensaje se envía solo, una vez, ~20 horas después de la autorespuesta -- pregunta si quiere seguir la conversación e incluye el link de la landing. Si tampoco responde a este, ~48 horas después el lead se marca automáticamente como &quot;Perdido&quot; en el pipeline (solo si sigue en &quot;Nuevo&quot;, nunca pisa una etapa que ya hayas movido a mano). Corre una vez al día.
+            Si el lead nunca responde, este mensaje se envía solo, una vez, cuando pasen las horas de abajo desde la autorespuesta -- pregunta si quiere seguir la conversación e incluye el link de la landing. Si tampoco responde a este, cuando pasen las otras horas el lead se marca automáticamente como &quot;Perdido&quot; en el pipeline (solo si sigue en &quot;Nuevo&quot;, nunca pisa una etapa que ya hayas movido a mano). Se revisa una vez al día.
           </p>
           <textarea
             value={form.mensaje_followup || ''}
             onChange={(e) => patch({ mensaje_followup: e.target.value })}
             rows={4}
-            style={{ ...inputStyle, resize: 'vertical' }}
+            style={{ ...inputStyle, resize: 'vertical', marginBottom: 14 }}
           />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div>
+              <label style={labelStyle}>Horas sin responder → enviar follow-up</label>
+              <input
+                type="number" min={1} style={inputStyle}
+                value={form.horas_followup}
+                onChange={(e) => patch({ horas_followup: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Horas después del follow-up → marcar perdido</label>
+              <input
+                type="number" min={1} style={inputStyle}
+                value={form.horas_perdido}
+                onChange={(e) => patch({ horas_perdido: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
+            <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
+              Ejecuta la revisión ahora mismo (lo mismo que hace el cron diario) -- útil para probar sin esperar. Si hay leads elegibles en este momento, les llega el mensaje de verdad.
+            </p>
+            <button
+              type="button"
+              onClick={probarFollowup}
+              disabled={probando}
+              style={{
+                padding: '9px 16px', borderRadius: 10, border: `1px solid ${c.linkBorder}`,
+                background: c.linkBg, color: c.linkColor, fontWeight: 700, fontSize: 12.5,
+                cursor: probando ? 'default' : 'pointer', opacity: probando ? 0.6 : 1, fontFamily: 'inherit',
+              }}
+            >
+              {probando ? 'Ejecutando…' : '▶ Probar ahora'}
+            </button>
+
+            {resultadoPrueba && (
+              <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: c.inputBg, border: `1px solid ${c.border}` }}>
+                <p style={{ fontSize: 12.5, fontWeight: 700, color: c.ink, margin: '0 0 6px' }}>
+                  {resultadoPrueba.followupsEnviados} follow-up(s) enviados · {resultadoPrueba.marcadosPerdidos} marcado(s) perdido(s)
+                </p>
+                {resultadoPrueba.detalle.length === 0 && resultadoPrueba.errores.length === 0 && (
+                  <p style={{ fontSize: 12, color: c.ink3, margin: 0 }}>Nadie era elegible todavía (nadie cumplía las horas configuradas en este momento).</p>
+                )}
+                {resultadoPrueba.detalle.map((linea, i) => (
+                  <p key={i} style={{ fontSize: 12, color: c.ink2, margin: '2px 0' }}>• {linea}</p>
+                ))}
+                {resultadoPrueba.errores.map((linea, i) => (
+                  <p key={i} style={{ fontSize: 12, color: '#dc2626', margin: '2px 0' }}>⚠ {linea}</p>
+                ))}
+              </div>
+            )}
+          </div>
         </Section>
 
         <Section c={c} title="System prompt avanzado" badge="AVANZADO">

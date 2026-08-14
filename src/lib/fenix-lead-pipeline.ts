@@ -45,6 +45,7 @@ const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 const INSTANCE_NAME = 'fenix_cobranza'
 const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/entregable-fenix.pdf'
+const VIDEO_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/fenix-video.mp4'
 
 export type LeadFenix = {
   empresa: string
@@ -163,6 +164,8 @@ type LeadsAgenteConfig = {
   mensaje_bienvenida: string | null
   nombre_archivo_entregable: string | null
   pregunta_cierre: string | null
+  video_activo: boolean
+  video_caption: string | null
 }
 
 const DEFAULT_MENSAJE_BIENVENIDA = [
@@ -172,12 +175,13 @@ const DEFAULT_MENSAJE_BIENVENIDA = [
 ].join('\n\n')
 const DEFAULT_NOMBRE_ARCHIVO = 'Factores claves - Fénix Consultores.pdf'
 const DEFAULT_PREGUNTA_CIERRE = '¿Qué necesitas? -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?'
+const DEFAULT_VIDEO_CAPTION = 'Un video corto para conocernos mejor 🎥'
 
 async function obtenerConfigLeadsAgente(): Promise<LeadsAgenteConfig> {
   try {
     const { data } = await supabase
       .from('fenix_leads_agente')
-      .select('activo, mensaje_bienvenida, nombre_archivo_entregable, pregunta_cierre')
+      .select('activo, mensaje_bienvenida, nombre_archivo_entregable, pregunta_cierre, video_activo, video_caption')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
@@ -186,10 +190,12 @@ async function obtenerConfigLeadsAgente(): Promise<LeadsAgenteConfig> {
       mensaje_bienvenida: data?.mensaje_bienvenida || null,
       nombre_archivo_entregable: data?.nombre_archivo_entregable || null,
       pregunta_cierre: data?.pregunta_cierre || null,
+      video_activo: data?.video_activo !== false,
+      video_caption: data?.video_caption || null,
     }
   } catch (e) {
     console.error('[fenix-lead-pipeline] obtenerConfigLeadsAgente error:', e)
-    return { activo: true, mensaje_bienvenida: null, nombre_archivo_entregable: null, pregunta_cierre: null }
+    return { activo: true, mensaje_bienvenida: null, nombre_archivo_entregable: null, pregunta_cierre: null, video_activo: true, video_caption: null }
   }
 }
 
@@ -213,6 +219,23 @@ async function enviarDocumentoEntregable(remoteJid: string, nombreArchivo: strin
   })
   if (!res.ok) {
     throw new Error(`Evolution API rechazó el envío del documento: ${res.status} ${await res.text().catch(() => '')}`)
+  }
+}
+
+async function enviarVideoEntregable(remoteJid: string, caption: string) {
+  const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
+    body: JSON.stringify({
+      number: remoteJid,
+      mediatype: 'video',
+      mimetype: 'video/mp4',
+      media: VIDEO_URL,
+      caption,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`Evolution API rechazó el envío del video: ${res.status} ${await res.text().catch(() => '')}`)
   }
 }
 
@@ -251,23 +274,36 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
   await enviarTexto(intro)
   await new Promise((r) => setTimeout(r, 900))
   await enviarDocumentoEntregable(remoteJid, nombreArchivo)
+
+  const historialEnviados: { role: 'assistant'; content: string }[] = [
+    { role: 'assistant', content: intro },
+    { role: 'assistant', content: `[Documento enviado: ${nombreArchivo}]` },
+  ]
+  const partesMensaje = [intro, `📎 Documento enviado: ${nombreArchivo}`]
+
+  if (cfg.video_activo) {
+    const videoCaption = cfg.video_caption || DEFAULT_VIDEO_CAPTION
+    await new Promise((r) => setTimeout(r, 900))
+    await enviarVideoEntregable(remoteJid, videoCaption)
+    historialEnviados.push({ role: 'assistant', content: `[Video enviado: ${videoCaption}]` })
+    partesMensaje.push(`🎥 Video enviado: ${videoCaption}`)
+  }
+
   await new Promise((r) => setTimeout(r, 900))
   await enviarTexto(preguntaCierre)
+  historialEnviados.push({ role: 'assistant', content: preguntaCierre })
+  partesMensaje.push(preguntaCierre)
 
   const { error } = await supabase.from('fenix_conversaciones').upsert({
     instance_name: INSTANCE_NAME,
     remote_jid: remoteJid,
     tipo: 'lead',
-    historial: [
-      { role: 'assistant', content: intro },
-      { role: 'assistant', content: `[Documento enviado: ${nombreArchivo}]` },
-      { role: 'assistant', content: preguntaCierre },
-    ],
+    historial: historialEnviados,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'instance_name,remote_jid' })
   if (error) throw new Error(error.message)
 
-  const mensajeCompleto = [intro, `📎 Documento enviado: ${nombreArchivo}`, preguntaCierre].join('\n\n')
+  const mensajeCompleto = partesMensaje.join('\n\n')
   return { intro, nombreArchivo, preguntaCierre, mensajeCompleto }
 }
 

@@ -70,7 +70,7 @@ function exportCSV(leads: FenixLead[]) {
   URL.revokeObjectURL(url)
 }
 
-async function updateLead(id: string, data: { etapa?: string; notas?: string }) {
+async function updateLead(id: string, data: { etapa?: string; notas?: string; empresa?: string; nombre?: string; email?: string; telefono?: string; mensaje?: string }) {
   const res = await fetch(`/api/admin/fenix-leads/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -91,6 +91,8 @@ export function FenixLeadsClient({ initialLeads }: {
   const [detalle, setDetalle] = useState<FenixLead | null>(null)
   const [notasBorrador, setNotasBorrador] = useState('')
   const [guardandoNotas, setGuardandoNotas] = useState(false)
+  const [datosBorrador, setDatosBorrador] = useState({ empresa: '', nombre: '', email: '', telefono: '', mensaje: '' })
+  const [guardandoDatos, setGuardandoDatos] = useState(false)
   const [enviandoAutoresp, setEnviandoAutoresp] = useState(false)
   const [autorespResultado, setAutorespResultado] = useState<{ ok: boolean; texto: string } | null>(null)
   const [verMensajeAutoresp, setVerMensajeAutoresp] = useState(false)
@@ -115,6 +117,7 @@ export function FenixLeadsClient({ initialLeads }: {
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
     setNotasBorrador(lead.notas || '')
+    setDatosBorrador({ empresa: lead.empresa, nombre: lead.nombre, email: lead.email, telefono: lead.telefono, mensaje: lead.mensaje || '' })
     setAutorespResultado(null)
     setVerMensajeAutoresp(false)
   }
@@ -142,6 +145,32 @@ export function FenixLeadsClient({ initialLeads }: {
       setError('No se pudieron guardar las notas.')
     } finally {
       setGuardandoNotas(false)
+    }
+  }
+
+  const datosCambiaron = detalle
+    ? datosBorrador.empresa !== detalle.empresa ||
+      datosBorrador.nombre !== detalle.nombre ||
+      datosBorrador.email !== detalle.email ||
+      datosBorrador.telefono !== detalle.telefono ||
+      datosBorrador.mensaje !== (detalle.mensaje || '')
+    : false
+
+  async function guardarDatos() {
+    if (!detalle) return
+    if (!datosBorrador.empresa.trim() || !datosBorrador.nombre.trim() || !datosBorrador.telefono.trim()) {
+      setError('Empresa, nombre y teléfono no pueden quedar vacíos.')
+      return
+    }
+    setGuardandoDatos(true)
+    try {
+      await updateLead(detalle.id, datosBorrador)
+      setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...datosBorrador } : l)))
+      setDetalle(d => (d ? { ...d, ...datosBorrador } : d))
+    } catch {
+      setError('No se pudieron guardar los datos.')
+    } finally {
+      setGuardandoDatos(false)
     }
   }
 
@@ -438,11 +467,59 @@ export function FenixLeadsClient({ initialLeads }: {
               </div>
             </div>
 
-            {/* Datos */}
+            {/* Datos del lead (editables) */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                Datos del lead
+              </div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {([
+                  { campo: 'empresa' as const, label: 'Empresa' },
+                  { campo: 'nombre' as const, label: 'Nombre de contacto' },
+                  { campo: 'email' as const, label: 'Email' },
+                  { campo: 'telefono' as const, label: 'Teléfono' },
+                ]).map(({ campo, label }) => (
+                  <div key={campo}>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{label}</label>
+                    <input
+                      value={datosBorrador[campo]}
+                      onChange={e => setDatosBorrador(d => ({ ...d, [campo]: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qué necesita</label>
+                  <textarea
+                    value={datosBorrador.mensaje}
+                    onChange={e => setDatosBorrador(d => ({ ...d, mensaje: e.target.value }))}
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                      fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={guardarDatos}
+                disabled={guardandoDatos || !datosCambiaron}
+                style={{
+                  marginTop: '10px', padding: '9px 16px', borderRadius: '9px', border: 'none',
+                  background: datosCambiaron ? '#0f172a' : '#e2e8f0',
+                  color: datosCambiaron ? '#fff' : '#94a3b8',
+                  fontSize: '12.5px', fontWeight: 700, cursor: guardandoDatos ? 'default' : 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {guardandoDatos ? 'Guardando…' : 'Guardar datos'}
+              </button>
+            </div>
+
+            {/* Metadatos (solo lectura) */}
             {[
-              { l: 'Email', v: detalle.email },
-              { l: 'Teléfono', v: detalle.telefono },
-              { l: 'Qué necesita', v: detalle.mensaje || '—' },
               { l: 'Fuente', v: detalle.fuente },
               { l: 'Llegó', v: formatFecha(detalle.created_at) },
             ].map(row => (

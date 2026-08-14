@@ -13,9 +13,10 @@ const supabaseService = createServiceClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const CAMPOS_EDITABLES = [
+const CAMPOS_TEXTO = [
   'activo', 'mensaje_bienvenida', 'nombre_archivo_entregable', 'pregunta_cierre', 'mensaje_followup', 'system_prompt',
 ] as const
+const CAMPOS_NUMERICOS = ['horas_followup', 'horas_perdido'] as const
 
 export async function GET() {
   const admin = await getCurrentAdmin()
@@ -44,8 +45,17 @@ export async function PUT(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: Record<string, any> = {}
-  for (const campo of CAMPOS_EDITABLES) {
+  for (const campo of CAMPOS_TEXTO) {
     if (body[campo] !== undefined) update[campo] = body[campo]
+  }
+  for (const campo of CAMPOS_NUMERICOS) {
+    if (body[campo] !== undefined) {
+      const n = Number(body[campo])
+      if (!Number.isFinite(n) || n < 1) {
+        return NextResponse.json({ error: `${campo} debe ser un número mayor a 0` }, { status: 400 })
+      }
+      update[campo] = Math.round(n)
+    }
   }
 
   if (Object.keys(update).length === 0) {

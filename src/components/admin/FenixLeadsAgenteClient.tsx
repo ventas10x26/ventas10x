@@ -39,6 +39,7 @@ type FenixLeadsAgente = {
   mensaje_bienvenida: string | null
   nombre_archivo_entregable: string | null
   pregunta_cierre: string | null
+  mensaje_followup: string | null
   system_prompt: string | null
   updated_at: string | null
 }
@@ -258,6 +259,18 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
             value={form.pregunta_cierre || ''}
             onChange={(e) => patch({ pregunta_cierre: e.target.value })}
             rows={3}
+            style={{ ...inputStyle, resize: 'vertical' }}
+          />
+        </Section>
+
+        <Section c={c} title="Mensaje de seguimiento (follow-up)" badge="AUTOMÁTICO">
+          <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
+            Si el lead nunca responde, este mensaje se envía solo, una vez, ~20 horas después de la autorespuesta -- pregunta si quiere seguir la conversación e incluye el link de la landing. Si tampoco responde a este, ~48 horas después el lead se marca automáticamente como &quot;Perdido&quot; en el pipeline (solo si sigue en &quot;Nuevo&quot;, nunca pisa una etapa que ya hayas movido a mano). Corre una vez al día.
+          </p>
+          <textarea
+            value={form.mensaje_followup || ''}
+            onChange={(e) => patch({ mensaje_followup: e.target.value })}
+            rows={4}
             style={{ ...inputStyle, resize: 'vertical' }}
           />
         </Section>

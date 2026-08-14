@@ -95,23 +95,27 @@ function construirSystemPrompt(cfg: FenixAgenteConfig): string {
 
 // Variante para conversaciones que arrancan desde el formulario de leads
 // (fenix_leads / /api/fenix-contacto) -- no son deudores, son empresas
-// interesadas en contratar a Fénix. El system_prompt es editable desde
-// /admin/fenix/leads-agente; si está vacío se usa este por defecto,
-// construido con contenido de la landing https://app.consultoresfenix.com
-// (que resuelve al mismo sitio que /fenix-consultores).
-async function obtenerSystemPromptLead(): Promise<string> {
+// interesadas en contratar a Fénix. El system_prompt y el interruptor
+// "activo" son editables desde /admin/fenix/leads-agente; si el prompt
+// está vacío se usa este por defecto, construido con contenido de la
+// landing https://app.consultoresfenix.com (que resuelve al mismo sitio
+// que /fenix-consultores).
+async function obtenerConfigLeadsAgenteWebhook(): Promise<{ activo: boolean; systemPrompt: string }> {
   try {
     const { data } = await supabaseAdmin
       .from('fenix_leads_agente')
-      .select('system_prompt')
+      .select('activo, system_prompt')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
-    if (data?.system_prompt && data.system_prompt.trim()) return data.system_prompt
+    return {
+      activo: data?.activo !== false,
+      systemPrompt: (data?.system_prompt && data.system_prompt.trim()) ? data.system_prompt : construirSystemPromptLeadDefault(),
+    }
   } catch (e) {
-    console.error('[fenix webhook] obtenerSystemPromptLead error:', e)
+    console.error('[fenix webhook] obtenerConfigLeadsAgenteWebhook error:', e)
+    return { activo: true, systemPrompt: construirSystemPromptLeadDefault() }
   }
-  return construirSystemPromptLeadDefault()
 }
 
 function construirSystemPromptLeadDefault(): string {
@@ -210,9 +214,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       let systemPrompt: string
       if (tipo === 'lead') {
         // Conversación iniciada desde el formulario de leads -- agente
-        // informativo de Fénix, no depende del toggle bot_activo del
-        // panel de cobro (son cosas distintas).
-        systemPrompt = await obtenerSystemPromptLead()
+        // informativo de Fénix. Este toggle es independiente del
+        // bot_activo del panel de cobro (son cosas distintas) y también
+        // independiente de si el WhatsApp sigue conectado -- solo
+        // controla si el agente informativo debe seguir respondiendo.
+        const cfgLead = await obtenerConfigLeadsAgenteWebhook()
+        if (!cfgLead.activo) continue
+        systemPrompt = cfgLead.systemPrompt
       } else {
         const cfg = await obtenerConfigAgente()
         if (!cfg || !cfg.bot_activo) continue

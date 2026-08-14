@@ -17,6 +17,8 @@ type FenixLead = {
   etapa: string
   notas: string | null
   created_at: string
+  autorespuesta_enviada_at: string | null
+  autorespuesta_mensaje: string | null
 }
 
 const ETAPAS = [
@@ -91,6 +93,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const [guardandoNotas, setGuardandoNotas] = useState(false)
   const [enviandoAutoresp, setEnviandoAutoresp] = useState(false)
   const [autorespResultado, setAutorespResultado] = useState<{ ok: boolean; texto: string } | null>(null)
+  const [verMensajeAutoresp, setVerMensajeAutoresp] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const filtrados = leads.filter(l => {
@@ -113,6 +116,7 @@ export function FenixLeadsClient({ initialLeads }: {
     setDetalle(lead)
     setNotasBorrador(lead.notas || '')
     setAutorespResultado(null)
+    setVerMensajeAutoresp(false)
   }
 
   async function cambiarEtapa(id: string, etapa: string) {
@@ -149,6 +153,9 @@ export function FenixLeadsClient({ initialLeads }: {
       const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/autorespuesta`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
+      const actualizacion = { autorespuesta_enviada_at: data.autorespuesta_enviada_at, autorespuesta_mensaje: data.autorespuesta_mensaje }
+      setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...actualizacion } : l)))
+      setDetalle(d => (d ? { ...d, ...actualizacion } : d))
       setAutorespResultado({ ok: true, texto: '✓ Autorespuesta enviada por WhatsApp' })
     } catch (e) {
       setAutorespResultado({ ok: false, texto: e instanceof Error ? e.message : 'No se pudo enviar' })
@@ -474,6 +481,30 @@ export function FenixLeadsClient({ initialLeads }: {
               </button>
             </div>
 
+            {/* Autorespuesta ya enviada (si aplica) */}
+            {detalle.autorespuesta_enviada_at && (
+              <div style={{ marginTop: '16px', padding: '12px 14px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#16a34a' }}>
+                    ✓ Autorespuesta enviada — {formatFecha(detalle.autorespuesta_enviada_at)}
+                  </span>
+                  {detalle.autorespuesta_mensaje && (
+                    <button onClick={() => setVerMensajeAutoresp(v => !v)} style={{
+                      background: 'none', border: 'none', color: '#16a34a', fontSize: '12px', fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', flexShrink: 0,
+                    }}>
+                      {verMensajeAutoresp ? 'Ocultar mensaje' : 'Ver mensaje'}
+                    </button>
+                  )}
+                </div>
+                {verMensajeAutoresp && detalle.autorespuesta_mensaje && (
+                  <p style={{ marginTop: '10px', fontSize: '12.5px', color: '#166534', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {detalle.autorespuesta_mensaje}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Acciones */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
               <a href={waLink(detalle.telefono)} target="_blank" rel="noopener noreferrer" style={{
@@ -499,7 +530,7 @@ export function FenixLeadsClient({ initialLeads }: {
                 cursor: enviandoAutoresp ? 'default' : 'pointer', fontFamily: 'inherit', opacity: enviandoAutoresp ? 0.6 : 1,
               }}
             >
-              {enviandoAutoresp ? 'Enviando…' : '🤖 Enviar autorespuesta (bienvenida + PDF)'}
+              {enviandoAutoresp ? 'Enviando…' : detalle.autorespuesta_enviada_at ? '🤖 Reenviar autorespuesta (bienvenida + PDF)' : '🤖 Enviar autorespuesta (bienvenida + PDF)'}
             </button>
             {autorespResultado && (
               <p style={{ marginTop: '8px', fontSize: '12.5px', color: autorespResultado.ok ? '#16a34a' : '#dc2626', textAlign: 'center' }}>

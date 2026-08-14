@@ -2,15 +2,14 @@
 // Panel de leads y pipeline de Fenix Consultores. Fenix no es un tenant de
 // Ventas10x (no tiene org_id ni vendedor_id) -- por eso vive bajo /admin,
 // igual que /admin/pagos, y no bajo /dashboard, que filtra por org activa.
+// Las visitas de la landing (GA4 + Clarity) tienen su propia página en
+// /admin/fenix/visitas -- antes vivían acá mezcladas con el pipeline.
 
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
 import { FenixLeadsClient } from '@/components/admin/FenixLeadsClient'
-import { FenixVisitasChart } from '@/components/admin/FenixVisitasChart'
-import { obtenerVisitasDiariasFenix } from '@/lib/ga4'
-import { obtenerMetricasClarity } from '@/lib/clarity'
 
 const supabaseService = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,28 +29,10 @@ export default async function AdminFenixPage() {
     redirect(esFenix ? '/auth/login' : '/dashboard')
   }
 
-  // Los leads viven en Supabase y las visitas en GA4: son dos fuentes
-  // independientes. Si GA4 no está configurada todavía o Google rechaza la
-  // solicitud, el panel de leads debe seguir funcionando igual -- por eso
-  // el error se atrapa aquí y no se deja subir.
-  const [leadsRes, visitas, clarity] = await Promise.all([
-    supabaseService.from('fenix_leads').select('*').order('created_at', { ascending: false }),
-    obtenerVisitasDiariasFenix(30).catch(err => {
-      console.error('[admin/fenix] GA4 no disponible:', err instanceof Error ? err.message : err)
-      return null
-    }),
-    obtenerMetricasClarity().catch(err => {
-      console.error('[admin/fenix] Clarity no disponible:', err instanceof Error ? err.message : err)
-      return null
-    }),
-  ])
+  const { data: leads } = await supabaseService
+    .from('fenix_leads')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-  return (
-    <FenixLeadsClient
-      initialLeads={leadsRes.data || []}
-      visitas={visitas}
-      clarity={clarity}
-      clarityProjectId={process.env.NEXT_PUBLIC_CLARITY_ID}
-    />
-  )
+  return <FenixLeadsClient initialLeads={leads || []} />
 }

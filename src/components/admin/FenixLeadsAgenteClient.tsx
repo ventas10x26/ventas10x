@@ -22,17 +22,20 @@ function colores(tema: Tema) {
         border: '#1e293b', ink: '#fff', ink2: '#94a3b8', ink3: '#64748b',
         inputBg: 'rgba(15,23,42,0.8)', inputBorder: '#334155', inputColor: '#fff',
         linkBg: 'rgba(255,255,255,0.04)', linkBorder: '#334155', linkColor: '#94a3b8',
+        toggleOff: '#334155',
       }
     : {
         pageBg: '#f7f6f4', headerBg: '#f7f6f4', cardBg: '#fff',
         border: '#e2e8f0', ink: '#0f172a', ink2: '#64748b', ink3: '#94a3b8',
         inputBg: '#fff', inputBorder: '#e2e8f0', inputColor: '#0f172a',
         linkBg: '#fff', linkBorder: '#e2e8f0', linkColor: '#64748b',
+        toggleOff: '#e2e8f0',
       }
 }
 
 type FenixLeadsAgente = {
   id: string
+  activo: boolean
   mensaje_bienvenida: string | null
   nombre_archivo_entregable: string | null
   pregunta_cierre: string | null
@@ -187,6 +190,40 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
 
         {error   && <p style={{ color: tema === 'oscuro' ? '#f87171' : '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</p>}
         {mensaje && <p style={{ color: tema === 'oscuro' ? '#4ade80' : '#16a34a', fontSize: 13, marginBottom: 12 }}>{mensaje}</p>}
+
+        <section style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 16, padding: 20, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: '0 0 4px', color: c.ink }}>Autorespuesta a leads</h2>
+              <p style={{ fontSize: 12, color: c.ink2, margin: 0 }}>
+                {form.activo
+                  ? '🟢 Activa — se envía apenas alguien llena el formulario de contacto'
+                  : '⚪ Inactiva — los leads se siguen guardando y avisando al equipo, pero no reciben WhatsApp automático'}
+              </p>
+              <p style={{ fontSize: 11, color: c.ink3, margin: '6px 0 0' }}>
+                Este interruptor es independiente del estado de conexión de WhatsApp (en Agente de cobro → Avanzado). Actívalo o desactívalo sin importar si el WhatsApp está conectado.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => patch({ activo: !form.activo })}
+              style={{
+                position: 'relative', width: 52, height: 28, borderRadius: 999,
+                border: 'none', padding: 0, flexShrink: 0, cursor: 'pointer',
+                background: form.activo ? ACCENT : c.toggleOff,
+                transition: 'background 0.2s',
+              }}
+              aria-label={form.activo ? 'Desactivar autorespuesta a leads' : 'Activar autorespuesta a leads'}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: form.activo ? 27 : 3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+          </div>
+        </section>
 
         <Section c={c} title="Mensaje de bienvenida" badge="1er MENSAJE">
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>

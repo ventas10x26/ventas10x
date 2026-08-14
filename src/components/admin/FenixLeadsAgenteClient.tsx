@@ -42,6 +42,8 @@ type FenixLeadsAgente = {
   mensaje_followup: string | null
   horas_followup: number
   horas_perdido: number
+  video_activo: boolean
+  video_caption: string | null
   system_prompt: string | null
   updated_at: string | null
 }
@@ -273,9 +275,51 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
           />
         </Section>
 
-        <Section c={c} title="Pregunta de cierre" badge="3er MENSAJE">
+        <section style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: 16, padding: 20, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: 0, color: c.ink }}>Video</h2>
+              <span style={{ fontSize: 9, fontWeight: 800, color: ACCENT, background: `${ACCENT}15`, border: `1px solid ${ACCENT}40`, padding: '4px 10px', borderRadius: 999, letterSpacing: 0.5 }}>
+                DESPUÉS DEL PDF
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => patch({ video_activo: !form.video_activo })}
+              style={{
+                position: 'relative', width: 52, height: 28, borderRadius: 999,
+                border: 'none', padding: 0, flexShrink: 0, cursor: 'pointer',
+                background: form.video_activo ? ACCENT : c.toggleOff,
+                transition: 'background 0.2s',
+              }}
+              aria-label={form.video_activo ? 'Desactivar video' : 'Activar video'}
+            >
+              <span style={{
+                position: 'absolute', top: 3, left: form.video_activo ? 27 : 3,
+                width: 22, height: 22, borderRadius: '50%',
+                background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                transition: 'left 0.2s', display: 'block',
+              }} />
+            </button>
+          </div>
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-            Se envía justo después del documento, para arrancar la conversación.
+            {form.video_activo
+              ? '🟢 Se envía justo después del PDF, antes de la pregunta de cierre.'
+              : '⚪ Desactivado -- la secuencia sigue igual, solo sin el video.'}
+          </p>
+          <label style={labelStyle}>Texto que acompaña al video (opcional)</label>
+          <input
+            style={inputStyle}
+            placeholder="Ej: Un video corto para conocernos mejor 🎥"
+            value={form.video_caption || ''}
+            onChange={(e) => patch({ video_caption: e.target.value })}
+            disabled={!form.video_activo}
+          />
+        </section>
+
+        <Section c={c} title="Pregunta de cierre" badge="4to MENSAJE">
+          <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
+            Se envía justo después del documento{form.video_activo ? ' y el video' : ''}, para arrancar la conversación.
           </p>
           <textarea
             value={form.pregunta_cierre || ''}

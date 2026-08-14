@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
-import { enviarAutorespuestaLead, type LeadFenix } from '@/lib/fenix-lead-pipeline'
+import { enviarAutorespuestaLead, marcarAutorespuestaEnviada, type LeadFenix } from '@/lib/fenix-lead-pipeline'
 
 const supabaseService = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,8 +50,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    await enviarAutorespuestaLead(lead, { forzar: true })
-    return NextResponse.json({ ok: true })
+    const enviado = await enviarAutorespuestaLead(lead, { forzar: true })
+    if (!enviado) {
+      // No debería pasar con forzar:true, pero por si acaso -- ver enviarAutorespuestaLead
+      return NextResponse.json({ error: 'El agente de leads no está configurado correctamente' }, { status: 500 })
+    }
+    const enviadaEn = new Date().toISOString()
+    await marcarAutorespuestaEnviada(id, enviado.mensajeCompleto)
+    return NextResponse.json({ ok: true, autorespuesta_enviada_at: enviadaEn, autorespuesta_mensaje: enviado.mensajeCompleto })
   } catch (e) {
     console.error('[admin/fenix-leads/autorespuesta] Error al enviar:', e)
     const mensaje = e instanceof Error ? e.message : 'No se pudo enviar la autorespuesta'

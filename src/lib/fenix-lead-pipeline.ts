@@ -54,16 +54,17 @@ export type LeadFenix = {
   mensaje: string
 }
 
-async function guardarLead(lead: LeadFenix, fuente: string) {
-  const { error } = await supabase.from('fenix_leads').insert({
+async function guardarLead(lead: LeadFenix, fuente: string): Promise<string | null> {
+  const { data, error } = await supabase.from('fenix_leads').insert({
     empresa: lead.empresa,
     nombre: lead.nombre,
     email: lead.email,
     telefono: lead.telefono,
     mensaje: lead.mensaje || null,
     fuente,
-  })
+  }).select('id').single()
   if (error) throw new Error(error.message)
+  return data?.id ?? null
 }
 
 function htmlLeadFenix(lead: LeadFenix, fuente: string) {
@@ -215,7 +216,14 @@ async function enviarDocumentoEntregable(remoteJid: string, nombreArchivo: strin
   }
 }
 
-export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forzar?: boolean } = {}) {
+export type AutorespuestaEnviada = {
+  intro: string
+  nombreArchivo: string
+  preguntaCierre: string
+  mensajeCompleto: string
+}
+
+export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forzar?: boolean } = {}): Promise<AutorespuestaEnviada | null> {
   if (!EVO_URL || !EVO_KEY) throw new Error('EVOLUTION_API_URL/EVOLUTION_API_KEY no configuradas')
 
   const digitos = lead.telefono.replace(/\D/g, '')
@@ -223,7 +231,7 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
   const remoteJid = `${digitos}@s.whatsapp.net`
 
   const cfg = await obtenerConfigLeadsAgente()
-  if (!cfg.activo && !opciones.forzar) return // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
+  if (!cfg.activo && !opciones.forzar) return null // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
 
   const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
   const nombreArchivo = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
@@ -258,6 +266,20 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
     updated_at: new Date().toISOString(),
   }, { onConflict: 'instance_name,remote_jid' })
   if (error) throw new Error(error.message)
+
+  const mensajeCompleto = [intro, `📎 Documento enviado: ${nombreArchivo}`, preguntaCierre].join('\n\n')
+  return { intro, nombreArchivo, preguntaCierre, mensajeCompleto }
+}
+
+// Deja constancia en fenix_leads de cuándo se envió la autorespuesta y qué
+// decía, para que el admin lo muestre en el modal del lead (tanto para
+// envíos automáticos como para el botón manual de "Enviar autorespuesta").
+export async function marcarAutorespuestaEnviada(leadId: string, mensajeCompleto: string) {
+  const { error } = await supabase
+    .from('fenix_leads')
+    .update({ autorespuesta_enviada_at: new Date().toISOString(), autorespuesta_mensaje: mensajeCompleto })
+    .eq('id', leadId)
+  if (error) console.error('[fenix-lead-pipeline] marcarAutorespuestaEnviada error:', error)
 }
 
 export type ResultadoProcesarLead = {
@@ -268,27 +290,40 @@ export type ResultadoProcesarLead = {
 }
 
 // Punto de entrada único: guarda el lead, avisa al equipo por correo y por
-// WhatsApp, y le manda la autorespuesta al lead -- todo en paralelo, cada
-// canal independiente de los demás (igual que ya hacía /api/fenix-contacto).
-// `fuente` identifica de dónde vino el lead (landing_fenix_consultores,
-// meta_ads_leadgen, etc.) y queda guardado en fenix_leads.fuente.
+// WhatsApp, y le manda la autorespuesta al lead. El guardado va primero (es
+// rápido, un simple insert) para tener el id del lead y así poder marcar en
+// fenix_leads cuándo se envió la autorespuesta y qué decía -- los otros tres
+// canales corren en paralelo después, cada uno independiente de los demás
+// (igual que ya hacía /api/fenix-contacto). `fuente` identifica de dónde
+// vino el lead (landing_fenix_consultores, meta_ads_leadgen, etc.).
 export async function procesarLeadFenix(lead: LeadFenix, fuente: string): Promise<ResultadoProcesarLead> {
-  const [guardado, porEmail, porWhatsApp, autorespuesta] = await Promise.allSettled([
-    guardarLead(lead, fuente),
+  let leadId: string | null = null
+  let guardadoOk = false
+  try {
+    leadId = await guardarLead(lead, fuente)
+    guardadoOk = true
+  } catch (e) {
+    console.error(`[fenix-lead-pipeline:${fuente}] no se guardó en Supabase:`, e)
+  }
+
+  const [porEmail, porWhatsApp, autorespuesta] = await Promise.allSettled([
     enviarEmailFenix(lead, fuente),
     notificarWhatsAppFenix(lead, fuente),
     enviarAutorespuestaLead(lead),
   ])
 
-  if (guardado.status === 'rejected') console.error(`[fenix-lead-pipeline:${fuente}] no se guardó en Supabase:`, guardado.reason)
   if (porEmail.status === 'rejected') console.error(`[fenix-lead-pipeline:${fuente}] email falló:`, porEmail.reason)
   if (porWhatsApp.status === 'rejected') console.error(`[fenix-lead-pipeline:${fuente}] whatsapp al equipo falló:`, porWhatsApp.reason)
   if (autorespuesta.status === 'rejected') console.error(`[fenix-lead-pipeline:${fuente}] autorespuesta al lead falló:`, autorespuesta.reason)
 
+  if (autorespuesta.status === 'fulfilled' && autorespuesta.value && leadId) {
+    await marcarAutorespuestaEnviada(leadId, autorespuesta.value.mensajeCompleto)
+  }
+
   return {
-    guardado: guardado.status === 'fulfilled',
+    guardado: guardadoOk,
     email: porEmail.status === 'fulfilled',
     whatsappEquipo: porWhatsApp.status === 'fulfilled',
-    autorespuesta: autorespuesta.status === 'fulfilled',
+    autorespuesta: autorespuesta.status === 'fulfilled' && !!autorespuesta.value,
   }
 }

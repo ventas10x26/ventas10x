@@ -282,6 +282,20 @@ export async function marcarAutorespuestaEnviada(leadId: string, mensajeCompleto
   if (error) console.error('[fenix-lead-pipeline] marcarAutorespuestaEnviada error:', error)
 }
 
+// Mueve el lead de "nuevo" a "contactado" apenas se le envía la
+// autorespuesta -- ya no espera a que el lead responda, "contactado"
+// significa "ya se le escribió", no "ya escribió de vuelta". Solo mueve si
+// sigue en "nuevo" (no pisa una etapa que el equipo ya haya movido a mano,
+// ni un envío manual repetido sobre un lead que ya avanzó en el pipeline).
+export async function marcarLeadContactadoPorId(leadId: string) {
+  const { error } = await supabase
+    .from('fenix_leads')
+    .update({ etapa: 'contactado' })
+    .eq('id', leadId)
+    .eq('etapa', 'nuevo')
+  if (error) console.error('[fenix-lead-pipeline] marcarLeadContactadoPorId error:', error)
+}
+
 export type ResultadoProcesarLead = {
   guardado: boolean
   email: boolean
@@ -318,6 +332,7 @@ export async function procesarLeadFenix(lead: LeadFenix, fuente: string): Promis
 
   if (autorespuesta.status === 'fulfilled' && autorespuesta.value && leadId) {
     await marcarAutorespuestaEnviada(leadId, autorespuesta.value.mensajeCompleto)
+    await marcarLeadContactadoPorId(leadId)
   }
 
   return {

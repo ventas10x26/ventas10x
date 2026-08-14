@@ -5,11 +5,6 @@
 // columnas propias de fenix_leads (empresa, telefono, mensaje, notas).
 'use client'
 import { useState } from 'react'
-import Link from 'next/link'
-import { FenixVisitasChart } from './FenixVisitasChart'
-import { FenixClarityCard } from './FenixClarityCard'
-import type { VisitaDiaria } from '@/lib/ga4'
-import type { FilaMetricaClarity } from '@/lib/clarity'
 
 type FenixLead = {
   id: string
@@ -83,11 +78,8 @@ async function updateLead(id: string, data: { etapa?: string; notas?: string }) 
   return res.json()
 }
 
-export function FenixLeadsClient({ initialLeads, visitas, clarity, clarityProjectId }: {
+export function FenixLeadsClient({ initialLeads }: {
   initialLeads: FenixLead[]
-  visitas: VisitaDiaria[] | null
-  clarity?: FilaMetricaClarity[] | null
-  clarityProjectId?: string
 }) {
   const [leads, setLeads] = useState<FenixLead[]>(initialLeads)
   const [vista, setVista] = useState<'tabla' | 'pipeline'>('pipeline')
@@ -180,14 +172,7 @@ export function FenixLeadsClient({ initialLeads, visitas, clarity, clarityProjec
                 </button>
               ))}
             </div>
-            <Link href="/admin/fenix/agente" style={{
-              padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
-              background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none',
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-            }}>
-              🤖 Agente IA
-            </Link>
+
             <button onClick={() => exportCSV(filtrados)} style={{
               padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
               background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
@@ -197,10 +182,6 @@ export function FenixLeadsClient({ initialLeads, visitas, clarity, clarityProjec
             </button>
           </div>
         </div>
-
-        <FenixVisitasChart dias={visitas} />
-
-        <FenixClarityCard metricas={clarity ?? null} projectId={clarityProjectId} />
 
         {/* Métricas */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>

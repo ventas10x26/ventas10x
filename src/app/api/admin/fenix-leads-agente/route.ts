@@ -14,7 +14,7 @@ const supabaseService = createServiceClient(
 )
 
 const CAMPOS_EDITABLES = [
-  'activo', 'mensaje_bienvenida', 'nombre_archivo_entregable', 'pregunta_cierre', 'system_prompt',
+  'activo', 'mensaje_bienvenida', 'nombre_archivo_entregable', 'pregunta_cierre', 'mensaje_followup', 'system_prompt',
 ] as const
 
 export async function GET() {

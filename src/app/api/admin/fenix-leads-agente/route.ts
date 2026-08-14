@@ -14,7 +14,8 @@ const supabaseService = createServiceClient(
 )
 
 const CAMPOS_TEXTO = [
-  'activo', 'mensaje_bienvenida', 'nombre_archivo_entregable', 'pregunta_cierre', 'mensaje_followup', 'system_prompt',
+  'activo', 'mensaje_bienvenida', 'nombre_archivo_entregable', 'pregunta_cierre', 'mensaje_followup',
+  'video_activo', 'video_caption', 'system_prompt',
 ] as const
 const CAMPOS_NUMERICOS = ['horas_followup', 'horas_perdido'] as const
 

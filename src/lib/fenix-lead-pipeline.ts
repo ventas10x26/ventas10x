@@ -44,7 +44,7 @@ const FENIX_WHATSAPP_DESTINO = '573104159173'
 const EVO_URL = process.env.EVOLUTION_API_URL!
 const EVO_KEY = process.env.EVOLUTION_API_KEY!
 const INSTANCE_NAME = 'fenix_cobranza'
-const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/entregable-fenix.pdf'
+const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/cartera-fenix.jpg'
 const VIDEO_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/fenix-video.mp4'
 
 export type LeadFenix = {
@@ -173,7 +173,7 @@ const DEFAULT_MENSAJE_BIENVENIDA = [
   'Combinamos IA, una plataforma de gestión trazable y un equipo jurídico especializado para recuperar cartera empresarial (llevamos +12 años, sectores Real y Salud).',
   'Te comparto nuestro brochure con el detalle del modelo 👇',
 ].join('\n\n')
-const DEFAULT_NOMBRE_ARCHIVO = 'Factores claves - Fénix Consultores.pdf'
+const DEFAULT_NOMBRE_ARCHIVO = 'Recuperación estratégica de cartera — Fénix Consultores'
 const DEFAULT_PREGUNTA_CIERRE = '¿Qué necesitas? -- ¿quieres saber cómo aplica a tu sector, tiempos de recuperación, o prefieres agendar el diagnóstico gratuito con un especialista?'
 const DEFAULT_VIDEO_CAPTION = 'Un video corto para conocernos mejor 🎥'
 
@@ -205,20 +205,20 @@ function mensajeBienvenidaLead(lead: LeadFenix, plantilla: string): string {
     .replaceAll('{empresa}', lead.empresa)
 }
 
-async function enviarDocumentoEntregable(remoteJid: string, nombreArchivo: string) {
+async function enviarDocumentoEntregable(remoteJid: string, caption: string) {
   const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
     body: JSON.stringify({
       number: remoteJid,
-      mediatype: 'document',
-      mimetype: 'application/pdf',
+      mediatype: 'image',
+      mimetype: 'image/jpeg',
       media: ENTREGABLE_URL,
-      fileName: nombreArchivo,
+      caption,
     }),
   })
   if (!res.ok) {
-    throw new Error(`Evolution API rechazó el envío del documento: ${res.status} ${await res.text().catch(() => '')}`)
+    throw new Error(`Evolution API rechazó el envío de la imagen: ${res.status} ${await res.text().catch(() => '')}`)
   }
 }
 
@@ -257,7 +257,7 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
   if (!cfg.activo && !opciones.forzar) return null // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
 
   const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
-  const nombreArchivo = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
+  const captionEntregable = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
   const preguntaCierre = cfg.pregunta_cierre || DEFAULT_PREGUNTA_CIERRE
 
   const enviarTexto = async (texto: string) => {
@@ -273,13 +273,13 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
 
   await enviarTexto(intro)
   await new Promise((r) => setTimeout(r, 900))
-  await enviarDocumentoEntregable(remoteJid, nombreArchivo)
+  await enviarDocumentoEntregable(remoteJid, captionEntregable)
 
   const historialEnviados: { role: 'assistant'; content: string }[] = [
     { role: 'assistant', content: intro },
-    { role: 'assistant', content: `[Documento enviado: ${nombreArchivo}]` },
+    { role: 'assistant', content: `[Imagen enviada: ${captionEntregable}]` },
   ]
-  const partesMensaje = [intro, `📎 Documento enviado: ${nombreArchivo}`]
+  const partesMensaje = [intro, `🖼️ Imagen enviada: ${captionEntregable}`]
 
   if (cfg.video_activo) {
     const videoCaption = cfg.video_caption || DEFAULT_VIDEO_CAPTION
@@ -304,7 +304,7 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
   if (error) throw new Error(error.message)
 
   const mensajeCompleto = partesMensaje.join('\n\n')
-  return { intro, nombreArchivo, preguntaCierre, mensajeCompleto }
+  return { intro, nombreArchivo: captionEntregable, preguntaCierre, mensajeCompleto }
 }
 
 // Deja constancia en fenix_leads de cuándo se envió la autorespuesta y qué

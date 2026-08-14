@@ -89,6 +89,8 @@ export function FenixLeadsClient({ initialLeads }: {
   const [detalle, setDetalle] = useState<FenixLead | null>(null)
   const [notasBorrador, setNotasBorrador] = useState('')
   const [guardandoNotas, setGuardandoNotas] = useState(false)
+  const [enviandoAutoresp, setEnviandoAutoresp] = useState(false)
+  const [autorespResultado, setAutorespResultado] = useState<{ ok: boolean; texto: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const filtrados = leads.filter(l => {
@@ -110,6 +112,7 @@ export function FenixLeadsClient({ initialLeads }: {
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
     setNotasBorrador(lead.notas || '')
+    setAutorespResultado(null)
   }
 
   async function cambiarEtapa(id: string, etapa: string) {
@@ -135,6 +138,22 @@ export function FenixLeadsClient({ initialLeads }: {
       setError('No se pudieron guardar las notas.')
     } finally {
       setGuardandoNotas(false)
+    }
+  }
+
+  async function enviarAutorespuesta() {
+    if (!detalle) return
+    setEnviandoAutoresp(true)
+    setAutorespResultado(null)
+    try {
+      const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/autorespuesta`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
+      setAutorespResultado({ ok: true, texto: '✓ Autorespuesta enviada por WhatsApp' })
+    } catch (e) {
+      setAutorespResultado({ ok: false, texto: e instanceof Error ? e.message : 'No se pudo enviar' })
+    } finally {
+      setEnviandoAutoresp(false)
     }
   }
 
@@ -470,6 +489,23 @@ export function FenixLeadsClient({ initialLeads }: {
                 ✉️ Email
               </a>
             </div>
+
+            <button
+              onClick={enviarAutorespuesta}
+              disabled={enviandoAutoresp}
+              style={{
+                width: '100%', marginTop: '8px', padding: '11px', borderRadius: '10px', border: `1px solid ${ACCENT}`,
+                background: `${ACCENT}12`, color: ACCENT, fontSize: '13.5px', fontWeight: 700,
+                cursor: enviandoAutoresp ? 'default' : 'pointer', fontFamily: 'inherit', opacity: enviandoAutoresp ? 0.6 : 1,
+              }}
+            >
+              {enviandoAutoresp ? 'Enviando…' : '🤖 Enviar autorespuesta (bienvenida + PDF)'}
+            </button>
+            {autorespResultado && (
+              <p style={{ marginTop: '8px', fontSize: '12.5px', color: autorespResultado.ok ? '#16a34a' : '#dc2626', textAlign: 'center' }}>
+                {autorespResultado.texto}
+              </p>
+            )}
           </div>
         </div>
       )}

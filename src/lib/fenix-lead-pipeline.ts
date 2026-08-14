@@ -215,7 +215,7 @@ async function enviarDocumentoEntregable(remoteJid: string, nombreArchivo: strin
   }
 }
 
-async function enviarAutorespuestaLead(lead: LeadFenix) {
+export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forzar?: boolean } = {}) {
   if (!EVO_URL || !EVO_KEY) throw new Error('EVOLUTION_API_URL/EVOLUTION_API_KEY no configuradas')
 
   const digitos = lead.telefono.replace(/\D/g, '')
@@ -223,7 +223,7 @@ async function enviarAutorespuestaLead(lead: LeadFenix) {
   const remoteJid = `${digitos}@s.whatsapp.net`
 
   const cfg = await obtenerConfigLeadsAgente()
-  if (!cfg.activo) return // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
+  if (!cfg.activo && !opciones.forzar) return // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
 
   const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
   const nombreArchivo = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO

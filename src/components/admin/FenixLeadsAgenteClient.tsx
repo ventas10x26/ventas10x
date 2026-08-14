@@ -252,7 +252,7 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
 
         <Section c={c} title="Mensaje de bienvenida" badge="1er MENSAJE">
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-            Se envía apenas el lead llena el formulario, antes del documento. Usa {'{nombre}'} y {'{empresa}'} como variables.
+            Se envía apenas el lead llena el formulario, antes de la imagen. Usa {'{nombre}'} y {'{empresa}'} como variables.
           </p>
           <textarea
             value={form.mensaje_bienvenida || ''}
@@ -262,14 +262,14 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
           />
         </Section>
 
-        <Section c={c} title="Entregable (PDF)" badge="DOCUMENTO">
-          <label style={labelStyle}>Nombre visible del archivo en WhatsApp</label>
+        <Section c={c} title="Entregable (imagen)" badge="IMAGEN">
+          <label style={labelStyle}>Texto que acompaña la imagen (pie de foto)</label>
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-            Así se ve el archivo adjunto en el chat del lead (en vez del link crudo del PDF).
+            Se muestra debajo de la imagen en el chat del lead.
           </p>
           <input
             style={inputStyle}
-            placeholder="Ej: Factores claves - Fénix Consultores.pdf"
+            placeholder="Ej: Recuperación estratégica de cartera — Fénix Consultores"
             value={form.nombre_archivo_entregable || ''}
             onChange={(e) => patch({ nombre_archivo_entregable: e.target.value })}
           />
@@ -280,7 +280,7 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: 0, color: c.ink }}>Video</h2>
               <span style={{ fontSize: 9, fontWeight: 800, color: ACCENT, background: `${ACCENT}15`, border: `1px solid ${ACCENT}40`, padding: '4px 10px', borderRadius: 999, letterSpacing: 0.5 }}>
-                DESPUÉS DEL PDF
+                DESPUÉS DE LA IMAGEN
               </span>
             </div>
             <button
@@ -304,7 +304,7 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
           </div>
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
             {form.video_activo
-              ? '🟢 Se envía justo después del PDF, antes de la pregunta de cierre.'
+              ? '🟢 Se envía justo después de la imagen, antes de la pregunta de cierre.'
               : '⚪ Desactivado -- la secuencia sigue igual, solo sin el video.'}
           </p>
           <label style={labelStyle}>Texto que acompaña al video (opcional)</label>
@@ -319,7 +319,7 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
 
         <Section c={c} title="Pregunta de cierre" badge="4to MENSAJE">
           <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-            Se envía justo después del documento{form.video_activo ? ' y el video' : ''}, para arrancar la conversación.
+            Se envía justo después de la imagen{form.video_activo ? ' y el video' : ''}, para arrancar la conversación.
           </p>
           <textarea
             value={form.pregunta_cierre || ''}

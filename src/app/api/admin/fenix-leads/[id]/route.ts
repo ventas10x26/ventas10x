@@ -1,7 +1,9 @@
 // Ruta destino: src/app/api/admin/fenix-leads/[id]/route.ts
-// Actualiza la etapa del pipeline o las notas internas de un lead de Fenix.
-// Gate por admin (misma tabla `admins` que usa /admin/pagos), no por org_id
-// -- Fenix no es un tenant de Ventas10x, no tiene ese concepto.
+// Actualiza los datos de un lead de Fenix -- etapa del pipeline, notas
+// internas, o los datos de contacto (empresa, nombre, email, teléfono, qué
+// necesita), por si llegaron incompletos o hay que corregirlos. Gate por
+// admin (misma tabla `admins` que usa /admin/pagos), no por org_id -- Fenix
+// no es un tenant de Ventas10x, no tiene ese concepto.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
@@ -32,6 +34,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.notas !== undefined) {
     update.notas = String(body.notas).trim() || null
+  }
+  if (body.empresa !== undefined) {
+    const empresa = String(body.empresa).trim()
+    if (!empresa) return NextResponse.json({ error: 'La empresa no puede quedar vacía' }, { status: 400 })
+    update.empresa = empresa
+  }
+  if (body.nombre !== undefined) {
+    const nombre = String(body.nombre).trim()
+    if (!nombre) return NextResponse.json({ error: 'El nombre no puede quedar vacío' }, { status: 400 })
+    update.nombre = nombre
+  }
+  if (body.email !== undefined) {
+    update.email = String(body.email).trim().toLowerCase()
+  }
+  if (body.telefono !== undefined) {
+    const telefono = String(body.telefono).trim()
+    if (!telefono) return NextResponse.json({ error: 'El teléfono no puede quedar vacío' }, { status: 400 })
+    update.telefono = telefono
+  }
+  if (body.mensaje !== undefined) {
+    update.mensaje = String(body.mensaje).trim() || null
   }
 
   if (Object.keys(update).length === 0) {

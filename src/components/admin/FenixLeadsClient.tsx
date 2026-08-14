@@ -182,7 +182,11 @@ export function FenixLeadsClient({ initialLeads }: {
       const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/autorespuesta`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
-      const actualizacion = { autorespuesta_enviada_at: data.autorespuesta_enviada_at, autorespuesta_mensaje: data.autorespuesta_mensaje }
+      const actualizacion = {
+        autorespuesta_enviada_at: data.autorespuesta_enviada_at,
+        autorespuesta_mensaje: data.autorespuesta_mensaje,
+        ...(data.etapa ? { etapa: data.etapa } : {}),
+      }
       setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...actualizacion } : l)))
       setDetalle(d => (d ? { ...d, ...actualizacion } : d))
       setAutorespResultado({ ok: true, texto: '✓ Autorespuesta enviada por WhatsApp' })

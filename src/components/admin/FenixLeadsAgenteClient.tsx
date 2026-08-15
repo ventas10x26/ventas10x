@@ -75,6 +75,12 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
   const [resultadoPrueba, setResultadoPrueba] = useState<{
     followupsEnviados: number; marcadosPerdidos: number; detalle: string[]; errores: string[]
   } | null>(null)
+  const [cargandoPreview, setCargandoPreview] = useState(false)
+  const [preview, setPreview] = useState<{
+    horasFollowup: number; horasPerdido: number
+    aplicanFollowup: { telefono: string; empresa: string; nombre: string; horasTranscurridas: number }[]
+    aplicanPerdido: { telefono: string; empresa: string; nombre: string; horasTranscurridas: number }[]
+  } | null>(null)
 
   const [tema, setTema] = useState<Tema>('claro')
   useEffect(() => {
@@ -134,10 +140,26 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo ejecutar')
       setResultadoPrueba(data)
+      setPreview(null) // ya se ejecutó -- la vista previa quedó obsoleta
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al probar el follow-up')
     } finally {
       setProbando(false)
+    }
+  }
+
+  const verQuienAplica = async () => {
+    setCargandoPreview(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/fenix-leads-agente/followup-preview')
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo consultar')
+      setPreview(data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al consultar quién aplica')
+    } finally {
+      setCargandoPreview(false)
     }
   }
 
@@ -361,20 +383,74 @@ export function FenixLeadsAgenteClient({ initialAgente }: { initialAgente: Fenix
 
           <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
             <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
-              Ejecuta la revisión ahora mismo (lo mismo que hace el cron diario) -- útil para probar sin esperar. Si hay leads elegibles en este momento, les llega el mensaje de verdad.
+              Antes de ejecutar, puedes ver quién aplica en este momento -- no envía nada, solo consulta. Luego, si quieres, ejecuta la revisión de verdad (lo mismo que hace el cron diario) con &quot;Probar ahora&quot;: si hay leads elegibles, les llega el mensaje real.
             </p>
-            <button
-              type="button"
-              onClick={probarFollowup}
-              disabled={probando}
-              style={{
-                padding: '9px 16px', borderRadius: 10, border: `1px solid ${c.linkBorder}`,
-                background: c.linkBg, color: c.linkColor, fontWeight: 700, fontSize: 12.5,
-                cursor: probando ? 'default' : 'pointer', opacity: probando ? 0.6 : 1, fontFamily: 'inherit',
-              }}
-            >
-              {probando ? 'Ejecutando…' : '▶ Probar ahora'}
-            </button>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={verQuienAplica}
+                disabled={cargandoPreview}
+                style={{
+                  padding: '9px 16px', borderRadius: 10, border: `1px solid ${c.linkBorder}`,
+                  background: c.linkBg, color: c.linkColor, fontWeight: 700, fontSize: 12.5,
+                  cursor: cargandoPreview ? 'default' : 'pointer', opacity: cargandoPreview ? 0.6 : 1, fontFamily: 'inherit',
+                }}
+              >
+                {cargandoPreview ? 'Consultando…' : '👁 Ver quién aplica'}
+              </button>
+
+              <button
+                type="button"
+                onClick={probarFollowup}
+                disabled={probando}
+                style={{
+                  padding: '9px 16px', borderRadius: 10, border: `1px solid ${c.linkBorder}`,
+                  background: c.linkBg, color: c.linkColor, fontWeight: 700, fontSize: 12.5,
+                  cursor: probando ? 'default' : 'pointer', opacity: probando ? 0.6 : 1, fontFamily: 'inherit',
+                }}
+              >
+                {probando ? 'Ejecutando…' : '▶ Probar ahora'}
+              </button>
+            </div>
+
+            {preview && (
+              <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: c.inputBg, border: `1px solid ${c.border}` }}>
+                <p style={{ fontSize: 12.5, fontWeight: 700, color: c.ink, margin: '0 0 8px' }}>
+                  {preview.aplicanFollowup.length} aplicarían a follow-up · {preview.aplicanPerdido.length} aplicarían a marcarse perdidos
+                </p>
+
+                {preview.aplicanFollowup.length === 0 && preview.aplicanPerdido.length === 0 && (
+                  <p style={{ fontSize: 12, color: c.ink3, margin: 0 }}>Nadie es elegible todavía (nadie cumple las horas configuradas en este momento).</p>
+                )}
+
+                {preview.aplicanFollowup.length > 0 && (
+                  <div style={{ marginBottom: preview.aplicanPerdido.length > 0 ? 10 : 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0 4px' }}>
+                      → Recibirían el follow-up
+                    </p>
+                    {preview.aplicanFollowup.map((l, i) => (
+                      <p key={i} style={{ fontSize: 12, color: c.ink2, margin: '2px 0' }}>
+                        • {l.empresa} ({l.nombre}) — {l.telefono} — hace {l.horasTranscurridas}h sin responder
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {preview.aplicanPerdido.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '.04em', margin: '4px 0 4px' }}>
+                      → Se marcarían perdidos
+                    </p>
+                    {preview.aplicanPerdido.map((l, i) => (
+                      <p key={i} style={{ fontSize: 12, color: c.ink2, margin: '2px 0' }}>
+                        • {l.empresa} ({l.nombre}) — {l.telefono} — {l.horasTranscurridas}h desde el follow-up
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {resultadoPrueba && (
               <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: c.inputBg, border: `1px solid ${c.border}` }}>

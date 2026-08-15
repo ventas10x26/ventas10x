@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
 import { enviarAutorespuestaLead, marcarAutorespuestaEnviada, marcarLeadContactadoPorId, type LeadFenix } from '@/lib/fenix-lead-pipeline'
+import { clasificarErrorEvolution, mensajeAmigableEvolution } from '@/lib/evolution-error'
 
 const supabaseService = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,21 +80,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     })
   } catch (e) {
     console.error('[admin/fenix-leads/autorespuesta] Error al enviar:', e)
-    const mensaje = e instanceof Error ? e.message : 'No se pudo enviar la autorespuesta'
+    const mensajeCrudo = e instanceof Error ? e.message : 'No se pudo enviar la autorespuesta'
+    const tipo = clasificarErrorEvolution(mensajeCrudo)
+    const mensaje = mensajeAmigableEvolution(tipo)
 
-    // Evolution API responde "exists":false cuando el número no tiene
-    // WhatsApp registrado -- se marca en el lead para que quede visible en
-    // el pipeline (badge + filtro) sin tener que reintentar a ciegas cada
-    // vez ni perder de vista cuáles fallaron.
-    const esNumeroInexistente = /"exists":false/.test(mensaje)
-    if (esNumeroInexistente) {
+    // "numero_invalido" es un problema de ESTE lead (Evolution respondió
+    // "exists":false) -- se marca para que quede visible en el pipeline
+    // (badge + filtro). "conexion_caida" es un problema global del
+    // WhatsApp del negocio, no de este lead -- nunca se marca el lead,
+    // el front muestra un aviso persistente para ir a reconectar.
+    if (tipo === 'numero_invalido') {
       await supabaseService.from('fenix_leads').update({
         telefono_invalido: true,
-        telefono_invalido_motivo: 'Este número no tiene WhatsApp registrado',
+        telefono_invalido_motivo: mensaje,
         telefono_invalido_at: new Date().toISOString(),
       }).eq('id', id)
     }
 
-    return NextResponse.json({ error: mensaje, telefono_invalido: esNumeroInexistente }, { status: 502 })
+    return NextResponse.json({
+      error: mensaje,
+      telefono_invalido: tipo === 'numero_invalido',
+      conexion_whatsapp_caida: tipo === 'conexion_caida',
+    }, { status: 502 })
   }
 }

@@ -4,7 +4,7 @@
 // -- filtros, arrastrar entre columnas, modal de detalle -- sobre las
 // columnas propias de fenix_leads (empresa, telefono, mensaje, notas).
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type FenixLead = {
   id: string
@@ -103,6 +103,30 @@ export function FenixLeadsClient({ initialLeads }: {
   const [enviandoMensaje, setEnviandoMensaje] = useState(false)
   const [botPausado, setBotPausado] = useState(false)
   const [cambiandoPausa, setCambiandoPausa] = useState(false)
+  const [estadoIA, setEstadoIA] = useState<Record<string, boolean>>({}) // últimos 8 dígitos -> pausada?
+  const [soloConAutorespuesta, setSoloConAutorespuesta] = useState(false)
+  const [soloIAPausada, setSoloIAPausada] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/fenix-leads/estado-ia')
+      .then(r => r.json())
+      .then(data => {
+        const mapa: Record<string, boolean> = {}
+        for (const c of data.conversaciones || []) {
+          const digitos = String(c.remote_jid || '').replace(/\D/g, '')
+          if (digitos.length >= 8) mapa[digitos.slice(-8)] = c.bot_pausado
+        }
+        setEstadoIA(mapa)
+      })
+      .catch(() => {}) // silencioso -- si falla, simplemente no se muestra el indicador
+  }, [])
+
+  function estadoIADeLead(telefono: string): boolean | null {
+    const digitos = telefono.replace(/\D/g, '')
+    if (digitos.length < 8) return null
+    const clave = digitos.slice(-8)
+    return clave in estadoIA ? estadoIA[clave] : null
+  }
 
   const filtrados = leads.filter(l => {
     const q = search.toLowerCase()
@@ -112,13 +136,17 @@ export function FenixLeadsClient({ initialLeads }: {
       l.email.toLowerCase().includes(q) ||
       l.telefono.includes(q)
     const matchEtapa = !filtroEtapa || l.etapa === filtroEtapa
-    return matchSearch && matchEtapa
+    const matchAutoresp = !soloConAutorespuesta || !!l.autorespuesta_enviada_at
+    const matchIAPausada = !soloIAPausada || estadoIADeLead(l.telefono) === true
+    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada
   })
 
   const conteoEtapas = ETAPAS.map(e => ({ ...e, total: leads.filter(l => l.etapa === e.key).length }))
   const cerrados = leads.filter(l => l.etapa === 'cliente').length
   const perdidos = leads.filter(l => l.etapa === 'perdido').length
   const tasaConversion = leads.length > 0 ? Math.round((cerrados / leads.length) * 100) : 0
+  const totalConAutorespuesta = leads.filter(l => !!l.autorespuesta_enviada_at).length
+  const totalIAPausada = leads.filter(l => estadoIADeLead(l.telefono) === true).length
 
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
@@ -160,6 +188,10 @@ export function FenixLeadsClient({ initialLeads }: {
       const data = await res.json()
       if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo actualizar')
       setBotPausado(data.bot_pausado)
+      const digitos = detalle.telefono.replace(/\D/g, '')
+      if (digitos.length >= 8) {
+        setEstadoIA(prev => ({ ...prev, [digitos.slice(-8)]: data.bot_pausado }))
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cambiar el estado de la IA')
     } finally {
@@ -355,8 +387,30 @@ export function FenixLeadsClient({ initialLeads }: {
               </button>
             )
           })}
-          {(filtroEtapa || search) && (
-            <button onClick={() => { setFiltroEtapa(null); setSearch('') }} style={{
+
+          <span style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 2px' }} />
+
+          {totalConAutorespuesta > 0 && (
+            <button onClick={() => setSoloConAutorespuesta(v => !v)} style={{
+              fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px',
+              background: soloConAutorespuesta ? '#16a34a' : '#16a34a18', color: soloConAutorespuesta ? '#fff' : '#16a34a',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              ✓ Con autorespuesta · {totalConAutorespuesta}
+            </button>
+          )}
+          {totalIAPausada > 0 && (
+            <button onClick={() => setSoloIAPausada(v => !v)} style={{
+              fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px',
+              background: soloIAPausada ? '#f59e0b' : '#f59e0b18', color: soloIAPausada ? '#fff' : '#b45309',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              ⏸ IA pausada · {totalIAPausada}
+            </button>
+          )}
+
+          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada) && (
+            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false) }} style={{
               fontSize: '11.5px', padding: '5px 11px', borderRadius: '999px',
               background: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}>
@@ -398,7 +452,9 @@ export function FenixLeadsClient({ initialLeads }: {
                           Sin leads
                         </div>
                       )}
-                      {columnaLeads.map(lead => (
+                      {columnaLeads.map(lead => {
+                        const iaEstado = estadoIADeLead(lead.telefono)
+                        return (
                         <div
                           key={lead.id}
                           draggable
@@ -414,7 +470,25 @@ export function FenixLeadsClient({ initialLeads }: {
                           <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>{lead.empresa}</div>
                           <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>{lead.nombre}</div>
                           <div style={{ fontSize: '12px', color: ACCENT, marginBottom: '4px' }}>📱 {lead.telefono}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '9px' }}>{timeAgo(lead.created_at)}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '9px' }}>
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>{timeAgo(lead.created_at)}</span>
+                            {lead.autorespuesta_enviada_at && (
+                              <span title={`Autorespuesta enviada ${formatFecha(lead.autorespuesta_enviada_at)}`} style={{
+                                fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px',
+                                background: '#f0fdf4', color: '#16a34a',
+                              }}>
+                                ✓ Autoresp.
+                              </span>
+                            )}
+                            {iaEstado !== null && (
+                              <span title={iaEstado ? 'La IA está pausada en esta conversación' : 'La IA está respondiendo automáticamente'} style={{
+                                fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px',
+                                background: iaEstado ? '#fef3c7' : '#eff6ff', color: iaEstado ? '#b45309' : '#2563eb',
+                              }}>
+                                {iaEstado ? '⏸ IA pausada' : '🤖 IA activa'}
+                              </span>
+                            )}
+                          </div>
                           <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
                             <a href={waLink(lead.telefono)} target="_blank" rel="noopener noreferrer" style={{
                               flex: 1, padding: '6px', textAlign: 'center', fontSize: '11.5px', fontWeight: 600,
@@ -430,9 +504,11 @@ export function FenixLeadsClient({ initialLeads }: {
                             </button>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
+
                 )
               })}
             </div>
@@ -446,7 +522,7 @@ export function FenixLeadsClient({ initialLeads }: {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr>
-                    {['Empresa', 'Contacto', 'Email', 'Teléfono', 'Qué necesita', 'Etapa', 'Llegó', ''].map(h => (
+                    {['Empresa', 'Contacto', 'Email', 'Teléfono', 'Qué necesita', 'Etapa', 'IA', 'Llegó', ''].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, color: '#4a4a47', fontSize: '11px', background: '#f7f6f4', whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -455,11 +531,12 @@ export function FenixLeadsClient({ initialLeads }: {
                 </thead>
                 <tbody>
                   {filtrados.length === 0 ? (
-                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '14px' }}>
+                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '14px' }}>
                       {search || filtroEtapa ? 'Sin resultados para esta búsqueda' : 'Aún no hay leads.'}
                     </td></tr>
                   ) : filtrados.map(lead => {
                     const etapa = ETAPA_MAP[lead.etapa]
+                    const iaEstado = estadoIADeLead(lead.telefono)
                     return (
                       <tr key={lead.id} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(lead)}>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', fontWeight: 700, color: '#0f172a' }}>{lead.empresa}</td>
@@ -477,6 +554,18 @@ export function FenixLeadsClient({ initialLeads }: {
                           <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px', background: `${etapa?.color}18`, color: etapa?.color }}>
                             {etapa?.label || lead.etapa}
                           </span>
+                        </td>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
+                          {iaEstado !== null ? (
+                            <span style={{
+                              fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
+                              background: iaEstado ? '#fef3c7' : '#eff6ff', color: iaEstado ? '#b45309' : '#2563eb',
+                            }}>
+                              {iaEstado ? '⏸ Pausada' : '🤖 Activa'}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: '#cbd5e1' }}>—</span>
+                          )}
                         </td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#94a3b8', fontSize: '12px' }}>{timeAgo(lead.created_at)}</td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>

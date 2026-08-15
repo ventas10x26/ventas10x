@@ -421,6 +421,16 @@ export function FenixLeadsClient({ initialLeads }: {
   function fusionarSeleccionados() {
     const seleccionadosOrdenados = filtrados.filter(l => seleccionados.has(l.id))
     if (seleccionadosOrdenados.length < 2) return
+
+    // Nunca fusionar leads que no comparten teléfono -- eso borraría datos
+    // de empresas totalmente distintas sin ninguna relación entre sí. La
+    // fusión solo tiene sentido entre duplicados reales del mismo contacto.
+    const sufijos = new Set(seleccionadosOrdenados.map(l => l.telefono.replace(/\D/g, '').slice(-8)))
+    if (sufijos.size > 1) {
+      setError('Los leads seleccionados tienen teléfonos distintos -- fusionar borraría empresas sin relación entre sí. Selecciona solo leads que compartan el mismo teléfono (usa la insignia "⧉" del Pipeline para verlos agrupados).')
+      return
+    }
+
     const [principal, ...resto] = seleccionadosOrdenados
     fusionarLeads(principal, resto)
   }
@@ -712,7 +722,11 @@ export function FenixLeadsClient({ initialLeads }: {
         {/* ── Vista Tabla ── */}
         {vista === 'tabla' && (
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden' }}>
-            {seleccionados.size > 0 && (
+            {seleccionados.size > 0 && (() => {
+              const seleccionadosEnTabla = filtrados.filter(l => seleccionados.has(l.id))
+              const sufijosSeleccion = new Set(seleccionadosEnTabla.map(l => l.telefono.replace(/\D/g, '').slice(-8)))
+              const mismoTelefono = sufijosSeleccion.size === 1
+              return (
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap',
                 padding: '10px 14px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe',
@@ -734,11 +748,20 @@ export function FenixLeadsClient({ initialLeads }: {
                     {cambiandoPausaLote ? '…' : '🤖 Activar IA'}
                   </button>
                   {seleccionados.size >= 2 && (
-                    <button onClick={fusionarSeleccionados} disabled={fusionando} style={{
-                      padding: '6px 12px', borderRadius: '8px', border: '1px solid #db2777', background: '#fdf2f8',
-                      color: '#db2777', fontSize: '12px', fontWeight: 700, cursor: fusionando ? 'default' : 'pointer', fontFamily: 'inherit',
-                    }}>
-                      {fusionando ? 'Fusionando…' : '⧉ Fusionar en 1 (se conserva el primero)'}
+                    <button
+                      onClick={fusionarSeleccionados}
+                      disabled={fusionando || !mismoTelefono}
+                      title={mismoTelefono ? undefined : 'Solo se puede fusionar cuando todos los seleccionados tienen el mismo teléfono'}
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px',
+                        border: `1px solid ${mismoTelefono ? '#db2777' : '#e2e8f0'}`,
+                        background: mismoTelefono ? '#fdf2f8' : '#f8fafc',
+                        color: mismoTelefono ? '#db2777' : '#94a3b8',
+                        fontSize: '12px', fontWeight: 700,
+                        cursor: fusionando || !mismoTelefono ? 'default' : 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      {fusionando ? 'Fusionando…' : mismoTelefono ? '⧉ Fusionar en 1 (se conserva el primero)' : '⧉ Fusionar (requiere mismo teléfono)'}
                     </button>
                   )}
                   <button onClick={eliminarSeleccionados} style={{
@@ -755,7 +778,8 @@ export function FenixLeadsClient({ initialLeads }: {
                   </button>
                 </div>
               </div>
-            )}
+              )
+            })()}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>

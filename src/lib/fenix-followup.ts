@@ -165,10 +165,20 @@ export async function ejecutarFollowupsLeads(): Promise<ResultadoFollowups> {
 
   const { data: cfg } = await supabaseAdmin
     .from('fenix_leads_agente')
-    .select('mensaje_followup, horas_followup, horas_perdido')
+    .select('activo, mensaje_followup, horas_followup, horas_perdido')
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle()
+
+  // Mismo interruptor maestro que gobierna la autorespuesta -- si está
+  // apagado (p. ej. porque WhatsApp quedó restringido/baneado por Meta),
+  // el cron diario tampoco debe enviar nada. Sin esto, apagar el toggle en
+  // el panel no bastaba: el follow-up seguía disparando mensajes de todas
+  // formas y podía agravar una restricción activa.
+  if (cfg?.activo === false) {
+    resultado.errores.push('Agente de leads desactivado -- no se envió ningún follow-up esta corrida.')
+    return resultado
+  }
 
   const mensajeFollowup = cfg?.mensaje_followup?.trim() || DEFAULT_MENSAJE_FOLLOWUP
   const horasFollowup = cfg?.horas_followup ?? DEFAULT_HORAS_FOLLOWUP

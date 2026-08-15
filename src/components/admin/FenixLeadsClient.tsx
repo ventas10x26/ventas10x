@@ -55,6 +55,19 @@ function waLink(telefono: string) {
   return `https://wa.me/${telefono.replace(/\D/g, '')}`
 }
 
+// Clave de fecha en hora local del navegador (YYYY-MM-DD) -- se usa para
+// agrupar leads por día en el gráfico y para el filtro que dispara al
+// hacer clic en un punto.
+function fechaKey(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function fechaLabelCorta(key: string): string {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
 // Agrupa leads que comparten los mismos últimos 8 dígitos de teléfono --
 // normalmente duplicados de la misma persona llegados por dos canales
 // distintos (ej. Meta Ads y la landing). El array de entrada ya viene
@@ -129,6 +142,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const [soloIAPausada, setSoloIAPausada] = useState(false)
   const [soloSinIAActiva, setSoloSinIAActiva] = useState(false)
   const [soloTelefonoInvalido, setSoloTelefonoInvalido] = useState(false)
+  const [filtroDia, setFiltroDia] = useState<string | null>(null)
   const [mostrarCrear, setMostrarCrear] = useState(false)
   const [nuevoLead, setNuevoLead] = useState({ empresa: '', nombre: '', telefono: '', email: '', mensaje: '' })
   const [creandoLead, setCreandoLead] = useState(false)
@@ -306,7 +320,8 @@ export function FenixLeadsClient({ initialLeads }: {
     const matchIAPausada = !soloIAPausada || estadoIADeLead(l.telefono) === true
     const matchSinIAActiva = !soloSinIAActiva || estadoIADeLead(l.telefono) !== false
     const matchTelefonoInvalido = !soloTelefonoInvalido || l.telefono_invalido
-    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada && matchSinIAActiva && matchTelefonoInvalido
+    const matchDia = !filtroDia || fechaKey(l.created_at) === filtroDia
+    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada && matchSinIAActiva && matchTelefonoInvalido && matchDia
   })
 
   const conteoEtapas = ETAPAS.map(e => ({ ...e, total: leads.filter(l => l.etapa === e.key).length }))
@@ -317,6 +332,17 @@ export function FenixLeadsClient({ initialLeads }: {
   const totalIAPausada = leads.filter(l => estadoIADeLead(l.telefono) === true).length
   const totalSinIAActiva = leads.filter(l => estadoIADeLead(l.telefono) !== false).length
   const totalTelefonoInvalido = leads.filter(l => l.telefono_invalido).length
+
+  // Serie para el gráfico de líneas -- un punto por cada día en el que
+  // llegó al menos un lead, ordenado cronológicamente.
+  const serieDias = (() => {
+    const mapa = new Map<string, number>()
+    for (const l of leads) {
+      const k = fechaKey(l.created_at)
+      mapa.set(k, (mapa.get(k) || 0) + 1)
+    }
+    return [...mapa.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([fecha, total]) => ({ fecha, total }))
+  })()
 
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
@@ -776,6 +802,61 @@ export function FenixLeadsClient({ initialLeads }: {
           )}
         </div>
 
+        {/* Gráfico de leads por día -- clic en un punto filtra el pipeline
+            a ese día; clic de nuevo en el mismo punto lo quita. */}
+        {serieDias.length > 0 && (() => {
+          const anchoSvg = Math.max(360, serieDias.length * 70)
+          const altoSvg = 190
+          const padIzq = 8, padDer = 8, padArriba = 14, padAbajo = 34
+          const altoChart = altoSvg - padArriba - padAbajo
+          const anchoChart = anchoSvg - padIzq - padDer
+          const maxValor = Math.max(...serieDias.map(d => d.total), 1)
+          const puntos = serieDias.map((d, i) => {
+            const x = serieDias.length === 1
+              ? padIzq + anchoChart / 2
+              : padIzq + (anchoChart * i) / (serieDias.length - 1)
+            const y = padArriba + altoChart - (d.total / maxValor) * altoChart
+            return { ...d, x, y }
+          })
+          const pathD = puntos.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+
+          return (
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 18px', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Leads por día</div>
+                {filtroDia && (
+                  <button onClick={() => setFiltroDia(null)} style={{
+                    fontSize: '11.5px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px',
+                    background: `${ACCENT}18`, color: ACCENT, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    ✕ {fechaLabelCorta(filtroDia)}
+                  </button>
+                )}
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <svg viewBox={`0 0 ${anchoSvg} ${altoSvg}`} width={anchoSvg} height={altoSvg} style={{ display: 'block' }}>
+                  <path d={pathD} fill="none" stroke={ACCENT} strokeWidth={2} />
+                  {puntos.map(p => (
+                    <g key={p.fecha} onClick={() => setFiltroDia(f => (f === p.fecha ? null : p.fecha))} style={{ cursor: 'pointer' }}>
+                      <rect x={p.x - 20} y={padArriba} width={40} height={altoChart} fill="transparent" />
+                      <circle
+                        cx={p.x} cy={p.y} r={filtroDia === p.fecha ? 6 : 4}
+                        fill={filtroDia === p.fecha ? ACCENT : '#fff'}
+                        stroke={ACCENT} strokeWidth={2}
+                      />
+                      <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="11" fontWeight={700} fill="#0f172a">{p.total}</text>
+                      <text x={p.x} y={altoSvg - 12} textAnchor="middle" fontSize="10.5" fill="#94a3b8">{fechaLabelCorta(p.fecha)}</text>
+                      {filtroDia === p.fecha && (
+                        <line x1={p.x} y1={padArriba} x2={p.x} y2={padArriba + altoChart} stroke={ACCENT} strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
+                      )}
+                    </g>
+                  ))}
+                </svg>
+              </div>
+            </div>
+          )
+        })()}
+
         {error && (
           <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '13px', color: '#dc2626', display: 'flex', justifyContent: 'space-between' }}>
             <span>{error}</span>
@@ -847,8 +928,8 @@ export function FenixLeadsClient({ initialLeads }: {
             </button>
           )}
 
-          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada || soloSinIAActiva || soloTelefonoInvalido) && (
-            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false); setSoloSinIAActiva(false); setSoloTelefonoInvalido(false) }} style={{
+          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada || soloSinIAActiva || soloTelefonoInvalido || filtroDia) && (
+            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false); setSoloSinIAActiva(false); setSoloTelefonoInvalido(false); setFiltroDia(null) }} style={{
               fontSize: '11.5px', padding: '5px 11px', borderRadius: '999px',
               background: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}>

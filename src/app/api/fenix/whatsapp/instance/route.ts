@@ -30,15 +30,21 @@ async function evoFetch(path: string, method = 'GET', body?: unknown) {
 }
 
 function webhookUrl() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://ventas10x.co'
+  // app.consultoresfenix.com no redirige (a diferencia de ventas10x.co sin
+  // "www", que hace un 307 a www.ventas10x.co -- un webhook que manda POST
+  // y no reenvía bien tras esa redirección pierde el mensaje en silencio,
+  // que es justo lo que le pasaba a las respuestas entrantes de los leads).
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://app.consultoresfenix.com'
   return `${appUrl}/api/fenix/whatsapp/webhook/${INSTANCE_NAME}/messages-upsert`
 }
 
-// ── Actualizar webhook de instancia existente a base64: false ─────────────────
+// ── Corregir webhook de instancia existente (base64 y/o URL desactualizada) ───
 async function corregirWebhook() {
   try {
     const { data: current } = await evoFetch(`/webhook/find/${INSTANCE_NAME}`)
-    if (current?.webhookBase64 === true) {
+    const urlDesactualizada = current?.url && current.url !== webhookUrl()
+    const base64Mal = current?.webhookBase64 === true
+    if (urlDesactualizada || base64Mal) {
       await evoFetch(`/webhook/set/${INSTANCE_NAME}`, 'POST', {
         webhook: {
           url: webhookUrl(),

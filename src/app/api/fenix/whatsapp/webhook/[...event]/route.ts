@@ -32,17 +32,17 @@ type FenixAgenteConfig = {
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 
-async function leerConversacion(instanceName: string, remoteJid: string): Promise<{ historial: MensajeHistorial[]; tipo: string }> {
+async function leerConversacion(instanceName: string, remoteJid: string): Promise<{ historial: MensajeHistorial[]; tipo: string; botPausado: boolean }> {
   try {
     const { data } = await supabaseAdmin
       .from('fenix_conversaciones')
-      .select('historial, tipo')
+      .select('historial, tipo, bot_pausado')
       .eq('instance_name', instanceName).eq('remote_jid', remoteJid).maybeSingle()
-    if (!data) return { historial: [], tipo: 'deudor' }
-    return { historial: (data.historial as MensajeHistorial[]) || [], tipo: data.tipo || 'deudor' }
+    if (!data) return { historial: [], tipo: 'deudor', botPausado: false }
+    return { historial: (data.historial as MensajeHistorial[]) || [], tipo: data.tipo || 'deudor', botPausado: data.bot_pausado === true }
   } catch (e) {
     console.error('[fenix webhook] leerConversacion error:', e)
-    return { historial: [], tipo: 'deudor' }
+    return { historial: [], tipo: 'deudor', botPausado: false }
   }
 }
 
@@ -54,6 +54,34 @@ async function guardarConversacion(instanceName: string, remoteJid: string, hist
     }, { onConflict: 'instance_name,remote_jid' })
   } catch (e) {
     console.error('[fenix webhook] guardarConversacion error:', e)
+  }
+}
+
+// Pausa o reanuda la IA para UNA conversación puntual (no afecta a las
+// demás) -- se activa con un comando de texto que el equipo escribe desde
+// su propio WhatsApp dentro de esa misma conversación (fromMe=true).
+// Mientras está pausada, los mensajes entrantes se siguen guardando en el
+// historial (se ven en el chat del admin) pero la IA no responde -- así el
+// equipo puede tomar el control manualmente sin apagar el agente para
+// todos los demás leads/deudores.
+const COMANDOS_PAUSAR = ['/pausar', '/pausa', 'bot off', '#pausar']
+const COMANDOS_ACTIVAR = ['/activar', '/reanudar', 'bot on', '#activar']
+
+function detectarComando(texto: string): 'pausar' | 'activar' | null {
+  const t = texto.trim().toLowerCase()
+  if (COMANDOS_PAUSAR.includes(t)) return 'pausar'
+  if (COMANDOS_ACTIVAR.includes(t)) return 'activar'
+  return null
+}
+
+async function cambiarPausaConversacion(instanceName: string, remoteJid: string, pausado: boolean) {
+  try {
+    await supabaseAdmin.from('fenix_conversaciones').upsert({
+      instance_name: instanceName, remote_jid: remoteJid,
+      bot_pausado: pausado, updated_at: new Date().toISOString(),
+    }, { onConflict: 'instance_name,remote_jid' })
+  } catch (e) {
+    console.error('[fenix webhook] cambiarPausaConversacion error:', e)
   }
 }
 
@@ -222,7 +250,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
     for (const msg of msgs) {
       const m = msg as Record<string, unknown>
       const key = m.key as Record<string, unknown>
-      if (key?.fromMe) continue
       const remoteJid = String(key?.remoteJid || '')
       if (remoteJid.includes('@g.us')) continue
 
@@ -234,7 +261,28 @@ export async function POST(req: NextRequest, context: { params: Promise<{ event:
       ).trim()
       if (!texto) continue
 
-      const { historial, tipo } = await leerConversacion(instanceName, remoteJid)
+      // Comando de pausa/reanudar escrito por el equipo desde su propio
+      // WhatsApp (fromMe=true) dentro de esta conversación puntual -- se
+      // procesa antes del filtro normal de "ignorar mensajes propios" y no
+      // se guarda en el historial (es una instrucción, no parte del chat).
+      if (key?.fromMe) {
+        const comando = detectarComando(texto)
+        if (comando) {
+          await cambiarPausaConversacion(instanceName, remoteJid, comando === 'pausar')
+        }
+        continue
+      }
+
+      const { historial, tipo, botPausado } = await leerConversacion(instanceName, remoteJid)
+
+      if (botPausado) {
+        // El equipo tomó el control de esta conversación -- se guarda el
+        // mensaje para que se vea en el chat del admin, pero la IA no
+        // responde. Para reanudar: escribir "/activar" desde el WhatsApp
+        // conectado dentro de esta misma conversación.
+        await guardarConversacion(instanceName, remoteJid, [...historial, { role: 'user', content: texto }])
+        continue
+      }
 
       let systemPrompt: string
       if (tipo === 'lead') {

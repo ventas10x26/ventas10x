@@ -165,7 +165,7 @@ export async function calcularPlanSincronizacion(csvUrl: string): Promise<PlanSi
       createdAtISO: convertirFechaSheet(mejor.created_time),
     }
 
-    if (pareceTelefonoDanado(mejor.telefono)) danados.push(candidato)
+    if (pareceTelefonoDanado(candidato.telefono)) danados.push(candidato)
     else nuevos.push(candidato)
   }
 

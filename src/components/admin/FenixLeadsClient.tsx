@@ -132,6 +132,11 @@ export function FenixLeadsClient({ initialLeads }: {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   const [fusionando, setFusionando] = useState(false)
   const [cambiandoPausaLote, setCambiandoPausaLote] = useState(false)
+  const [almacenamientoKB, setAlmacenamientoKB] = useState<number | null>(null)
+  const [costos, setCostos] = useState<{ costo_railway_usd: number; costo_ia_usd: number; costo_otros_usd: number } | null>(null)
+  const [editandoCostos, setEditandoCostos] = useState(false)
+  const [borradorCostos, setBorradorCostos] = useState({ costo_railway_usd: '0', costo_ia_usd: '0', costo_otros_usd: '0' })
+  const [guardandoCostos, setGuardandoCostos] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/fenix-leads/estado-ia')
@@ -145,7 +150,45 @@ export function FenixLeadsClient({ initialLeads }: {
         setEstadoIA(mapa)
       })
       .catch(() => {}) // silencioso -- si falla, simplemente no se muestra el indicador
+
+    fetch('/api/admin/fenix-leads/almacenamiento')
+      .then(r => r.json())
+      .then(data => setAlmacenamientoKB(typeof data.totalKB === 'number' ? data.totalKB : null))
+      .catch(() => {})
+
+    fetch('/api/admin/fenix-leads/costos')
+      .then(r => r.json())
+      .then(data => {
+        if (data.costos) {
+          setCostos(data.costos)
+          setBorradorCostos({
+            costo_railway_usd: String(data.costos.costo_railway_usd ?? 0),
+            costo_ia_usd: String(data.costos.costo_ia_usd ?? 0),
+            costo_otros_usd: String(data.costos.costo_otros_usd ?? 0),
+          })
+        }
+      })
+      .catch(() => {})
   }, [])
+
+  async function guardarCostos() {
+    setGuardandoCostos(true)
+    try {
+      const res = await fetch('/api/admin/fenix-leads/costos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(borradorCostos),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar')
+      setCostos(data.costos)
+      setEditandoCostos(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el costo')
+    } finally {
+      setGuardandoCostos(false)
+    }
+  }
 
   function estadoIADeLead(telefono: string): boolean | null {
     const digitos = telefono.replace(/\D/g, '')
@@ -512,18 +555,106 @@ export function FenixLeadsClient({ initialLeads }: {
         </div>
 
         {/* Métricas */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
           {[
             { label: 'Total leads', valor: leads.length, color: '#0f172a' },
             { label: 'Clientes', valor: cerrados, color: '#22c55e' },
             { label: 'Conversión', valor: `${tasaConversion}%`, color: ACCENT },
             { label: 'Perdidos', valor: perdidos, color: '#ef4444' },
+            { label: 'Autorespuestas enviadas', valor: totalConAutorespuesta, color: '#16a34a' },
+            {
+              label: 'Historial almacenado',
+              valor: almacenamientoKB === null ? '—' : almacenamientoKB >= 1024 ? `${(almacenamientoKB / 1024).toFixed(1)} MB` : `${almacenamientoKB} KB`,
+              color: '#2563eb',
+            },
           ].map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 18px', minWidth: '96px' }}>
               <div style={{ fontSize: '19px', fontWeight: 700, color: m.color }}>{m.valor}</div>
               <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>{m.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Costo mensual de infraestructura -- valor editable a mano, ya que
+            no hay integración con la facturación real de Railway/APIs de IA.
+            Ricardo lo actualiza cuando revisa las facturas del mes. */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 18px', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500, marginBottom: '2px' }}>Costo mensual estimado</div>
+                <div style={{ fontSize: '19px', fontWeight: 700, color: '#0f172a' }}>
+                  ${costos ? (costos.costo_railway_usd + costos.costo_ia_usd + costos.costo_otros_usd).toFixed(2) : '—'} USD
+                </div>
+              </div>
+              {costos && (
+                <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#64748b' }}>
+                  <span>Railway: <strong style={{ color: '#0f172a' }}>${costos.costo_railway_usd.toFixed(2)}</strong></span>
+                  <span>IA: <strong style={{ color: '#0f172a' }}>${costos.costo_ia_usd.toFixed(2)}</strong></span>
+                  <span>Otros: <strong style={{ color: '#0f172a' }}>${costos.costo_otros_usd.toFixed(2)}</strong></span>
+                </div>
+              )}
+            </div>
+            {!editandoCostos && (
+              <button onClick={() => setEditandoCostos(true)} style={{
+                padding: '7px 14px', borderRadius: '9px', border: '1px solid #e2e8f0', background: '#f7f6f4',
+                color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                ✎ Editar
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: '11px', color: '#b0aca1', margin: '6px 0 0' }}>
+            Valor manual -- no hay integración con la facturación real de Railway ni de las APIs de IA. Actualízalo cuando revises las facturas del mes.
+          </p>
+
+          {editandoCostos && (
+            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f1f0ed' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                {([
+                  { campo: 'costo_railway_usd' as const, label: 'Railway (USD)' },
+                  { campo: 'costo_ia_usd' as const, label: 'APIs de IA (USD)' },
+                  { campo: 'costo_otros_usd' as const, label: 'Otros (USD)' },
+                ]).map(({ campo, label }) => (
+                  <div key={campo}>
+                    <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{label}</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={borradorCostos[campo]}
+                      onChange={e => setBorradorCostos(d => ({ ...d, [campo]: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button
+                  onClick={guardarCostos}
+                  disabled={guardandoCostos}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#0f172a',
+                    color: '#fff', fontSize: '12.5px', fontWeight: 700, cursor: guardandoCostos ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {guardandoCostos ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => setEditandoCostos(false)}
+                  style={{
+                    padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff',
+                    color: '#64748b', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (

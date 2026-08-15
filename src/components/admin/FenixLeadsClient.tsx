@@ -97,6 +97,10 @@ export function FenixLeadsClient({ initialLeads }: {
   const [autorespResultado, setAutorespResultado] = useState<{ ok: boolean; texto: string } | null>(null)
   const [verMensajeAutoresp, setVerMensajeAutoresp] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [conversacion, setConversacion] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
+  const [cargandoConversacion, setCargandoConversacion] = useState(false)
+  const [mensajeManual, setMensajeManual] = useState('')
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false)
 
   const filtrados = leads.filter(l => {
     const q = search.toLowerCase()
@@ -120,6 +124,44 @@ export function FenixLeadsClient({ initialLeads }: {
     setDatosBorrador({ empresa: lead.empresa, nombre: lead.nombre, email: lead.email, telefono: lead.telefono, mensaje: lead.mensaje || '' })
     setAutorespResultado(null)
     setVerMensajeAutoresp(false)
+    setConversacion([])
+    setMensajeManual('')
+    cargarConversacion(lead.id)
+  }
+
+  async function cargarConversacion(leadId: string) {
+    setCargandoConversacion(true)
+    try {
+      const res = await fetch(`/api/admin/fenix-leads/${leadId}/conversacion`)
+      const data = await res.json()
+      if (res.ok) setConversacion(data.historial || [])
+    } catch {
+      // silencioso -- si falla, el chat queda vacío pero el resto del modal sigue funcionando
+    } finally {
+      setCargandoConversacion(false)
+    }
+  }
+
+  async function enviarMensajeManual() {
+    if (!detalle || !mensajeManual.trim()) return
+    setEnviandoMensaje(true)
+    setError(null)
+    const texto = mensajeManual.trim()
+    try {
+      const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/conversacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje: texto }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
+      setConversacion(data.historial || [])
+      setMensajeManual('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje')
+    } finally {
+      setEnviandoMensaje(false)
+    }
   }
 
   async function cambiarEtapa(id: string, etapa: string) {
@@ -586,6 +628,72 @@ export function FenixLeadsClient({ initialLeads }: {
               </div>
             )}
 
+            {/* Conversación de WhatsApp */}
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  Conversación de WhatsApp
+                </div>
+                <button
+                  onClick={() => cargarConversacion(detalle.id)}
+                  disabled={cargandoConversacion}
+                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {cargandoConversacion ? 'Cargando…' : '🔄 Actualizar'}
+                </button>
+              </div>
+
+              <div style={{
+                background: '#e5ddd5', borderRadius: '10px', padding: '10px',
+                maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px',
+              }}>
+                {conversacion.length === 0 ? (
+                  <p style={{ fontSize: '12.5px', color: '#7c8489', textAlign: 'center', margin: '20px 0' }}>
+                    {cargandoConversacion ? 'Cargando conversación…' : 'Todavía no hay mensajes en esta conversación.'}
+                  </p>
+                ) : conversacion.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: m.role === 'assistant' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '80%', padding: '7px 10px', borderRadius: '9px', fontSize: '13px',
+                      lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      background: m.role === 'assistant' ? '#dcf8c6' : '#fff',
+                      boxShadow: '0 1px 1px rgba(0,0,0,.1)', color: '#111b21',
+                    }}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                <input
+                  value={mensajeManual}
+                  onChange={e => setMensajeManual(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !enviandoMensaje) enviarMensajeManual() }}
+                  placeholder="Escribe un mensaje…"
+                  style={{
+                    flex: 1, padding: '9px 12px', borderRadius: '9px', border: '1px solid #e2e8f0',
+                    fontSize: '13px', fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={enviarMensajeManual}
+                  disabled={enviandoMensaje || !mensajeManual.trim()}
+                  style={{
+                    padding: '9px 16px', borderRadius: '9px', border: 'none',
+                    background: mensajeManual.trim() ? '#25D366' : '#e2e8f0',
+                    color: mensajeManual.trim() ? '#fff' : '#94a3b8',
+                    fontWeight: 700, fontSize: '13px', cursor: enviandoMensaje ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {enviandoMensaje ? '…' : 'Enviar'}
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
+                Lo que escribas aquí sale directo por WhatsApp al lead, sin pasar por la IA.
+              </p>
+            </div>
+
             {/* Acciones */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
               <a href={waLink(detalle.telefono)} target="_blank" rel="noopener noreferrer" style={{
@@ -611,7 +719,7 @@ export function FenixLeadsClient({ initialLeads }: {
                 cursor: enviandoAutoresp ? 'default' : 'pointer', fontFamily: 'inherit', opacity: enviandoAutoresp ? 0.6 : 1,
               }}
             >
-              {enviandoAutoresp ? 'Enviando…' : detalle.autorespuesta_enviada_at ? '🤖 Reenviar autorespuesta (bienvenida + PDF)' : '🤖 Enviar autorespuesta (bienvenida + PDF)'}
+              {enviandoAutoresp ? 'Enviando…' : detalle.autorespuesta_enviada_at ? '🤖 Reenviar autorespuesta (bienvenida + imagen)' : '🤖 Enviar autorespuesta (bienvenida + imagen)'}
             </button>
             {autorespResultado && (
               <p style={{ marginTop: '8px', fontSize: '12.5px', color: autorespResultado.ok ? '#16a34a' : '#dc2626', textAlign: 'center' }}>

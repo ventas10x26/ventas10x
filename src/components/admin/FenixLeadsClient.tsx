@@ -101,6 +101,8 @@ export function FenixLeadsClient({ initialLeads }: {
   const [cargandoConversacion, setCargandoConversacion] = useState(false)
   const [mensajeManual, setMensajeManual] = useState('')
   const [enviandoMensaje, setEnviandoMensaje] = useState(false)
+  const [botPausado, setBotPausado] = useState(false)
+  const [cambiandoPausa, setCambiandoPausa] = useState(false)
 
   const filtrados = leads.filter(l => {
     const q = search.toLowerCase()
@@ -134,11 +136,34 @@ export function FenixLeadsClient({ initialLeads }: {
     try {
       const res = await fetch(`/api/admin/fenix-leads/${leadId}/conversacion`)
       const data = await res.json()
-      if (res.ok) setConversacion(data.historial || [])
+      if (res.ok) {
+        setConversacion(data.historial || [])
+        setBotPausado(data.bot_pausado === true)
+      }
     } catch {
       // silencioso -- si falla, el chat queda vacío pero el resto del modal sigue funcionando
     } finally {
       setCargandoConversacion(false)
+    }
+  }
+
+  async function togglePausaBot() {
+    if (!detalle) return
+    const nuevoValor = !botPausado
+    setCambiandoPausa(true)
+    try {
+      const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/conversacion`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bot_pausado: nuevoValor }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo actualizar')
+      setBotPausado(data.bot_pausado)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cambiar el estado de la IA')
+    } finally {
+      setCambiandoPausa(false)
     }
   }
 
@@ -673,19 +698,42 @@ export function FenixLeadsClient({ initialLeads }: {
             }}>
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 16px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', flexShrink: 0,
+                padding: '14px 16px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', flexShrink: 0, gap: '10px',
               }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   💬 WhatsApp — {detalle.nombre}
                 </div>
-                <button
-                  onClick={() => cargarConversacion(detalle.id)}
-                  disabled={cargandoConversacion}
-                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  {cargandoConversacion ? 'Cargando…' : '🔄 Actualizar'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <button
+                    onClick={togglePausaBot}
+                    disabled={cambiandoPausa}
+                    title={botPausado ? 'Reanudar la IA en esta conversación' : 'Pausar la IA en esta conversación (para que respondas tú)'}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '999px',
+                      border: `1px solid ${botPausado ? '#f59e0b' : '#e2e8f0'}`,
+                      background: botPausado ? '#fef3c7' : '#fff',
+                      color: botPausado ? '#b45309' : '#64748b',
+                      fontSize: '11.5px', fontWeight: 700, cursor: cambiandoPausa ? 'default' : 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {cambiandoPausa ? '…' : botPausado ? '⏸ IA pausada' : '🤖 IA activa'}
+                  </button>
+                  <button
+                    onClick={() => cargarConversacion(detalle.id)}
+                    disabled={cargandoConversacion}
+                    style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {cargandoConversacion ? 'Cargando…' : '🔄'}
+                  </button>
+                </div>
               </div>
+              {botPausado && (
+                <div style={{ padding: '8px 16px', background: '#fef3c7', borderBottom: '1px solid #fde68a', flexShrink: 0 }}>
+                  <p style={{ fontSize: '11.5px', color: '#92400e', margin: 0 }}>
+                    ⏸ La IA no está respondiendo en esta conversación. Los mensajes del lead se siguen guardando aquí, pero tienes que responder tú -- por WhatsApp directo o con el cuadro de abajo.
+                  </p>
+                </div>
+              )}
 
               <div style={{
                 flex: 1, overflowY: 'auto', padding: '14px',

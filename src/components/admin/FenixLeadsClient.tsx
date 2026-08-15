@@ -19,6 +19,8 @@ type FenixLead = {
   created_at: string
   autorespuesta_enviada_at: string | null
   autorespuesta_mensaje: string | null
+  telefono_invalido: boolean
+  telefono_invalido_motivo: string | null
 }
 
 const ETAPAS = [
@@ -126,6 +128,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const [soloConAutorespuesta, setSoloConAutorespuesta] = useState(false)
   const [soloIAPausada, setSoloIAPausada] = useState(false)
   const [soloSinIAActiva, setSoloSinIAActiva] = useState(false)
+  const [soloTelefonoInvalido, setSoloTelefonoInvalido] = useState(false)
   const [mostrarCrear, setMostrarCrear] = useState(false)
   const [nuevoLead, setNuevoLead] = useState({ empresa: '', nombre: '', telefono: '', email: '', mensaje: '' })
   const [creandoLead, setCreandoLead] = useState(false)
@@ -302,7 +305,8 @@ export function FenixLeadsClient({ initialLeads }: {
     const matchAutoresp = !soloConAutorespuesta || !!l.autorespuesta_enviada_at
     const matchIAPausada = !soloIAPausada || estadoIADeLead(l.telefono) === true
     const matchSinIAActiva = !soloSinIAActiva || estadoIADeLead(l.telefono) !== false
-    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada && matchSinIAActiva
+    const matchTelefonoInvalido = !soloTelefonoInvalido || l.telefono_invalido
+    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada && matchSinIAActiva && matchTelefonoInvalido
   })
 
   const conteoEtapas = ETAPAS.map(e => ({ ...e, total: leads.filter(l => l.etapa === e.key).length }))
@@ -312,6 +316,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const totalConAutorespuesta = leads.filter(l => !!l.autorespuesta_enviada_at).length
   const totalIAPausada = leads.filter(l => estadoIADeLead(l.telefono) === true).length
   const totalSinIAActiva = leads.filter(l => estadoIADeLead(l.telefono) !== false).length
+  const totalTelefonoInvalido = leads.filter(l => l.telefono_invalido).length
 
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
@@ -445,10 +450,22 @@ export function FenixLeadsClient({ initialLeads }: {
     try {
       const res = await fetch(`/api/admin/fenix-leads/${detalle.id}/autorespuesta`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
+      if (!res.ok || !data.ok) {
+        // El endpoint marca telefono_invalido en la base cuando Evolution
+        // API confirma que el número no tiene WhatsApp -- se refleja acá
+        // al instante para no esperar un refresh de toda la lista.
+        if (data.telefono_invalido) {
+          const marca = { telefono_invalido: true, telefono_invalido_motivo: 'Este número no tiene WhatsApp registrado' }
+          setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...marca } : l)))
+          setDetalle(d => (d ? { ...d, ...marca } : d))
+        }
+        throw new Error(data.error || 'No se pudo enviar')
+      }
       const actualizacion = {
         autorespuesta_enviada_at: data.autorespuesta_enviada_at,
         autorespuesta_mensaje: data.autorespuesta_mensaje,
+        telefono_invalido: false,
+        telefono_invalido_motivo: null,
         ...(data.etapa ? { etapa: data.etapa } : {}),
       }
       setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...actualizacion } : l)))
@@ -820,9 +837,18 @@ export function FenixLeadsClient({ initialLeads }: {
               🚫 Sin IA activa · {totalSinIAActiva}
             </button>
           )}
+          {totalTelefonoInvalido > 0 && (
+            <button onClick={() => setSoloTelefonoInvalido(v => !v)} title="Evolution API respondió que el número no tiene WhatsApp registrado" style={{
+              fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px',
+              background: soloTelefonoInvalido ? '#78716c' : '#78716c18', color: soloTelefonoInvalido ? '#fff' : '#78716c',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              📵 Sin WhatsApp · {totalTelefonoInvalido}
+            </button>
+          )}
 
-          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada || soloSinIAActiva) && (
-            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false); setSoloSinIAActiva(false) }} style={{
+          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada || soloSinIAActiva || soloTelefonoInvalido) && (
+            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false); setSoloSinIAActiva(false); setSoloTelefonoInvalido(false) }} style={{
               fontSize: '11.5px', padding: '5px 11px', borderRadius: '999px',
               background: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}>
@@ -910,6 +936,14 @@ export function FenixLeadsClient({ initialLeads }: {
                                 background: iaEstado ? '#fef3c7' : '#eff6ff', color: iaEstado ? '#b45309' : '#2563eb',
                               }}>
                                 {iaEstado ? '⏸ IA pausada' : '🤖 IA activa'}
+                              </span>
+                            )}
+                            {lead.telefono_invalido && (
+                              <span title={lead.telefono_invalido_motivo || 'Este número no tiene WhatsApp registrado'} style={{
+                                fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px',
+                                background: '#78716c18', color: '#78716c',
+                              }}>
+                                📵 Sin WhatsApp
                               </span>
                             )}
                           </div>
@@ -1053,6 +1087,14 @@ export function FenixLeadsClient({ initialLeads }: {
                         </td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
                           <a href={waLink(lead.telefono)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: ACCENT, textDecoration: 'none' }}>{lead.telefono}</a>
+                          {lead.telefono_invalido && (
+                            <span title={lead.telefono_invalido_motivo || 'Este número no tiene WhatsApp registrado'} style={{
+                              marginLeft: '6px', fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '999px',
+                              background: '#78716c18', color: '#78716c',
+                            }}>
+                              📵
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#64748b', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => abrirDetalle(lead)}>
                           {lead.mensaje || '—'}

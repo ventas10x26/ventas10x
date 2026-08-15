@@ -106,6 +106,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const [estadoIA, setEstadoIA] = useState<Record<string, boolean>>({}) // últimos 8 dígitos -> pausada?
   const [soloConAutorespuesta, setSoloConAutorespuesta] = useState(false)
   const [soloIAPausada, setSoloIAPausada] = useState(false)
+  const [soloSinIAActiva, setSoloSinIAActiva] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/fenix-leads/estado-ia')
@@ -138,7 +139,8 @@ export function FenixLeadsClient({ initialLeads }: {
     const matchEtapa = !filtroEtapa || l.etapa === filtroEtapa
     const matchAutoresp = !soloConAutorespuesta || !!l.autorespuesta_enviada_at
     const matchIAPausada = !soloIAPausada || estadoIADeLead(l.telefono) === true
-    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada
+    const matchSinIAActiva = !soloSinIAActiva || estadoIADeLead(l.telefono) !== false
+    return matchSearch && matchEtapa && matchAutoresp && matchIAPausada && matchSinIAActiva
   })
 
   const conteoEtapas = ETAPAS.map(e => ({ ...e, total: leads.filter(l => l.etapa === e.key).length }))
@@ -147,6 +149,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const tasaConversion = leads.length > 0 ? Math.round((cerrados / leads.length) * 100) : 0
   const totalConAutorespuesta = leads.filter(l => !!l.autorespuesta_enviada_at).length
   const totalIAPausada = leads.filter(l => estadoIADeLead(l.telefono) === true).length
+  const totalSinIAActiva = leads.filter(l => estadoIADeLead(l.telefono) !== false).length
 
   function abrirDetalle(lead: FenixLead) {
     setDetalle(lead)
@@ -408,9 +411,18 @@ export function FenixLeadsClient({ initialLeads }: {
               ⏸ IA pausada · {totalIAPausada}
             </button>
           )}
+          {totalSinIAActiva > 0 && (
+            <button onClick={() => setSoloSinIAActiva(v => !v)} title="Pausada o sin conversación iniciada" style={{
+              fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px',
+              background: soloSinIAActiva ? '#dc2626' : '#dc262618', color: soloSinIAActiva ? '#fff' : '#dc2626',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              🚫 Sin IA activa · {totalSinIAActiva}
+            </button>
+          )}
 
-          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada) && (
-            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false) }} style={{
+          {(filtroEtapa || search || soloConAutorespuesta || soloIAPausada || soloSinIAActiva) && (
+            <button onClick={() => { setFiltroEtapa(null); setSearch(''); setSoloConAutorespuesta(false); setSoloIAPausada(false); setSoloSinIAActiva(false) }} style={{
               fontSize: '11.5px', padding: '5px 11px', borderRadius: '999px',
               background: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}>
@@ -532,7 +544,7 @@ export function FenixLeadsClient({ initialLeads }: {
                 <tbody>
                   {filtrados.length === 0 ? (
                     <tr><td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '14px' }}>
-                      {search || filtroEtapa ? 'Sin resultados para esta búsqueda' : 'Aún no hay leads.'}
+                      {search || filtroEtapa || soloConAutorespuesta || soloIAPausada || soloSinIAActiva ? 'Sin resultados para esta búsqueda' : 'Aún no hay leads.'}
                     </td></tr>
                   ) : filtrados.map(lead => {
                     const etapa = ETAPA_MAP[lead.etapa]

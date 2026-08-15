@@ -312,14 +312,14 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           transform: translateY(-1px);
         }
         .fenix-chip-activo {
-          background: ${ACCENT};
-          border-color: ${ACCENT};
-          color: #17120e;
+          background: #2563eb;
+          border-color: #2563eb;
+          color: #fff;
           font-weight: 700;
-          box-shadow: 0 4px 14px ${ACCENT}55;
+          box-shadow: 0 4px 14px rgba(37,99,235,.45);
           animation: fenix-chip-pop .28s cubic-bezier(.22,.61,.36,1);
         }
-        .fenix-chip-activo:hover { border-color: ${ACCENT}; background: #ff9a3d; }
+        .fenix-chip-activo:hover { border-color: #2563eb; background: #3b76ef; }
         .fenix-chip-check {
           display: inline-flex;
           align-items: center;
@@ -327,8 +327,8 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           width: 15px;
           height: 15px;
           border-radius: 50%;
-          background: rgba(23,18,14,.16);
-          color: #17120e;
+          background: rgba(255,255,255,.22);
+          color: #fff;
           flex-shrink: 0;
         }
         .fenix-submit-btn {
@@ -385,8 +385,6 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           color: #4a4238;
         }
         .fenix-form-light .fenix-chip:hover { border-color: #c7bdb0; background: #ebe6e0; }
-        .fenix-form-light .fenix-chip-activo { color: #fff; }
-        .fenix-form-light .fenix-chip-check { background: rgba(255,255,255,.28); color: #fff; }
         .fenix-form-light .fenix-submit-btn { color: #fff; }
         .fenix-form-light .fenix-trust-row { color: rgba(23,18,14,.45); }
         @media (max-width: 560px) {

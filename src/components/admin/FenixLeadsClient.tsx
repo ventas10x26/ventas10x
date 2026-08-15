@@ -478,9 +478,11 @@ export function FenixLeadsClient({ initialLeads }: {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '480px',
-            maxHeight: '90vh', overflowY: 'auto', padding: '24px',
+            background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '980px',
+            maxHeight: '90vh', display: 'flex', flexWrap: 'wrap', overflow: 'hidden',
           }}>
+            {/* ── Columna izquierda: detalle del lead ── */}
+            <div style={{ flex: '1 1 380px', maxWidth: '460px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
                 <div style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>{detalle.empresa}</div>
@@ -628,71 +630,7 @@ export function FenixLeadsClient({ initialLeads }: {
               </div>
             )}
 
-            {/* Conversación de WhatsApp */}
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                  Conversación de WhatsApp
-                </div>
-                <button
-                  onClick={() => cargarConversacion(detalle.id)}
-                  disabled={cargandoConversacion}
-                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  {cargandoConversacion ? 'Cargando…' : '🔄 Actualizar'}
-                </button>
-              </div>
-
-              <div style={{
-                background: '#e5ddd5', borderRadius: '10px', padding: '10px',
-                maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px',
-              }}>
-                {conversacion.length === 0 ? (
-                  <p style={{ fontSize: '12.5px', color: '#7c8489', textAlign: 'center', margin: '20px 0' }}>
-                    {cargandoConversacion ? 'Cargando conversación…' : 'Todavía no hay mensajes en esta conversación.'}
-                  </p>
-                ) : conversacion.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: m.role === 'assistant' ? 'flex-end' : 'flex-start' }}>
-                    <div style={{
-                      maxWidth: '80%', padding: '7px 10px', borderRadius: '9px', fontSize: '13px',
-                      lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                      background: m.role === 'assistant' ? '#dcf8c6' : '#fff',
-                      boxShadow: '0 1px 1px rgba(0,0,0,.1)', color: '#111b21',
-                    }}>
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                <input
-                  value={mensajeManual}
-                  onChange={e => setMensajeManual(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !enviandoMensaje) enviarMensajeManual() }}
-                  placeholder="Escribe un mensaje…"
-                  style={{
-                    flex: 1, padding: '9px 12px', borderRadius: '9px', border: '1px solid #e2e8f0',
-                    fontSize: '13px', fontFamily: 'inherit', outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={enviarMensajeManual}
-                  disabled={enviandoMensaje || !mensajeManual.trim()}
-                  style={{
-                    padding: '9px 16px', borderRadius: '9px', border: 'none',
-                    background: mensajeManual.trim() ? '#25D366' : '#e2e8f0',
-                    color: mensajeManual.trim() ? '#fff' : '#94a3b8',
-                    fontWeight: 700, fontSize: '13px', cursor: enviandoMensaje ? 'default' : 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  {enviandoMensaje ? '…' : 'Enviar'}
-                </button>
-              </div>
-              <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
-                Lo que escribas aquí sale directo por WhatsApp al lead, sin pasar por la IA.
-              </p>
-            </div>
+            {/* Conversación de WhatsApp -- ver columna derecha */}
 
             {/* Acciones */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
@@ -726,6 +664,81 @@ export function FenixLeadsClient({ initialLeads }: {
                 {autorespResultado.texto}
               </p>
             )}
+            </div>
+
+            {/* ── Columna derecha: chat de WhatsApp, alto completo ── */}
+            <div style={{
+              flex: '1 1 340px', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+              background: '#e5ddd5', borderLeft: '1px solid #e2e8f0',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 16px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', flexShrink: 0,
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                  💬 WhatsApp — {detalle.nombre}
+                </div>
+                <button
+                  onClick={() => cargarConversacion(detalle.id)}
+                  disabled={cargandoConversacion}
+                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  {cargandoConversacion ? 'Cargando…' : '🔄 Actualizar'}
+                </button>
+              </div>
+
+              <div style={{
+                flex: 1, overflowY: 'auto', padding: '14px',
+                display: 'flex', flexDirection: 'column', gap: '7px', minHeight: '260px',
+              }}>
+                {conversacion.length === 0 ? (
+                  <p style={{ fontSize: '12.5px', color: '#7c8489', textAlign: 'center', margin: 'auto 0' }}>
+                    {cargandoConversacion ? 'Cargando conversación…' : 'Todavía no hay mensajes en esta conversación.'}
+                  </p>
+                ) : conversacion.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: m.role === 'assistant' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '75%', padding: '8px 11px', borderRadius: '9px', fontSize: '13.5px',
+                      lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                      background: m.role === 'assistant' ? '#dcf8c6' : '#fff',
+                      boxShadow: '0 1px 1px rgba(0,0,0,.1)', color: '#111b21',
+                    }}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ padding: '12px 14px', background: '#f7f6f4', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    value={mensajeManual}
+                    onChange={e => setMensajeManual(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !enviandoMensaje) enviarMensajeManual() }}
+                    placeholder="Escribe un mensaje…"
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: '9px', border: '1px solid #e2e8f0',
+                      fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: '#fff',
+                    }}
+                  />
+                  <button
+                    onClick={enviarMensajeManual}
+                    disabled={enviandoMensaje || !mensajeManual.trim()}
+                    style={{
+                      padding: '10px 18px', borderRadius: '9px', border: 'none',
+                      background: mensajeManual.trim() ? '#25D366' : '#e2e8f0',
+                      color: mensajeManual.trim() ? '#fff' : '#94a3b8',
+                      fontWeight: 700, fontSize: '13px', cursor: enviandoMensaje ? 'default' : 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {enviandoMensaje ? '…' : 'Enviar'}
+                  </button>
+                </div>
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
+                  Sale directo por WhatsApp al lead, sin pasar por la IA.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

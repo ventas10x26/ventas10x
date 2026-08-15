@@ -131,6 +131,7 @@ export function FenixLeadsClient({ initialLeads }: {
   const [creandoLead, setCreandoLead] = useState(false)
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
   const [fusionando, setFusionando] = useState(false)
+  const [cambiandoPausaLote, setCambiandoPausaLote] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/fenix-leads/estado-ia')
@@ -424,6 +425,38 @@ export function FenixLeadsClient({ initialLeads }: {
     fusionarLeads(principal, resto)
   }
 
+  // Pausa o reanuda la IA para todos los leads marcados a la vez -- cada
+  // uno tiene su propia conversación en fenix_conversaciones, así que se
+  // dispara un PATCH por lead y luego se actualiza el mapa local de estado
+  // (estadoIA) de una sola vez para que los badges se refresquen juntos.
+  async function cambiarPausaSeleccionados(pausar: boolean) {
+    if (seleccionados.size === 0) return
+    const leadsSeleccionados = leads.filter(l => seleccionados.has(l.id))
+    setCambiandoPausaLote(true)
+    setError(null)
+    try {
+      await Promise.all(leadsSeleccionados.map(l =>
+        fetch(`/api/admin/fenix-leads/${l.id}/conversacion`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bot_pausado: pausar }),
+        })
+      ))
+      setEstadoIA(prev => {
+        const next = { ...prev }
+        for (const l of leadsSeleccionados) {
+          const digitos = l.telefono.replace(/\D/g, '')
+          if (digitos.length >= 8) next[digitos.slice(-8)] = pausar
+        }
+        return next
+      })
+    } catch {
+      setError('No se pudo cambiar el estado de la IA en algunos leads seleccionados.')
+    } finally {
+      setCambiandoPausaLote(false)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f7f6f4', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: '1400px', margin: '0 auto' }}>
@@ -687,7 +720,19 @@ export function FenixLeadsClient({ initialLeads }: {
                 <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1d4ed8' }}>
                   {seleccionados.size} seleccionado(s)
                 </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button onClick={() => cambiarPausaSeleccionados(true)} disabled={cambiandoPausaLote} style={{
+                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb',
+                    color: '#b45309', fontSize: '12px', fontWeight: 700, cursor: cambiandoPausaLote ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}>
+                    {cambiandoPausaLote ? '…' : '⏸ Pausar IA'}
+                  </button>
+                  <button onClick={() => cambiarPausaSeleccionados(false)} disabled={cambiandoPausaLote} style={{
+                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #2563eb', background: '#eff6ff',
+                    color: '#2563eb', fontSize: '12px', fontWeight: 700, cursor: cambiandoPausaLote ? 'default' : 'pointer', fontFamily: 'inherit',
+                  }}>
+                    {cambiandoPausaLote ? '…' : '🤖 Activar IA'}
+                  </button>
                   {seleccionados.size >= 2 && (
                     <button onClick={fusionarSeleccionados} disabled={fusionando} style={{
                       padding: '6px 12px', borderRadius: '8px', border: '1px solid #db2777', background: '#fdf2f8',

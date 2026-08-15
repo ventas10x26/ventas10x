@@ -39,6 +39,20 @@ export type ResultadoFollowups = {
   errores: string[]
 }
 
+export type LeadElegible = {
+  telefono: string
+  empresa: string
+  nombre: string
+  horasTranscurridas: number
+}
+
+export type ResultadoPreview = {
+  horasFollowup: number
+  horasPerdido: number
+  aplicanFollowup: LeadElegible[]
+  aplicanPerdido: LeadElegible[]
+}
+
 function horasDesde(fechaISO: string): number {
   return (Date.now() - new Date(fechaISO).getTime()) / (1000 * 60 * 60)
 }
@@ -72,6 +86,70 @@ async function marcarLeadPerdido(remoteJid: string): Promise<string | null> {
   await supabaseAdmin.from('fenix_leads').update({ etapa: 'perdido' }).eq('id', match.id)
   return `${match.empresa} (${match.nombre})`
 }
+
+// Busca el lead por teléfono (solo lectura, sin tocar nada) -- se usa para
+// mostrar empresa/nombre en la vista previa antes de ejecutar de verdad.
+async function buscarLeadPorTelefono(remoteJid: string): Promise<{ empresa: string; nombre: string } | null> {
+  const digitos = remoteJid.replace(/\D/g, '')
+  if (digitos.length < 8) return null
+  const sufijo = digitos.slice(-8)
+  const { data: candidatos } = await supabaseAdmin
+    .from('fenix_leads')
+    .select('empresa, nombre')
+    .eq('etapa', 'nuevo')
+    .ilike('telefono', `%${sufijo}%`)
+  const match = candidatos?.[0]
+  return match ? { empresa: match.empresa, nombre: match.nombre } : null
+}
+
+// Misma lógica de elegibilidad que ejecutarFollowupsLeads(), pero de solo
+// lectura: no envía mensajes por WhatsApp ni escribe nada en la base. Se
+// usa para el botón "Ver quién aplica" del panel admin, así el admin ve
+// exactamente quién recibiría el follow-up o quién se marcaría perdido
+// antes de decidir si ejecutar la prueba real.
+export async function previsualizarFollowups(): Promise<ResultadoPreview> {
+  const { data: cfg } = await supabaseAdmin
+    .from('fenix_leads_agente')
+    .select('horas_followup, horas_perdido')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const horasFollowup = cfg?.horas_followup ?? DEFAULT_HORAS_FOLLOWUP
+  const horasPerdido = cfg?.horas_perdido ?? DEFAULT_HORAS_PERDIDO
+
+  const resultado: ResultadoPreview = { horasFollowup, horasPerdido, aplicanFollowup: [], aplicanPerdido: [] }
+
+  const { data: conversaciones } = await supabaseAdmin
+    .from('fenix_conversaciones')
+    .select('remote_jid, historial, updated_at, followup_enviado_at')
+    .eq('instance_name', INSTANCE_NAME)
+    .eq('tipo', 'lead')
+
+  for (const conv of (conversaciones || []) as ConversacionLead[]) {
+    const historial = conv.historial || []
+    const yaRespondio = historial.some((h) => h.role === 'user')
+    if (yaRespondio) continue
+
+    const lead = await buscarLeadPorTelefono(conv.remote_jid)
+    if (!lead) continue // ya no está en "nuevo" (se movió a mano) -- no aplica a nada de esto
+
+    if (!conv.followup_enviado_at) {
+      const horas = horasDesde(conv.updated_at)
+      if (horas >= horasFollowup) {
+        resultado.aplicanFollowup.push({ telefono: conv.remote_jid, ...lead, horasTranscurridas: Math.round(horas * 10) / 10 })
+      }
+    } else {
+      const horas = horasDesde(conv.followup_enviado_at)
+      if (horas >= horasPerdido) {
+        resultado.aplicanPerdido.push({ telefono: conv.remote_jid, ...lead, horasTranscurridas: Math.round(horas * 10) / 10 })
+      }
+    }
+  }
+
+  return resultado
+}
+
 
 // Punto de entrada único: revisa todas las conversaciones de leads que
 // nunca respondieron y les manda el follow-up o los marca perdidos según

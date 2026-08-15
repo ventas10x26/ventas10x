@@ -182,23 +182,28 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
               Desconectar
             </button>
           </div>
-          {webhookInfo && (
-            <div style={{
-              padding: '10px 12px', borderRadius: 8,
-              background: webhookInfo.registrada === webhookInfo.esperada ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
-              border: `1px solid ${webhookInfo.registrada === webhookInfo.esperada ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}`,
-            }}>
-              <p style={{ fontSize: 11.5, fontWeight: 700, margin: '0 0 4px', color: webhookInfo.registrada === webhookInfo.esperada ? '#16a34a' : '#dc2626' }}>
-                {webhookInfo.registrada === webhookInfo.esperada ? '✓ Webhook correcto' : webhookInfo.corregido ? '⚠ Webhook corregido ahora' : '⚠ Webhook con URL distinta a la esperada'}
-              </p>
-              <p style={{ fontSize: 10.5, color: c.ink3, margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                Registrado: {webhookInfo.registrada || '(vacío)'}
-              </p>
-              <p style={{ fontSize: 10.5, color: c.ink3, margin: '2px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                Esperado: {webhookInfo.esperada}
-              </p>
-            </div>
-          )}
+          {webhookInfo && (() => {
+            const ok = webhookInfo.registrada === webhookInfo.esperada
+            const estadoColor = ok ? '#16a34a' : webhookInfo.corregido ? '#2563eb' : '#dc2626'
+            const estadoBg = ok ? 'rgba(22,163,74,0.08)' : webhookInfo.corregido ? 'rgba(37,99,235,0.08)' : 'rgba(220,38,38,0.08)'
+            const estadoBorde = ok ? 'rgba(22,163,74,0.25)' : webhookInfo.corregido ? 'rgba(37,99,235,0.25)' : 'rgba(220,38,38,0.25)'
+            const titulo = ok
+              ? '✓ Webhook correcto'
+              : webhookInfo.corregido
+                ? '✓ Webhook corregido ahora — recarga la página para confirmar'
+                : '⚠ Webhook con URL distinta a la esperada'
+            return (
+              <div style={{ padding: '10px 12px', borderRadius: 8, background: estadoBg, border: `1px solid ${estadoBorde}` }}>
+                <p style={{ fontSize: 11.5, fontWeight: 700, margin: '0 0 4px', color: estadoColor }}>{titulo}</p>
+                <p style={{ fontSize: 10.5, color: c.ink3, margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  Registrado (antes de corregir): {webhookInfo.registrada || '(vacío)'}
+                </p>
+                <p style={{ fontSize: 10.5, color: c.ink3, margin: '2px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                  Esperado: {webhookInfo.esperada}
+                </p>
+              </div>
+            )
+          })()}
           {!phone && debugInfo && (
             <div style={{ padding: '10px 12px', background: `${ACCENT}08`, border: `1px solid ${ACCENT}25`, borderRadius: 8 }}>
               <p style={{ fontSize: 11, color: c.ink3, margin: '0 0 6px' }}>

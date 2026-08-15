@@ -59,6 +59,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await marcarAutorespuestaEnviada(id, enviado.mensajeCompleto)
     await marcarLeadContactadoPorId(id)
 
+    // Si un envío anterior lo había marcado como teléfono inválido y esta
+    // vez sí funcionó (p. ej. lo corrigieron a mano), se limpia la marca.
+    await supabaseService.from('fenix_leads').update({
+      telefono_invalido: false, telefono_invalido_motivo: null, telefono_invalido_at: null,
+    }).eq('id', id)
+
     const { data: filaActualizada } = await supabaseService
       .from('fenix_leads')
       .select('etapa')
@@ -74,6 +80,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     console.error('[admin/fenix-leads/autorespuesta] Error al enviar:', e)
     const mensaje = e instanceof Error ? e.message : 'No se pudo enviar la autorespuesta'
-    return NextResponse.json({ error: mensaje }, { status: 502 })
+
+    // Evolution API responde "exists":false cuando el número no tiene
+    // WhatsApp registrado -- se marca en el lead para que quede visible en
+    // el pipeline (badge + filtro) sin tener que reintentar a ciegas cada
+    // vez ni perder de vista cuáles fallaron.
+    const esNumeroInexistente = /"exists":false/.test(mensaje)
+    if (esNumeroInexistente) {
+      await supabaseService.from('fenix_leads').update({
+        telefono_invalido: true,
+        telefono_invalido_motivo: 'Este número no tiene WhatsApp registrado',
+        telefono_invalido_at: new Date().toISOString(),
+      }).eq('id', id)
+    }
+
+    return NextResponse.json({ error: mensaje, telefono_invalido: esNumeroInexistente }, { status: 502 })
   }
 }

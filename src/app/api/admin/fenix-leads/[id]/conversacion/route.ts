@@ -6,6 +6,7 @@
 // IA) y lo deja guardado en el mismo historial que ya usa el webhook --
 // así la conversación se ve completa sin importar si respondió el bot o
 // una persona del equipo.
+// PATCH: pausa o reanuda la IA solo para esta conversación puntual.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { data, error } = await supabaseService
     .from('fenix_conversaciones')
-    .select('historial, tipo, updated_at')
+    .select('historial, tipo, updated_at, bot_pausado')
     .eq('instance_name', INSTANCE_NAME)
     .eq('remote_jid', remoteJidDe(telefono))
     .maybeSingle()
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     historial: (data?.historial as MensajeHistorial[]) || [],
     tipo: data?.tipo || null,
     updated_at: data?.updated_at || null,
+    bot_pausado: data?.bot_pausado === true,
   })
 }
 
@@ -113,4 +115,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   return NextResponse.json({ ok: true, historial: nuevoHistorial })
+}
+
+// PATCH -- pausa o reanuda la IA solo para esta conversación puntual, sin
+// mandar ningún mensaje de por medio. Mismo mecanismo que el comando
+// /pausar y /activar escrito desde WhatsApp -- este botón es el atajo
+// equivalente desde el admin, para quien no tiene el celular a mano.
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getCurrentAdmin()
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+
+  const { id } = await params
+  const { bot_pausado } = await req.json()
+  if (typeof bot_pausado !== 'boolean') {
+    return NextResponse.json({ error: 'bot_pausado debe ser true o false' }, { status: 400 })
+  }
+
+  const telefono = await obtenerTelefonoLead(id)
+  if (!telefono) return NextResponse.json({ error: 'Lead no encontrado' }, { status: 404 })
+
+  const remoteJid = remoteJidDe(telefono)
+
+  const { data: filaActual } = await supabaseService
+    .from('fenix_conversaciones')
+    .select('tipo')
+    .eq('instance_name', INSTANCE_NAME)
+    .eq('remote_jid', remoteJid)
+    .maybeSingle()
+
+  const { error } = await supabaseService.from('fenix_conversaciones').upsert({
+    instance_name: INSTANCE_NAME,
+    remote_jid: remoteJid,
+    tipo: filaActual?.tipo || 'lead',
+    bot_pausado,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'instance_name,remote_jid' })
+
+  if (error) {
+    console.error('[admin/fenix-leads/conversacion] Error al cambiar bot_pausado:', error)
+    return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, bot_pausado })
 }

@@ -30,12 +30,13 @@ async function evoFetch(path: string, method = 'GET', body?: unknown) {
 }
 
 function webhookUrl() {
-  // app.consultoresfenix.com no redirige (a diferencia de ventas10x.co sin
-  // "www", que hace un 307 a www.ventas10x.co -- un webhook que manda POST
-  // y no reenvía bien tras esa redirección pierde el mensaje en silencio,
-  // que es justo lo que le pasaba a las respuestas entrantes de los leads).
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://app.consultoresfenix.com'
-  return `${appUrl}/api/fenix/whatsapp/webhook/${INSTANCE_NAME}/messages-upsert`
+  // Fijo a propósito, sin leer NEXT_PUBLIC_APP_URL/BASE_URL: esas variables
+  // son compartidas en este proyecto de Vercel y están puestas para OTRO
+  // cliente (pulsemotor.co) -- si Fenix las usa, el webhook queda
+  // registrado en un dominio donde esta ruta ni siquiera existe (404), y
+  // los mensajes entrantes de WhatsApp se pierden en silencio. Fenix tiene
+  // su propio dominio dedicado, así que no hay ambigüedad posible aquí.
+  return `https://app.consultoresfenix.com/api/fenix/whatsapp/webhook/${INSTANCE_NAME}/messages-upsert`
 }
 
 // ── Corregir webhook de instancia existente (base64 y/o URL desactualizada) ───

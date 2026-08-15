@@ -481,9 +481,16 @@ export function FenixLeadsClient({ initialLeads }: {
         // API confirma que el número no tiene WhatsApp -- se refleja acá
         // al instante para no esperar un refresh de toda la lista.
         if (data.telefono_invalido) {
-          const marca = { telefono_invalido: true, telefono_invalido_motivo: 'Este número no tiene WhatsApp registrado' }
+          const marca = { telefono_invalido: true, telefono_invalido_motivo: data.error || 'Este número no tiene WhatsApp registrado' }
           setLeads(ls => ls.map(l => (l.id === detalle.id ? { ...l, ...marca } : l)))
           setDetalle(d => (d ? { ...d, ...marca } : d))
+        }
+        // Si la conexión de WhatsApp del negocio se cayó (no un problema
+        // de este lead en particular), se muestra como aviso persistente
+        // arriba de todo -- no desaparece al cambiar de lead, porque va a
+        // seguir fallando para todos hasta que se reconecte.
+        if (data.conexion_whatsapp_caida) {
+          setError(data.error)
         }
         throw new Error(data.error || 'No se pudo enviar')
       }

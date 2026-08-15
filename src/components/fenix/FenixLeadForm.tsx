@@ -26,6 +26,17 @@ const NECESIDADES = [
   'Otro',
 ]
 
+// El usuario escribe su número local (ej. "333 2812028"), sin código de
+// país -- pedírselo generaba confusión y errores. El +57 se agrega acá,
+// de forma invisible, antes de enviar. Sin esto el número que llega a
+// WhatsApp/Evolution API queda mal formado y la autorespuesta nunca sale.
+function normalizarTelefono(valor: string): string {
+  const digitos = valor.replace(/\D/g, '')
+  if (!digitos) return ''
+  if (digitos.startsWith('57')) return digitos
+  return `57${digitos}`
+}
+
 function IconLock() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -40,6 +51,14 @@ function IconClock() {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 3" />
+    </svg>
+  )
+}
+
+function IconCheck() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
     </svg>
   )
 }
@@ -70,11 +89,13 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
     if (necesidades.size > 0) partesMensaje.push(`Necesita: ${[...necesidades].join(', ')}`)
     if (detalle.trim()) partesMensaje.push(detalle.trim())
 
+    const telefonoCrudo = (form.elements.namedItem('telefono') as HTMLInputElement).value.trim()
+
     const data = {
       empresa: (form.elements.namedItem('empresa') as HTMLInputElement).value.trim(),
       nombre: (form.elements.namedItem('nombre') as HTMLInputElement).value.trim(),
       email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
-      telefono: (form.elements.namedItem('telefono') as HTMLInputElement).value.trim(),
+      telefono: normalizarTelefono(telefonoCrudo),
       mensaje: partesMensaje.join(' — '),
     }
 
@@ -131,30 +152,30 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
-        <div>
+        <div className="fenix-field">
           <label className="fenix-label" htmlFor="empresa">Empresa *</label>
           <input id="empresa" name="empresa" required className="fenix-input" placeholder="Nombre de su empresa" />
         </div>
-        <div>
+        <div className="fenix-field">
           <label className="fenix-label" htmlFor="nombre">Nombre de contacto *</label>
           <input id="nombre" name="nombre" required className="fenix-input" placeholder="Su nombre" />
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: rowCols, gap }} className="fenix-form-row">
-        <div>
+        <div className="fenix-field">
           <label className="fenix-label" htmlFor="email">Correo *</label>
           <input id="email" name="email" type="email" required className="fenix-input" placeholder="correo@empresa.com" />
         </div>
-        <div>
+        <div className="fenix-field">
           <label className="fenix-label" htmlFor="telefono">WhatsApp / Teléfono *</label>
-          <input id="telefono" name="telefono" type="tel" required className="fenix-input" placeholder="+57 300 000 0000" />
-          <div className="fenix-hint">Incluya el código de país: +57 o 57 antes del número</div>
+          <input id="telefono" name="telefono" type="tel" required className="fenix-input" placeholder="333 2812028" />
+          <div className="fenix-hint">Escriba su número, nosotros agregamos el +57 automáticamente</div>
         </div>
       </div>
 
       {!compact && (
-        <div>
+        <div className="fenix-field">
           <label className="fenix-label">¿Qué necesita su empresa?</label>
           <div className="fenix-chips">
             {NECESIDADES.map(opcion => {
@@ -167,7 +188,8 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
                   className={`fenix-chip${activo ? ' fenix-chip-activo' : ''}`}
                   aria-pressed={activo}
                 >
-                  {activo ? '✓ ' : ''}{opcion}
+                  {activo && <span className="fenix-chip-check"><IconCheck /></span>}
+                  {opcion}
                 </button>
               )
             })}
@@ -204,6 +226,16 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
       </div>
 
       <style>{`
+        @keyframes fenix-form-in {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: none; }
+        }
+        @keyframes fenix-chip-pop {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.08); }
+          100% { transform: scale(1); }
+        }
+        .fenix-form { animation: fenix-form-in .5s cubic-bezier(.22,.61,.36,1); }
         .fenix-kicker {
           font-size: 12.5px;
           font-weight: 600;
@@ -214,24 +246,30 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           padding: 10px 14px;
           line-height: 1.5;
         }
+        .fenix-field { position: relative; }
         .fenix-input {
           width: 100%;
           background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.15);
+          border: 1.5px solid rgba(255,255,255,.15);
           border-radius: 10px;
           padding: 13px 16px;
           font-size: 14px;
           color: #fff;
           font-family: inherit;
           outline: none;
-          transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+          box-sizing: border-box;
+          transition: border-color .22s cubic-bezier(.22,.61,.36,1),
+                      background-color .22s cubic-bezier(.22,.61,.36,1),
+                      box-shadow .28s cubic-bezier(.22,.61,.36,1),
+                      transform .18s cubic-bezier(.22,.61,.36,1);
         }
         .fenix-input::placeholder { color: rgba(255,255,255,.32); }
-        .fenix-input:hover { border-color: rgba(255,255,255,.28); }
+        .fenix-input:hover { border-color: rgba(255,255,255,.32); }
         .fenix-input:focus {
           border-color: ${ACCENT};
-          background: rgba(255,255,255,.06);
-          box-shadow: 0 0 0 3px ${ACCENT}28;
+          background: rgba(255,255,255,.07);
+          box-shadow: 0 0 0 4px ${ACCENT}22;
+          transform: translateY(-1px);
         }
         .fenix-label {
           display: block;
@@ -239,7 +277,9 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           font-weight: 600;
           color: rgba(255,255,255,.55);
           margin-bottom: 6px;
+          transition: color .2s ease;
         }
+        .fenix-field:focus-within .fenix-label { color: ${light ? ACCENT : '#ffb066'}; }
         .fenix-hint {
           font-size: 11px;
           color: rgba(255,255,255,.4);
@@ -248,27 +288,49 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
         .fenix-chips {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 9px;
         }
         .fenix-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
           font-family: inherit;
           font-size: 12.5px;
           font-weight: 600;
-          padding: 8px 14px;
+          padding: 9px 16px;
           border-radius: 999px;
-          border: 1px solid rgba(255,255,255,.18);
-          background: rgba(255,255,255,.04);
-          color: rgba(255,255,255,.75);
+          border: 1.5px solid rgba(255,255,255,.22);
+          background: rgba(255,255,255,.05);
+          color: rgba(255,255,255,.82);
           cursor: pointer;
-          transition: border-color .15s ease, background-color .15s ease, color .15s ease, transform .1s ease;
+          transition: border-color .18s ease, background-color .18s ease, color .18s ease,
+                      transform .15s ease, box-shadow .18s ease;
         }
-        .fenix-chip:hover { border-color: rgba(255,255,255,.35); transform: translateY(-1px); }
+        .fenix-chip:hover {
+          border-color: rgba(255,255,255,.45);
+          background: rgba(255,255,255,.09);
+          transform: translateY(-1px);
+        }
         .fenix-chip-activo {
           background: ${ACCENT};
           border-color: ${ACCENT};
-          color: #050302;
+          color: #17120e;
+          font-weight: 700;
+          box-shadow: 0 4px 14px ${ACCENT}55;
+          animation: fenix-chip-pop .28s cubic-bezier(.22,.61,.36,1);
         }
-        .fenix-chip-activo:hover { border-color: ${ACCENT}; }
+        .fenix-chip-activo:hover { border-color: ${ACCENT}; background: #ff9a3d; }
+        .fenix-chip-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          background: rgba(23,18,14,.16);
+          color: #17120e;
+          flex-shrink: 0;
+        }
         .fenix-submit-btn {
           width: 100%;
           background: ${ACCENT};
@@ -299,15 +361,15 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
         /* ── Tema claro (panel derecho de la sección de contacto) ── */
         .fenix-form-light .fenix-input {
           background: #f1efec;
-          border-color: #e0dbd5;
+          border-color: #e2ddd6;
           color: #17120e;
         }
-        .fenix-form-light .fenix-input::placeholder { color: rgba(23,18,14,.38); }
+        .fenix-form-light .fenix-input::placeholder { color: rgba(23,18,14,.4); }
         .fenix-form-light .fenix-input:hover { border-color: #cfc8c0; }
         .fenix-form-light .fenix-input:focus {
           border-color: ${ACCENT};
           background: #fff;
-          box-shadow: 0 0 0 3px ${ACCENT}28;
+          box-shadow: 0 0 0 4px ${ACCENT}22;
         }
         .fenix-form-light .fenix-label {
           color: rgba(23,18,14,.62);
@@ -316,22 +378,26 @@ export function FenixLeadForm({ compact = false, onSuccess, theme = 'dark' }: Pr
           font-size: 11px;
           font-weight: 700;
         }
-        .fenix-form-light .fenix-hint { color: rgba(23,18,14,.42); }
+        .fenix-form-light .fenix-hint { color: rgba(23,18,14,.45); }
         .fenix-form-light .fenix-chip {
-          border-color: #e0dbd5;
+          border-color: #ddd6cd;
           background: #f1efec;
-          color: rgba(23,18,14,.68);
+          color: #4a4238;
         }
-        .fenix-form-light .fenix-chip:hover { border-color: #cfc8c0; }
+        .fenix-form-light .fenix-chip:hover { border-color: #c7bdb0; background: #ebe6e0; }
         .fenix-form-light .fenix-chip-activo { color: #fff; }
+        .fenix-form-light .fenix-chip-check { background: rgba(255,255,255,.28); color: #fff; }
         .fenix-form-light .fenix-submit-btn { color: #fff; }
         .fenix-form-light .fenix-trust-row { color: rgba(23,18,14,.45); }
         @media (max-width: 560px) {
           .fenix-form-row { grid-template-columns: 1fr !important; }
         }
         @media (prefers-reduced-motion: reduce) {
+          .fenix-form { animation: none; }
+          .fenix-input:focus { transform: none; }
           .fenix-submit-btn:hover:not(:disabled) { transform: none; }
           .fenix-chip:hover { transform: none; }
+          .fenix-chip-activo { animation: none; }
         }
       `}</style>
     </form>

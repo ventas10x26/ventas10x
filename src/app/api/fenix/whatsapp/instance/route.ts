@@ -39,15 +39,20 @@ function webhookUrl() {
 }
 
 // ── Corregir webhook de instancia existente (base64 y/o URL desactualizada) ───
+// Devuelve info de diagnóstico (qué había registrado vs qué debería haber)
+// para exponerla en el widget de conexión y poder ver en el momento si el
+// webhook de verdad quedó apuntando a donde toca.
 async function corregirWebhook() {
   try {
     const { data: current } = await evoFetch(`/webhook/find/${INSTANCE_NAME}`)
-    const urlDesactualizada = current?.url && current.url !== webhookUrl()
+    const esperada = webhookUrl()
+    const urlDesactualizada = current?.url && current.url !== esperada
     const base64Mal = current?.webhookBase64 === true
+    let corregido = false
     if (urlDesactualizada || base64Mal) {
       await evoFetch(`/webhook/set/${INSTANCE_NAME}`, 'POST', {
         webhook: {
-          url: webhookUrl(),
+          url: esperada,
           enabled: true,
           webhookByEvents: true,
           webhookBase64: false,
@@ -56,9 +61,12 @@ async function corregirWebhook() {
           events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
         },
       })
+      corregido = true
     }
+    return { registrada: current?.url ?? null, esperada, corregido, respuestaCruda: current }
   } catch (e) {
     console.error('[fenix instance] corregirWebhook error:', e)
+    return { registrada: null, esperada: webhookUrl(), corregido: false, error: String(e) }
   }
 }
 
@@ -119,9 +127,10 @@ export async function GET() {
   }
 
   if (state === 'open') {
-    await corregirWebhook()
+    const webhookInfo = await corregirWebhook()
     return NextResponse.json({
       connected: true, status: 'connected', instanceName: INSTANCE_NAME, phone, profileName,
+      webhook: webhookInfo,
       ...(debugRaw !== undefined ? { debug: debugRaw } : {}),
     })
   }

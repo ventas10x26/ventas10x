@@ -32,6 +32,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
   const [pairingCode, setPairingCode] = useState<string | null>(null)
   const [phone, setPhone] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
+  const [webhookInfo, setWebhookInfo] = useState<{ registrada: string | null; esperada: string; corregido: boolean } | null>(null)
   const [error, setError] = useState('')
   const [creando, setCreando] = useState(false)
   const [polling, setPolling] = useState(false)
@@ -47,6 +48,7 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
         setPhone(data.phone)
         setQr(null)
         setDebugInfo(data.debug ? JSON.stringify(data.debug, null, 2) : null)
+        setWebhookInfo(data.webhook ?? null)
         onEstadoChange?.(true)
         if (data.phone) onConnected?.(String(data.phone).replace(/\D/g, ''))
         return true
@@ -180,6 +182,23 @@ export function FenixWhatsappConnect({ c, onEstadoChange, onConnected }: Props) 
               Desconectar
             </button>
           </div>
+          {webhookInfo && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 8,
+              background: webhookInfo.registrada === webhookInfo.esperada ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)',
+              border: `1px solid ${webhookInfo.registrada === webhookInfo.esperada ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}`,
+            }}>
+              <p style={{ fontSize: 11.5, fontWeight: 700, margin: '0 0 4px', color: webhookInfo.registrada === webhookInfo.esperada ? '#16a34a' : '#dc2626' }}>
+                {webhookInfo.registrada === webhookInfo.esperada ? '✓ Webhook correcto' : webhookInfo.corregido ? '⚠ Webhook corregido ahora' : '⚠ Webhook con URL distinta a la esperada'}
+              </p>
+              <p style={{ fontSize: 10.5, color: c.ink3, margin: 0, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                Registrado: {webhookInfo.registrada || '(vacío)'}
+              </p>
+              <p style={{ fontSize: 10.5, color: c.ink3, margin: '2px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                Esperado: {webhookInfo.esperada}
+              </p>
+            </div>
+          )}
           {!phone && debugInfo && (
             <div style={{ padding: '10px 12px', background: `${ACCENT}08`, border: `1px solid ${ACCENT}25`, borderRadius: 8 }}>
               <p style={{ fontSize: 11, color: c.ink3, margin: '0 0 6px' }}>

@@ -53,6 +53,25 @@ function waLink(telefono: string) {
   return `https://wa.me/${telefono.replace(/\D/g, '')}`
 }
 
+// Agrupa leads que comparten los mismos últimos 8 dígitos de teléfono --
+// normalmente duplicados de la misma persona llegados por dos canales
+// distintos (ej. Meta Ads y la landing). El array de entrada ya viene
+// ordenado por fecha de creación descendente, así que el primer elemento
+// de cada grupo (el más reciente) queda como representante por defecto.
+function agruparDuplicados<T extends { telefono: string }>(items: T[]): T[][] {
+  const mapa = new Map<string, T[]>()
+  const sinTelefono: T[][] = []
+  for (const item of items) {
+    const digitos = item.telefono.replace(/\D/g, '')
+    if (digitos.length < 8) { sinTelefono.push([item]); continue }
+    const clave = digitos.slice(-8)
+    const grupo = mapa.get(clave)
+    if (grupo) grupo.push(item)
+    else mapa.set(clave, [item])
+  }
+  return [...mapa.values(), ...sinTelefono]
+}
+
 function exportCSV(leads: FenixLead[]) {
   const headers = ['Empresa', 'Contacto', 'Email', 'Teléfono', 'Qué necesita', 'Etapa', 'Fuente', 'Fecha']
   const rows = leads.map(l => [
@@ -107,6 +126,11 @@ export function FenixLeadsClient({ initialLeads }: {
   const [soloConAutorespuesta, setSoloConAutorespuesta] = useState(false)
   const [soloIAPausada, setSoloIAPausada] = useState(false)
   const [soloSinIAActiva, setSoloSinIAActiva] = useState(false)
+  const [mostrarCrear, setMostrarCrear] = useState(false)
+  const [nuevoLead, setNuevoLead] = useState({ empresa: '', nombre: '', telefono: '', email: '', mensaje: '' })
+  const [creandoLead, setCreandoLead] = useState(false)
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
+  const [fusionando, setFusionando] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/fenix-leads/estado-ia')
@@ -308,6 +332,98 @@ export function FenixLeadsClient({ initialLeads }: {
     cambiarEtapa(lead.id, etapaKey)
   }
 
+  async function crearLead() {
+    if (!nuevoLead.empresa.trim() || !nuevoLead.nombre.trim() || !nuevoLead.telefono.trim()) {
+      setError('Empresa, nombre y teléfono son obligatorios.')
+      return
+    }
+    setCreandoLead(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/fenix-leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoLead),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo crear el lead')
+      setLeads(ls => [data.lead, ...ls])
+      setMostrarCrear(false)
+      setNuevoLead({ empresa: '', nombre: '', telefono: '', email: '', mensaje: '' })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo crear el lead')
+    } finally {
+      setCreandoLead(false)
+    }
+  }
+
+  function toggleSeleccion(id: string) {
+    setSeleccionados(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSeleccionarTodos() {
+    setSeleccionados(prev => (prev.size === filtrados.length ? new Set() : new Set(filtrados.map(l => l.id))))
+  }
+
+  async function eliminarSeleccionados() {
+    if (seleccionados.size === 0) return
+    if (!confirm(`¿Eliminar ${seleccionados.size} lead(s) seleccionados? Esta acción no se puede deshacer.`)) return
+    const ids = [...seleccionados]
+    try {
+      const res = await fetch('/api/admin/fenix-leads', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudieron eliminar')
+      setLeads(ls => ls.filter(l => !ids.includes(l.id)))
+      setSeleccionados(new Set())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron eliminar los leads seleccionados')
+    }
+  }
+
+  // Fusiona un conjunto de leads en uno solo: se conserva `principal`
+  // (empresa/nombre/email/teléfono/etapa tal cual están), se le combinan
+  // las notas de los demás, y se borran los duplicados. Se usa tanto desde
+  // la insignia "⧉ duplicado" del pipeline como desde la selección
+  // múltiple de la tabla.
+  async function fusionarLeads(principal: FenixLead, resto: FenixLead[]) {
+    if (resto.length === 0) return
+    if (!confirm(`¿Fusionar ${resto.length + 1} leads en uno solo? Se conservará "${principal.empresa} — ${principal.nombre}" y se combinarán las notas. Esta acción no se puede deshacer.`)) return
+    setFusionando(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/fenix-leads/fusionar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keepId: principal.id, mergeIds: resto.map(l => l.id) }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo fusionar')
+      const idsEliminados = resto.map(l => l.id)
+      setLeads(ls => ls.filter(l => !idsEliminados.includes(l.id)).map(l => (l.id === principal.id ? data.lead : l)))
+      setSeleccionados(new Set())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo fusionar')
+    } finally {
+      setFusionando(false)
+    }
+  }
+
+  function fusionarSeleccionados() {
+    const seleccionadosOrdenados = filtrados.filter(l => seleccionados.has(l.id))
+    if (seleccionadosOrdenados.length < 2) return
+    const [principal, ...resto] = seleccionadosOrdenados
+    fusionarLeads(principal, resto)
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f7f6f4', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: '1400px', margin: '0 auto' }}>
@@ -340,6 +456,14 @@ export function FenixLeadsClient({ initialLeads }: {
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
               ↓ Exportar CSV
+            </button>
+
+            <button onClick={() => setMostrarCrear(true)} style={{
+              padding: '9px 16px', borderRadius: '10px', border: 'none',
+              background: ACCENT, color: '#fff', fontSize: '13px', fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              + Nuevo lead
             </button>
           </div>
         </div>
@@ -464,7 +588,9 @@ export function FenixLeadsClient({ initialLeads }: {
                           Sin leads
                         </div>
                       )}
-                      {columnaLeads.map(lead => {
+                      {agruparDuplicados(columnaLeads).map(grupo => {
+                        const lead = grupo[0]
+                        const duplicado = grupo.length > 1
                         const iaEstado = estadoIADeLead(lead.telefono)
                         return (
                         <div
@@ -473,13 +599,23 @@ export function FenixLeadsClient({ initialLeads }: {
                           onDragStart={() => setDraggingId(lead.id)}
                           onClick={() => abrirDetalle(lead)}
                           style={{
-                            background: '#fff', borderRadius: '12px', padding: '13px',
-                            cursor: 'pointer', border: '1px solid #ece9e3',
+                            background: duplicado ? '#fdf2f8' : '#fff', borderRadius: '12px', padding: '13px',
+                            cursor: 'pointer', border: duplicado ? '1px solid #f9a8d4' : '1px solid #ece9e3',
                             borderLeft: `3px solid ${etapa.color}`,
                             boxShadow: '0 1px 3px rgba(0,0,0,.04)',
                           }}
                         >
-                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>{lead.empresa}</div>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
+                            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>{lead.empresa}</div>
+                            {duplicado && (
+                              <span title={`Hay ${grupo.length} leads con este mismo teléfono`} style={{
+                                fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '999px',
+                                background: '#db2777', color: '#fff', flexShrink: 0, whiteSpace: 'nowrap',
+                              }}>
+                                ⧉ x{grupo.length}
+                              </span>
+                            )}
+                          </div>
                           <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>{lead.nombre}</div>
                           <div style={{ fontSize: '12px', color: ACCENT, marginBottom: '4px' }}>📱 {lead.telefono}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '9px' }}>
@@ -515,6 +651,19 @@ export function FenixLeadsClient({ initialLeads }: {
                               Detalle
                             </button>
                           </div>
+                          {duplicado && (
+                            <button
+                              disabled={fusionando}
+                              onClick={() => fusionarLeads(lead, grupo.slice(1))}
+                              style={{
+                                width: '100%', marginTop: '6px', padding: '6px', fontSize: '11px', fontWeight: 700,
+                                background: 'none', border: '1px dashed #db2777', color: '#db2777', borderRadius: '8px',
+                                cursor: fusionando ? 'default' : 'pointer', fontFamily: 'inherit',
+                              }}
+                            >
+                              {fusionando ? 'Fusionando…' : `⧉ Fusionar los ${grupo.length} en 1`}
+                            </button>
+                          )}
                         </div>
                         )
                       })}
@@ -530,10 +679,50 @@ export function FenixLeadsClient({ initialLeads }: {
         {/* ── Vista Tabla ── */}
         {vista === 'tabla' && (
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden' }}>
+            {seleccionados.size > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap',
+                padding: '10px 14px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe',
+              }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1d4ed8' }}>
+                  {seleccionados.size} seleccionado(s)
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {seleccionados.size >= 2 && (
+                    <button onClick={fusionarSeleccionados} disabled={fusionando} style={{
+                      padding: '6px 12px', borderRadius: '8px', border: '1px solid #db2777', background: '#fdf2f8',
+                      color: '#db2777', fontSize: '12px', fontWeight: 700, cursor: fusionando ? 'default' : 'pointer', fontFamily: 'inherit',
+                    }}>
+                      {fusionando ? 'Fusionando…' : '⧉ Fusionar en 1 (se conserva el primero)'}
+                    </button>
+                  )}
+                  <button onClick={eliminarSeleccionados} style={{
+                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #dc2626', background: '#fef2f2',
+                    color: '#dc2626', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    🗑 Eliminar
+                  </button>
+                  <button onClick={() => setSeleccionados(new Set())} style={{
+                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff',
+                    color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
                   <tr>
+                    <th style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', background: '#f7f6f4', width: '32px' }}>
+                      <input
+                        type="checkbox"
+                        checked={filtrados.length > 0 && seleccionados.size === filtrados.length}
+                        onChange={toggleSeleccionarTodos}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
                     {['Empresa', 'Contacto', 'Email', 'Teléfono', 'Qué necesita', 'Etapa', 'IA', 'Llegó', ''].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, color: '#4a4a47', fontSize: '11px', background: '#f7f6f4', whiteSpace: 'nowrap' }}>
                         {h}
@@ -543,31 +732,35 @@ export function FenixLeadsClient({ initialLeads }: {
                 </thead>
                 <tbody>
                   {filtrados.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '14px' }}>
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '14px' }}>
                       {search || filtroEtapa || soloConAutorespuesta || soloIAPausada || soloSinIAActiva ? 'Sin resultados para esta búsqueda' : 'Aún no hay leads.'}
                     </td></tr>
                   ) : filtrados.map(lead => {
                     const etapa = ETAPA_MAP[lead.etapa]
                     const iaEstado = estadoIADeLead(lead.telefono)
+                    const marcado = seleccionados.has(lead.id)
                     return (
-                      <tr key={lead.id} style={{ cursor: 'pointer' }} onClick={() => abrirDetalle(lead)}>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', fontWeight: 700, color: '#0f172a' }}>{lead.empresa}</td>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>{lead.nombre}</td>
+                      <tr key={lead.id} style={{ cursor: 'pointer', background: marcado ? '#eff6ff' : undefined }}>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }} onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={marcado} onChange={() => toggleSeleccion(lead.id)} style={{ cursor: 'pointer' }} />
+                        </td>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', fontWeight: 700, color: '#0f172a' }} onClick={() => abrirDetalle(lead)}>{lead.empresa}</td>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }} onClick={() => abrirDetalle(lead)}>{lead.nombre}</td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
                           <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()} style={{ color: ACCENT, textDecoration: 'none' }}>{lead.email}</a>
                         </td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
                           <a href={waLink(lead.telefono)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: ACCENT, textDecoration: 'none' }}>{lead.telefono}</a>
                         </td>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#64748b', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#64748b', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => abrirDetalle(lead)}>
                           {lead.mensaje || '—'}
                         </td>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }} onClick={() => abrirDetalle(lead)}>
                           <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px', background: `${etapa?.color}18`, color: etapa?.color }}>
                             {etapa?.label || lead.etapa}
                           </span>
                         </td>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }} onClick={() => abrirDetalle(lead)}>
                           {iaEstado !== null ? (
                             <span style={{
                               fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px',
@@ -579,7 +772,7 @@ export function FenixLeadsClient({ initialLeads }: {
                             <span style={{ fontSize: '11px', color: '#cbd5e1' }}>—</span>
                           )}
                         </td>
-                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#94a3b8', fontSize: '12px' }}>{timeAgo(lead.created_at)}</td>
+                        <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed', color: '#94a3b8', fontSize: '12px' }} onClick={() => abrirDetalle(lead)}>{timeAgo(lead.created_at)}</td>
                         <td style={{ padding: '11px 14px', borderBottom: '1px solid #f1f0ed' }}>
                           <a href={waLink(lead.telefono)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{
                             background: '#f0fdf4', color: '#16a34a', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', textDecoration: 'none',
@@ -888,6 +1081,71 @@ export function FenixLeadsClient({ initialLeads }: {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de creación manual ── */}
+      {mostrarCrear && (
+        <div onClick={() => !creandoLead && setMostrarCrear(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '420px', padding: '24px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>+ Nuevo lead</div>
+              <button onClick={() => setMostrarCrear(false)} style={{
+                background: '#f1f5f9', border: 'none', borderRadius: '8px', width: '30px', height: '30px',
+                cursor: 'pointer', fontSize: '16px', color: '#64748b',
+              }}>×</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {([
+                { campo: 'empresa' as const, label: 'Empresa *' },
+                { campo: 'nombre' as const, label: 'Nombre de contacto *' },
+                { campo: 'telefono' as const, label: 'Teléfono *' },
+                { campo: 'email' as const, label: 'Email' },
+              ]).map(({ campo, label }) => (
+                <div key={campo}>
+                  <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>{label}</label>
+                  <input
+                    value={nuevoLead[campo]}
+                    onChange={e => setNuevoLead(d => ({ ...d, [campo]: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '9px 11px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                      fontSize: '13px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Qué necesita</label>
+                <textarea
+                  value={nuevoLead.mensaje}
+                  onChange={e => setNuevoLead(d => ({ ...d, mensaje: e.target.value }))}
+                  rows={2}
+                  style={{
+                    width: '100%', padding: '9px 11px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                    fontSize: '13px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={crearLead}
+              disabled={creandoLead}
+              style={{
+                width: '100%', marginTop: '16px', padding: '11px', borderRadius: '10px', border: 'none',
+                background: ACCENT, color: '#fff', fontSize: '13.5px', fontWeight: 700,
+                cursor: creandoLead ? 'default' : 'pointer', fontFamily: 'inherit', opacity: creandoLead ? 0.6 : 1,
+              }}
+            >
+              {creandoLead ? 'Creando…' : 'Crear lead'}
+            </button>
           </div>
         </div>
       )}

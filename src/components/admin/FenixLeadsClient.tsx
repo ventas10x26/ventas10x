@@ -138,6 +138,17 @@ export function FenixLeadsClient({ initialLeads }: {
   const [borradorCostos, setBorradorCostos] = useState({ costo_railway_usd: '0', costo_ia_usd: '0', costo_otros_usd: '0' })
   const [guardandoCostos, setGuardandoCostos] = useState(false)
 
+  type LeadCandidato = { metaLeadId: string; nombre: string; email: string; telefono: string; formulario: string; createdAtISO: string | null }
+  const [mostrarSync, setMostrarSync] = useState(false)
+  const [syncCargando, setSyncCargando] = useState(false)
+  const [syncPlan, setSyncPlan] = useState<{ nuevos: LeadCandidato[]; danados: LeadCandidato[]; duplicados: number; totalFilasCSV: number } | null>(null)
+  const [syncSeleccionNuevos, setSyncSeleccionNuevos] = useState<Set<string>>(new Set())
+  const [syncSeleccionDanados, setSyncSeleccionDanados] = useState<Set<string>>(new Set())
+  const [syncTelefonosCorregidos, setSyncTelefonosCorregidos] = useState<Record<string, string>>({})
+  const [syncConfirmando, setSyncConfirmando] = useState(false)
+  const [syncResultado, setSyncResultado] = useState<{ insertados: number; omitidos: string[] } | null>(null)
+  const [syncError, setSyncError] = useState('')
+
   useEffect(() => {
     fetch('/api/admin/fenix-leads/estado-ia')
       .then(r => r.json())
@@ -187,6 +198,89 @@ export function FenixLeadsClient({ initialLeads }: {
       setError(e instanceof Error ? e.message : 'No se pudo guardar el costo')
     } finally {
       setGuardandoCostos(false)
+    }
+  }
+
+  function abrirSync() {
+    setMostrarSync(true)
+    setSyncPlan(null)
+    setSyncResultado(null)
+    setSyncError('')
+    setSyncSeleccionNuevos(new Set())
+    setSyncSeleccionDanados(new Set())
+    setSyncTelefonosCorregidos({})
+    buscarSync()
+  }
+
+  async function buscarSync() {
+    setSyncCargando(true)
+    setSyncError('')
+    try {
+      const res = await fetch('/api/admin/fenix-leads/sync-sheets/preview', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo consultar el CSV')
+      setSyncPlan(data)
+      setSyncSeleccionNuevos(new Set(data.nuevos.map((n: LeadCandidato) => n.metaLeadId)))
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : 'No se pudo consultar el CSV')
+    } finally {
+      setSyncCargando(false)
+    }
+  }
+
+  function toggleSyncNuevo(id: string) {
+    setSyncSeleccionNuevos(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSyncDanado(id: string) {
+    setSyncSeleccionDanados(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function confirmarSync() {
+    if (!syncPlan) return
+    const candidatos: LeadCandidato[] = [
+      ...syncPlan.nuevos.filter(n => syncSeleccionNuevos.has(n.metaLeadId)),
+      ...syncPlan.danados
+        .filter(d => syncSeleccionDanados.has(d.metaLeadId))
+        .map(d => ({ ...d, telefono: (syncTelefonosCorregidos[d.metaLeadId] || '').trim() })),
+    ]
+    if (candidatos.length === 0) {
+      setSyncError('Selecciona al menos un lead para sincronizar.')
+      return
+    }
+    const sinTelefono = candidatos.find(c => c.telefono.replace(/\D/g, '').length < 8)
+    if (sinTelefono) {
+      setSyncError(`"${sinTelefono.nombre}" necesita un teléfono completo (mínimo 8 dígitos) antes de sincronizar.`)
+      return
+    }
+
+    setSyncConfirmando(true)
+    setSyncError('')
+    try {
+      const res = await fetch('/api/admin/fenix-leads/sync-sheets/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidatos }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo sincronizar')
+      setSyncResultado({ insertados: data.insertados, omitidos: data.omitidos })
+      setSyncPlan(null)
+      if (data.insertados > 0) setTimeout(() => window.location.reload(), 1800)
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : 'No se pudo sincronizar')
+    } finally {
+      setSyncConfirmando(false)
     }
   }
 
@@ -550,6 +644,14 @@ export function FenixLeadsClient({ initialLeads }: {
               cursor: 'pointer', fontFamily: 'inherit',
             }}>
               + Nuevo lead
+            </button>
+
+            <button onClick={abrirSync} style={{
+              padding: '9px 16px', borderRadius: '10px', border: '1px solid #2563eb',
+              background: '#eff6ff', color: '#2563eb', fontSize: '13px', fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              🔄 Sincronizar Sheets
             </button>
           </div>
         </div>
@@ -1346,6 +1448,150 @@ export function FenixLeadsClient({ initialLeads }: {
             >
               {creandoLead ? 'Creando…' : 'Crear lead'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de sincronización desde Sheets ── */}
+      {mostrarSync && (
+        <div onClick={() => !syncConfirmando && setMostrarSync(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '640px',
+            maxHeight: '88vh', overflowY: 'auto', padding: '24px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>🔄 Sincronizar desde Sheets</div>
+              <button onClick={() => setMostrarSync(false)} style={{
+                background: '#f1f5f9', border: 'none', borderRadius: '8px', width: '30px', height: '30px',
+                cursor: 'pointer', fontSize: '16px', color: '#64748b',
+              }}>×</button>
+            </div>
+            <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: '0 0 16px' }}>
+              Compara el CSV publicado de Google Sheets (export de Meta Lead Ads) contra los leads que ya tienes, y muestra solo lo nuevo antes de insertar nada.
+            </p>
+
+            {syncCargando && (
+              <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '24px 0' }}>Descargando y comparando el CSV…</p>
+            )}
+
+            {syncError && (
+              <div style={{ marginBottom: '14px', padding: '10px 14px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '12.5px', color: '#dc2626' }}>
+                {syncError}
+              </div>
+            )}
+
+            {syncResultado && (
+              <div style={{ marginBottom: '14px', padding: '14px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#16a34a', margin: '0 0 6px' }}>
+                  ✓ {syncResultado.insertados} lead(s) sincronizado(s)
+                </p>
+                {syncResultado.omitidos.length > 0 && (
+                  <p style={{ fontSize: '11.5px', color: '#166534', margin: 0 }}>
+                    Omitidos por ya existir: {syncResultado.omitidos.join(', ')}
+                  </p>
+                )}
+                {syncResultado.insertados > 0 && (
+                  <p style={{ fontSize: '11px', color: '#166534', margin: '6px 0 0' }}>Recargando la página…</p>
+                )}
+              </div>
+            )}
+
+            {syncPlan && !syncCargando && (
+              <>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', background: '#f1f5f9', color: '#64748b' }}>
+                    {syncPlan.totalFilasCSV} filas en el CSV
+                  </span>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', background: '#16a34a18', color: '#16a34a' }}>
+                    {syncPlan.nuevos.length} nuevo(s)
+                  </span>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', background: '#f59e0b18', color: '#b45309' }}>
+                    {syncPlan.danados.length} con teléfono dañado
+                  </span>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', background: '#f1f5f9', color: '#94a3b8' }}>
+                    {syncPlan.duplicados} ya existen
+                  </span>
+                </div>
+
+                {syncPlan.nuevos.length === 0 && syncPlan.danados.length === 0 && (
+                  <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>
+                    No hay leads nuevos -- ya tienes todo lo que trae el CSV.
+                  </p>
+                )}
+
+                {syncPlan.nuevos.length > 0 && (
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>
+                      ✓ Nuevos, listos para sincronizar
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {syncPlan.nuevos.map(n => (
+                        <label key={n.metaLeadId} style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px',
+                          borderRadius: '9px', border: '1px solid #e2e8f0', cursor: 'pointer',
+                        }}>
+                          <input type="checkbox" checked={syncSeleccionNuevos.has(n.metaLeadId)} onChange={() => toggleSyncNuevo(n.metaLeadId)} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{n.nombre}</div>
+                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>{n.telefono} {n.email && `· ${n.email}`}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {syncPlan.danados.length > 0 && (
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '8px' }}>
+                      ⚠ Teléfono dañado por Sheets -- escribe el número correcto para incluirlos
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {syncPlan.danados.map(d => (
+                        <div key={d.metaLeadId} style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px',
+                          borderRadius: '9px', border: '1px solid #fde68a', background: '#fffbeb',
+                        }}>
+                          <input type="checkbox" checked={syncSeleccionDanados.has(d.metaLeadId)} onChange={() => toggleSyncDanado(d.metaLeadId)} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{d.nombre}</div>
+                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                              CSV: <span style={{ textDecoration: 'line-through' }}>{d.telefono}</span> {d.email && `· ${d.email}`}
+                            </div>
+                          </div>
+                          <input
+                            placeholder="Teléfono correcto"
+                            value={syncTelefonosCorregidos[d.metaLeadId] || ''}
+                            onChange={e => setSyncTelefonosCorregidos(prev => ({ ...prev, [d.metaLeadId]: e.target.value }))}
+                            style={{
+                              width: '150px', padding: '7px 9px', borderRadius: '7px', border: '1px solid #fde68a',
+                              fontSize: '12.5px', fontFamily: 'inherit', outline: 'none', flexShrink: 0,
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(syncPlan.nuevos.length > 0 || syncPlan.danados.length > 0) && (
+                  <button
+                    onClick={confirmarSync}
+                    disabled={syncConfirmando}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
+                      background: '#2563eb', color: '#fff', fontSize: '13.5px', fontWeight: 700,
+                      cursor: syncConfirmando ? 'default' : 'pointer', fontFamily: 'inherit', opacity: syncConfirmando ? 0.6 : 1,
+                    }}
+                  >
+                    {syncConfirmando ? 'Sincronizando…' : `Sincronizar ${syncSeleccionNuevos.size + syncSeleccionDanados.size} lead(s)`}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

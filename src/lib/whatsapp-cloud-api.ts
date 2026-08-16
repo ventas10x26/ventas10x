@@ -143,6 +143,80 @@ export async function marcarLeido(cuenta: CuentaWhatsapp, messageId: string) {
   })
 }
 
+// ─── Mensajes interactivos nativos ───
+//
+// Botones y listas de verdad (no texto con formato) -- solo funcionan
+// DENTRO de la ventana de 24h, igual que enviarTexto(). Para ofrecer
+// botones a alguien que nunca escribió, hay que usarlos como componente de
+// una plantilla aprobada (ver ComponentePlantilla en enviarPlantilla), no
+// con estas funciones.
+
+export type BotonRespuestaRapida = { id: string; titulo: string } // titulo: máx 20 caracteres, lo impone WhatsApp
+
+// Hasta 3 botones de respuesta rápida debajo del mensaje. El `id` es lo que
+// vuelve en el webhook cuando el usuario toca el botón (interactive.
+// button_reply.id) -- se usa para lógica de negocio, no se muestra al
+// usuario (lo que ve es `titulo`).
+export async function enviarBotones(
+  cuenta: CuentaWhatsapp,
+  destino: string,
+  texto: string,
+  botones: BotonRespuestaRapida[],
+  opciones: { header?: string; footer?: string } = {}
+) {
+  if (botones.length === 0 || botones.length > 3) {
+    throw new Error('enviarBotones acepta entre 1 y 3 botones (límite de WhatsApp)')
+  }
+  return llamarGraphAPI(cuenta, 'messages', {
+    messaging_product: 'whatsapp',
+    to: normalizarDestino(destino),
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      ...(opciones.header ? { header: { type: 'text', text: opciones.header } } : {}),
+      body: { text: texto },
+      ...(opciones.footer ? { footer: { text: opciones.footer } } : {}),
+      action: {
+        buttons: botones.map((b) => ({ type: 'reply', reply: { id: b.id, title: b.titulo } })),
+      },
+    },
+  })
+}
+
+export type FilaLista = { id: string; titulo: string; descripcion?: string }
+export type SeccionLista = { titulo?: string; filas: FilaLista[] }
+
+// Lista desplegable -- útil cuando hay más de 3 opciones (los botones
+// tienen tope de 3). `boton` es el texto del botón que abre el menú (ej.
+// "Ver opciones"), máx 20 caracteres.
+export async function enviarLista(
+  cuenta: CuentaWhatsapp,
+  destino: string,
+  texto: string,
+  boton: string,
+  secciones: SeccionLista[],
+  opciones: { header?: string; footer?: string } = {}
+) {
+  return llamarGraphAPI(cuenta, 'messages', {
+    messaging_product: 'whatsapp',
+    to: normalizarDestino(destino),
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      ...(opciones.header ? { header: { type: 'text', text: opciones.header } } : {}),
+      body: { text: texto },
+      ...(opciones.footer ? { footer: { text: opciones.footer } } : {}),
+      action: {
+        button: boton,
+        sections: secciones.map((s) => ({
+          ...(s.titulo ? { title: s.titulo } : {}),
+          rows: s.filas.map((f) => ({ id: f.id, title: f.titulo, ...(f.descripcion ? { description: f.descripcion } : {}) })),
+        })),
+      },
+    },
+  })
+}
+
 // ─── Webhook entrante ───
 //
 // Meta manda TODO en un único payload anidado, muy distinto al formato de

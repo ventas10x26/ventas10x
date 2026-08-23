@@ -24,6 +24,7 @@ const NAV_ITEMS = [
 const NAV_ADMIN = [
   { href: '/pulse/leads', label: 'Contactos', icon: '📥', match: ['/pulse/leads'] },
   { href: '/pulse/admin/proyectos', label: 'Proyectos', icon: '🗂️', match: ['/pulse/admin/proyectos'] },
+  { href: '/pulse/admin/onboarding-envios', label: 'Envíos onboarding', icon: '✉️', match: ['/pulse/admin/onboarding-envios'] },
 ]
 
 // Filtro de INTERFAZ, no de autorización: esta lista viaja al navegador y

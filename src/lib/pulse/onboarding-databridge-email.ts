@@ -21,9 +21,18 @@
 
 import { createHmac } from 'crypto'
 import { Resend } from 'resend'
+import { createClient } from '@supabase/supabase-js'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = 'Pulse Motor <agente@ventas10x.co>'
+
+// Service role, no el cliente público: pulse_onboarding_envios no necesita RLS abierto,
+// solo lo escribe este módulo y lo lee /api/pulse/admin/onboarding-envios (que ya valida
+// admin del lado del servidor).
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+)
 
 // Fallback deliberado: si todavía no se configuró PULSE_UNSUB_SECRET, el link de baja sigue
 // funcionando (firmado con la service role key) en vez de quedar roto en producción. Configurar
@@ -187,14 +196,29 @@ const ASUNTOS: Record<TouchOnboarding, string> = {
   3: 'Último correo sobre esto (a menos que quieras)',
 }
 
-/** Fire-and-forget: se llama en paralelo al guardado del lead o desde el cron de seguimiento. */
+/**
+ * Fire-and-forget: se llama en paralelo al guardado del lead o desde el cron de seguimiento.
+ * Registra el envío en pulse_onboarding_envios con el id que devuelve Resend, para que el
+ * webhook (api/webhooks/resend) pueda marcar entregado/abierto/clic más adelante contra esa
+ * misma fila. Si el registro de tracking falla, no tumba el envío -- el correo ya salió,
+ * perder el tracking de ESE envío puntual es aceptable, perder el correo no.
+ */
 export async function enviarOnboardingDatabridge(lead: LeadOnboarding, touch: TouchOnboarding = 1) {
   const { footer } = COPY_POR_ORIGEN[lead.origen]
-  const { error } = await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: FROM,
     to: [lead.email],
     subject: ASUNTOS[touch],
     html: envolver(CUERPOS[touch](lead), lead.email, footer),
   })
   if (error) throw new Error(error.message || 'Resend rechazó el envío de onboarding')
+
+  if (data?.id) {
+    const { error: errTracking } = await supabase.from('pulse_onboarding_envios').insert({
+      email: lead.email.trim().toLowerCase(),
+      touch,
+      resend_email_id: data.id,
+    })
+    if (errTracking) console.error('[onboarding-databridge-email] no se pudo registrar el tracking:', errTracking)
+  }
 }

@@ -9,11 +9,13 @@
 // caído. Antes el WhatsApp era el único camino Y además tumbaba la petición, así que una
 // falla suya devolvía 502 y el lead se perdía entero, sin dejar rastro de este lado.
 //
-// Disparador de onboarding: en paralelo a las tres tareas de arriba, se dispara el correo
-// que lleva al lead a crear su primer proyecto en /pulse/databridge (ver
+// Disparador de onboarding: en paralelo a las tres tareas de arriba, se dispara el touch 1
+// del correo que lleva al lead a crear su primer proyecto en /pulse/databridge (ver
 // onboarding-databridge-email.ts). Corre en el mismo Promise.allSettled pero fuera del gate
 // de éxito/error de la respuesta: si el aviso interno y el guardado ya salieron bien, la
-// solicitud está recibida sin importar si este correo puntual falla.
+// solicitud está recibida sin importar si este correo puntual falla. El guardado también
+// deja agendado el touch 2 (onboarding_stage=1, next_at=+3 días) para que lo recoja
+// /api/cron/pulse-databridge-followup.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -34,6 +36,8 @@ const PULSE_DEMO_WHATSAPP_DESTINO = '573004339418'
 // /api/pulse/contacto: sin esto, un deploy sin PULSE_LEADS_EMAIL ni ADMIN_EMAILS se queda
 // sin destinatario y el correo falla en silencio — que fue justo lo que pasó.
 const DESTINO_FALLBACK = 'ricaza81@gmail.com'
+
+const DIAS_HASTA_TOUCH_2 = 3
 
 interface LeadDemo {
   concesionario: string
@@ -64,6 +68,8 @@ async function guardarLead(lead: LeadDemo) {
     telefono: lead.telefono,
     fuente: 'demo_panel',
     notas,
+    onboarding_stage: 1,
+    onboarding_next_at: new Date(Date.now() + DIAS_HASTA_TOUCH_2 * 24 * 60 * 60 * 1000).toISOString(),
   })
   if (error) throw new Error(error.message)
 }

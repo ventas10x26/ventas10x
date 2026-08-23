@@ -7,6 +7,10 @@
     {
       "path": "/api/fenix/whatsapp/followup",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/pulse-databridge-followup",
+      "schedule": "0 13 * * *"
     }
   ]
 }

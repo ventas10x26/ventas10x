@@ -12,6 +12,10 @@
 // cuenta con al menos un proyecto en pulse_databridge_proyectos, se corta la secuencia sin
 // enviar más correos — el objetivo ya se cumplió, insistir ahí sería puro ruido.
 //
+// Se agrupa por email (ver onboarding-dedup.ts) antes de enviar: la misma persona puede
+// tener varias filas elegibles el mismo día (probó el gate dos veces, etc.) y sin agrupar
+// recibiría el mismo touch repetido en el mismo envío.
+//
 // Elegibilidad: pulse_contactos.onboarding_next_at <= ahora, unsubscribed_at es null,
 // onboarding_stage en (1, 2) -- stage 1 recibe el touch 2, stage 2 recibe el touch 3 (el
 // último; después queda onboarding_next_at en null y no hay más).
@@ -19,6 +23,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { enviarOnboardingDatabridge, type OrigenOnboarding } from '@/lib/pulse/onboarding-databridge-email'
+import { agruparContactosPorEmail } from '@/lib/pulse/onboarding-dedup'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,10 +42,10 @@ interface ContactoElegible {
 }
 
 type ResultadoEnvio = {
-  id: string
   email: string
-  estado: 'enviado' | 'convertido' | 'omitido' | 'error'
+  estado: 'enviado' | 'convertido' | 'error'
   touch?: 2 | 3
+  filas?: number
   razon?: string
 }
 
@@ -56,7 +61,8 @@ export async function GET(req: NextRequest) {
     .lte('onboarding_next_at', new Date().toISOString())
     .is('unsubscribed_at', null)
     .in('onboarding_stage', [1, 2])
-    .limit(200)
+    .order('created_at', { ascending: false })
+    .limit(500)
 
   if (errQuery) {
     console.error('[cron/pulse-databridge-followup] error consultando elegibles:', errQuery)
@@ -75,24 +81,35 @@ export async function GET(req: NextRequest) {
   const { data: proyectos } = await supabase.from('pulse_databridge_proyectos').select('user_id')
   const usuariosConProyecto = new Set((proyectos || []).map(p => p.user_id as string))
 
+  // Distintas filas del mismo email pueden estar en distinto stage (una quedó en 1, otra ya
+  // avanzó a 2 en un envío anterior); se procesa por el stage MÁS AVANZADO del grupo, así el
+  // touch enviado nunca repite uno que esa persona ya recibió por otra fila.
+  const grupos = agruparContactosPorEmail(elegibles as ContactoElegible[])
+  const stageMaxPorEmail = new Map<string, number>()
+  ;(elegibles as ContactoElegible[]).forEach(c => {
+    const email = c.email.trim().toLowerCase()
+    stageMaxPorEmail.set(email, Math.max(stageMaxPorEmail.get(email) ?? 0, c.onboarding_stage))
+  })
+
   const resultados: ResultadoEnvio[] = []
 
-  for (const contacto of elegibles as ContactoElegible[]) {
+  for (const grupo of grupos) {
     try {
-      const userId = idPorEmail.get(contacto.email.toLowerCase())
+      const userId = idPorEmail.get(grupo.email)
       const yaConvirtio = !!userId && usuariosConProyecto.has(userId)
 
       if (yaConvirtio) {
-        await supabase.from('pulse_contactos').update({ onboarding_next_at: null }).eq('id', contacto.id)
-        resultados.push({ id: contacto.id, email: contacto.email, estado: 'convertido' })
+        await supabase.from('pulse_contactos').update({ onboarding_next_at: null }).in('id', grupo.ids)
+        resultados.push({ email: grupo.email, estado: 'convertido', filas: grupo.ids.length })
         continue
       }
 
-      const origen: OrigenOnboarding = contacto.fuente === 'demo_panel' ? 'demo' : 'ebook'
-      const siguienteStage = contacto.onboarding_stage === 1 ? 2 : 3
+      const stageActual = stageMaxPorEmail.get(grupo.email) ?? 1
+      const origen: OrigenOnboarding = grupo.fuente === 'demo_panel' ? 'demo' : 'ebook'
+      const siguienteStage = stageActual === 1 ? 2 : 3
       const touch = siguienteStage as 2 | 3
 
-      await enviarOnboardingDatabridge({ nombre: contacto.nombre, email: contacto.email, origen }, touch)
+      await enviarOnboardingDatabridge({ nombre: grupo.nombre, email: grupo.email, origen }, touch)
 
       // stage 3 es el último: no queda onboarding_next_at, la secuencia se corta sola.
       const proximaFecha = siguienteStage === 3
@@ -102,14 +119,13 @@ export async function GET(req: NextRequest) {
       await supabase
         .from('pulse_contactos')
         .update({ onboarding_stage: siguienteStage, onboarding_next_at: proximaFecha })
-        .eq('id', contacto.id)
+        .in('id', grupo.ids)
 
-      resultados.push({ id: contacto.id, email: contacto.email, estado: 'enviado', touch })
+      resultados.push({ email: grupo.email, estado: 'enviado', touch, filas: grupo.ids.length })
     } catch (e) {
-      console.error(`[cron/pulse-databridge-followup] error con ${contacto.email}:`, e)
+      console.error(`[cron/pulse-databridge-followup] error con ${grupo.email}:`, e)
       resultados.push({
-        id: contacto.id,
-        email: contacto.email,
+        email: grupo.email,
         estado: 'error',
         razon: e instanceof Error ? e.message : String(e),
       })
@@ -117,7 +133,7 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    message: `Procesados ${elegibles.length} contactos`,
+    message: `Procesados ${grupos.length} contactos únicos (${elegibles.length} filas)`,
     enviados: resultados.filter(r => r.estado === 'enviado').length,
     convertidos: resultados.filter(r => r.estado === 'convertido').length,
     errores: resultados.filter(r => r.estado === 'error').length,

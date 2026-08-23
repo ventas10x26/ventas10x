@@ -8,10 +8,17 @@
 // externo esté arriba: el visitante no tiene por qué quedar trabado porque CallMeBot esté
 // caído. Antes el WhatsApp era el único camino Y además tumbaba la petición, así que una
 // falla suya devolvía 502 y el lead se perdía entero, sin dejar rastro de este lado.
+//
+// Disparador de onboarding: en paralelo a las tres tareas de arriba, se dispara el correo
+// que lleva al lead a crear su primer proyecto en /pulse/databridge (ver
+// onboarding-databridge-email.ts). Corre en el mismo Promise.allSettled pero fuera del gate
+// de éxito/error de la respuesta: si el aviso interno y el guardado ya salieron bien, la
+// solicitud está recibida sin importar si este correo puntual falla.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { enviarOnboardingDatabridge } from '@/lib/pulse/onboarding-databridge-email'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -171,12 +178,15 @@ export async function POST(req: NextRequest) {
       mensaje: String(mensaje || '').trim(),
     }
 
-    // Los tres en paralelo: ninguno le agrega su latencia a los otros, y la caída de uno no
-    // puede volver a costar un lead.
-    const [guardado, porEmail, porWhatsApp] = await Promise.allSettled([
+    // Los cuatro en paralelo: ninguno le agrega su latencia a los otros, y la caída de uno no
+    // puede volver a costar un lead. El onboarding va al final del array a propósito — el
+    // gate de éxito/error de abajo solo mira los primeros tres, así que una falla puntual de
+    // Resend en ESTE correo no puede tumbar la respuesta al visitante.
+    const [guardado, porEmail, porWhatsApp, porOnboarding] = await Promise.allSettled([
       guardarLead(lead),
       enviarEmail(lead),
       notificarWhatsAppDemo(lead),
+      enviarOnboardingDatabridge({ nombre: lead.nombre, email: lead.email, origen: 'demo' }),
     ])
 
     if (guardado.status === 'rejected') {
@@ -187,6 +197,9 @@ export async function POST(req: NextRequest) {
     }
     if (porWhatsApp.status === 'rejected') {
       console.error('[pulse/demo-contacto] whatsapp falló:', porWhatsApp.reason)
+    }
+    if (porOnboarding.status === 'rejected') {
+      console.error('[pulse/demo-contacto] onboarding email falló:', porOnboarding.reason)
     }
 
     // Solo se rechaza si el lead no quedó registrado en ningún lado. Mientras esté guardado o

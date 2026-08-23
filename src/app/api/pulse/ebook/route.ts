@@ -13,9 +13,11 @@
 // igual ensucia cualquier medición posterior.
 //
 // Disparador de onboarding: apenas el lead queda guardado, se dispara en paralelo
-// (fire-and-forget, no bloquea la respuesta) el correo que lo lleva a crear su
-// primer proyecto en /pulse/databridge — ver onboarding-databridge-email.ts para
-// el porqué de ese correo existe.
+// (fire-and-forget, no bloquea la respuesta) el touch 1 del correo que lo lleva a
+// crear su primer proyecto en /pulse/databridge — ver onboarding-databridge-email.ts.
+// El insert también deja agendado el touch 2 (onboarding_stage=1, next_at=+3 días):
+// /api/cron/pulse-databridge-followup lo recoge de ahí, sin que este endpoint tenga
+// que saber nada de cadencias ni de si el lead ya convirtió.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -27,6 +29,7 @@ const supabase = createClient(
 )
 
 const FUENTE = 'ebook_rentabilidad'
+const DIAS_HASTA_TOUCH_2 = 3
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,6 +61,8 @@ export async function POST(req: NextRequest) {
       telefono: '—',
       fuente: FUENTE,
       notas,
+      onboarding_stage: 1,
+      onboarding_next_at: new Date(Date.now() + DIAS_HASTA_TOUCH_2 * 24 * 60 * 60 * 1000).toISOString(),
     })
 
     if (error) throw new Error(error.message)

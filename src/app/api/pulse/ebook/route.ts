@@ -11,9 +11,15 @@
 // con `fuente` distinta, así se puede separar en el embudo quién pidió una demo
 // de quién solo descargó material. No son el mismo grado de intención y tratarlos
 // igual ensucia cualquier medición posterior.
+//
+// Disparador de onboarding: apenas el lead queda guardado, se dispara en paralelo
+// (fire-and-forget, no bloquea la respuesta) el correo que lo lleva a crear su
+// primer proyecto en /pulse/databridge — ver onboarding-databridge-email.ts para
+// el porqué de ese correo existe.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { enviarOnboardingDatabridge } from '@/lib/pulse/onboarding-databridge-email'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,6 +41,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Revisá el correo, no parece válido' }, { status: 400 })
     }
 
+    const nombreLimpio = String(nombre).trim()
+
     const notas = [
       `Concesionario: ${String(concesionario).trim()}`,
       cargo ? `Cargo: ${String(cargo).trim()}` : '',
@@ -42,7 +50,7 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join(' · ')
 
     const { error } = await supabase.from('pulse_contactos').insert({
-      nombre: String(nombre).trim(),
+      nombre: nombreLimpio,
       email: correo,
       // La tabla comparte forma con los leads de demo, donde el telefono es
       // obligatorio. Se manda un guion en vez de vacio para que en la bandeja se
@@ -53,6 +61,12 @@ export async function POST(req: NextRequest) {
     })
 
     if (error) throw new Error(error.message)
+
+    // No se espera (await) ni se deja que una falla acá tumbe la respuesta al
+    // visitante: el lead ya quedó guardado arriba, que es lo que no se puede
+    // perder. El error queda en logs si Resend lo rechaza.
+    enviarOnboardingDatabridge({ nombre: nombreLimpio, email: correo, origen: 'ebook' })
+      .catch(e => console.error('[api/pulse/ebook] onboarding email falló:', e))
 
     return NextResponse.json({ ok: true })
   } catch (e) {

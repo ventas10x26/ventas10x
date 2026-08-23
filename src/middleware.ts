@@ -29,10 +29,16 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/pulse')) {
       return NextResponse.next()
     }
+    // /api/webhooks y /api/cron sumados acá -- sin esto, una ruta de API sin punto en el
+    // nombre (como /api/webhooks/resend) caía en el rewrite de abajo y quedaba buscando
+    // /pulse/api/webhooks/resend, que no existe. Detectado al diagnosticar por qué el
+    // webhook de Resend no le llegaba a pulse_onboarding_envios.
     if (
       pathname.startsWith('/api/pulse') ||
       pathname.startsWith('/api/bot') ||
       pathname.startsWith('/api/bot-lead') ||
+      pathname.startsWith('/api/webhooks') ||
+      pathname.startsWith('/api/cron') ||
       pathname.startsWith('/_next') ||
       pathname.startsWith('/favicon') ||
       pathname.includes('.')
@@ -76,6 +82,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/pulse') ||
     pathname.startsWith('/api/bot') ||
     pathname.startsWith('/api/bot-lead') ||
+    pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/api/cron')
   ) {
     return NextResponse.next()

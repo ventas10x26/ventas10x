@@ -23,6 +23,7 @@ const NAV_ITEMS = [
 // el menú no ofrezca puertas que todavía no abren.
 const NAV_ADMIN = [
   { href: '/pulse/leads', label: 'Contactos', icon: '📥', match: ['/pulse/leads'] },
+  { href: '/pulse/admin/proyectos', label: 'Proyectos', icon: '🗂️', match: ['/pulse/admin/proyectos'] },
 ]
 
 // Filtro de INTERFAZ, no de autorización: esta lista viaja al navegador y

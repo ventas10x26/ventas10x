@@ -63,11 +63,14 @@ export default function PulseLeadsPage() {
   const supabase = createClient()
 
   const [user, setUser] = useState<{ nombre: string; email: string } | null>(null)
+  const [accessToken, setAccessToken] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
   const [estado, setEstado] = useState<'cargando' | 'listo' | 'denegado' | 'error'>('cargando')
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState<string>('todas')
   const [busqueda, setBusqueda] = useState('')
+  const [activandoOnboarding, setActivandoOnboarding] = useState(false)
+  const [resultadoOnboarding, setResultadoOnboarding] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -80,6 +83,7 @@ export default function PulseLeadsPage() {
         nombre: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'Admin',
         email: session.user.email || '',
       })
+      setAccessToken(session.access_token)
       try {
         const res = await fetch('/api/pulse/admin/leads', {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -97,6 +101,34 @@ export default function PulseLeadsPage() {
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Dispara el touch 1 (mismo correo que ya reciben los leads nuevos al capturarse) para
+  // TODOS los contactos de ebook/demo que todavía no entraron a la secuencia — pensado para
+  // los que ya estaban en la bandeja antes de que el disparador empezara a activarse solo
+  // en el insert. Idempotente: a quien ya se activó (acá o por un lead nuevo) no se le
+  // vuelve a tocar, así que se puede apretar más de una vez sin duplicar envíos.
+  async function activarOnboardingHistorico() {
+    if (activandoOnboarding || !accessToken) return
+    setActivandoOnboarding(true)
+    setResultadoOnboarding(null)
+    try {
+      const res = await fetch('/api/pulse/admin/onboarding-backfill', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo activar')
+      setResultadoOnboarding(
+        data.enviados === 0
+          ? 'No había contactos pendientes de activar.'
+          : `Listo: ${data.enviados} correos únicos enviados${data.errores ? ` · ${data.errores} con error` : ''}.`
+      )
+    } catch (e) {
+      setResultadoOnboarding(e instanceof Error ? `Error: ${e.message}` : 'No se pudo activar el onboarding.')
+    } finally {
+      setActivandoOnboarding(false)
+    }
+  }
 
   const conteos = useMemo(() => {
     const m: Record<string, number> = {}
@@ -196,7 +228,7 @@ export default function PulseLeadsPage() {
               })}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
@@ -218,9 +250,33 @@ export default function PulseLeadsPage() {
             >
               Exportar CSV ({visibles.length})
             </button>
+            {/* Retroactivo, para los contactos de ebook/demo que ya estaban acá antes de que
+                el disparador empezara a activarse solo en el insert (ver ebook/route.ts y
+                demo-contacto/route.ts). Idempotente: a quien ya se activó no se le vuelve a
+                mandar nada, se puede apretar más de una vez sin duplicar envíos. */}
+            <button
+              onClick={activarOnboardingHistorico}
+              disabled={activandoOnboarding}
+              className="lead-btn"
+              title="Envía el correo de DataBridge a los contactos de ebook/demo que todavía no lo recibieron"
+              style={{
+                padding: '9px 16px', borderRadius: '9px', cursor: activandoOnboarding ? 'default' : 'pointer',
+                background: 'transparent', border: '1px solid var(--line)', color: 'var(--ink)',
+                fontSize: '13px', fontWeight: 700, fontFamily: 'inherit', transition: 'transform .15s ease',
+                opacity: activandoOnboarding ? 0.6 : 1,
+              }}
+            >
+              {activandoOnboarding ? 'Activando…' : 'Activar onboarding DataBridge'}
+            </button>
           </div>
 
-          <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: '12px', background: 'var(--bg-1)' }}>
+          {resultadoOnboarding && (
+            <p style={{ fontSize: '12.5px', color: resultadoOnboarding.startsWith('Error') ? '#F87171' : 'var(--blue)', margin: '0 0 16px' }}>
+              {resultadoOnboarding}
+            </p>
+          )}
+
+          <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: '12px', background: 'var(--bg-1)', marginTop: '6px' }}>
             <div className="lead-tabla">
               <div style={{ display: 'grid', gridTemplateColumns: '112px 1.1fr 1.3fr 1.1fr .9fr 1fr', gap: '10px', padding: '11px 14px', borderBottom: '1px solid var(--line)', fontSize: '10.5px', color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '.6px', fontWeight: 700 }}>
                 <span>Fecha</span><span>Nombre</span><span>Correo</span><span>Concesionario</span><span>Teléfono</span><span>Origen</span>

@@ -24,7 +24,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
 
-const GRAPH_API_VERSION = 'v21.0'
+// v25.0 confirmada como la version actual directamente desde el curl de ejemplo que
+// muestra el propio asistente de configuracion de Meta (antes tenia v21.0, tambien
+// soportada, pero mejor alineado a lo que Meta esta mostrando hoy mismo).
+const GRAPH_API_VERSION = 'v25.0'
 
 interface MetaWebhookPayload {
   object: string

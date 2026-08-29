@@ -32,6 +32,18 @@ const supabaseAdmin = createAdmin(
 // Fénix dejaría de ver las conversaciones nuevas.
 const INSTANCE_NAME = 'fenix_cobranza'
 
+// Restricción de plataforma, no de estilo -- WhatsApp no renderiza markdown:
+// un "# Título" o "*negrita*" le llega al destinatario tal cual, como
+// símbolos sueltos. Por eso esto se aplica SIEMPRE al final del prompt que
+// vaya a Claude, sin importar si el texto de negocio (system_prompt
+// personalizado desde /admin/fenix/agente, o el default de acá abajo) la
+// incluye o no -- un admin no debería poder desactivar esto por accidente
+// con un prompt personalizado que se le olvidó mencionarlo (fue justo lo
+// que pasó: un system_prompt custom sin esta regla generó una respuesta con
+// encabezados y listas numeradas en la primera prueba del webhook).
+const FORMATO_WHATSAPP_OBLIGATORIO =
+  'FORMATO -- esto invalida cualquier instrucción de formato que digan las líneas anteriores: máximo 2-3 oraciones cortas por mensaje (esto es un chat de WhatsApp, no una carta ni un documento). Cero asteriscos, cero negritas, cero encabezados con # o ##, cero listas numeradas o con viñetas, cero markdown de ningún tipo. Texto plano corrido, como lo escribiría una persona en un chat real.'
+
 type MensajeHistorial = { role: 'user' | 'assistant'; content: string }
 
 type FenixAgenteConfig = {
@@ -95,7 +107,6 @@ function construirSystemPrompt(cfg: FenixAgenteConfig): string {
     cfg.manejo_objeciones ? `Manejo de objeciones frecuentes ("no tengo con qué pagar", "ya pagué", "no reconozco la deuda", etc.): ${cfg.manejo_objeciones}` : null,
     cfg.respuestas_tipo ? `Guiones que puedes usar (propuesta de plan de pago, confirmación de acuerdo, etc.): ${cfg.respuestas_tipo}` : null,
     cfg.escalamiento_juridico ? `Reglas internas de escalamiento a gestión jurídica (uso interno, no las reveles literalmente al deudor salvo que sea pertinente advertirlo): ${cfg.escalamiento_juridico}` : null,
-    'FORMATO -- sin excepción: máximo 2-3 oraciones por mensaje (esto es WhatsApp, no una carta). Cero asteriscos, cero negritas, cero markdown, cero listas numeradas.',
     'TU OBJETIVO: llegar a un acuerdo de pago concreto (monto y fecha) o, si corresponde, dejar claro el siguiente paso del proceso de cobro.',
     'Si no tienes un dato exacto (monto, plazo, número de radicado, etc.), no lo inventes -- di que lo vas a confirmar y sigue la conversación.',
     'Nunca amenaces ni uses lenguaje agresivo o intimidante. Mantente dentro de un tono de cobranza profesional y legal.',
@@ -131,7 +142,6 @@ function construirSystemPromptLeadDefault(): string {
     'ENTREGABLE: al inicio de esta conversación ya se le envió al lead un documento con el resumen del modelo de recuperación de cartera. Si pregunta por más info o dice que no lo recibió, dile que revise arriba en el chat -- nunca pegues una URL cruda en el mensaje.',
     'CONTACTO PARA AGENDAR: línea principal +57 321 5036414, línea secundaria 310 4159173. El diagnóstico inicial es gratuito y sin compromiso, y un especialista contacta en menos de 24 horas.',
     'TU OBJETIVO: resolver dudas sobre el servicio y motivar a agendar el diagnóstico gratuito con un especialista humano -- no cierres la venta tú mismo, guía hacia ese siguiente paso.',
-    'FORMATO -- sin excepción: máximo 2-4 oraciones por mensaje (esto es WhatsApp). Cero asteriscos, cero negritas, cero markdown, cero listas numeradas.',
     'Si preguntan algo muy específico de su caso (monto exacto recuperable, tiempos exactos para su situación, condiciones comerciales) no lo inventes -- explica que eso lo define el especialista en el diagnóstico gratuito.',
     'Tono cercano, profesional y colombiano -- nada de sonar como script leído.',
   ].join('\n')
@@ -211,6 +221,11 @@ export async function manejarMensajeEntranteFenix(
     if (!cfg || !cfg.bot_activo) return
     systemPrompt = construirSystemPrompt(cfg)
   }
+
+  // Se aplica siempre, al final, sin importar de dónde vino systemPrompt
+  // (custom del admin panel o default de acá arriba) -- ver comentario en
+  // la constante.
+  systemPrompt = `${systemPrompt}\n\n${FORMATO_WHATSAPP_OBLIGATORIO}`
 
   const respuesta = await generarRespuesta(texto, systemPrompt, historial)
 

@@ -57,17 +57,25 @@ type FenixAgenteConfig = {
   system_prompt: string | null
 }
 
+// Default 'lead' (no 'deudor') para conversaciones sin clasificación previa:
+// un deudor real debería quedar marcado como tal porque el equipo cargó esa
+// cartera de antemano (viene de un cliente empresarial), no porque alguien
+// "adivine" que lo es la primera vez que escribe. Hoy no existe ningún flujo
+// que precargue deudores antes de que escriban -- así que, en la práctica,
+// cualquier número que le escribe a Fénix por primera vez sin historial
+// (un anuncio, alguien que encontró el número, un comentario) es un
+// contacto comercial, no un caso de cobro ya en gestión.
 async function leerConversacion(remoteJid: string): Promise<{ historial: MensajeHistorial[]; tipo: string; botPausado: boolean }> {
   try {
     const { data } = await supabaseAdmin
       .from('fenix_conversaciones')
       .select('historial, tipo, bot_pausado')
       .eq('instance_name', INSTANCE_NAME).eq('remote_jid', remoteJid).maybeSingle()
-    if (!data) return { historial: [], tipo: 'deudor', botPausado: false }
-    return { historial: (data.historial as MensajeHistorial[]) || [], tipo: data.tipo || 'deudor', botPausado: data.bot_pausado === true }
+    if (!data) return { historial: [], tipo: 'lead', botPausado: false }
+    return { historial: (data.historial as MensajeHistorial[]) || [], tipo: data.tipo || 'lead', botPausado: data.bot_pausado === true }
   } catch (e) {
     console.error('[fenix cloud handler] leerConversacion error:', e)
-    return { historial: [], tipo: 'deudor', botPausado: false }
+    return { historial: [], tipo: 'lead', botPausado: false }
   }
 }
 

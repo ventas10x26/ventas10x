@@ -7,9 +7,17 @@
 // LeadFenix con la misma forma y llaman a procesarLeadFenix -- así el
 // email al equipo, el aviso por WhatsApp interno y la autorespuesta al
 // lead se comportan idénticos sin importar el origen.
+//
+// La autorespuesta al LEAD migró de Evolution API a WhatsApp Cloud API
+// (ver whatsapp-cloud-api.ts) -- Evolution quedó fuera de servicio tras la
+// restricción de la línea por patrón de envío masivo. El aviso interno al
+// equipo (notificarWhatsAppFenix, más abajo) sigue por CallMeBot -- es un
+// servicio totalmente distinto, no relacionado con Evolution ni con esta
+// migración.
 
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { enviarTexto, enviarImagen, enviarVideo, type CuentaWhatsapp } from '@/lib/whatsapp-cloud-api'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,12 +45,10 @@ const FENIX_EMAIL_DESTINOS = [
 // Número fijo de Fenix Consultores que recibe la notificación de cada lead nuevo
 const FENIX_WHATSAPP_DESTINO = '573104159173'
 
-// Instancia de Evolution API + entregable descargable para la autorespuesta
-// al lead. Mismos EVOLUTION_API_URL/EVOLUTION_API_KEY que usa
-// /api/fenix/whatsapp/instance -- una sola línea de WhatsApp para todo lo
-// de Fenix (cobro y leads comerciales por igual).
-const EVO_URL = process.env.EVOLUTION_API_URL!
-const EVO_KEY = process.env.EVOLUTION_API_KEY!
+// Mismo instance_name que usa fenix-whatsapp-cloud-handler.ts para las
+// conversaciones nuevas -- así el admin panel (Leads y pipeline,
+// Conversaciones) ve todo en un solo lugar sin importar si el hilo empezó
+// por autorespuesta o porque el lead escribió primero.
 const INSTANCE_NAME = 'fenix_cobranza'
 const ENTREGABLE_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/cartera-fenix.jpg'
 const VIDEO_URL = 'https://zicdmwihdslyydjuuqgq.supabase.co/storage/v1/object/public/fenix-public/fenix-video.mp4'
@@ -53,6 +59,27 @@ export type LeadFenix = {
   email: string
   telefono: string
   mensaje: string
+}
+
+// Resuelve LA cuenta de Cloud API de producción de Fénix -- distinta de la
+// de pruebas (whatsapp_cuentas.es_prueba) que solo sirve para validar el
+// webhook con números de prueba de Meta. Si en el futuro hay más de una
+// cuenta de producción para Fénix, esto debería recibir un criterio más
+// específico; hoy con una sola alcanza con excluir la de pruebas.
+async function obtenerCuentaFenixProduccion(): Promise<CuentaWhatsapp> {
+  const { data, error } = await supabase
+    .from('whatsapp_cuentas')
+    .select('*')
+    .eq('proyecto', 'fenix')
+    .eq('estado', 'activo')
+    .eq('es_prueba', false)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data) {
+    throw new Error('No se encontró una cuenta de WhatsApp Cloud API de producción para Fénix en whatsapp_cuentas (proyecto=fenix, estado=activo, es_prueba=false)')
+  }
+  return data as CuentaWhatsapp
 }
 
 async function guardarLead(lead: LeadFenix, fuente: string): Promise<string | null> {
@@ -125,6 +152,8 @@ async function enviarEmailFenix(lead: LeadFenix, fuente: string) {
   if (error) throw new Error(error.message || 'Resend rechazó el envío')
 }
 
+// Aviso INTERNO al equipo de Fénix -- vía CallMeBot, un servicio aparte de
+// Evolution/Cloud API que no participa de la migración. Se deja igual.
 async function notificarWhatsAppFenix(lead: LeadFenix, fuente: string) {
   const apikey = process.env.FENIX_CALLMEBOT_APIKEY
   if (!apikey) throw new Error('FENIX_CALLMEBOT_APIKEY no configurada')
@@ -205,40 +234,6 @@ function mensajeBienvenidaLead(lead: LeadFenix, plantilla: string): string {
     .replaceAll('{empresa}', lead.empresa)
 }
 
-async function enviarDocumentoEntregable(remoteJid: string, caption: string) {
-  const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-    body: JSON.stringify({
-      number: remoteJid,
-      mediatype: 'image',
-      mimetype: 'image/jpeg',
-      media: ENTREGABLE_URL,
-      caption,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(`Evolution API rechazó el envío de la imagen: ${res.status} ${await res.text().catch(() => '')}`)
-  }
-}
-
-async function enviarVideoEntregable(remoteJid: string, caption: string) {
-  const res = await fetch(`${EVO_URL}/message/sendMedia/${INSTANCE_NAME}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-    body: JSON.stringify({
-      number: remoteJid,
-      mediatype: 'video',
-      mimetype: 'video/mp4',
-      media: VIDEO_URL,
-      caption,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(`Evolution API rechazó el envío del video: ${res.status} ${await res.text().catch(() => '')}`)
-  }
-}
-
 export type AutorespuestaEnviada = {
   intro: string
   nombreArchivo: string
@@ -246,34 +241,33 @@ export type AutorespuestaEnviada = {
   mensajeCompleto: string
 }
 
+// IMPORTANTE: esto solo funciona si el lead está DENTRO de la ventana de
+// 24h (acaba de escribir por el formulario y por eso Meta cuenta esto como
+// respuesta) -- ver el comentario grande sobre plantillas en
+// whatsapp-cloud-api.ts. Si algún día esto se dispara fuera de esa ventana
+// (p.ej. un reenvío manual días después), Graph API lo va a rechazar con
+// el error 131047 y hay que pasar a enviarPlantilla() en su lugar.
 export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forzar?: boolean } = {}): Promise<AutorespuestaEnviada | null> {
-  if (!EVO_URL || !EVO_KEY) throw new Error('EVOLUTION_API_URL/EVOLUTION_API_KEY no configuradas')
-
   const digitos = lead.telefono.replace(/\D/g, '')
   if (!digitos) throw new Error('Teléfono del lead vacío tras limpiar')
-  const remoteJid = `${digitos}@s.whatsapp.net`
+  // Sin sufijo @s.whatsapp.net (eso era de Evolution) -- mismo formato de
+  // remote_jid que usa fenix-whatsapp-cloud-handler.ts para que, cuando
+  // este lead responda, el webhook encuentre esta misma fila en vez de
+  // crear una segunda conversación duplicada.
+  const remoteJid = digitos
 
   const cfg = await obtenerConfigLeadsAgente()
   if (!cfg.activo && !opciones.forzar) return null // desactivado desde el panel -- el lead ya quedó guardado y avisado al equipo por los otros canales
+
+  const cuenta = await obtenerCuentaFenixProduccion()
 
   const intro = mensajeBienvenidaLead(lead, cfg.mensaje_bienvenida || DEFAULT_MENSAJE_BIENVENIDA)
   const captionEntregable = cfg.nombre_archivo_entregable || DEFAULT_NOMBRE_ARCHIVO
   const preguntaCierre = cfg.pregunta_cierre || DEFAULT_PREGUNTA_CIERRE
 
-  const enviarTexto = async (texto: string) => {
-    const res = await fetch(`${EVO_URL}/message/sendText/${INSTANCE_NAME}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: EVO_KEY },
-      body: JSON.stringify({ number: remoteJid, text: texto }),
-    })
-    if (!res.ok) {
-      throw new Error(`Evolution API rechazó el envío: ${res.status} ${await res.text().catch(() => '')}`)
-    }
-  }
-
-  await enviarTexto(intro)
+  await enviarTexto(cuenta, remoteJid, intro)
   await new Promise((r) => setTimeout(r, 900))
-  await enviarDocumentoEntregable(remoteJid, captionEntregable)
+  await enviarImagen(cuenta, remoteJid, ENTREGABLE_URL, captionEntregable)
 
   const historialEnviados: { role: 'assistant'; content: string }[] = [
     { role: 'assistant', content: intro },
@@ -284,21 +278,26 @@ export async function enviarAutorespuestaLead(lead: LeadFenix, opciones: { forza
   if (cfg.video_activo) {
     const videoCaption = cfg.video_caption || DEFAULT_VIDEO_CAPTION
     await new Promise((r) => setTimeout(r, 900))
-    await enviarVideoEntregable(remoteJid, videoCaption)
+    await enviarVideo(cuenta, remoteJid, VIDEO_URL, videoCaption)
     historialEnviados.push({ role: 'assistant', content: `[Video enviado: ${videoCaption}]` })
     partesMensaje.push(`🎥 Video enviado: ${videoCaption}`)
   }
 
   await new Promise((r) => setTimeout(r, 900))
-  await enviarTexto(preguntaCierre)
+  await enviarTexto(cuenta, remoteJid, preguntaCierre)
   historialEnviados.push({ role: 'assistant', content: preguntaCierre })
   partesMensaje.push(preguntaCierre)
 
+  // phone_number_id queda registrado desde este primer mensaje -- así la
+  // conversación aparece con la caja de "responder" habilitada en
+  // /admin/fenix/conversaciones desde el minuto uno, sin esperar a que el
+  // lead escriba de vuelta.
   const { error } = await supabase.from('fenix_conversaciones').upsert({
     instance_name: INSTANCE_NAME,
     remote_jid: remoteJid,
     tipo: 'lead',
     historial: historialEnviados,
+    phone_number_id: cuenta.phone_number_id,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'instance_name,remote_jid' })
   if (error) throw new Error(error.message)

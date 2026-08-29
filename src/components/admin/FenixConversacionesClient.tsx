@@ -6,13 +6,12 @@
 // (/admin/fenix), así que las conversaciones tipo 'deudor' -- que no
 // vienen de ningún lead del formulario -- no tenían dónde verse.
 //
-// A propósito NO tiene caja para enviar mensajes manuales todavía: las
-// conversaciones mezclan remote_jid de dos épocas distintas (Evolution
-// "num@s.whatsapp.net" vs Cloud API solo dígitos) y de números de Cloud
-// API distintos (prueba vs producción), y esta tabla no guarda con qué
-// cuenta/número se originó cada una. Enviar sin saber por cuál de los dos
-// canales/números correspondereia es más riesgoso que útil por ahora --
-// queda como bandeja de solo lectura + pausar/reanudar IA.
+// El envío manual solo se habilita cuando la conversación trae
+// phone_number_id (columna agregada para saber por cuál cuenta de Cloud
+// API responder -- ver fenix-whatsapp-cloud-handler.ts y el endpoint
+// POST .../mensaje). Las conversaciones de antes de esa columna (o de la
+// época de Evolution API) quedan de solo lectura, con un aviso explicando
+// por qué, en vez de adivinar por cuál número/canal contestar.
 'use client'
 import { useState } from 'react'
 
@@ -27,6 +26,7 @@ type Conversacion = {
   historial: MensajeHistorial[]
   bot_pausado: boolean
   updated_at: string
+  phone_number_id: string | null
 }
 
 const ACCENT = '#F5821F'
@@ -65,6 +65,8 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(initialConversaciones[0]?.id || null)
   const [cargando, setCargando] = useState(false)
   const [cambiandoPausaId, setCambiandoPausaId] = useState<string | null>(null)
+  const [mensajeManual, setMensajeManual] = useState('')
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const filtradas = conversaciones.filter((c) => {
@@ -115,6 +117,28 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
       setError(e instanceof Error ? e.message : 'No se pudo cambiar el estado de la IA')
     } finally {
       setCambiandoPausaId(null)
+    }
+  }
+
+  async function enviarMensajeManual() {
+    if (!seleccionada || !mensajeManual.trim()) return
+    setEnviandoMensaje(true)
+    setError(null)
+    const texto = mensajeManual.trim()
+    try {
+      const res = await fetch(`/api/admin/fenix-conversaciones/${seleccionada.id}/mensaje`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje: texto }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo enviar')
+      setConversaciones((cs) => cs.map((x) => (x.id === seleccionada.id ? { ...x, historial: data.historial } : x)))
+      setMensajeManual('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje')
+    } finally {
+      setEnviandoMensaje(false)
     }
   }
 
@@ -217,7 +241,7 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                     key={c.id}
                     onClick={() => setSeleccionadaId(c.id)}
                     style={{
-                      background: activa ? '#fff' : '#fff', borderRadius: '12px', padding: '12px 14px',
+                      background: '#fff', borderRadius: '12px', padding: '12px 14px',
                       cursor: 'pointer', border: activa ? `1.5px solid ${ACCENT}` : '1px solid #ece9e3',
                       boxShadow: activa ? '0 2px 8px rgba(245,130,31,.12)' : '0 1px 3px rgba(0,0,0,.03)',
                     }}
@@ -243,6 +267,11 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                       {c.bot_pausado && (
                         <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: '#fef3c7', color: '#b45309' }}>
                           ⏸ IA pausada
+                        </span>
+                      )}
+                      {!c.phone_number_id && (
+                        <span title="No se puede responder desde acá -- es de antes de la migración a Cloud API" style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: '#78716c18', color: '#78716c' }}>
+                          🔒 Solo lectura
                         </span>
                       )}
                     </div>
@@ -328,11 +357,43 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                   ))}
                 </div>
 
-                <div style={{ padding: '10px 16px', background: '#f7f6f4', borderTop: '1px solid #e2e8f0' }}>
-                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
-                    Bandeja de solo lectura por ahora -- para responder manualmente, hazlo desde &quot;Abrir en WhatsApp&quot; o desde el modal del lead en Leads y pipeline.
-                  </p>
-                </div>
+                {seleccionada.phone_number_id ? (
+                  <div style={{ padding: '12px 14px', background: '#f7f6f4', borderTop: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <input
+                        value={mensajeManual}
+                        onChange={(e) => setMensajeManual(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !enviandoMensaje) enviarMensajeManual() }}
+                        placeholder="Escribe un mensaje…"
+                        style={{
+                          flex: 1, padding: '10px 12px', borderRadius: '9px', border: '1px solid #e2e8f0',
+                          fontSize: '13px', fontFamily: 'inherit', outline: 'none', background: '#fff',
+                        }}
+                      />
+                      <button
+                        onClick={enviarMensajeManual}
+                        disabled={enviandoMensaje || !mensajeManual.trim()}
+                        style={{
+                          padding: '10px 18px', borderRadius: '9px', border: 'none',
+                          background: mensajeManual.trim() ? '#25D366' : '#e2e8f0',
+                          color: mensajeManual.trim() ? '#fff' : '#94a3b8',
+                          fontWeight: 700, fontSize: '13px', cursor: enviandoMensaje ? 'default' : 'pointer', fontFamily: 'inherit',
+                        }}
+                      >
+                        {enviandoMensaje ? '…' : 'Enviar'}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: '6px 0 0' }}>
+                      Sale directo por WhatsApp Cloud API, sin pasar por la IA.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ padding: '10px 16px', background: '#f7f6f4', borderTop: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, textAlign: 'center' }}>
+                      🔒 Esta conversación es de antes de la migración a Cloud API -- no se sabe con certeza por cuál número/canal responder. Usa &quot;Abrir en WhatsApp&quot; o el modal del lead en Leads y pipeline.
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -71,11 +71,18 @@ async function leerConversacion(remoteJid: string): Promise<{ historial: Mensaje
   }
 }
 
-async function guardarConversacion(remoteJid: string, historial: MensajeHistorial[]) {
+// `phoneNumberId` identifica CON QUÉ número/cuenta de Cloud API llegó este
+// mensaje (el mismo webhook atiende varios números -- prueba y producción,
+// y a futuro Pulse/Ventas10x comparten la misma infraestructura). Se guarda
+// en cada upsert para que el admin panel sepa por cuál cuenta responder
+// cuando alguien contesta manualmente desde /admin/fenix/conversaciones --
+// sin esto, no había forma de saber a qué número de WhatsApp devolverle la
+// llamada a la API de Meta.
+async function guardarConversacion(remoteJid: string, historial: MensajeHistorial[], phoneNumberId: string) {
   try {
     await supabaseAdmin.from('fenix_conversaciones').upsert({
       instance_name: INSTANCE_NAME, remote_jid: remoteJid,
-      historial: historial.slice(-12), updated_at: new Date().toISOString(),
+      historial: historial.slice(-12), phone_number_id: phoneNumberId, updated_at: new Date().toISOString(),
     }, { onConflict: 'instance_name,remote_jid' })
   } catch (e) {
     console.error('[fenix cloud handler] guardarConversacion error:', e)
@@ -109,7 +116,7 @@ function construirSystemPrompt(cfg: FenixAgenteConfig): string {
     cfg.escalamiento_juridico ? `Reglas internas de escalamiento a gestión jurídica (uso interno, no las reveles literalmente al deudor salvo que sea pertinente advertirlo): ${cfg.escalamiento_juridico}` : null,
     'TU OBJETIVO: llegar a un acuerdo de pago concreto (monto y fecha) o, si corresponde, dejar claro el siguiente paso del proceso de cobro.',
     'Si no tienes un dato exacto (monto, plazo, número de radicado, etc.), no lo inventes -- di que lo vas a confirmar y sigue la conversación.',
-    'Nunca amenaces ni uses lenguaje agresivo o intimidante. Mantente dentro de un tono de cobranza profesional y legal.',
+    'Nunca amenaces ni uses lenguaje agresivo o intimidante. Manténte dentro de un tono de cobranza profesional y legal.',
   ]
   return partes.filter(Boolean).join('\n')
 }
@@ -204,7 +211,7 @@ export async function manejarMensajeEntranteFenix(
   const { historial, tipo, botPausado } = await leerConversacion(from)
 
   if (botPausado) {
-    await guardarConversacion(from, [...historial, { role: 'user', content: texto }])
+    await guardarConversacion(from, [...historial, { role: 'user', content: texto }], cuenta.phone_number_id)
     return
   }
 
@@ -233,7 +240,7 @@ export async function manejarMensajeEntranteFenix(
     ...historial, { role: 'user', content: texto },
     ...(respuesta ? [{ role: 'assistant' as const, content: respuesta }] : []),
   ]
-  await guardarConversacion(from, nuevoHistorial)
+  await guardarConversacion(from, nuevoHistorial, cuenta.phone_number_id)
 
   if (respuesta) {
     await new Promise((r) => setTimeout(r, 800 + Math.random() * 500))

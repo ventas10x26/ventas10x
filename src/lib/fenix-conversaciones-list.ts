@@ -21,6 +21,12 @@ export type ConversacionFenix = {
   historial: MensajeHistorial[]
   bot_pausado: boolean
   updated_at: string
+  // Cuenta de Cloud API por la que llegó el último mensaje -- null en
+  // conversaciones de antes de que existiera esta columna (o de la época
+  // de Evolution API). El admin panel solo habilita la caja de "responder"
+  // cuando esto no es null, porque sin ella no había forma de saber con
+  // qué número devolver la llamada a la API de Meta.
+  phone_number_id: string | null
 }
 
 // Evolution-era rows llevan sufijo @s.whatsapp.net; las de WhatsApp Cloud
@@ -33,7 +39,7 @@ function telefonoDeRemoteJid(remoteJid: string): string {
 export async function obtenerConversacionesFenix(): Promise<ConversacionFenix[]> {
   const { data: conversaciones, error } = await supabaseService
     .from('fenix_conversaciones')
-    .select('id, remote_jid, tipo, historial, bot_pausado, updated_at')
+    .select('id, remote_jid, tipo, historial, bot_pausado, updated_at, phone_number_id')
     .eq('instance_name', 'fenix_cobranza')
     .order('updated_at', { ascending: false })
 
@@ -66,6 +72,7 @@ export async function obtenerConversacionesFenix(): Promise<ConversacionFenix[]>
       historial: (c.historial as MensajeHistorial[]) || [],
       bot_pausado: c.bot_pausado === true,
       updated_at: c.updated_at as string,
+      phone_number_id: (c.phone_number_id as string) || null,
     }
   })
 }

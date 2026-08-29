@@ -15,6 +15,7 @@ type NavItem = { href: string; label: string; icon: string; exact?: boolean }
 const ITEMS: NavItem[] = [
   { href: '/admin/fenix/visitas', label: 'Visitas de la landing', icon: '📊' },
   { href: '/admin/fenix', label: 'Leads y pipeline', icon: '🗂️', exact: true },
+  { href: '/admin/fenix/conversaciones', label: 'Conversaciones', icon: '📥' },
   { href: '/admin/fenix/agente', label: 'Agente de cobro', icon: '🤖' },
   { href: '/admin/fenix/leads-agente', label: 'Agente de leads', icon: '💬' },
 ]

@@ -18,7 +18,7 @@ const CAMPOS_EDITABLES = [
   'nombre', 'estilo_cobro', 'tono', 'saludo_tipo', 'manejo_objeciones',
   'respuestas_tipo', 'escalamiento_juridico', 'primer_mensaje',
   'mensaje_recordatorio', 'mensaje_acuerdo_pago', 'whatsapp',
-  'bot_activo', 'system_prompt',
+  'bot_activo', 'system_prompt', 'plantilla_primer_contacto', 'plantilla_idioma',
 ] as const
 
 export async function GET() {

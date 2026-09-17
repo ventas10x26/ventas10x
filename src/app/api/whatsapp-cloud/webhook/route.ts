@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { parsearWebhookEntrante, verificarHandshakeWebhook, type CuentaWhatsapp } from '@/lib/whatsapp-cloud-api'
+import { parsearWebhookEntrante, parsearWebhookEstados, verificarHandshakeWebhook, type CuentaWhatsapp } from '@/lib/whatsapp-cloud-api'
 
 const supabaseService = createServiceClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,11 +40,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+
+  // Estados de entrega de mensajes SALIENTES (sent/delivered/read/failed).
+  // Antes se ignoraban por completo -- un envío que Graph API acepta en el
+  // momento (200 en /messages) pero que WhatsApp nunca termina de entregar
+  // quedaba invisible. Esto solo loguea; no cambia ningún flujo existente
+  // ni el manejo de mensajes entrantes de más abajo.
+  const estados = parsearWebhookEstados(body)
+  for (const estado of estados) {
+    if (estado.estado === 'failed') {
+      console.error(`[whatsapp-cloud webhook] Mensaje ${estado.messageId} a ${estado.destino} FALLÓ:`, JSON.stringify(estado.errores))
+    } else {
+      console.log(`[whatsapp-cloud webhook] Estado de ${estado.messageId} a ${estado.destino}: ${estado.estado}`)
+    }
+  }
+
   const mensajes = parsearWebhookEntrante(body)
 
-  // Puede llegar un payload sin mensajes (ej. actualización de estado
-  // "delivered"/"read" de algo que nosotros enviamos) -- no hay nada que
-  // hacer con eso todavía, se responde 200 igual para que Meta no reintente.
+  // Puede llegar un payload sin mensajes entrantes (ej. un payload que solo
+  // traía estados, ya logueados arriba) -- no hay más que hacer, se
+  // responde 200 igual para que Meta no reintente.
   if (mensajes.length === 0) {
     return NextResponse.json({ ok: true })
   }

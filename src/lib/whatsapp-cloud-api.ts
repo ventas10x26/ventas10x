@@ -64,8 +64,20 @@ async function llamarGraphAPI(cuenta: CuentaWhatsapp, endpoint: string, body: Re
 
 // Normaliza el número a formato E.164 sin '+' (lo que espera Graph API en el
 // campo "to") -- acepta con o sin espacios/guiones/paréntesis de entrada.
+//
+// OJO: los celulares colombianos se guardan en varias tablas (fenix_leads,
+// fenix_clientes_deuda, etc.) tal cual los pega el usuario o los trae el
+// Excel/CSV importado -- casi siempre en formato local de 10 dígitos
+// (empieza por 3), SIN el indicativo de país 57. Si se manda así a Graph
+// API, no logra resolver el número a ninguna cuenta de WhatsApp y responde
+// con el error 131030 ("Recipient phone number not in allowed list") --
+// un mensaje engañoso: el problema real es el número mal formado, no que
+// falte agregarlo a ninguna lista de prueba. Por eso acá se antepone 57
+// cuando detecta el patrón típico de celular colombiano sin indicativo.
 function normalizarDestino(numero: string): string {
-  return numero.replace(/\D/g, '')
+  const digitos = numero.replace(/\D/g, '')
+  if (digitos.length === 10 && digitos.startsWith('3')) return `57${digitos}`
+  return digitos
 }
 
 // Envía un mensaje de PLANTILLA pre-aprobada -- la única forma válida de

@@ -59,12 +59,21 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   // Cuenta de producción de Fénix -- misma que usa el resto del admin panel.
+  // es_prueba=false es obligatorio: whatsapp_cuentas puede tener más de una
+  // fila 'activo' para 'fenix' a la vez (p.ej. el número de sandbox que
+  // Meta crea por defecto al configurar la Cloud API, que solo puede
+  // mandarle a los destinatarios de su propia lista de prueba). Sin este
+  // filtro, ordenar por created_at ascendente termina agarrando esa cuenta
+  // de prueba en vez de la real y Graph API responde 131030 ("Recipient
+  // phone number not in allowed list") aunque el número de destino esté
+  // perfecto -- mismo patrón ya resuelto en fenix-lead-pipeline.ts.
   const { data: cuenta } = await supabaseService
     .from('whatsapp_cuentas')
     .select('*')
     .eq('proyecto', 'fenix')
     .eq('estado', 'activo')
-    .order('created_at', { ascending: true })
+    .eq('es_prueba', false)
+    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 

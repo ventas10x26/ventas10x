@@ -263,7 +263,14 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                       {ultimo ? ultimo.content : 'Sin mensajes'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{timeAgo(c.updated_at)}</span>
+                      {/* suppressHydrationWarning: timeAgo() depende de Date.now() en el
+                          momento exacto del render -- el SSR (en el servidor, ms/segundos
+                          antes) y la hidratación en el cliente casi nunca calculan el mismo
+                          texto ("Hace 2min" vs "Hace 3min"), lo que disparaba el error #418
+                          de React en cada carga de la página. No hay nada "roto" que
+                          arreglar en la lógica -- es la naturaleza de un reloj relativo -- así
+                          que se le dice a React que ignore el mismatch en este nodo puntual. */}
+                      <span suppressHydrationWarning style={{ fontSize: '11px', color: '#94a3b8' }}>{timeAgo(c.updated_at)}</span>
                       {c.bot_pausado && (
                         <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '999px', background: '#fef3c7', color: '#b45309' }}>
                           ⏸ IA pausada
@@ -302,7 +309,15 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                       💬 {nombreMostrar(seleccionada)}
                     </div>
                     <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                      {seleccionada.telefono} · {seleccionada.tipo === 'lead' ? 'Lead' : 'Deudor'} · {formatFecha(seleccionada.updated_at)}
+                      {/* suppressHydrationWarning: toLocaleDateString('es-CO', ...) depende
+                          de la zona horaria del entorno que la ejecuta -- el server de Vercel
+                          corre en UTC, el navegador en la zona horaria de quien lo abre (ej.
+                          America/Bogota), así que el string que arma el SSR y el que arma el
+                          cliente al hidratar quedan distintos, mismo error #418 que en
+                          timeAgo() de arriba. Se aísla solo la fecha en su propio span para
+                          no silenciar el mismatch de todo el bloque (teléfono/tipo sí son
+                          estables entre servidor y cliente). */}
+                      {seleccionada.telefono} · {seleccionada.tipo === 'lead' ? 'Lead' : 'Deudor'} · <span suppressHydrationWarning>{formatFecha(seleccionada.updated_at)}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>

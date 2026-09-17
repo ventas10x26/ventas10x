@@ -99,6 +99,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   // Se crea la conversación ya como 'deudor' -- así, cuando responda, el
   // webhook la trata exactamente igual que si hubiera escrito por su
   // cuenta (misma tabla, mismo instance_name, mismo agente).
+  //
+  // historial NO se deja vacío: se registra que salió la plantilla, aunque
+  // sea como nota (no el texto exacto del body, que solo vive en Meta Template
+  // Manager y no está replicado acá) -- si no, el panel de Conversaciones
+  // muestra "Todavía no hay mensajes" pese a que el mensaje sí se entregó,
+  // hasta que el deudor responda y recién ahí aparezca algo.
   const { data: conv, error: convError } = await supabaseService
     .from('fenix_conversaciones')
     .upsert({
@@ -106,7 +112,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       remote_jid: deudor.telefono,
       tipo: 'deudor',
       phone_number_id: cuenta.phone_number_id,
-      historial: [],
+      historial: [{
+        role: 'assistant',
+        content: `📋 Plantilla "${cfg.plantilla_primer_contacto}" enviada (primer contacto a ${deudor.nombre_deudor || 'este deudor'}).`,
+      }],
       updated_at: new Date().toISOString(),
     }, { onConflict: 'instance_name,remote_jid' })
     .select('id')

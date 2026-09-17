@@ -55,6 +55,8 @@ type FenixAgente = {
   whatsapp: string | null
   bot_activo: boolean
   system_prompt: string | null
+  plantilla_primer_contacto: string | null
+  plantilla_idioma: string | null
   updated_at: string | null
 }
 
@@ -364,6 +366,23 @@ export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgent
               <input style={inputStyle} placeholder="Ej: 573001234567" value={form.whatsapp || ''} onChange={(e) => patch({ whatsapp: e.target.value })} />
             </Section>
 
+            <Section c={c} title="Plantilla de primer contacto" badge="CARTERA">
+              <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 12px' }}>
+                Nombre exacto de una plantilla ya <strong>aprobada por Meta</strong> (Meta Business Suite → Administrador de WhatsApp → Plantillas de mensajes), usada para el primer mensaje a un deudor importado en{' '}
+                <Link href="/admin/fenix/deudores" style={{ color: ACCENT }}>Cartera de deudores</Link> que nunca ha escrito. Sin esto, WhatsApp rechaza el envío -- no hay ventana de 24h abierta con alguien que nunca ha escrito, y la plantilla es la única forma válida de iniciar.
+              </p>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Nombre de la plantilla en Meta</label>
+                  <input style={inputStyle} placeholder="Ej: primer_contacto_cobro" value={form.plantilla_primer_contacto || ''} onChange={(e) => patch({ plantilla_primer_contacto: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Idioma de la plantilla</label>
+                  <input style={inputStyle} placeholder="es_CO" value={form.plantilla_idioma || ''} onChange={(e) => patch({ plantilla_idioma: e.target.value })} />
+                </div>
+              </div>
+            </Section>
+
             <Section c={c} title="System prompt interno" badge="AVANZADO">
               <p style={{ fontSize: 12, color: c.ink3, margin: '0 0 10px' }}>
                 Instrucciones que usa la IA al generar mensajes de cobro. Edítalo solo si sabes lo que haces.
@@ -380,6 +399,13 @@ export function FenixAgenteClient({ initialAgente }: { initialAgente: FenixAgent
             fontSize: 13, textDecoration: 'none', fontWeight: 600,
           }}>
             ← Leads y pipeline
+          </Link>
+          <Link href="/admin/fenix/deudores" style={{
+            display: 'inline-block', padding: '10px 16px', borderRadius: 10,
+            border: `1px solid ${c.linkBorder}`, background: c.linkBg, color: c.linkColor,
+            fontSize: 13, textDecoration: 'none', fontWeight: 600,
+          }}>
+            📋 Cartera de deudores →
           </Link>
           <Link href="/admin/fenix/leads-agente" style={{
             display: 'inline-block', padding: '10px 16px', borderRadius: 10,

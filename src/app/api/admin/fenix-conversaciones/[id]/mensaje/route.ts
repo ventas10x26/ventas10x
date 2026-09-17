@@ -43,6 +43,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }, { status: 400 })
   }
 
+  // Un mensaje de texto libre solo es válido DENTRO de la ventana de 24h que
+  // abre un mensaje ENTRANTE del usuario -- una plantilla saliente (como la
+  // de iniciar-agente) no la abre (ver el comentario grande en
+  // whatsapp-cloud-api.ts). Sin al menos un mensaje 'user' en el historial,
+  // es matemáticamente imposible que esa ventana esté abierta: Graph API
+  // igual responde 200 (queda "aceptado para procesar"), pero WhatsApp lo
+  // rechaza por detrás sin avisar acá -- el panel mostraba el mensaje como
+  // enviado sin que le llegara nunca a nadie. Se corta acá con un error
+  // explícito en vez de repetir ese engaño.
+  const historialActual = (conv.historial as MensajeHistorial[]) || []
+  const yaRespondioAlgunaVez = historialActual.some((m) => m.role === 'user')
+  if (!yaRespondioAlgunaVez) {
+    return NextResponse.json({
+      error: 'Esta persona todavía no te ha escrito nada -- WhatsApp no deja mandar texto libre hasta que responda primero (solo un mensaje entrante abre esa ventana de 24h). Si necesitas contactarla de nuevo, usa una plantilla aprobada en vez de texto libre.',
+    }, { status: 400 })
+  }
+
   const { data: cuenta } = await supabaseService
     .from('whatsapp_cuentas')
     .select('*')
@@ -62,8 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'No se pudo enviar por WhatsApp' }, { status: 502 })
   }
 
-  const historialPrevio = (conv.historial as MensajeHistorial[]) || []
-  const nuevoHistorial = [...historialPrevio, { role: 'assistant' as const, content: texto }].slice(-30)
+  const nuevoHistorial = [...historialActual, { role: 'assistant' as const, content: texto }].slice(-30)
 
   const { error: upsertError } = await supabaseService
     .from('fenix_conversaciones')

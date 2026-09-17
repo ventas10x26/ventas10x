@@ -14,6 +14,7 @@
 // por qué, en vez de adivinar por cuál número/canal contestar.
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 
 type MensajeHistorial = { role: 'user' | 'assistant'; content: string }
 
@@ -302,7 +303,7 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
               <>
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '14px 16px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', gap: '10px',
+                  padding: '14px 16px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', gap: '10px', flexWrap: 'wrap',
                 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -320,13 +321,29 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                       {seleccionada.telefono} · {seleccionada.tipo === 'lead' ? 'Lead' : 'Deudor'} · <span suppressHydrationWarning>{formatFecha(seleccionada.updated_at)}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
                     <a href={waLink(seleccionada.telefono)} target="_blank" rel="noopener noreferrer" style={{
                       padding: '6px 12px', borderRadius: '999px', background: '#25D366', color: '#fff',
                       fontSize: '11.5px', fontWeight: 700, textDecoration: 'none',
                     }}>
                       Abrir en WhatsApp
                     </a>
+                    {/* Lleva a /admin/fenix/deudores con el teléfono y el id de esta
+                        conversación por query string -- esa página (ver
+                        FenixDeudoresClient.tsx) precarga el teléfono en el textarea de
+                        "pegar texto" y, al guardar, reclasifica esta conversación a
+                        tipo='deudor' automáticamente. No duplicamos acá la lógica de
+                        análisis por IA / preview / guardado. */}
+                    <Link
+                      href={`/admin/fenix/deudores?telefono=${seleccionada.telefono}&conversacion_id=${seleccionada.id}`}
+                      title="Crear un caso de cartera a partir de esta conversación"
+                      style={{
+                        padding: '6px 12px', borderRadius: '999px', background: '#fff', border: `1px solid ${ACCENT}`,
+                        color: ACCENT, fontSize: '11.5px', fontWeight: 700, textDecoration: 'none',
+                      }}
+                    >
+                      📋 Crear como deudor
+                    </Link>
                     <button
                       onClick={() => togglePausa(seleccionada)}
                       disabled={cambiandoPausaId === seleccionada.id}

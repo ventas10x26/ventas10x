@@ -1,425 +1,384 @@
 // Ruta destino: src/components/admin/FenixDeudoresClient.tsx
-// Importación de deudores desde CSV + cola de aprobación manual antes de
-// que el agente les mande el primer contacto (por plantilla, ver la ruta
-// .../iniciar-agente). El parseo de CSV es manual (sin librerías nuevas)
-// -- suficiente para un CSV simple exportado desde Excel/Sheets, con
-// comillas para campos que traen comas.
+//
+// Dos formas de cargar casos de deudor a fenix_clientes_deuda:
+// 1. Pegar texto libre (una nota, un mensaje, una descripción informal) y
+//    que la IA lo convierta en registros estructurados.
+// 2. Subir un Excel o CSV con la cartera que un cliente entregó -- se
+//    parsea en el navegador con xlsx (ya es dependencia del proyecto, no
+//    hace falta ninguna librería nueva) y se mapean columnas por nombres
+//    comunes (nombre, teléfono, cédula, empresa, monto, etc.).
+//
+// En ambos casos el resultado es un preview EDITABLE antes de guardar --
+// nunca se inserta directo a la base de datos sin que un humano lo revise,
+// ni el texto de la IA ni las filas del archivo.
+//
+// Si llega desde el botón "Crear como deudor" de una conversación puntual
+// (/admin/fenix/conversaciones), trae prefillTelefono + conversacionId: al
+// guardar, además de crear el registro, reclasifica esa conversación a
+// tipo='deudor' (lo hace el propio endpoint POST).
 'use client'
+import { useState } from 'react'
+import * as XLSX from 'xlsx'
 
-import { useRef, useState, type CSSProperties } from 'react'
-import Link from 'next/link'
-
-const ACCENT = '#F5821F'
-
-type Deudor = {
-  id: string
-  nombre: string
-  documento: string | null
-  telefono: string
-  empresa_acreedora: string | null
-  monto_deuda: number | null
-  fecha_vencimiento: string | null
-  concepto: string | null
-  numero_obligacion: string | null
+type RegistroDeuda = {
+  nombre_deudor: string | null
+  telefono: string | null
+  documento_identidad: string | null
+  empresa_deudora: string | null
+  cliente_encarga: string | null
+  monto: number | null
   notas: string | null
-  estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado'
-  estado_gestion: string
-  agente_activo: boolean
-  primer_contacto_en: string | null
+}
+
+type ClienteDeuda = RegistroDeuda & {
+  id: string
+  estado: string
+  origen: string
+  conversacion_id: string | null
   created_at: string
 }
 
-type FilaCSV = {
-  nombre: string
-  documento?: string
-  telefono: string
-  empresa_acreedora?: string
-  monto_deuda?: number | null
-  fecha_vencimiento?: string | null
-  concepto?: string
-  numero_obligacion?: string
-  notas?: string
+const ACCENT = '#F5821F'
+const CAMPOS: { key: keyof RegistroDeuda; label: string; tipo: 'text' | 'number' }[] = [
+  { key: 'nombre_deudor', label: 'Nombre', tipo: 'text' },
+  { key: 'telefono', label: 'Teléfono', tipo: 'text' },
+  { key: 'documento_identidad', label: 'Documento', tipo: 'text' },
+  { key: 'empresa_deudora', label: 'Empresa deudora', tipo: 'text' },
+  { key: 'cliente_encarga', label: 'Cliente que encarga', tipo: 'text' },
+  { key: 'monto', label: 'Monto', tipo: 'number' },
+  { key: 'notas', label: 'Notas', tipo: 'text' },
+]
+
+// Alias de encabezados de Excel/CSV -> campo del registro. Todo en
+// minúsculas y sin espacios extra para la comparación.
+const ALIAS_COLUMNAS: Record<string, keyof RegistroDeuda> = {
+  'nombre': 'nombre_deudor', 'nombre_deudor': 'nombre_deudor', 'deudor': 'nombre_deudor', 'nombre del deudor': 'nombre_deudor',
+  'telefono': 'telefono', 'teléfono': 'telefono', 'celular': 'telefono', 'whatsapp': 'telefono', 'numero': 'telefono', 'número': 'telefono',
+  'documento': 'documento_identidad', 'cedula': 'documento_identidad', 'cédula': 'documento_identidad', 'nit': 'documento_identidad', 'documento_identidad': 'documento_identidad', 'identificacion': 'documento_identidad', 'identificación': 'documento_identidad',
+  'empresa': 'empresa_deudora', 'empresa_deudora': 'empresa_deudora', 'razon social': 'empresa_deudora', 'razón social': 'empresa_deudora',
+  'cliente': 'cliente_encarga', 'cliente_encarga': 'cliente_encarga', 'encarga': 'cliente_encarga', 'acreedor': 'cliente_encarga',
+  'monto': 'monto', 'valor': 'monto', 'deuda': 'monto', 'saldo': 'monto',
+  'notas': 'notas', 'observaciones': 'notas', 'nota': 'notas',
 }
 
-const COLUMNAS_ESPERADAS = ['nombre', 'documento', 'telefono', 'empresa_acreedora', 'monto_deuda', 'fecha_vencimiento', 'concepto', 'numero_obligacion', 'notas']
+function registroVacio(): RegistroDeuda {
+  return { nombre_deudor: null, telefono: null, documento_identidad: null, empresa_deudora: null, cliente_encarga: null, monto: null, notas: null }
+}
 
-// Parser de CSV sencillo: soporta comillas dobles y comas dentro de campos
-// citados. No pretende cubrir todo el spec de CSV -- es suficiente para
-// archivos exportados desde Excel/Sheets, que es el caso real de uso acá.
-function parsearCSV(texto: string): string[][] {
-  const filas: string[][] = []
-  let fila: string[] = []
-  let campo = ''
-  let dentroComillas = false
-  const limpio = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+function formatFecha(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
-  for (let i = 0; i < limpio.length; i++) {
-    const ch = limpio[i]
-    if (dentroComillas) {
-      if (ch === '"') {
-        if (limpio[i + 1] === '"') { campo += '"'; i++ }
-        else dentroComillas = false
-      } else campo += ch
-    } else {
-      if (ch === '"') dentroComillas = true
-      else if (ch === ',') { fila.push(campo); campo = '' }
-      else if (ch === '\n') { fila.push(campo); filas.push(fila); fila = []; campo = '' }
-      else campo += ch
+export function FenixDeudoresClient({
+  initialRegistros,
+  prefillTelefono,
+  conversacionId,
+}: {
+  initialRegistros: ClienteDeuda[]
+  prefillTelefono?: string
+  conversacionId?: string
+}) {
+  const [registros, setRegistros] = useState<ClienteDeuda[]>(initialRegistros)
+  const [tab, setTab] = useState<'texto' | 'archivo'>('texto')
+  const [texto, setTexto] = useState(prefillTelefono ? `Teléfono: ${prefillTelefono}\n` : '')
+  const [preview, setPreview] = useState<RegistroDeuda[]>([])
+  const [origenPreview, setOrigenPreview] = useState<'texto_ia' | 'excel' | 'csv'>('texto_ia')
+  const [analizando, setAnalizando] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [nombreArchivo, setNombreArchivo] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [exito, setExito] = useState<string | null>(null)
+
+  async function analizarTexto() {
+    if (!texto.trim()) return
+    setAnalizando(true)
+    setError(null)
+    setExito(null)
+    try {
+      const res = await fetch('/api/admin/fenix-deudores/parse-texto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'No se pudo analizar')
+      if (!data.registros || data.registros.length === 0) {
+        setError('La IA no identificó ningún caso de deudor en ese texto. Revísalo y prueba de nuevo, o agrega una fila manual abajo.')
+        setPreview([registroVacio()])
+      } else {
+        setPreview(data.registros)
+      }
+      setOrigenPreview('texto_ia')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo analizar el texto')
+    } finally {
+      setAnalizando(false)
     }
   }
-  if (campo.length > 0 || fila.length > 0) { fila.push(campo); filas.push(fila) }
-  return filas.filter((f) => f.some((c) => c.trim() !== ''))
-}
 
-function normalizarMonto(v: string): number | null {
-  const limpio = v.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')
-  const n = parseFloat(limpio)
-  return Number.isNaN(n) ? null : n
-}
+  function manejarArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setExito(null)
+    setNombreArchivo(file.name)
+    const esCsv = file.name.toLowerCase().endsWith('.csv')
 
-function filasCSVaObjetos(filas: string[][]): { filas: FilaCSV[]; erroresEncabezado: string | null } {
-  if (filas.length < 2) return { filas: [], erroresEncabezado: 'El archivo no tiene filas de datos.' }
-  const encabezado = filas[0].map((h) => h.trim().toLowerCase())
-  const faltantes = ['nombre', 'telefono'].filter((c) => !encabezado.includes(c))
-  if (faltantes.length > 0) {
-    return { filas: [], erroresEncabezado: `Faltan columnas obligatorias: ${faltantes.join(', ')}. Columnas esperadas: ${COLUMNAS_ESPERADAS.join(', ')}` }
-  }
-  const idx = (col: string) => encabezado.indexOf(col)
-  const objetos: FilaCSV[] = filas.slice(1).map((f) => ({
-    nombre: f[idx('nombre')]?.trim() || '',
-    documento: idx('documento') >= 0 ? f[idx('documento')]?.trim() : undefined,
-    telefono: f[idx('telefono')]?.trim() || '',
-    empresa_acreedora: idx('empresa_acreedora') >= 0 ? f[idx('empresa_acreedora')]?.trim() : undefined,
-    monto_deuda: idx('monto_deuda') >= 0 ? normalizarMonto(f[idx('monto_deuda')] || '') : null,
-    fecha_vencimiento: idx('fecha_vencimiento') >= 0 ? (f[idx('fecha_vencimiento')]?.trim() || null) : null,
-    concepto: idx('concepto') >= 0 ? f[idx('concepto')]?.trim() : undefined,
-    numero_obligacion: idx('numero_obligacion') >= 0 ? f[idx('numero_obligacion')]?.trim() : undefined,
-    notas: idx('notas') >= 0 ? f[idx('notas')]?.trim() : undefined,
-  }))
-  return { filas: objetos, erroresEncabezado: null }
-}
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result
+        const workbook = esCsv
+          ? XLSX.read(data as string, { type: 'string' })
+          : XLSX.read(data as ArrayBuffer, { type: 'array' })
+        const hoja = workbook.Sheets[workbook.SheetNames[0]]
+        const filas: Record<string, unknown>[] = XLSX.utils.sheet_to_json(hoja, { defval: null })
 
-function descargarPlantillaCSV() {
-  const contenido = COLUMNAS_ESPERADAS.join(',') + '\n' +
-    'Juan Pérez,79xxxxxx,573001234567,Almacenes XYZ,1500000,2026-06-15,Factura #445,OBL-2026-0445,Contactar en horario de tarde'
-  const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'plantilla-deudores-fenix.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-}
+        if (filas.length === 0) {
+          setError('El archivo no tiene filas de datos.')
+          return
+        }
 
-const inputStyle: CSSProperties = {
-  padding: '8px 12px', borderRadius: 9, border: '1px solid #e2e8f0',
-  fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#fff',
-}
+        const mapeadas: RegistroDeuda[] = filas.map((fila) => {
+          const registro = registroVacio()
+          for (const [colOriginal, valor] of Object.entries(fila)) {
+            const colNormalizada = colOriginal.trim().toLowerCase()
+            const campo = ALIAS_COLUMNAS[colNormalizada]
+            if (!campo || valor === null || valor === undefined || valor === '') continue
+            if (campo === 'monto') {
+              const n = typeof valor === 'number' ? valor : Number(String(valor).replace(/[^\d.-]/g, ''))
+              registro.monto = Number.isNaN(n) ? null : n
+            } else if (campo === 'telefono') {
+              registro.telefono = String(valor).replace(/\D/g, '') || null
+            } else {
+              registro[campo] = String(valor).trim()
+            }
+          }
+          return registro
+        })
 
-const ESTADO_APROBACION_COLOR: Record<string, string> = { pendiente: '#f59e0b', aprobado: '#22c55e', rechazado: '#ef4444' }
-const ESTADO_GESTION_LABEL: Record<string, string> = {
-  nuevo: 'Nuevo', contactado: 'Contactado', en_negociacion: 'En negociación',
-  acuerdo: 'Acuerdo', pagado: 'Pagado', juridico: 'Jurídico', sin_respuesta: 'Sin respuesta',
-}
-
-export function FenixDeudoresClient({ initialDeudores }: { initialDeudores: Deudor[] }) {
-  const [deudores, setDeudores] = useState<Deudor[]>(initialDeudores)
-  const [filtro, setFiltro] = useState<'todos' | 'pendiente' | 'aprobado' | 'rechazado'>('todos')
-  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
-  const [previewFilas, setPreviewFilas] = useState<FilaCSV[] | null>(null)
-  const [erroresPreview, setErroresPreview] = useState<string | null>(null)
-  const [importando, setImportando] = useState(false)
-  const [procesandoId, setProcesandoId] = useState<string | null>(null)
-  const [mensaje, setMensaje] = useState('')
-  const [error, setError] = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const filtrados = filtro === 'todos' ? deudores : deudores.filter((d) => d.estado_aprobacion === filtro)
-  const conteo = {
-    pendiente: deudores.filter((d) => d.estado_aprobacion === 'pendiente').length,
-    aprobado: deudores.filter((d) => d.estado_aprobacion === 'aprobado').length,
-    rechazado: deudores.filter((d) => d.estado_aprobacion === 'rechazado').length,
-    activos: deudores.filter((d) => d.agente_activo).length,
-  }
-
-  function onArchivoSeleccionado(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0]
-    if (!archivo) return
-    setError('')
-    setMensaje('')
-    const lector = new FileReader()
-    lector.onload = () => {
-      const texto = String(lector.result || '')
-      const { filas, erroresEncabezado } = filasCSVaObjetos(parsearCSV(texto))
-      if (erroresEncabezado) { setErroresPreview(erroresEncabezado); setPreviewFilas(null); return }
-      setErroresPreview(null)
-      setPreviewFilas(filas)
+        setPreview(mapeadas)
+        setOrigenPreview(esCsv ? 'csv' : 'excel')
+      } catch (err) {
+        console.error(err)
+        setError('No se pudo leer el archivo -- confirma que sea un .xlsx, .xls o .csv válido.')
+      }
     }
-    lector.readAsText(archivo, 'utf-8')
+    if (esCsv) reader.readAsText(file)
+    else reader.readAsArrayBuffer(file)
   }
 
-  async function confirmarImportacion() {
-    if (!previewFilas || previewFilas.length === 0) return
-    setImportando(true)
-    setError('')
-    setMensaje('')
+  function actualizarCampo(index: number, campo: keyof RegistroDeuda, valor: string) {
+    setPreview((prev) => prev.map((r, i) => {
+      if (i !== index) return r
+      if (campo === 'monto') {
+        const n = Number(valor.replace(/[^\d.-]/g, ''))
+        return { ...r, monto: valor.trim() === '' ? null : (Number.isNaN(n) ? r.monto : n) }
+      }
+      return { ...r, [campo]: valor.trim() === '' ? null : valor }
+    }))
+  }
+
+  function eliminarFila(index: number) {
+    setPreview((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function agregarFilaVacia() {
+    setPreview((prev) => [...prev, registroVacio()])
+  }
+
+  async function guardarRegistros() {
+    if (preview.length === 0) return
+    setGuardando(true)
+    setError(null)
+    setExito(null)
     try {
       const res = await fetch('/api/admin/fenix-deudores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filas: previewFilas }),
+        body: JSON.stringify({ registros: preview, origen: origenPreview, conversacion_id: conversacionId || null }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'No se pudo importar')
-      setMensaje(`✓ ${data.importados} deudores importados${data.omitidos ? ` · ${data.omitidos} omitidos por error de formato` : ''}`)
-      setPreviewFilas(null)
-      if (fileRef.current) fileRef.current.value = ''
-      await recargar()
+      if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo guardar')
+      setExito(`Se guardaron ${data.insertados} caso(s) de deudor.${conversacionId ? ' La conversación quedó reclasificada como deudor.' : ''}`)
+      setPreview([])
+      setTexto('')
+      setNombreArchivo(null)
+      const listaRes = await fetch('/api/admin/fenix-deudores')
+      const listaData = await listaRes.json()
+      if (listaRes.ok) setRegistros(listaData.registros || [])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al importar')
+      setError(e instanceof Error ? e.message : 'No se pudo guardar')
     } finally {
-      setImportando(false)
+      setGuardando(false)
     }
-  }
-
-  async function recargar() {
-    const res = await fetch('/api/admin/fenix-deudores')
-    const data = await res.json()
-    if (res.ok) setDeudores(data.deudores || [])
-  }
-
-  async function cambiarAprobacion(id: string, estado_aprobacion: 'aprobado' | 'rechazado') {
-    setProcesandoId(id)
-    setError('')
-    try {
-      const res = await fetch(`/api/admin/fenix-deudores/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado_aprobacion }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'No se pudo actualizar')
-      setDeudores((ds) => ds.map((d) => (d.id === id ? data.deudor : d)))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al actualizar')
-    } finally {
-      setProcesandoId(null)
-    }
-  }
-
-  async function aprobarSeleccionados() {
-    for (const id of seleccionados) await cambiarAprobacion(id, 'aprobado')
-    setSeleccionados(new Set())
-  }
-
-  async function iniciarAgente(id: string) {
-    if (!confirm('Esto manda el primer mensaje real por WhatsApp (plantilla aprobada) a este deudor. ¿Continuar?')) return
-    setProcesandoId(id)
-    setError('')
-    setMensaje('')
-    try {
-      const res = await fetch(`/api/admin/fenix-deudores/${id}/iniciar-agente`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'No se pudo iniciar')
-      setDeudores((ds) => ds.map((d) => (d.id === id ? data.deudor : d)))
-      setMensaje('✓ Primer contacto enviado, agente activado')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al iniciar el agente')
-    } finally {
-      setProcesandoId(null)
-    }
-  }
-
-  function toggleSeleccion(id: string) {
-    setSeleccionados((s) => {
-      const nuevo = new Set(s)
-      if (nuevo.has(id)) nuevo.delete(id); else nuevo.add(id)
-      return nuevo
-    })
   }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f7f6f4', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <div style={{ padding: '24px clamp(16px, 4vw, 32px) 60px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: '24px clamp(16px, 4vw, 32px)', maxWidth: '1100px', margin: '0 auto' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 18 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, marginBottom: 4 }}>
-              Fénix Consultores
-            </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0 }}>Cartera de deudores</h1>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0', maxWidth: 520 }}>
-              Importa deudores desde CSV, apruébalos y activa el agente de cobro para que les escriba el primer contacto.
-            </p>
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: ACCENT, marginBottom: '4px' }}>
+            Fénix Consultores
           </div>
-          <Link href="/admin/fenix/agente" style={{
-            padding: '9px 16px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff',
-            color: '#0f172a', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-          }}>
-            🤖 Agente de cobro
-          </Link>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Cartera · Casos de deudor</h1>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0' }}>
+            Carga los casos que un cliente empresarial entrega para gestión de cobro -- pegando el detalle en texto libre, o subiendo el Excel/CSV de la cartera.
+          </p>
         </div>
 
-        {/* Métricas */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Pendientes', valor: conteo.pendiente, color: '#f59e0b' },
-            { label: 'Aprobados', valor: conteo.aprobado, color: '#22c55e' },
-            { label: 'Rechazados', valor: conteo.rechazado, color: '#ef4444' },
-            { label: 'Agente activo', valor: conteo.activos, color: ACCENT },
-          ].map((m) => (
-            <div key={m.label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 18px', minWidth: 96 }}>
-              <div style={{ fontSize: 19, fontWeight: 700, color: m.color }}>{m.valor}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>{m.label}</div>
-            </div>
-          ))}
-        </div>
+        {conversacionId && (
+          <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: `${ACCENT}12`, border: `1px solid ${ACCENT}40`, fontSize: '13px', color: '#92400e' }}>
+            📱 Creando este caso a partir de la conversación con <b>{prefillTelefono}</b> -- al guardar, esa conversación queda reclasificada como deudor.
+          </div>
+        )}
 
         {error && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 13, color: '#dc2626', display: 'flex', justifyContent: 'space-between' }}>
-            <span>{error}</span>
-            <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: 700 }}>×</button>
+          <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '13px', color: '#dc2626' }}>
+            {error}
           </div>
         )}
-        {mensaje && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 13, color: '#16a34a' }}>
-            {mensaje}
+        {exito && (
+          <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '13px', color: '#15803d' }}>
+            ✅ {exito}
           </div>
         )}
 
-        {/* Importar CSV */}
-        <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, marginBottom: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <h2 style={{ fontSize: 14.5, fontWeight: 800, margin: 0, color: '#0f172a' }}>Importar deudores desde CSV</h2>
-            <button onClick={descargarPlantillaCSV} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              ↓ Descargar plantilla CSV
-            </button>
+        {/* Tabs de importación */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
+            {([{ key: 'texto', label: '✏️ Pegar texto' }, { key: 'archivo', label: '📄 Subir Excel o CSV' }] as const).map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                fontSize: '13px', fontWeight: 700, padding: '8px 14px', borderRadius: '9px',
+                background: tab === t.key ? '#0f172a' : '#f1f5f9', color: tab === t.key ? '#fff' : '#64748b',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                {t.label}
+              </button>
+            ))}
           </div>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 12px' }}>
-            Columnas: <code>{COLUMNAS_ESPERADAS.join(', ')}</code> — solo <strong>nombre</strong> y <strong>telefono</strong> son obligatorias.
-          </p>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onArchivoSeleccionado} style={{ fontSize: 13 }} />
 
-          {erroresPreview && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 12 }}>{erroresPreview}</p>}
-
-          {previewFilas && previewFilas.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
-                Vista previa — {previewFilas.length} fila{previewFilas.length !== 1 ? 's' : ''}
-              </p>
-              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 10, maxHeight: 260, overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                  <thead>
-                    <tr>
-                      {['Nombre', 'Teléfono', 'Empresa', 'Monto', 'Vence', 'Concepto'].map((h) => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 12px', background: '#f7f6f4', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewFilas.slice(0, 50).map((f, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed' }}>{f.nombre || <span style={{ color: '#dc2626' }}>falta</span>}</td>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed' }}>{f.telefono || <span style={{ color: '#dc2626' }}>falta</span>}</td>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed' }}>{f.empresa_acreedora || '—'}</td>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed' }}>{f.monto_deuda != null ? f.monto_deuda.toLocaleString('es-CO') : '—'}</td>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed' }}>{f.fecha_vencimiento || '—'}</td>
-                        <td style={{ padding: '7px 12px', borderBottom: '1px solid #f1f0ed', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.concepto || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {previewFilas.length > 50 && <p style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>Mostrando 50 de {previewFilas.length}.</p>}
-              <button
-                onClick={confirmarImportacion}
-                disabled={importando}
-                style={{ marginTop: 12, padding: '10px 18px', borderRadius: 10, border: 'none', background: ACCENT, color: '#fff', fontWeight: 700, fontSize: 13, cursor: importando ? 'default' : 'pointer', opacity: importando ? 0.7 : 1, fontFamily: 'inherit' }}
-              >
-                {importando ? 'Importando…' : `Importar ${previewFilas.length} deudores (quedan pendientes de aprobación)`}
+          {tab === 'texto' ? (
+            <div>
+              <textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder="Pega acá el detalle -- por ejemplo: 'Juan Pérez, cédula 1234567, debe $2.500.000 a Almacenes XYZ, teléfono 3001234567, deuda de 6 meses'"
+                rows={6}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0',
+                  fontSize: '13.5px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+                }}
+              />
+              <button onClick={analizarTexto} disabled={analizando || !texto.trim()} style={{
+                marginTop: '10px', padding: '10px 20px', borderRadius: '10px', border: 'none',
+                background: analizando || !texto.trim() ? '#e2e8f0' : ACCENT, color: analizando || !texto.trim() ? '#94a3b8' : '#fff',
+                fontWeight: 700, fontSize: '13.5px', cursor: analizando || !texto.trim() ? 'default' : 'pointer', fontFamily: 'inherit',
+              }}>
+                {analizando ? 'Analizando con IA…' : '🤖 Analizar con IA'}
               </button>
             </div>
-          )}
-        </section>
-
-        {/* Filtros + acciones masivas */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {([
-            { key: 'todos', label: 'Todos' },
-            { key: 'pendiente', label: `Pendientes · ${conteo.pendiente}` },
-            { key: 'aprobado', label: `Aprobados · ${conteo.aprobado}` },
-            { key: 'rechazado', label: `Rechazados · ${conteo.rechazado}` },
-          ] as const).map((f) => (
-            <button key={f.key} onClick={() => setFiltro(f.key)} style={{
-              fontSize: 11.5, fontWeight: 700, padding: '6px 12px', borderRadius: 999,
-              background: filtro === f.key ? '#0f172a' : '#fff', color: filtro === f.key ? '#fff' : '#64748b',
-              border: '1px solid #e2e8f0', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              {f.label}
-            </button>
-          ))}
-          {seleccionados.size > 0 && (
-            <button onClick={aprobarSeleccionados} style={{
-              fontSize: 11.5, fontWeight: 700, padding: '6px 12px', borderRadius: 999,
-              background: '#22c55e18', color: '#16a34a', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              ✓ Aprobar {seleccionados.size} seleccionados
-            </button>
+          ) : (
+            <div>
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={manejarArchivo} style={{ fontSize: '13px' }} />
+              {nombreArchivo && <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Archivo cargado: {nombreArchivo}</p>}
+              <p style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '8px' }}>
+                Columnas reconocidas: nombre, teléfono, documento/cédula/NIT, empresa, cliente (quien encarga el cobro), monto/valor, notas. El orden no importa.
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Tabla */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        {/* Preview editable */}
+        {preview.length > 0 && (
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px', marginBottom: '20px', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                Revisa antes de guardar ({preview.length} {preview.length === 1 ? 'caso' : 'casos'})
+              </h2>
+              <button onClick={agregarFilaVacia} style={{ fontSize: '12px', fontWeight: 600, color: ACCENT, background: 'none', border: 'none', cursor: 'pointer' }}>
+                + Agregar fila
+              </button>
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
               <thead>
                 <tr>
-                  {['', 'Nombre', 'Teléfono', 'Empresa', 'Monto', 'Aprobación', 'Gestión', 'Agente', ''].map((h) => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, color: '#4a4a47', fontSize: 11, background: '#f7f6f4', whiteSpace: 'nowrap' }}>{h}</th>
+                  {CAMPOS.map((c) => (
+                    <th key={c.key} style={{ textAlign: 'left', fontSize: '11px', color: '#94a3b8', fontWeight: 700, padding: '4px 6px', borderBottom: '1px solid #e2e8f0' }}>
+                      {c.label}
+                    </th>
                   ))}
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtrados.length === 0 ? (
-                  <tr><td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Sin deudores para este filtro.</td></tr>
-                ) : filtrados.map((d) => (
-                  <tr key={d.id}>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed' }}>
-                      {d.estado_aprobacion === 'pendiente' && (
-                        <input type="checkbox" checked={seleccionados.has(d.id)} onChange={() => toggleSeleccion(d.id)} />
-                      )}
-                    </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed', fontWeight: 700, color: '#0f172a' }}>{d.nombre}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed' }}>{d.telefono}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed', color: '#64748b' }}>{d.empresa_acreedora || '—'}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed' }}>{d.monto_deuda != null ? `$${d.monto_deuda.toLocaleString('es-CO')}` : '—'}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed' }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: `${ESTADO_APROBACION_COLOR[d.estado_aprobacion]}18`, color: ESTADO_APROBACION_COLOR[d.estado_aprobacion] }}>
-                        {d.estado_aprobacion}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed', color: '#64748b' }}>{ESTADO_GESTION_LABEL[d.estado_gestion] || d.estado_gestion}</td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed' }}>
-                      {d.agente_activo ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 12 }}>🟢 Activo</span> : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}
-                    </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid #f1f0ed', whiteSpace: 'nowrap' }}>
-                      {d.estado_aprobacion === 'pendiente' && (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button disabled={procesandoId === d.id} onClick={() => cambiarAprobacion(d.id, 'aprobado')} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: '#22c55e18', color: '#16a34a', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Aprobar</button>
-                          <button disabled={procesandoId === d.id} onClick={() => cambiarAprobacion(d.id, 'rechazado')} style={{ padding: '5px 10px', borderRadius: 7, border: 'none', background: '#ef444418', color: '#dc2626', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Rechazar</button>
-                        </div>
-                      )}
-                      {d.estado_aprobacion === 'aprobado' && !d.agente_activo && (
-                        <button disabled={procesandoId === d.id} onClick={() => iniciarAgente(d.id)} style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: ACCENT, color: '#fff', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                            {procesandoId === d.id ? '…' : '🤖 Iniciar agente'}
-                          </button>
-                      )}
+                {preview.map((r, i) => (
+                  <tr key={i}>
+                    {CAMPOS.map((c) => (
+                      <td key={c.key} style={{ padding: '4px 6px', borderBottom: '1px solid #f1f5f9' }}>
+                        <input
+                          value={r[c.key] ?? ''}
+                          onChange={(e) => actualizarCampo(i, c.key, e.target.value)}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12.5px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        />
+                      </td>
+                    ))}
+                    <td style={{ padding: '4px 6px' }}>
+                      <button onClick={() => eliminarFila(i)} title="Eliminar fila" style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }}>✕</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            <button onClick={guardarRegistros} disabled={guardando} style={{
+              marginTop: '14px', padding: '10px 22px', borderRadius: '10px', border: 'none',
+              background: guardando ? '#e2e8f0' : '#15803d', color: guardando ? '#94a3b8' : '#fff',
+              fontWeight: 700, fontSize: '13.5px', cursor: guardando ? 'default' : 'pointer', fontFamily: 'inherit',
+            }}>
+              {guardando ? 'Guardando…' : `💾 Guardar ${preview.length} ${preview.length === 1 ? 'caso' : 'casos'}`}
+            </button>
           </div>
+        )}
+
+        {/* Lista de casos ya guardados */}
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>
+            Casos cargados ({registros.length})
+          </h2>
+          {registros.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#94a3b8' }}>Todavía no hay casos cargados.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                <thead>
+                  <tr>
+                    {['Nombre', 'Teléfono', 'Empresa', 'Monto', 'Cliente', 'Estado', 'Origen', 'Creado'].map((h) => (
+                      <th key={h} style={{ textAlign: 'left', fontSize: '11px', color: '#94a3b8', fontWeight: 700, padding: '6px', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {registros.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.nombre_deudor || '—'}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.telefono || '—'}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.empresa_deudora || '—'}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.monto != null ? `$${r.monto.toLocaleString('es-CO')}` : '—'}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.cliente_encarga || '—'}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${ACCENT}18`, color: ACCENT }}>{r.estado}</span>
+                      </td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{r.origen}</td>
+                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{formatFecha(r.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

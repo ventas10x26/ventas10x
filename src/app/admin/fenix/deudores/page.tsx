@@ -1,21 +1,21 @@
 // Ruta destino: src/app/admin/fenix/deudores/page.tsx
-// Cartera de deudores importados por CSV para autogestión de cobro.
-// Mismo gate de admin que el resto de /admin/fenix.
-
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+// Ver comentario en FenixDeudoresClient.tsx para el detalle de las dos
+// formas de importar. telefono y conversacion_id llegan por query string
+// cuando se abre desde el botón "Crear como deudor" de
+// /admin/fenix/conversaciones.
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { getCurrentAdmin } from '@/lib/admin-helpers'
+import { obtenerClientesDeuda } from '@/lib/fenix-deudores'
 import { FenixDeudoresClient } from '@/components/admin/FenixDeudoresClient'
-
-const supabaseService = createServiceClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminFenixDeudoresPage() {
+export default async function AdminFenixDeudoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ telefono?: string; conversacion_id?: string }>
+}) {
   const admin = await getCurrentAdmin()
   if (!admin) {
     const host = (await headers()).get('host') || ''
@@ -23,10 +23,13 @@ export default async function AdminFenixDeudoresPage() {
     redirect(esFenix ? '/auth/login' : '/dashboard')
   }
 
-  const { data: deudores } = await supabaseService
-    .from('fenix_deudores')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [registros, sp] = await Promise.all([obtenerClientesDeuda(), searchParams])
 
-  return <FenixDeudoresClient initialDeudores={deudores || []} />
+  return (
+    <FenixDeudoresClient
+      initialRegistros={registros}
+      prefillTelefono={sp.telefono}
+      conversacionId={sp.conversacion_id}
+    />
+  )
 }

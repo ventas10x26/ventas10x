@@ -236,7 +236,8 @@ export type MensajeEntrante = {
 // Parsea el body crudo del webhook POST de Meta y devuelve la lista de
 // mensajes entrantes normalizados. Devuelve array vacío para eventos que no
 // son mensajes (ej. actualizaciones de estado "delivered"/"read" de
-// mensajes que NOSOTROS enviamos -- esos no necesitan respuesta).
+// mensajes que NOSOTROS enviamos -- esos se parsean aparte, ver
+// parsearWebhookEstados más abajo).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parsearWebhookEntrante(body: any): MensajeEntrante[] {
   const resultado: MensajeEntrante[] = []
@@ -266,6 +267,48 @@ export function parsearWebhookEntrante(body: any): MensajeEntrante[] {
           timestamp: msg.timestamp,
           tipo,
           texto,
+        })
+      }
+    }
+  }
+  return resultado
+}
+
+// ─── Webhook entrante: estados de mensajes SALIENTES ───
+//
+// Meta manda actualizaciones de estado ("sent"/"delivered"/"read"/"failed")
+// de los mensajes que NOSOTROS enviamos en el mismo payload de webhook que
+// los mensajes entrantes, pero bajo `statuses` en vez de `messages`. Hasta
+// ahora el webhook los descartaba por completo sin mirarlos -- por eso un
+// envío que Graph API acepta en el momento (200 en /messages, ver
+// enviarTexto arriba) pero que WhatsApp nunca termina de entregar quedaba
+// totalmente invisible: no había forma de ver el motivo real del fallo,
+// solo que en el celular del destinatario nunca llegaba nada. Separado de
+// parsearWebhookEntrante() porque son dos tipos de evento distintos que
+// pueden convivir en el mismo payload.
+export type EstadoMensajeSaliente = {
+  phoneNumberId: string
+  messageId: string
+  destino: string // número del lead/deudor al que se le intentó entregar
+  estado: 'sent' | 'delivered' | 'read' | 'failed' | string
+  errores: Array<{ code: number; title: string; message?: string }> | null
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parsearWebhookEstados(body: any): EstadoMensajeSaliente[] {
+  const resultado: EstadoMensajeSaliente[] = []
+  const entradas = body?.entry || []
+  for (const entrada of entradas) {
+    for (const change of entrada.changes || []) {
+      const value = change.value
+      const phoneNumberId = value?.metadata?.phone_number_id
+      for (const status of value?.statuses || []) {
+        resultado.push({
+          phoneNumberId,
+          messageId: status.id,
+          destino: status.recipient_id,
+          estado: status.status,
+          errores: status.errors || null,
         })
       }
     }

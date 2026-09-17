@@ -16,6 +16,15 @@
 // (/admin/fenix/conversaciones), trae prefillTelefono + conversacionId: al
 // guardar, además de crear el registro, reclasifica esa conversación a
 // tipo='deudor' (lo hace el propio endpoint POST).
+//
+// Toggle "Agente" en Casos cargados:
+// - Nunca contactado (agente_activo=false) -> clic aprueba (si hace falta)
+//   y dispara POST .../iniciar-agente, que manda la plantilla de WhatsApp
+//   pre-aprobada del primer contacto.
+// - Ya contactado (agente_activo=true) -> clic pausa/reanuda la IA sobre la
+//   conversación ya abierta (PATCH .../fenix-conversaciones/[id], mismo
+//   mecanismo que usa el panel de Conversaciones), sin reenviar la
+//   plantilla.
 'use client'
 import { useState } from 'react'
 import * as XLSX from 'xlsx'
@@ -33,8 +42,12 @@ type RegistroDeuda = {
 type ClienteDeuda = RegistroDeuda & {
   id: string
   estado: string
+  estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado'
+  agente_activo: boolean
+  primer_contacto_en: string | null
   origen: string
   conversacion_id: string | null
+  bot_pausado: boolean | null
   created_at: string
 }
 
@@ -88,6 +101,7 @@ export function FenixDeudoresClient({
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
+  const [agenteBusyId, setAgenteBusyId] = useState<string | null>(null)
 
   async function analizarTexto() {
     if (!texto.trim()) return
@@ -211,6 +225,47 @@ export function FenixDeudoresClient({
       setError(e instanceof Error ? e.message : 'No se pudo guardar')
     } finally {
       setGuardando(false)
+    }
+  }
+
+  async function toggleAgente(row: ClienteDeuda) {
+    setAgenteBusyId(row.id)
+    setError(null)
+    setExito(null)
+    try {
+      if (!row.agente_activo) {
+        // Primera activación: aprueba si hace falta y dispara el primer contacto.
+        if (row.estado_aprobacion !== 'aprobado') {
+          const resAprobar = await fetch(`/api/admin/fenix-deudores/${row.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado_aprobacion: 'aprobado' }),
+          })
+          const dataAprobar = await resAprobar.json()
+          if (!resAprobar.ok) throw new Error(dataAprobar.error || 'No se pudo aprobar el caso')
+        }
+        const res = await fetch(`/api/admin/fenix-deudores/${row.id}/iniciar-agente`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok || !data.ok) throw new Error(data.error || 'No se pudo activar el agente')
+        setRegistros((prev) => prev.map((r) => (r.id === row.id ? { ...r, ...data.deudor, bot_pausado: false } : r)))
+        setExito(`Se activó el agente y se envió el primer contacto a ${row.nombre_deudor || 'este deudor'}.`)
+      } else {
+        // Ya contactado: pausa o reanuda la IA sobre la conversación abierta.
+        if (!row.conversacion_id) throw new Error('Este caso no tiene una conversación asociada todavía.')
+        const nuevoPausado = !row.bot_pausado
+        const res = await fetch(`/api/admin/fenix-conversaciones/${row.conversacion_id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bot_pausado: nuevoPausado }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'No se pudo actualizar el agente')
+        setRegistros((prev) => prev.map((r) => (r.id === row.id ? { ...r, bot_pausado: nuevoPausado } : r)))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo actualizar el agente')
+    } finally {
+      setAgenteBusyId(null)
     }
   }
 
@@ -352,29 +407,58 @@ export function FenixDeudoresClient({
             <p style={{ fontSize: '13px', color: '#94a3b8' }}>Todavía no hay casos cargados.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
                 <thead>
                   <tr>
-                    {['Nombre', 'Teléfono', 'Empresa', 'Monto', 'Cliente', 'Estado', 'Origen', 'Creado'].map((h) => (
+                    {['Nombre', 'Teléfono', 'Empresa', 'Monto', 'Cliente', 'Estado', 'Agente', 'Origen', 'Creado'].map((h) => (
                       <th key={h} style={{ textAlign: 'left', fontSize: '11px', color: '#94a3b8', fontWeight: 700, padding: '6px', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {registros.map((r) => (
-                    <tr key={r.id}>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.nombre_deudor || '—'}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.telefono || '—'}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.empresa_deudora || '—'}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.monto != null ? `$${r.monto.toLocaleString('es-CO')}` : '—'}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.cliente_encarga || '—'}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${ACCENT}18`, color: ACCENT }}>{r.estado}</span>
-                      </td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{r.origen}</td>
-                      <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{formatFecha(r.created_at)}</td>
-                    </tr>
-                  ))}
+                  {registros.map((r) => {
+                    const busy = agenteBusyId === r.id
+                    let label = 'Activar'
+                    let bg = '#f1f5f9'
+                    let fg = '#64748b'
+                    if (r.agente_activo && r.bot_pausado) {
+                      label = '⏸ Pausado'
+                      bg = '#fef3c7'
+                      fg = '#92400e'
+                    } else if (r.agente_activo) {
+                      label = '🟢 Activo'
+                      bg = '#dcfce7'
+                      fg = '#15803d'
+                    }
+                    return (
+                      <tr key={r.id}>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.nombre_deudor || '—'}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.telefono || '—'}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.empresa_deudora || '—'}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.monto != null ? `$${r.monto.toLocaleString('es-CO')}` : '—'}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>{r.cliente_encarga || '—'}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${ACCENT}18`, color: ACCENT }}>{r.estado}</span>
+                        </td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12.5px' }}>
+                          <button
+                            onClick={() => toggleAgente(r)}
+                            disabled={busy}
+                            title={r.agente_activo ? (r.bot_pausado ? 'Reanudar el agente' : 'Pausar el agente') : 'Activar el agente (envía el primer contacto)'}
+                            style={{
+                              fontSize: '10px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px',
+                              background: bg, color: fg, border: 'none',
+                              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: 'inherit',
+                            }}
+                          >
+                            {busy ? '…' : label}
+                          </button>
+                        </td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{r.origen}</td>
+                        <td style={{ padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '11.5px', color: '#94a3b8' }}>{formatFecha(r.created_at)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

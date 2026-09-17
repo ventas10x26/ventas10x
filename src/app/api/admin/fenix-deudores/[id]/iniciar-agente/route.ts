@@ -14,6 +14,9 @@
 // conversación con el agente configurado en /admin/fenix/agente sin ningún
 // cambio adicional -- es el mismo flujo que un deudor que escribe por su
 // cuenta, solo que acá lo iniciamos nosotros.
+//
+// Tabla: fenix_clientes_deuda (ver nota en [id]/route.ts -- "fenix_deudores"
+// es una tabla huérfana, no usarla).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
@@ -33,7 +36,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
 
-  const { data: deudor } = await supabaseService.from('fenix_deudores').select('*').eq('id', id).maybeSingle()
+  const { data: deudor } = await supabaseService.from('fenix_clientes_deuda').select('*').eq('id', id).maybeSingle()
   if (!deudor) return NextResponse.json({ error: 'Deudor no encontrado' }, { status: 404 })
   if (deudor.estado_aprobacion !== 'aprobado') {
     return NextResponse.json({ error: 'Este deudor no está aprobado todavía' }, { status: 400 })
@@ -77,7 +80,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       deudor.telefono,
       cfg.plantilla_primer_contacto,
       cfg.plantilla_idioma || 'es_CO',
-      [{ type: 'body', parameters: [{ type: 'text', text: deudor.nombre }] }]
+      [{ type: 'body', parameters: [{ type: 'text', text: deudor.nombre_deudor }] }]
     )
   } catch (e) {
     console.error('[fenix-deudores/iniciar-agente] enviarPlantilla error:', e)
@@ -103,11 +106,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (convError) console.error('[fenix-deudores/iniciar-agente] error creando conversación:', convError)
 
   const { data: actualizado, error: updateError } = await supabaseService
-    .from('fenix_deudores')
+    .from('fenix_clientes_deuda')
     .update({
       agente_activo: true,
       primer_contacto_en: new Date().toISOString(),
-      estado_gestion: 'contactado',
+      estado: 'contactado',
       conversacion_id: conv?.id || null,
       updated_at: new Date().toISOString(),
     })

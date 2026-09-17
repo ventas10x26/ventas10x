@@ -1,7 +1,12 @@
 // Ruta destino: src/app/api/admin/fenix-deudores/[id]/route.ts
-// PATCH: cambia estado_aprobacion, estado_gestion o notas de un deudor.
+// PATCH: cambia estado_aprobacion, estado o notas de un deudor.
 // No toca agente_activo -- eso solo lo cambia .../iniciar-agente porque
 // implica mandar un mensaje real, no un simple update de estado.
+//
+// Tabla: fenix_clientes_deuda (la que realmente usa el panel /admin/fenix/
+// deudores). ¡Ojo! existe una tabla vieja "fenix_deudores" con un esquema
+// parecido pero que quedó huérfana -- no la uses acá, se comprobó que está
+// vacía y nada la escribe.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
@@ -12,7 +17,7 @@ const supabaseService = createServiceClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const CAMPOS_EDITABLES = ['estado_aprobacion', 'estado_gestion', 'notas'] as const
+const CAMPOS_EDITABLES = ['estado_aprobacion', 'estado', 'notas'] as const
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await getCurrentAdmin()
@@ -35,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   update.updated_at = new Date().toISOString()
 
   const { data, error } = await supabaseService
-    .from('fenix_deudores')
+    .from('fenix_clientes_deuda')
     .update(update)
     .eq('id', id)
     .select('*')

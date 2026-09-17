@@ -86,19 +86,45 @@ function normalizarRegistro(r: Record<string, unknown>): RegistroDeuda {
 export type ClienteDeuda = RegistroDeuda & {
   id: string
   estado: string
+  estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado'
+  agente_activo: boolean
+  primer_contacto_en: string | null
   origen: string
   conversacion_id: string | null
+  bot_pausado: boolean | null
   created_at: string
 }
 
 export async function obtenerClientesDeuda(): Promise<ClienteDeuda[]> {
   const { data, error } = await supabaseService
     .from('fenix_clientes_deuda')
-    .select('id, nombre_deudor, telefono, documento_identidad, empresa_deudora, cliente_encarga, monto, notas, estado, origen, conversacion_id, created_at')
+    .select('id, nombre_deudor, telefono, documento_identidad, empresa_deudora, cliente_encarga, monto, notas, estado, estado_aprobacion, agente_activo, primer_contacto_en, origen, conversacion_id, created_at')
     .order('created_at', { ascending: false })
   if (error) {
     console.error('[fenix-deudores] Error al listar:', error)
     return []
   }
-  return (data || []) as ClienteDeuda[]
+  const registros = (data || []) as Omit<ClienteDeuda, 'bot_pausado'>[]
+
+  // bot_pausado vive en fenix_conversaciones, no en esta tabla -- se trae
+  // aparte para los que ya tienen conversación (agente_activo = true) y se
+  // mezcla en memoria, en vez de un join que dependa de una FK declarada.
+  const idsConversacion = registros.map((r) => r.conversacion_id).filter((id): id is string => !!id)
+  const pausaPorConversacion = new Map<string, boolean>()
+  if (idsConversacion.length > 0) {
+    const { data: conversaciones, error: convError } = await supabaseService
+      .from('fenix_conversaciones')
+      .select('id, bot_pausado')
+      .in('id', idsConversacion)
+    if (convError) {
+      console.error('[fenix-deudores] Error al leer bot_pausado:', convError)
+    } else {
+      for (const c of conversaciones || []) pausaPorConversacion.set(c.id, c.bot_pausado === true)
+    }
+  }
+
+  return registros.map((r) => ({
+    ...r,
+    bot_pausado: r.conversacion_id ? (pausaPorConversacion.get(r.conversacion_id) ?? false) : null,
+  }))
 }

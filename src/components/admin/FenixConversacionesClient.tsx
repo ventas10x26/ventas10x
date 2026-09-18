@@ -55,6 +55,7 @@ function waLink(telefono: string) {
 
 function nombreMostrar(c: Conversacion): string {
   if (c.empresa) return c.empresa
+  if (c.nombre) return c.nombre
   return c.telefono
 }
 

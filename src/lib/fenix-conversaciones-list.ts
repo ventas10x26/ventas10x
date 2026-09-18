@@ -50,9 +50,7 @@ export async function obtenerConversacionesFenix(): Promise<ConversacionFenix[]>
 
   // Enriquece las de tipo 'lead' con el nombre/empresa del lead, cruzando
   // por los últimos 8 dígitos del teléfono -- mismo criterio que usa
-  // marcarLeadContactado() en fenix-whatsapp-cloud-handler.ts. Las de tipo
-  // 'deudor' no tienen equivalente en fenix_leads, así que quedan solo con
-  // el número.
+  // marcarLeadContactado() en fenix-whatsapp-cloud-handler.ts.
   const { data: leads } = await supabaseService.from('fenix_leads').select('empresa, nombre, telefono')
   const leadPorSufijo = new Map<string, { empresa: string; nombre: string }>()
   for (const l of leads || []) {
@@ -60,15 +58,28 @@ export async function obtenerConversacionesFenix(): Promise<ConversacionFenix[]>
     if (digitos.length >= 8) leadPorSufijo.set(digitos.slice(-8), { empresa: l.empresa, nombre: l.nombre })
   }
 
+  // Mismo cruce para las de tipo 'deudor', contra fenix_clientes_deuda --
+  // antes quedaban solo con el número porque este mapa no existía y
+  // fenix_leads obviamente no tiene a los deudores importados por Excel/
+  // texto libre en /admin/fenix/deudores.
+  const { data: deudores } = await supabaseService.from('fenix_clientes_deuda').select('nombre_deudor, empresa_deudora, telefono')
+  const deudorPorSufijo = new Map<string, { empresa: string | null; nombre: string | null }>()
+  for (const d of deudores || []) {
+    const digitos = String(d.telefono || '').replace(/\D/g, '')
+    if (digitos.length >= 8) deudorPorSufijo.set(digitos.slice(-8), { empresa: d.empresa_deudora, nombre: d.nombre_deudor })
+  }
+
   return (conversaciones || []).map((c) => {
     const telefono = telefonoDeRemoteJid(c.remote_jid)
-    const lead = leadPorSufijo.get(telefono.slice(-8)) || null
+    const sufijo = telefono.slice(-8)
+    const lead = leadPorSufijo.get(sufijo) || null
+    const deudor = !lead ? deudorPorSufijo.get(sufijo) || null : null
     return {
       id: c.id as string,
       telefono,
       tipo: (c.tipo as string) || 'deudor',
-      empresa: lead?.empresa || null,
-      nombre: lead?.nombre || null,
+      empresa: lead?.empresa || deudor?.empresa || null,
+      nombre: lead?.nombre || deudor?.nombre || null,
       historial: (c.historial as MensajeHistorial[]) || [],
       bot_pausado: c.bot_pausado === true,
       updated_at: c.updated_at as string,

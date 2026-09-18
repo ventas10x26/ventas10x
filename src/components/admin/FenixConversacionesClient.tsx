@@ -12,8 +12,19 @@
 // POST .../mensaje). Las conversaciones de antes de esa columna (o de la
 // época de Evolution API) quedan de solo lectura, con un aviso explicando
 // por qué, en vez de adivinar por cuál número/canal contestar.
+//
+// "Tiempo real" acá es polling silencioso cada 4s al mismo GET que ya
+// existía, no un socket/Realtime de Supabase: fenix_conversaciones tiene
+// RLS sin policies públicas (a propósito -- ahí vive el texto completo de
+// negociaciones de cobro y teléfonos de deudores), y el admin de Fenix no
+// usa Supabase Auth (es una tabla `admins` con cookie propia, ver
+// getCurrentAdmin()), así que no hay una identidad de Postgres a la que
+// atarle una policy de "solo admins". Abrir una policy para el anon key
+// habría expuesto esa tabla completa a cualquiera con el key público del
+// navegador. El polling reutiliza el mismo endpoint ya gateado por
+// getCurrentAdmin(), sin tocar RLS ni agregar superficie nueva.
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 type MensajeHistorial = { role: 'user' | 'assistant'; content: string }
@@ -31,6 +42,7 @@ type Conversacion = {
 }
 
 const ACCENT = '#F5821F'
+const INTERVALO_POLLING_MS = 4000
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -66,10 +78,12 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
   const [soloPausadas, setSoloPausadas] = useState(false)
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(initialConversaciones[0]?.id || null)
   const [cargando, setCargando] = useState(false)
+  const [enVivo, setEnVivo] = useState(true)
   const [cambiandoPausaId, setCambiandoPausaId] = useState<string | null>(null)
   const [mensajeManual, setMensajeManual] = useState('')
   const [enviandoMensaje, setEnviandoMensaje] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const mensajesRef = useRef<HTMLDivElement>(null)
 
   const filtradas = conversaciones.filter((c) => {
     const q = search.toLowerCase()
@@ -87,20 +101,51 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
   const totalDeudores = conversaciones.filter((c) => c.tipo === 'deudor').length
   const totalPausadas = conversaciones.filter((c) => c.bot_pausado).length
 
+  // Trae la lista fresca sin tocar nada del estado de la UI (borrador del
+  // mensaje, conversación seleccionada, filtros) -- eso es justo lo que
+  // antes obligaba a recargar la página entera para ver un mensaje nuevo.
+  async function traerConversaciones(): Promise<Conversacion[] | null> {
+    const res = await fetch('/api/admin/fenix-conversaciones')
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.conversaciones || null
+  }
+
   async function refrescar() {
     setCargando(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/fenix-conversaciones')
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'No se pudo refrescar')
-      setConversaciones(data.conversaciones || [])
+      const frescas = await traerConversaciones()
+      if (!frescas) throw new Error('No se pudo refrescar')
+      setConversaciones(frescas)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo refrescar')
     } finally {
       setCargando(false)
     }
   }
+
+  // Polling silencioso -- sin spinner, sin tocar `error` (un fallo puntual
+  // de red no debe interrumpir al admin a mitad de una respuesta manual);
+  // simplemente lo reintenta el siguiente ciclo. Se pausa solo si el admin
+  // apaga el toggle "En vivo".
+  useEffect(() => {
+    if (!enVivo) return
+    const id = setInterval(async () => {
+      const frescas = await traerConversaciones()
+      if (frescas) setConversaciones(frescas)
+    }, INTERVALO_POLLING_MS)
+    return () => clearInterval(id)
+  }, [enVivo])
+
+  // Autoscroll al fondo cuando llegan mensajes nuevos a la conversación
+  // abierta -- sin esto, "tiempo real" seguiría sintiéndose manual porque
+  // el mensaje nuevo llegaría fuera de la vista hasta que el admin bajara
+  // el scroll a mano.
+  useEffect(() => {
+    if (!mensajesRef.current) return
+    mensajesRef.current.scrollTop = mensajesRef.current.scrollHeight
+  }, [seleccionada?.historial.length])
 
   async function togglePausa(c: Conversacion) {
     const nuevoValor = !c.bot_pausado
@@ -156,13 +201,27 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
             </div>
             <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Conversaciones</h1>
           </div>
-          <button onClick={refrescar} disabled={cargando} style={{
-            padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
-            background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
-            cursor: cargando ? 'default' : 'pointer', fontFamily: 'inherit',
-          }}>
-            {cargando ? 'Actualizando…' : '🔄 Actualizar'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setEnVivo((v) => !v)}
+              title={enVivo ? `Actualiza sola cada ${INTERVALO_POLLING_MS / 1000}s -- clic para pausar` : 'Actualización automática pausada -- clic para reanudar'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '10px',
+                border: '1px solid #e2e8f0', background: '#fff', color: enVivo ? '#16a34a' : '#94a3b8',
+                fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: enVivo ? '#22c55e' : '#cbd5e1', flexShrink: 0 }} />
+              {enVivo ? 'En vivo' : 'Pausado'}
+            </button>
+            <button onClick={refrescar} disabled={cargando} style={{
+              padding: '9px 16px', borderRadius: '10px', border: '1px solid #e2e8f0',
+              background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
+              cursor: cargando ? 'default' : 'pointer', fontFamily: 'inherit',
+            }}>
+              {cargando ? 'Actualizando…' : '🔄 Actualizar'}
+            </button>
+          </div>
         </div>
 
         {/* Métricas */}
@@ -371,7 +430,7 @@ export function FenixConversacionesClient({ initialConversaciones }: { initialCo
                   </div>
                 )}
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                <div ref={mensajesRef} style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
                   {seleccionada.historial.length === 0 ? (
                     <p style={{ fontSize: '12.5px', color: '#7c8489', textAlign: 'center', margin: 'auto 0' }}>
                       Todavía no hay mensajes en esta conversación.
